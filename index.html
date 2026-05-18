@@ -253,8 +253,8 @@
       </div>
     </div>
     <div class="filter-bar">
-      <div class="filter-chip active" onclick="filterPeptides('all', this)">All</div>
-      <div class="filter-chip" onclick="filterPeptides('Active', this)">Active</div>
+      <div class="filter-chip" onclick="filterPeptides('all', this)">All</div>
+      <div class="filter-chip active" onclick="filterPeptides('Active', this)">Active</div>
       <div class="filter-chip" onclick="filterPeptides('Paused', this)">Paused</div>
       <div class="filter-chip" onclick="filterPeptides('On Order', this)">On Order</div>
       <div class="filter-chip" onclick="filterPeptides('Deferred', this)">Deferred</div>
@@ -363,7 +363,7 @@ const BASE = 'appmHDG4TGT1xy6R6';
 const TABLES = { peptides: 'tblMs6YRdP4wkndUp', supplements: 'tblSnkc0Gu2BzGACP', dailyLog: 'tblaYuZjl4Pu4nKxS', pricing: 'tblnW21TLSqgVerwQ', vendors: 'tblI0nfBBuHXjp3KT' };
 
 let data = { peptides: [], supplements: [] };
-let currentPepFilter = 'all';
+let currentPepFilter = 'Active';
 let currentSuppFilter = 'all';
 
 async function fetchTable(tableId) {
@@ -550,8 +550,8 @@ function renderPeptides(filter) {
     </tr>`).join('')}
     </tbody></table>`;
   }
-  const amPeps = records.filter(r => !getField(r,'Timing').toLowerCase().includes('night'));
-  const pmPeps = records.filter(r => getField(r,'Timing').toLowerCase().includes('night'));
+  const amPeps = records.filter(r => { const t = getField(r,'Timing'); return t && !t.toLowerCase().includes('night'); });
+  const pmPeps = records.filter(r => { const t = getField(r,'Timing'); return t && t.toLowerCase().includes('night'); });
   const otherPeps = records.filter(r => !getField(r,'Timing'));
   let html = '';
   if (amPeps.length) html += `<div class="table-wrap"><div class="timing-header">☀ Morning</div>${pepTableHTML(amPeps)}</div>`;
@@ -769,7 +769,7 @@ function renderPricing() {
       </div>
       <div class="table-wrap" style="border-radius:0 0 8px 8px;margin:0">
         <table class="data-table">
-          <thead><tr><th>Vendor</th><th>Vial Size</th><th>Price</th><th>$/mg</th><th>In Stock</th><th>Update</th></tr></thead>
+          <thead><tr><th>Vendor</th><th>Vial Size</th><th>Price</th><th>$/mg</th><th>In Stock</th><th>Update</th><th></th></tr></thead>
           <tbody>
             ${rows.map(r => {
               const ppm = r['Price'] && r['Vial Size MG'] ? (r['Price'] / r['Vial Size MG']).toFixed(2) : null;
@@ -786,6 +786,7 @@ function renderPricing() {
                     id="pinput-${r['_id']}">
                   <button class="price-check-btn" onclick="updatePrice('${r['_id']}',${r['Vial Size MG']||0})">Save</button>
                 </div></td>
+                <td>${r['URL'] ? `<button class="price-check-btn" onclick="window.open('${r['URL']}','_blank')">↗</button>` : ''}</td>
               </tr>`;
             }).join('')}
           </tbody>
