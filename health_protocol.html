@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Health Protocol</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f0f4f8;
+    --surface: #ffffff;
+    --surface2: #f8fafc;
+    --border: #e2e8f0;
+    --accent: #1a56db;
+    --accent-light: #ebf2ff;
+    --accent-border: #bfdbfe;
+    --text: #1e293b;
+    --muted: #64748b;
+    --green: #166534;
+    --green-bg: #dcfce7;
+    --amber: #92400e;
+    --amber-bg: #fef3c7;
+    --blue: #1e40af;
+    --blue-bg: #dbeafe;
+    --gray: #4b5563;
+    --gray-bg: #f3f4f6;
+    --red: #991b1b;
+    --red-bg: #fee2e2;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  /* NAV */
+  nav { display: flex; align-items: center; justify-content: space-between; padding: 0 24px; height: 56px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--surface); z-index: 100; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+  .nav-logo { font-family: 'DM Mono', monospace; font-size: 12px; font-weight: 500; color: var(--accent); letter-spacing: 2px; text-transform: uppercase; }
+  .nav-tabs { display: flex; gap: 2px; }
+  .nav-tab { background: none; border: none; color: var(--muted); font-family: 'DM Sans', sans-serif; font-size: 13px; padding: 7px 14px; border-radius: 6px; cursor: pointer; transition: all 0.15s; font-weight: 400; }
+  .nav-tab:hover { color: var(--text); background: var(--surface2); }
+  .nav-tab.active { color: var(--accent); background: var(--accent-light); font-weight: 500; }
+  .nav-right { display: flex; align-items: center; gap: 10px; }
+  .status-dot { width: 7px; height: 7px; border-radius: 50%; background: #d1d5db; flex-shrink: 0; }
+  .status-dot.online { background: #16a34a; box-shadow: 0 0 0 2px #dcfce7; }
+  .sync-btn { background: var(--surface); border: 1px solid var(--border); color: var(--muted); font-size: 12px; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-family: 'DM Mono', monospace; transition: all 0.15s; }
+  .sync-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* MAIN */
+  main { max-width: 1100px; margin: 0 auto; padding: 24px; }
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* DASHBOARD */
+  .dash-header { margin-bottom: 24px; }
+  .dash-header h1 { font-size: 26px; font-weight: 300; color: var(--text); letter-spacing: -0.3px; }
+  .dash-header h1 span { color: var(--accent); font-weight: 600; }
+  .dash-header p { color: var(--muted); font-size: 12px; margin-top: 4px; font-family: 'DM Mono', monospace; }
+  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; }
+  .stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; font-family: 'DM Mono', monospace; margin-bottom: 8px; }
+  .stat-value { font-size: 30px; font-weight: 300; color: var(--text); }
+  .stat-value.green { color: #16a34a; }
+  .stat-value.blue { color: var(--accent); }
+  .stat-value.amber { color: #d97706; }
+  .dash-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .dash-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; }
+  .dash-card h3 { font-size: 11px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--muted); font-family: 'DM Mono', monospace; margin-bottom: 16px; }
+  .quick-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .quick-item:last-child { border-bottom: none; }
+  .compound-name { font-size: 13px; font-weight: 500; color: var(--text); }
+  .compound-sub { font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; margin-top: 2px; }
+
+  /* BADGES */
+  .badge { font-size: 10px; padding: 2px 8px; border-radius: 20px; font-family: 'DM Mono', monospace; font-weight: 500; white-space: nowrap; }
+  .badge-active { background: var(--green-bg); color: var(--green); }
+  .badge-paused { background: var(--gray-bg); color: var(--gray); }
+  .badge-tbd { background: var(--amber-bg); color: var(--amber); }
+  .badge-onorder { background: var(--blue-bg); color: var(--blue); }
+  .badge-deferred { background: var(--gray-bg); color: #9ca3af; }
+
+  /* SECTION */
+  .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  .section-header h2 { font-size: 18px; font-weight: 500; color: var(--text); }
+  .print-btn { background: var(--accent); color: #fff; border: none; font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 500; padding: 7px 16px; border-radius: 6px; cursor: pointer; }
+  .print-btn:hover { background: #1e40af; }
+
+  /* TABLES */
+  .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-bottom: 16px; }
+  .timing-header { background: var(--accent-light); padding: 8px 14px; font-size: 11px; font-family: 'DM Mono', monospace; color: var(--accent); letter-spacing: 1.5px; text-transform: uppercase; border-bottom: 1px solid var(--accent-border); font-weight: 500; }
+  .data-table { width: 100%; border-collapse: collapse; }
+  .data-table th { font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); font-family: 'DM Mono', monospace; padding: 9px 14px; text-align: left; border-bottom: 1px solid var(--border); font-weight: 400; background: var(--surface2); }
+  .data-table td { padding: 10px 14px; border-bottom: 1px solid var(--border); font-size: 13px; vertical-align: middle; }
+  .data-table tr:last-child td { border-bottom: none; }
+  .data-table tr:hover td { background: #fafbfc; }
+
+  /* FILTER BAR */
+  .filter-bar { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
+  .filter-chip { background: var(--surface); border: 1px solid var(--border); color: var(--muted); font-size: 11px; padding: 5px 12px; border-radius: 20px; cursor: pointer; transition: all 0.15s; font-family: 'DM Mono', monospace; }
+  .filter-chip:hover, .filter-chip.active { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+
+  /* WARNING BAR */
+  .warning-bar { background: #fffbeb; border: 1px solid #fcd34d; border-radius: 8px; padding: 10px 14px; margin-bottom: 16px; font-size: 11px; color: #92400e; font-family: 'DM Mono', monospace; display: flex; gap: 20px; flex-wrap: wrap; }
+
+  /* TRACKER */
+  .week-selector { display: flex; gap: 8px; margin-bottom: 16px; }
+  .week-btn { background: var(--surface); border: 1px solid var(--border); color: var(--muted); font-size: 12px; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-family: 'DM Mono', monospace; transition: all 0.15s; }
+  .week-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .tracker-table { width: 100%; border-collapse: collapse; }
+  .tracker-table th { font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); font-family: 'DM Mono', monospace; padding: 8px; text-align: center; border-bottom: 1px solid var(--border); font-weight: 400; background: var(--surface2); }
+  .tracker-table th:first-child { text-align: left; min-width: 200px; padding-left: 14px; }
+  .tracker-table td { padding: 7px 8px; border-bottom: 1px solid var(--border); text-align: center; vertical-align: middle; }
+  .tracker-table td:first-child { text-align: left; padding-left: 14px; }
+  .tracker-table tr:hover td { background: #fafbfc; }
+  .tracker-section td { background: var(--accent-light); color: var(--accent); font-size: 10px; text-transform: uppercase; letter-spacing: 1.2px; font-weight: 500; text-align: left; padding: 6px 14px; font-family: 'DM Mono', monospace; }
+  .check-box { width: 22px; height: 22px; border: 1px solid var(--border); border-radius: 4px; margin: 0 auto; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; font-size: 10px; font-family: 'DM Mono', monospace; font-weight: 500; color: var(--muted); }
+  .check-box:hover { border-color: var(--accent); }
+  .check-box.checked { background: var(--accent-light); border-color: var(--accent); color: var(--accent); }
+
+  /* DAILY LOG */
+  .log-form { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 24px; margin-bottom: 20px; }
+  .log-form h3 { font-size: 11px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--muted); font-family: 'DM Mono', monospace; margin-bottom: 20px; }
+  .form-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 20px; }
+  .form-field label { font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; display: block; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .form-field input, .form-field select { background: var(--surface2); border: 1px solid var(--border); color: var(--text); font-size: 13px; padding: 8px 10px; border-radius: 6px; width: 100%; font-family: 'DM Sans', sans-serif; outline: none; }
+  .form-field input:focus, .form-field select:focus { border-color: var(--accent); }
+  .save-btn { background: var(--accent); color: #fff; border: none; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; padding: 9px 22px; border-radius: 6px; cursor: pointer; }
+  .save-btn:hover { background: #1e40af; }
+  .save-status { margin-left: 12px; font-size: 11px; font-family: 'DM Mono', monospace; color: var(--muted); }
+
+  /* LOADING */
+  .loading { text-align: center; padding: 50px; color: var(--muted); font-family: 'DM Mono', monospace; font-size: 13px; }
+  .loading-dot { display: inline-block; animation: pulse 1s infinite; }
+  .loading-dot:nth-child(2) { animation-delay: 0.2s; }
+  .loading-dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes pulse { 0%, 100% { opacity: 0.2; } 50% { opacity: 1; } }
+
+  /* PRINT */
+  @media print {
+    nav, .filter-bar, .week-selector, .nav-right, .warning-bar,
+    .filter-chip, .week-btn, .print-btn { display: none !important; }
+    body { background: #fff; margin: 0; }
+    .view { display: none !important; }
+    .view.active { display: block !important; }
+    th span { display: none !important; }
+    .stats-grid { display: grid !important; grid-template-columns: repeat(4,1fr); gap: 8px; margin-bottom: 16px; }
+    .stat-card { border: 1px solid #ccc !important; padding: 10px; border-radius: 4px; }
+    .dash-card { border: 1px solid #ccc !important; padding: 12px; border-radius: 4px; break-inside: avoid; }
+    .table-wrap { border: 1px solid #ccc !important; break-inside: avoid; margin-bottom: 12px; border-radius: 0; }
+    .timing-header { background: #ebf2ff !important; color: #1a56db !important; font-weight: 600; padding: 5px 10px; font-size: 10px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .tracker-section td { background: #ebf2ff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    td, th { font-size: 10px !important; padding: 5px 8px !important; color: #000 !important; }
+    .compound-name { font-size: 10px !important; font-weight: 600; }
+    .compound-sub { font-size: 9px !important; color: #555 !important; }
+    .quick-item { padding: 5px 0 !important; }
+    .badge { font-size: 9px !important; padding: 1px 5px !important; }
+    .badge-active { background: #dcfce7 !important; color: #166534 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .badge-paused { background: #f3f4f6 !important; color: #4b5563 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .badge-tbd { background: #fef3c7 !important; color: #92400e !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .badge-onorder { background: #dbeafe !important; color: #1e40af !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .badge-deferred { background: #f3f4f6 !important; color: #9ca3af !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .check-box { border: 1px solid #ccc !important; width: 16px !important; height: 16px !important; font-size: 8px !important; }
+    h2 { font-size: 13px !important; margin-bottom: 8px; }
+    .section-header { margin-bottom: 8px; }
+  }
+
+  @media (max-width: 768px) {
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    .dash-grid { grid-template-columns: 1fr; }
+    .form-grid { grid-template-columns: 1fr 1fr; }
+    nav { flex-wrap: wrap; gap: 8px; height: auto; padding: 12px 16px; }
+    .nav-tabs { order: 3; width: 100%; overflow-x: auto; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">Health Protocol</div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showView('dashboard', event)">Dashboard</button>
+    <button class="nav-tab" onclick="showView('peptides', event)">Peptides</button>
+    <button class="nav-tab" onclick="showView('supplements', event)">Supplements</button>
+    <button class="nav-tab" onclick="showView('tracker', event)">Tracker</button>
+    <button class="nav-tab" onclick="showView('log', event)">Daily Log</button>
+    <button class="nav-tab" onclick="showView('printlist', event)">Print List</button>
+  </div>
+  <div class="nav-right">
+    <div class="status-dot" id="statusDot"></div>
+    <button class="sync-btn" onclick="loadAll()">↻ Sync</button>
+  </div>
+</nav>
+
+<main>
+  <!-- DASHBOARD -->
+  <div id="view-dashboard" class="view active">
+    <div class="dash-header" style="display:flex;justify-content:space-between;align-items:flex-start">
+      <div>
+        <h1>Good <span id="greeting"></span>, Mike</h1>
+        <p id="todayDate"></p>
+      </div>
+      <button class="print-btn" onclick="window.print()">Print</button>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-label">Active Peptides</div><div class="stat-value green" id="stat-active-peptides">—</div></div>
+      <div class="stat-card"><div class="stat-label">Active Supplements</div><div class="stat-value green" id="stat-active-supps">—</div></div>
+      <div class="stat-card"><div class="stat-label">On Order</div><div class="stat-value blue" id="stat-onorder">—</div></div>
+      <div class="stat-card"><div class="stat-label">Paused</div><div class="stat-value amber" id="stat-paused">—</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;align-items:start">
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <div class="dash-card">
+          <h3>☀ Morning Peptides</h3>
+          <div id="dash-pep-am"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
+        </div>
+        <div class="dash-card">
+          <h3>🌙 Night Peptides</h3>
+          <div id="dash-pep-pm"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <div class="dash-card">
+          <h3>☀ Morning Supplements</h3>
+          <div id="dash-supps-am"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
+        </div>
+        <div class="dash-card">
+          <h3>🍽 Dinner Supplements</h3>
+          <div id="dash-supps-din"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
+        </div>
+      </div>
+      <div class="dash-card">
+        <h3>🌙 Night Supplements</h3>
+        <div id="dash-supps-pm"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PEPTIDES -->
+  <div id="view-peptides" class="view">
+    <div class="section-header">
+      <h2>Peptides & Compounds</h2>
+      <div style="display:flex;gap:8px">
+        <button class="print-btn" onclick="window.print()">Print</button>
+      </div>
+    </div>
+    <div class="filter-bar">
+      <div class="filter-chip active" onclick="filterPeptides('all', this)">All</div>
+      <div class="filter-chip" onclick="filterPeptides('Active', this)">Active</div>
+      <div class="filter-chip" onclick="filterPeptides('Paused', this)">Paused</div>
+      <div class="filter-chip" onclick="filterPeptides('On Order', this)">On Order</div>
+      <div class="filter-chip" onclick="filterPeptides('Deferred', this)">Deferred</div>
+    </div>
+    <div id="peptides-content"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
+  </div>
+
+  <!-- SUPPLEMENTS -->
+  <div id="view-supplements" class="view">
+    <div class="section-header">
+      <h2>Supplement Protocol</h2>
+      <div style="display:flex;gap:8px">
+        <button class="print-btn" onclick="window.print()">Print</button>
+      </div>
+    </div>
+    <div class="warning-bar">
+      <span>⚠ Kangen water: Stop 30 min BEFORE · Resume 60 min AFTER</span>
+      <span>⚠ Anastrozole: Day AFTER TRT injection only (Tues/Fri)</span>
+      <span>⚠ Seed DS-01: Take FIRST, 30 min before food</span>
+      <span>⚠ LDN: No opioids within 4–6 hrs</span>
+    </div>
+    <div class="filter-bar">
+      <div class="filter-chip active" onclick="filterSupps('all', this)">All</div>
+      <div class="filter-chip" onclick="filterSupps('Active', this)">Active</div>
+      <div class="filter-chip" onclick="filterSupps('Paused', this)">Paused</div>
+      <div class="filter-chip" onclick="filterSupps('TBD', this)">TBD</div>
+    </div>
+    <div id="supps-content"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
+  </div>
+
+  <!-- TRACKER -->
+  <div id="view-tracker" class="view">
+    <div class="section-header">
+      <h2>Weekly Peptide Tracker</h2>
+      <button class="print-btn" onclick="window.print()">Print</button>
+    </div>
+    <div class="week-selector" id="weekSelector"></div>
+    <div class="table-wrap">
+      <div id="tracker-content"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
+    </div>
+  </div>
+
+  <!-- DAILY LOG -->
+  <div id="view-log" class="view">
+    <div class="section-header"><h2>Daily Log</h2></div>
+    <div class="log-form">
+      <h3>Log Today — <span id="log-date"></span></h3>
+      <div class="form-grid">
+        <div class="form-field"><label>Weight (lbs)</label><input type="number" id="log-weight" placeholder="0.0" step="0.1"></div>
+        <div class="form-field"><label>Deep Sleep (min)</label><input type="number" id="log-deep" placeholder="0"></div>
+        <div class="form-field"><label>Total Sleep (hrs)</label><input type="number" id="log-sleep" placeholder="0.0" step="0.1"></div>
+        <div class="form-field"><label>HRV</label><input type="number" id="log-hrv" placeholder="0"></div>
+        <div class="form-field"><label>Wakeups</label><input type="number" id="log-wakeups" placeholder="0"></div>
+        <div class="form-field"><label>Energy (1–10)</label><input type="number" id="log-energy" placeholder="0" min="1" max="10"></div>
+        <div class="form-field"><label>Cortisol Feel (1–10)</label><input type="number" id="log-cortisol" placeholder="0" min="1" max="10"></div>
+        <div class="form-field"><label>Mood</label>
+          <select id="log-mood">
+            <option value="">Select...</option>
+            <option value="Good">Good</option>
+            <option value="OK">OK</option>
+            <option value="Poor">Poor</option>
+          </select>
+        </div>
+      </div>
+      <button class="save-btn" onclick="saveLog()">Save to Airtable</button>
+      <span class="save-status" id="log-save-status"></span>
+    </div>
+  </div>
+  <!-- PRINT LIST -->
+  <div id="view-printlist" class="view">
+    <div class="section-header">
+      <h2>Active Protocol — Print List</h2>
+      <button class="print-btn" onclick="window.print()">Print</button>
+    </div>
+    <div id="printlist-content"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
+  </div>
+</main>
+
+<script>
+let TOKEN = localStorage.getItem('airtable_token');
+if (!TOKEN) {
+  TOKEN = prompt('Enter your Airtable API token:');
+  if (TOKEN) localStorage.setItem('airtable_token', TOKEN);
+}
+const BASE = 'appmHDG4TGT1xy6R6';
+const TABLES = { peptides: 'tblMs6YRdP4wkndUp', supplements: 'tblSnkc0Gu2BzGACP', dailyLog: 'tblaYuZjl4Pu4nKxS' };
+
+let data = { peptides: [], supplements: [] };
+let currentPepFilter = 'all';
+let currentSuppFilter = 'all';
+
+async function fetchTable(tableId) {
+  const res = await fetch(`https://api.airtable.com/v0/${BASE}/${tableId}?pageSize=100`, {
+    headers: { Authorization: `Bearer ${TOKEN}` }
+  });
+  const json = await res.json();
+  return json.records || [];
+}
+
+function renderPrintList() {
+  const activePep = data.peptides.filter(r => getField(r,'Status') === 'Active');
+  const amPep = activePep.filter(r => !getField(r,'Timing').toLowerCase().includes('night'));
+  const pmPep = activePep.filter(r => getField(r,'Timing').toLowerCase().includes('night'));
+  const activeSupp = data.supplements.filter(r => getField(r,'SuppStatus') === 'Active');
+
+  let html = '';
+
+  // Morning Peptides
+  if (amPep.length) {
+    html += `<div class="table-wrap"><div class="timing-header">☀ Morning Peptides</div>
+      <table class="data-table"><thead><tr><th>Compound</th><th>Dose</th><th>Frequency</th><th>Source</th></tr></thead><tbody>
+      ${amPep.map(r => `<tr>
+        <td><div class="compound-name">${getField(r,'Compound')}</div></td>
+        <td style="font-family:'DM Mono',monospace;font-size:12px">${getField(r,'Dose')}</td>
+        <td style="font-family:'DM Mono',monospace;font-size:12px">${getField(r,'Frequency')}</td>
+        <td style="font-size:12px;color:var(--muted)">${getField(r,'Source')}</td>
+      </tr>`).join('')}</tbody></table></div>`;
+  }
+
+  // Night Peptides
+  if (pmPep.length) {
+    html += `<div class="table-wrap"><div class="timing-header">🌙 Night Peptides</div>
+      <table class="data-table"><thead><tr><th>Compound</th><th>Dose</th><th>Frequency</th><th>Source</th></tr></thead><tbody>
+      ${pmPep.map(r => `<tr>
+        <td><div class="compound-name">${getField(r,'Compound')}</div></td>
+        <td style="font-family:'DM Mono',monospace;font-size:12px">${getField(r,'Dose')}</td>
+        <td style="font-family:'DM Mono',monospace;font-size:12px">${getField(r,'Frequency')}</td>
+        <td style="font-size:12px;color:var(--muted)">${getField(r,'Source')}</td>
+      </tr>`).join('')}</tbody></table></div>`;
+  }
+
+  // Supplements by timing
+  ['Morning','Dinner','Night'].forEach(t => {
+    const icon = t === 'Morning' ? '☀' : t === 'Dinner' ? '🍽' : '🌙';
+    const group = activeSupp.filter(r => getField(r,'SuppTiming') === t);
+    if (!group.length) return;
+    html += `<div class="table-wrap"><div class="timing-header">${icon} ${t} Supplements</div>
+      <table class="data-table"><thead><tr><th>Supplement</th><th>Dose</th><th>Brand</th></tr></thead><tbody>
+      ${group.map(r => `<tr>
+        <td><div class="compound-name">${getField(r,'Supplement')}</div></td>
+        <td style="font-family:'DM Mono',monospace;font-size:12px">${getField(r,'SuppDose')}</td>
+        <td style="font-size:12px;color:var(--muted)">${getField(r,'Brand')}</td>
+      </tr>`).join('')}</tbody></table></div>`;
+  });
+
+  document.getElementById('printlist-content').innerHTML = html || '<p style="color:var(--muted)">No data loaded yet.</p>';
+}
+
+async function loadAll() {
+  document.getElementById('statusDot').className = 'status-dot';
+  try {
+    const [p, s] = await Promise.all([fetchTable(TABLES.peptides), fetchTable(TABLES.supplements)]);
+    data.peptides = p;
+    data.supplements = s;
+    document.getElementById('statusDot').className = 'status-dot online';
+    renderDashboard();
+    renderPeptides('all');
+    renderSupplements('all');
+    renderTracker();
+    renderPrintList();
+  } catch(e) {
+    document.getElementById('statusDot').className = 'status-dot';
+    console.error(e);
+  }
+}
+
+function getField(record, name) {
+  const f = record.fields;
+  const map = {
+    'Compound': 'fldeH5uyKXDFPZbHK', 'Dose': 'fldN7WOCx7ETJwmrB', 'Frequency': 'fldyExNQXycfMjd1S',
+    'Status': 'fldeCBOtYYp6BtAfh', 'Timing': 'fld9J0U5iSDzyaaun', 'Purpose': 'fld2i0PxRiYnId3q6',
+    'Source': 'fldzRXIUFco5FoRup', 'Vial Size': 'fldIUJdHmGNmiKNCg', 'Notes': 'fld3I1yzis1GsIDig',
+    'Supplement': 'fldbdmZ3deAhtMhQV', 'SuppDose': 'fldITqzZfaK0eHv8X', 'SuppPurpose': 'fldEtFsIjizvB0TMM',
+    'Brand': 'fldUV7BbEPgXp5aiN', 'Product': 'fldyJ8YmlBlJLYdoi', 'SuppStatus': 'fld1c0IdKsrBWCBkc',
+    'SuppTiming': 'fldZHrKEWxpN9eNi2', 'Category': 'fldJL7lIH8Yrzs33g'
+  };
+  // Supp fields may return by name instead of ID
+  const suppNameMap = {
+    'SuppStatus': 'Status', 'SuppTiming': 'Timing', 'SuppDose': 'Dose',
+    'SuppPurpose': 'Purpose', 'Supplement': 'Supplement', 'Brand': 'Brand', 'Product': 'Product'
+  };
+  const val = f[map[name]] || f[suppNameMap[name]] || f[name];
+  if (!val) return '';
+  if (typeof val === 'object' && val.name) return val.name;
+  if (Array.isArray(val)) return val.map(v => typeof v === 'object' ? v.name : v).join(', ');
+  return String(val);
+}
+
+function badge(status) {
+  const s = (status || '').toLowerCase();
+  if (s === 'active') return `<span class="badge badge-active">Active</span>`;
+  if (s === 'paused') return `<span class="badge badge-paused">Paused</span>`;
+  if (s === 'on order') return `<span class="badge badge-onorder">On Order</span>`;
+  if (s === 'deferred') return `<span class="badge badge-deferred">Deferred</span>`;
+  if (s === 'tbd') return `<span class="badge badge-tbd">TBD</span>`;
+  return `<span class="badge badge-paused">${status}</span>`;
+}
+
+function renderDashboard() {
+  const activePep = data.peptides.filter(r => getField(r,'Status') === 'Active');
+  const allSupp = data.supplements;
+  const activeSupp = allSupp.filter(r => (getField(r,'SuppStatus') || '').toLowerCase() === 'active');
+  const onOrder = [...data.peptides, ...allSupp].filter(r => getField(r,'Status') === 'On Order' || getField(r,'SuppStatus') === 'On Order');
+  const paused = data.peptides.filter(r => getField(r,'Status') === 'Paused');
+
+  document.getElementById('stat-active-peptides').textContent = activePep.length;
+  document.getElementById('stat-active-supps').textContent = activeSupp.length;
+  document.getElementById('stat-onorder').textContent = onOrder.length;
+  document.getElementById('stat-paused').textContent = paused.length;
+
+  const amPep = activePep.filter(r => !getField(r,'Timing').toLowerCase().includes('night'));
+  const pmPep = activePep.filter(r => getField(r,'Timing').toLowerCase().includes('night'));
+  document.getElementById('dash-pep-am').innerHTML = amPep.map(r => `
+    <div class="quick-item">
+      <div><div class="compound-name">${getField(r,'Compound')}</div><div class="compound-sub">${getField(r,'Dose')} · ${getField(r,'Frequency')}</div></div>
+      ${badge('Active')}
+    </div>`).join('') || '<p style="color:var(--muted);font-size:12px;padding:4px 0">None</p>';
+  document.getElementById('dash-pep-pm').innerHTML = pmPep.map(r => `
+    <div class="quick-item">
+      <div><div class="compound-name">${getField(r,'Compound')}</div><div class="compound-sub">${getField(r,'Dose')} · ${getField(r,'Frequency')}</div></div>
+      ${badge('Active')}
+    </div>`).join('') || '<p style="color:var(--muted);font-size:12px;padding:4px 0">None</p>';
+
+  const activeSupps = allSupp.filter(r => getField(r,'SuppStatus') === 'Active');
+  ['Morning','Night','Dinner'].forEach((timing, i) => {
+    const ids = ['dash-supps-am','dash-supps-pm','dash-supps-din'];
+    const group = activeSupps.filter(r => getField(r,'SuppTiming') === timing);
+    document.getElementById(ids[i]).innerHTML = group.map(r => `
+      <div class="quick-item">
+        <div><div class="compound-name">${getField(r,'Supplement')}</div><div class="compound-sub">${getField(r,'SuppDose')}</div></div>
+        ${badge(getField(r,'SuppStatus'))}
+      </div>`).join('') || '<p style="color:var(--muted);font-size:12px;padding:4px 0">None</p>';
+  });
+}
+
+let pepSort = {col: 'Compound', dir: 1};
+function sortPep(col) {
+  if (pepSort.col === col) pepSort.dir *= -1;
+  else { pepSort.col = col; pepSort.dir = 1; }
+  const f = document.querySelector('#peptides-content .filter-chip.active');
+  renderPeptides(currentPepFilter || 'all');
+}
+function pepSortIcon(col) {
+  if (pepSort.col !== col) return ' <span style="color:#d1d5db">⇅</span>';
+  return pepSort.dir === 1 ? ' <span style="color:var(--accent)">↑</span>' : ' <span style="color:var(--accent)">↓</span>';
+}
+function renderPeptides(filter) {
+  currentPepFilter = filter;
+  let records = data.peptides;
+  if (filter !== 'all') records = records.filter(r => getField(r,'Status') === filter);
+  records = [...records].sort((a,b) => {
+    const av = getField(a, pepSort.col) || '';
+    const bv = getField(b, pepSort.col) || '';
+    return av.localeCompare(bv) * pepSort.dir;
+  });
+  const cols = ['Compound','Status','Timing','Frequency','Dose','Source'];
+  function pepTableHTML(rows) {
+    return `<table class="data-table"><thead><tr>
+      <th style="cursor:pointer" onclick="sortPep('Compound')">Compound${pepSortIcon('Compound')}</th>
+      <th style="cursor:pointer" onclick="sortPep('Dose')">Dose${pepSortIcon('Dose')}</th>
+      <th style="cursor:pointer" onclick="sortPep('Frequency')">Frequency${pepSortIcon('Frequency')}</th>
+      <th style="cursor:pointer" onclick="sortPep('Source')">Source${pepSortIcon('Source')}</th>
+      <th>Vial</th>
+      <th style="cursor:pointer" onclick="sortPep('Status')">Status${pepSortIcon('Status')}</th>
+    </tr></thead><tbody>
+    ${rows.map(r => `<tr>
+      <td><div class="compound-name">${getField(r,'Compound')}</div><div class="compound-sub">${getField(r,'Purpose')}</div></td>
+      <td style="font-family:'DM Mono',monospace;font-size:12px">${getField(r,'Dose')}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:12px">${getField(r,'Frequency')}</td>
+      <td style="font-size:12px;color:var(--muted)">${getField(r,'Source')}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)">${getField(r,'Vial Size')}</td>
+      <td>${badge(getField(r,'Status'))}</td>
+    </tr>`).join('')}
+    </tbody></table>`;
+  }
+  const amPeps = records.filter(r => !getField(r,'Timing').toLowerCase().includes('night'));
+  const pmPeps = records.filter(r => getField(r,'Timing').toLowerCase().includes('night'));
+  const otherPeps = records.filter(r => !getField(r,'Timing'));
+  let html = '';
+  if (amPeps.length) html += `<div class="table-wrap"><div class="timing-header">☀ Morning</div>${pepTableHTML(amPeps)}</div>`;
+  if (pmPeps.length) html += `<div class="table-wrap"><div class="timing-header">🌙 Night</div>${pepTableHTML(pmPeps)}</div>`;
+  if (otherPeps.length) html += `<div class="table-wrap"><div class="timing-header">○ Other</div>${pepTableHTML(otherPeps)}</div>`;
+  document.getElementById('peptides-content').innerHTML = html;
+}
+
+let suppSort = {col: 'Supplement', dir: 1};
+function sortSupp(col) {
+  if (suppSort.col === col) suppSort.dir *= -1;
+  else { suppSort.col = col; suppSort.dir = 1; }
+  renderSupplements(currentSuppFilter || 'all');
+}
+function suppSortIcon(col) {
+  if (suppSort.col !== col) return ' <span style="color:#d1d5db">⇅</span>';
+  return suppSort.dir === 1 ? ' <span style="color:var(--accent)">↑</span>' : ' <span style="color:var(--accent)">↓</span>';
+}
+function renderSupplements(filter) {
+  currentSuppFilter = filter;
+  let records = data.supplements;
+  if (filter !== 'all') records = records.filter(r => (getField(r,'SuppStatus')||'').toLowerCase() === filter.toLowerCase());
+  records = [...records].sort((a,b) => {
+    const av = getField(a, suppSort.col === 'Supplement' ? 'Supplement' : suppSort.col === 'Status' ? 'SuppStatus' : suppSort.col === 'Timing' ? 'SuppTiming' : suppSort.col === 'Dose' ? 'SuppDose' : suppSort.col === 'Brand' ? 'Brand' : 'Supplement') || '';
+    const bv = getField(b, suppSort.col === 'Supplement' ? 'Supplement' : suppSort.col === 'Status' ? 'SuppStatus' : suppSort.col === 'Timing' ? 'SuppTiming' : suppSort.col === 'Dose' ? 'SuppDose' : suppSort.col === 'Brand' ? 'Brand' : 'Supplement') || '';
+    return av.localeCompare(bv) * suppSort.dir;
+  });
+
+  const timings = ['Morning','Dinner','Night'];
+  let html = '';
+  timings.forEach(t => {
+    const group = records.filter(r => getField(r,'SuppTiming') === t);
+    if (!group.length) return;
+    const icon = t === 'Morning' ? '☀' : t === 'Dinner' ? '🍽' : '🌙';
+    html += `<div class="table-wrap">
+      <div class="timing-header">${icon} ${t}</div>
+      <table class="data-table"><thead><tr>
+        <th style="cursor:pointer" onclick="sortSupp('Supplement')">Supplement${suppSortIcon('Supplement')}</th>
+        <th style="cursor:pointer" onclick="sortSupp('Dose')">Dose${suppSortIcon('Dose')}</th>
+        <th>Purpose</th>
+        <th style="cursor:pointer" onclick="sortSupp('Brand')">Brand${suppSortIcon('Brand')}</th>
+        <th style="cursor:pointer" onclick="sortSupp('Status')">Status${suppSortIcon('Status')}</th>
+      </tr></thead><tbody>
+      ${group.map(r => `<tr>
+        <td><div class="compound-name">${getField(r,'Supplement')}</div><div class="compound-sub">${getField(r,'Product')}</div></td>
+        <td style="font-family:'DM Mono',monospace;font-size:12px">${getField(r,'SuppDose')}</td>
+        <td style="font-size:12px;color:var(--muted)">${getField(r,'SuppPurpose')}</td>
+        <td style="font-size:12px;color:var(--muted)">${getField(r,'Brand')}</td>
+        <td>${badge(getField(r,'SuppStatus'))}</td>
+      </tr>`).join('')}
+      </tbody></table></div>`;
+  });
+
+  const other = records.filter(r => !['Morning','Dinner','Night'].includes(getField(r,'SuppTiming')));
+  if (other.length) {
+    html += `<div class="table-wrap">
+      <div class="timing-header">○ Other / TBD</div>
+      <table class="data-table"><thead><tr>
+        <th style="cursor:pointer" onclick="sortSupp('Supplement')">Supplement${suppSortIcon('Supplement')}</th>
+        <th style="cursor:pointer" onclick="sortSupp('Dose')">Dose${suppSortIcon('Dose')}</th>
+        <th>Purpose</th>
+        <th style="cursor:pointer" onclick="sortSupp('Brand')">Brand${suppSortIcon('Brand')}</th>
+        <th style="cursor:pointer" onclick="sortSupp('Status')">Status${suppSortIcon('Status')}</th>
+      </tr></thead><tbody>
+      ${other.map(r => `<tr>
+        <td><div class="compound-name">${getField(r,'Supplement')}</div><div class="compound-sub">${getField(r,'Product')}</div></td>
+        <td style="font-family:'DM Mono',monospace;font-size:12px">${getField(r,'SuppDose')}</td>
+        <td style="font-size:12px;color:var(--muted)">${getField(r,'SuppPurpose')}</td>
+        <td style="font-size:12px;color:var(--muted)">${getField(r,'Brand')}</td>
+        <td>${badge(getField(r,'SuppStatus'))}</td>
+      </tr>`).join('')}
+      </tbody></table></div>`;
+  }
+
+  document.getElementById('supps-content').innerHTML = html || '<p style="color:var(--muted);padding:20px;font-family:DM Mono,monospace">No records found.</p>';
+}
+
+function renderTracker() {
+  const activePeps = data.peptides.filter(r => getField(r,'Status') === 'Active');
+  const morning = activePeps.filter(r => !getField(r,'Timing').toLowerCase().includes('night'));
+  const night = activePeps.filter(r => getField(r,'Timing').toLowerCase().includes('night'));
+  const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+
+  // Calculate Monday of current week
+  const today = new Date();
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+  const weekLabel = monday.toLocaleDateString('en-US', {month:'long', day:'numeric', year:'numeric'});
+
+  document.getElementById('weekSelector').innerHTML = [1,2,3,4].map(w =>
+    `<button class="week-btn ${w===1?'active':''}" onclick="selectWeek(this)">Week ${w}</button>`
+  ).join('');
+
+  let html = `<div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--muted);margin-bottom:10px">Week of ${weekLabel}</div>
+  <table class="tracker-table"><thead><tr>
+    <th>Compound / Dose</th>${days.map(d=>`<th>${d}</th>`).join('')}<th>Notes</th>
+  </tr></thead><tbody>`;
+
+  function lrCell() {
+    return `<td><div class="check-box" onclick="
+      var s=this.dataset.s||'0';
+      if(s==='0'){this.dataset.s='L';this.textContent='L';this.style.background='var(--accent-light)';this.style.borderColor='var(--accent)';this.style.color='var(--accent)';}
+      else if(s==='L'){this.dataset.s='R';this.textContent='R';this.style.background='#fef3c7';this.style.borderColor='#d97706';this.style.color='#92400e';}
+      else{this.dataset.s='0';this.textContent='';this.style.background='';this.style.borderColor='';this.style.color='';}
+    " style="margin:0 auto"></div></td>`;
+  }
+
+  if (morning.length) {
+    html += `<tr class="tracker-section"><td colspan="9">Morning</td></tr>`;
+    morning.forEach(r => {
+      html += `<tr><td><div class="compound-name">${getField(r,'Compound')}</div><div class="compound-sub">${getField(r,'Dose')}</div></td>
+        ${days.map(() => lrCell()).join('')}
+        <td></td></tr>`;
+    });
+  }
+  if (night.length) {
+    html += `<tr class="tracker-section"><td colspan="9">Night</td></tr>`;
+    night.forEach(r => {
+      html += `<tr><td><div class="compound-name">${getField(r,'Compound')}</div><div class="compound-sub">${getField(r,'Dose')}</div></td>
+        ${days.map(() => lrCell()).join('')}
+        <td></td></tr>`;
+    });
+  }
+
+  html += `</tbody></table>`;
+  document.getElementById('tracker-content').innerHTML = html;
+}
+
+function selectWeek(btn) {
+  document.querySelectorAll('.week-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderTracker();
+}
+
+function filterPeptides(f, el) {
+  el.closest('.filter-bar').querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  renderPeptides(f);
+}
+
+function filterSupps(f, el) {
+  el.closest('.filter-bar').querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  renderSupplements(f);
+}
+
+function showView(name, e) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('view-' + name).classList.add('active');
+  if (e && e.target) e.target.classList.add('active');
+}
+
+async function saveLog() {
+  const btn = document.querySelector('.save-btn');
+  const status = document.getElementById('log-save-status');
+  btn.disabled = true;
+  status.textContent = 'Saving...';
+  status.style.color = 'var(--muted)';
+
+  const fields = { 'fldSk3hNQJTDKOyfT': new Date().toISOString().split('T')[0] };
+  const weight = document.getElementById('log-weight').value;
+  const deep = document.getElementById('log-deep').value;
+  const sleep = document.getElementById('log-sleep').value;
+  const hrv = document.getElementById('log-hrv').value;
+  const wakeups = document.getElementById('log-wakeups').value;
+  const energy = document.getElementById('log-energy').value;
+  const cortisol = document.getElementById('log-cortisol').value;
+  const mood = document.getElementById('log-mood').value;
+
+  if (weight) fields['fldKTZ5ML0fnZV3oz'] = parseFloat(weight);
+  if (deep) fields['fld5PGt9ZdFgBzMAM'] = parseInt(deep);
+  if (sleep) fields['fldy1hM7kymJKN52E'] = parseFloat(sleep);
+  if (hrv) fields['fldwOxpL9uyMj5Q2a'] = parseInt(hrv);
+  if (wakeups) fields['fldjFJ8FystoDkLVX'] = parseInt(wakeups);
+  if (energy) fields['fldKMKVcqr1ggcB9g'] = parseInt(energy);
+  if (cortisol) fields['fldbHBrMOFLmn6Adj'] = parseInt(cortisol);
+  if (mood) fields['fldLJKxP7XNEnT293'] = mood;
+
+  try {
+    await fetch(`https://api.airtable.com/v0/${BASE}/${TABLES.dailyLog}`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ records: [{ fields }] })
+    });
+    status.textContent = '✓ Saved to Airtable';
+    status.style.color = '#16a34a';
+    document.querySelectorAll('.form-field input, .form-field select').forEach(i => i.value = '');
+    setTimeout(() => status.textContent = '', 3000);
+  } catch(e) {
+    status.textContent = '✗ Error saving';
+    status.style.color = '#dc2626';
+  }
+  btn.disabled = false;
+}
+
+// Init
+const hr = new Date().getHours();
+document.getElementById('greeting').textContent = hr < 12 ? 'morning' : hr < 17 ? 'afternoon' : 'evening';
+document.getElementById('todayDate').textContent = new Date().toLocaleDateString('en-US', {weekday:'long',year:'numeric',month:'long',day:'numeric'});
+document.getElementById('log-date').textContent = new Date().toLocaleDateString('en-US', {month:'long',day:'numeric',year:'numeric'});
+loadAll();
+</script>
+</body>
+</html>
