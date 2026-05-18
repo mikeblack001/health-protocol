@@ -1012,11 +1012,15 @@ async function updatePrice(recordId) {
     const today = new Date().toISOString().split('T')[0];
     const fields = { 'Price': newPrice, 'Last Update': today };
     if (newVial > 0) fields['Vial Size MG'] = newVial;
-    await fetch(`https://api.airtable.com/v0/${BASE}/${TABLES.pricing}/${recordId}`, {
+    const resp = await fetch(`https://api.airtable.com/v0/${BASE}/${TABLES.pricing}/${recordId}`, {
       method: 'PATCH',
       headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ fields })
     });
+    if (!resp.ok) {
+      const err = await resp.json();
+      throw new Error(JSON.stringify(err));
+    }
     const vialSize = newVial > 0 ? newVial : parseFloat(vialInput.placeholder) || 0;
     document.getElementById('pdisplay-' + recordId).textContent = '$' + newPrice.toFixed(2);
     if (vialSize > 0) document.getElementById('ppm-' + recordId).textContent = '$' + (newPrice / vialSize).toFixed(2);
@@ -1025,7 +1029,8 @@ async function updatePrice(recordId) {
     pricingData.forEach(r => { if (r.id === recordId) { r.fields['Price'] = newPrice; r.fields['Last Update'] = today; if (newVial > 0) r.fields['Vial Size MG'] = newVial; } });
     renderPricing();
   } catch(e) {
-    alert('Save failed');
+    alert('Save failed: ' + e.message);
+    console.error('updatePrice error:', e);
   }
   priceInput.disabled = false; vialInput.disabled = false;
 }
