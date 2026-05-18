@@ -857,7 +857,7 @@ function renderPricing() {
               const isBest = priced[bestIdx] && priced[bestIdx]['_id'] === r['_id'];
               return `<tr class="${isBest ? 'pricing-row-best' : ''}">
                 <td style="font-weight:${isBest ? '600' : '400'}">${r['Vendor'] || '—'}</td>
-                <td style="font-family:'DM Mono',monospace;font-size:12px">${r['Vial Size MG'] ? r['Vial Size MG'] + 'mg' : '—'}</td>
+                <td style="font-family:'DM Mono',monospace;font-size:12px" id="vdisplay-${r['_id']}">${r['Vial Size MG'] ? r['Vial Size MG'] + 'mg' : '—'}</td>
                 <td style="font-family:'DM Mono',monospace;font-size:12px" id="pdisplay-${r['_id']}">${r['Price'] ? '$' + r['Price'].toFixed(2) : '<span class=\"no-price\">—</span>'}</td>
                 <td style="font-family:'DM Mono',monospace;font-size:12px;color:${isBest ? 'var(--green)' : 'var(--text)'}" id="ppm-${r['_id']}">${ppm ? '$' + ppm : '—'}</td>
                 <td>${r['In Stock'] ? '<span style="color:var(--green)">✓</span>' : '<span style="color:var(--muted)">—</span>'}</td>
@@ -1027,7 +1027,9 @@ async function updatePrice(recordId) {
     priceInput.value = ''; priceInput.placeholder = newPrice.toFixed(2);
     if (newVial > 0) { vialInput.value = ''; vialInput.placeholder = newVial + 'mg'; }
     pricingData.forEach(r => { if (r.id === recordId) { r.fields['Price'] = newPrice; r.fields['Last Update'] = today; if (newVial > 0) r.fields['Vial Size MG'] = newVial; } });
-    renderPricing();
+    // Update vial display cell directly without full re-render
+    const vialDisplay = document.getElementById('vdisplay-' + recordId);
+    if (vialDisplay && newVial > 0) vialDisplay.textContent = newVial + 'mg';
   } catch(e) {
     alert('Save failed: ' + e.message);
     console.error('updatePrice error:', e);
