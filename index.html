@@ -739,16 +739,14 @@ function renderPricing() {
     data.peptides.filter(r => getField(r,'Status') === 'Active').forEach(r => activePeptides.add(getField(r,'Compound')));
   }
 
-  // Group by peptide
+  // Group by peptide — store record ID
   const groups = {};
   pricingData.forEach(r => {
-    const peptide = r.cellValuesByFieldId ? 
-      Object.values(r.fields || {}) : null;
     const f = r.fields || {};
     const name = f['Peptide'] || f[Object.keys(f)[0]] || 'Unknown';
     if (pricingFilter === 'active' && !activePeptides.has(name)) return;
     if (!groups[name]) groups[name] = [];
-    groups[name].push(f);
+    groups[name].push({...f, _id: r.id});
   });
 
   // Render
@@ -771,17 +769,23 @@ function renderPricing() {
       </div>
       <div class="table-wrap" style="border-radius:0 0 8px 8px;margin:0">
         <table class="data-table">
-          <thead><tr><th>Vendor</th><th>Vial Size</th><th>Price</th><th>$/mg</th><th>In Stock</th></tr></thead>
+          <thead><tr><th>Vendor</th><th>Vial Size</th><th>Price</th><th>$/mg</th><th>In Stock</th><th>Update</th></tr></thead>
           <tbody>
-            ${rows.map((r, i) => {
+            ${rows.map(r => {
               const ppm = r['Price'] && r['Vial Size MG'] ? (r['Price'] / r['Vial Size MG']).toFixed(2) : null;
-              const isBest = priced[bestIdx] === r;
+              const isBest = priced[bestIdx] && priced[bestIdx]['_id'] === r['_id'];
               return `<tr class="${isBest ? 'pricing-row-best' : ''}">
                 <td style="font-weight:${isBest ? '600' : '400'}">${r['Vendor'] || '—'}</td>
                 <td style="font-family:'DM Mono',monospace;font-size:12px">${r['Vial Size MG'] ? r['Vial Size MG'] + 'mg' : '—'}</td>
-                <td style="font-family:'DM Mono',monospace;font-size:12px">${r['Price'] ? '$' + r['Price'].toFixed(2) : '<span class="no-price">No price</span>'}</td>
-                <td style="font-family:'DM Mono',monospace;font-size:12px;color:${isBest ? 'var(--green)' : 'var(--text)'}">${ppm ? '$' + ppm : '—'}</td>
+                <td style="font-family:'DM Mono',monospace;font-size:12px" id="pdisplay-${r['_id']}">${r['Price'] ? '$' + r['Price'].toFixed(2) : '<span class=\"no-price\">—</span>'}</td>
+                <td style="font-family:'DM Mono',monospace;font-size:12px;color:${isBest ? 'var(--green)' : 'var(--text)'}" id="ppm-${r['_id']}">${ppm ? '$' + ppm : '—'}</td>
                 <td>${r['In Stock'] ? '<span style="color:var(--green)">✓</span>' : '<span style="color:var(--muted)">—</span>'}</td>
+                <td><div style="display:flex;gap:4px;align-items:center">
+                  <input type="number" step="0.01" min="0" placeholder="${r['Price'] ? r['Price'].toFixed(2) : '0.00'}"
+                    style="width:68px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;font-family:'DM Mono',monospace"
+                    id="pinput-${r['_id']}">
+                  <button class="price-check-btn" onclick="updatePrice('${r['_id']}',${r['Vial Size MG']||0})">Save</button>
+                </div></td>
               </tr>`;
             }).join('')}
           </tbody>
@@ -827,13 +831,14 @@ function renderVendors() {
   let rows = vendorsData.map(r => r.fields || {});
   if (vendorFilter !== 'all') rows = rows.filter(r => r['Tier'] === vendorFilter);
   rows.sort((a,b) => {
-    const tierOrder = {'Primary':0,'Secondary':1};
-    return (tierOrder[a['Tier']]||1) - (tierOrder[b['Tier']]||1);
+    let av = a[vendorSortCol] || '', bv = b[vendorSortCol] || '';
+    if (vendorSortCol === 'Tier') { const o = {'Primary':0,'Secondary':1}; av = o[av]||1; bv = o[bv]||1; }
+    return av < bv ? -vendorSortDir : av > bv ? vendorSortDir : 0;
   });
   if (!rows.length) { el.innerHTML = '<p style="color:var(--muted);padding:16px">No vendors found.</p>'; return; }
   el.innerHTML = `<div class="table-wrap">
     <table class="data-table">
-      <thead><tr><th>Vendor</th><th>Tier</th><th>Website</th><th>Status</th><th>Peptides Carried</th><th>Notes</th></tr></thead>
+      <thead><tr><th style="cursor:pointer" onclick="sortVendors('Vendor Name')">Vendor${vendorSortIcon('Vendor Name')}</th><th style="cursor:pointer" onclick="sortVendors('Tier')">Tier${vendorSortIcon('Tier')}</th><th>Website</th><th style="cursor:pointer" onclick="sortVendors('Status')">Status${vendorSortIcon('Status')}</th><th>Peptides Carried</th><th>Notes</th></tr></thead>
       <tbody>
         ${rows.map(r => `<tr>
           <td style="font-weight:500">${r['Vendor Name'] || r[Object.keys(r)[0]] || '—'}</td>
@@ -846,6 +851,45 @@ function renderVendors() {
       </tbody>
     </table>
   </div>`;
+}
+
+async function updatePrice(recordId, vialSize) {
+  const input = document.getElementById('pinput-' + recordId);
+  const newPrice = parseFloat(input.value);
+  if (!newPrice || newPrice <= 0) { alert('Enter a valid price'); return; }
+  input.disabled = true;
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    await fetch(`https://api.airtable.com/v0/${BASE}/${TABLES.pricing}/${recordId}`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fields: { 'Price': newPrice, 'Last Update': today } })
+    });
+    // Update display inline
+    document.getElementById('pdisplay-' + recordId).textContent = '$' + newPrice.toFixed(2);
+    if (vialSize > 0) document.getElementById('ppm-' + recordId).textContent = '$' + (newPrice / vialSize).toFixed(2);
+    input.value = '';
+    input.placeholder = newPrice.toFixed(2);
+    // Update local data and re-render best badge
+    pricingData.forEach(r => { if (r.id === recordId) { r.fields['Price'] = newPrice; r.fields['Last Update'] = today; } });
+    renderPricing();
+  } catch(e) {
+    alert('Save failed');
+  }
+  input.disabled = false;
+}
+
+let vendorSortCol = 'Tier', vendorSortDir = 1;
+
+function sortVendors(col) {
+  if (vendorSortCol === col) vendorSortDir *= -1;
+  else { vendorSortCol = col; vendorSortDir = 1; }
+  renderVendors();
+}
+
+function vendorSortIcon(col) {
+  if (vendorSortCol !== col) return '<span style="color:#ccc"> ↕</span>';
+  return vendorSortDir === 1 ? ' ↑' : ' ↓';
 }
 
 function showView(name, e) {
