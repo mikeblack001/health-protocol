@@ -314,6 +314,9 @@
       <button class="filter-btn active" onclick="filterPricing('all',this)">All</button>
       <button class="filter-btn" onclick="filterPricing('active',this)">Active Only</button>
       <button class="filter-btn" onclick="refreshPricing()">↻ Refresh</button>
+      <select id="pricing-med-filter" onchange="filterPricingByMed(this.value)" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface)">
+        <option value="">All Meds</option>
+      </select>
       <button class="filter-btn" onclick="showAddPricingModal()" style="margin-left:auto;background:var(--accent);color:#fff;border-color:var(--accent)">+ Add Row</button>
     </div>
     <div id="pricing-content"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
@@ -750,6 +753,7 @@ function filterSupps(f, el) {
 
 let pricingData = [];
 let pricingFilter = 'all';
+let pricingMedFilter = '';
 
 async function loadPricing() {
   const el = document.getElementById('pricing-content');
@@ -764,6 +768,7 @@ async function loadPricing() {
       offset = json.offset;
     } while (offset);
     pricingData = records;
+    populateMedDropdown();
     renderPricing();
   } catch(e) {
     el.innerHTML = '<p style="color:var(--red);padding:16px">Failed to load pricing data.</p>';
@@ -778,6 +783,19 @@ function filterPricing(f, btn) {
 }
 
 function refreshPricing() { loadPricing(); }
+
+function filterPricingByMed(med) {
+  pricingMedFilter = med;
+  renderPricing();
+}
+
+function populateMedDropdown() {
+  const meds = [...new Set(pricingData.map(r => (r.fields||{})['Peptide']).filter(Boolean))].sort();
+  const sel = document.getElementById('pricing-med-filter');
+  if (!sel) return;
+  const current = sel.value;
+  sel.innerHTML = '<option value="">All Meds</option>' + meds.map(m => `<option value="${m}" ${m===current?'selected':''}>${m}</option>`).join('');
+}
 
 function renderPricing() {
   const el = document.getElementById('pricing-content');
@@ -795,6 +813,7 @@ function renderPricing() {
     const f = r.fields || {};
     const name = f['Peptide'] || f[Object.keys(f)[0]] || 'Unknown';
     if (pricingFilter === 'active' && !activePeptides.has(name)) return;
+    if (pricingMedFilter && name !== pricingMedFilter) return;
     if (!groups[name]) groups[name] = [];
     groups[name].push({...f, _id: r.id});
   });
