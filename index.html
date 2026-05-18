@@ -189,6 +189,7 @@
     <button class="nav-tab" onclick="showView('peptides', event)">Peptides</button>
     <button class="nav-tab" onclick="showView('supplements', event)">Supplements</button>
     <button class="nav-tab" onclick="showView('pricing', event)">Pricing</button>
+    <button class="nav-tab" onclick="showView('vendors', event)">Vendors</button>
     <button class="nav-tab" onclick="showView('tracker', event)">Tracker</button>
     <button class="nav-tab" onclick="showView('log', event)">Daily Log</button>
     <button class="nav-tab" onclick="showView('printlist', event)">Print List</button>
@@ -285,6 +286,16 @@
   </div>
 
   <!-- TRACKER -->
+  <div id="view-vendors" class="view">
+    <div class="filter-bar">
+      <span style="font-size:13px;font-weight:500;color:var(--text)">Peptide Vendors</span>
+      <button class="filter-btn active" onclick="filterVendors('all',this)">All</button>
+      <button class="filter-btn" onclick="filterVendors('Primary',this)">Primary</button>
+      <button class="filter-btn" onclick="filterVendors('Secondary',this)">Secondary</button>
+    </div>
+    <div id="vendors-content"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
+  </div>
+
   <div id="view-pricing" class="view">
     <div class="filter-bar">
       <span style="font-size:13px;font-weight:500;color:var(--text)">Peptide Pricing</span>
@@ -349,7 +360,7 @@ if (!TOKEN) {
   if (TOKEN) localStorage.setItem('airtable_token', TOKEN);
 }
 const BASE = 'appmHDG4TGT1xy6R6';
-const TABLES = { peptides: 'tblMs6YRdP4wkndUp', supplements: 'tblSnkc0Gu2BzGACP', dailyLog: 'tblaYuZjl4Pu4nKxS', pricing: 'tblnW21TLSqgVerwQ' };
+const TABLES = { peptides: 'tblMs6YRdP4wkndUp', supplements: 'tblSnkc0Gu2BzGACP', dailyLog: 'tblaYuZjl4Pu4nKxS', pricing: 'tblnW21TLSqgVerwQ', vendors: 'tblI0nfBBuHXjp3KT' };
 
 let data = { peptides: [], supplements: [] };
 let currentPepFilter = 'all';
@@ -756,10 +767,11 @@ function renderPricing() {
       <div class="pricing-group-header">
         ${peptide}
         ${bestIdx >= 0 ? `<span class="best-badge">Best: ${priced[bestIdx]['Vendor']} @ $${bestPpm.toFixed(2)}/mg</span>` : ''}
+        ${priced[bestIdx] && priced[bestIdx]['URL'] ? `<button class="price-check-btn" onclick="window.open('${priced[bestIdx]['URL']}','_blank')">Check Price ↗</button>` : ''}
       </div>
       <div class="table-wrap" style="border-radius:0 0 8px 8px;margin:0">
         <table class="data-table">
-          <thead><tr><th>Vendor</th><th>Vial Size</th><th>Price</th><th>$/mg</th><th>In Stock</th><th>Link</th></tr></thead>
+          <thead><tr><th>Vendor</th><th>Vial Size</th><th>Price</th><th>$/mg</th><th>In Stock</th></tr></thead>
           <tbody>
             ${rows.map((r, i) => {
               const ppm = r['Price'] && r['Vial Size MG'] ? (r['Price'] / r['Vial Size MG']).toFixed(2) : null;
@@ -770,7 +782,6 @@ function renderPricing() {
                 <td style="font-family:'DM Mono',monospace;font-size:12px">${r['Price'] ? '$' + r['Price'].toFixed(2) : '<span class="no-price">No price</span>'}</td>
                 <td style="font-family:'DM Mono',monospace;font-size:12px;color:${isBest ? 'var(--green)' : 'var(--text)'}">${ppm ? '$' + ppm : '—'}</td>
                 <td>${r['In Stock'] ? '<span style="color:var(--green)">✓</span>' : '<span style="color:var(--muted)">—</span>'}</td>
-                <td>${r['URL'] ? `<button class="price-check-btn" onclick="window.open('${r['URL']}','_blank')">Check Price</button>` : '—'}</td>
               </tr>`;
             }).join('')}
           </tbody>
@@ -782,12 +793,68 @@ function renderPricing() {
   el.innerHTML = html || '<p style="color:var(--muted);padding:16px">No matching peptides.</p>';
 }
 
+let vendorsData = [];
+let vendorFilter = 'all';
+
+async function loadVendors() {
+  const el = document.getElementById('vendors-content');
+  el.innerHTML = '<div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div>';
+  try {
+    let records = [], offset = null;
+    do {
+      const url = `https://api.airtable.com/v0/${BASE}/${TABLES.vendors}?pageSize=100${offset ? '&offset=' + offset : ''}`;
+      const res = await fetch(url, { headers: { Authorization: `Bearer ${TOKEN}` } });
+      const json = await res.json();
+      records = records.concat(json.records || []);
+      offset = json.offset;
+    } while (offset);
+    vendorsData = records;
+    renderVendors();
+  } catch(e) {
+    el.innerHTML = '<p style="color:var(--red);padding:16px">Failed to load vendors.</p>';
+  }
+}
+
+function filterVendors(f, btn) {
+  vendorFilter = f;
+  document.querySelectorAll('#view-vendors .filter-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderVendors();
+}
+
+function renderVendors() {
+  const el = document.getElementById('vendors-content');
+  let rows = vendorsData.map(r => r.fields || {});
+  if (vendorFilter !== 'all') rows = rows.filter(r => r['Tier'] === vendorFilter);
+  rows.sort((a,b) => {
+    const tierOrder = {'Primary':0,'Secondary':1};
+    return (tierOrder[a['Tier']]||1) - (tierOrder[b['Tier']]||1);
+  });
+  if (!rows.length) { el.innerHTML = '<p style="color:var(--muted);padding:16px">No vendors found.</p>'; return; }
+  el.innerHTML = `<div class="table-wrap">
+    <table class="data-table">
+      <thead><tr><th>Vendor</th><th>Tier</th><th>Website</th><th>Status</th><th>Peptides Carried</th><th>Notes</th></tr></thead>
+      <tbody>
+        ${rows.map(r => `<tr>
+          <td style="font-weight:500">${r['Vendor Name'] || r[Object.keys(r)[0]] || '—'}</td>
+          <td><span style="font-size:11px;padding:2px 7px;border-radius:10px;background:${r['Tier']==='Primary'?'var(--accent-light)':'var(--surface2)'};color:${r['Tier']==='Primary'?'var(--accent)':'var(--muted)'}">${r['Tier']||'—'}</span></td>
+          <td>${r['Website'] ? `<a href="https://${r['Website']}" target="_blank" style="color:var(--accent);font-size:12px">${r['Website']}</a>` : '—'}</td>
+          <td><span style="font-size:11px;color:${r['Status']==='Active'?'var(--green)':'var(--muted)'}">${r['Status']||'—'}</span></td>
+          <td style="font-size:12px;color:var(--muted)">${Array.isArray(r['Peptides Carried']) ? r['Peptides Carried'].map(p=>p.name||p).join(', ') : (r['Peptides Carried']||'—')}</td>
+          <td style="font-size:12px;color:var(--muted)">${r['Notes']||'—'}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>`;
+}
+
 function showView(name, e) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
   document.getElementById('view-' + name).classList.add('active');
   if (e && e.target) e.target.classList.add('active');
   if (name === 'pricing') loadPricing();
+  if (name === 'vendors') loadVendors();
 }
 
 async function saveLog() {
