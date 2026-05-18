@@ -133,6 +133,15 @@
   .loading-dot:nth-child(3) { animation-delay: 0.4s; }
   @keyframes pulse { 0%, 100% { opacity: 0.2; } 50% { opacity: 1; } }
 
+  /* PRICING */
+  .pricing-group { margin-bottom: 20px; }
+  .pricing-group-header { font-size: 13px; font-weight: 600; color: var(--text); padding: 10px 14px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px 8px 0 0; display: flex; align-items: center; gap: 10px; }
+  .pricing-group-header .best-badge { background: var(--green-bg); color: var(--green); font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 10px; font-family: 'DM Mono', monospace; }
+  .pricing-row-best td { background: #f0fdf4 !important; }
+  .price-check-btn { background: none; border: 1px solid var(--border); border-radius: 5px; padding: 3px 8px; font-size: 11px; color: var(--accent); cursor: pointer; font-family: 'DM Sans', sans-serif; }
+  .price-check-btn:hover { background: var(--accent-light); }
+  .no-price { color: var(--muted); font-style: italic; font-size: 12px; }
+
   /* PRINT */
   @media print {
     nav, .filter-bar, .week-selector, .nav-right, .warning-bar,
@@ -179,6 +188,7 @@
     <button class="nav-tab active" onclick="showView('dashboard', event)">Dashboard</button>
     <button class="nav-tab" onclick="showView('peptides', event)">Peptides</button>
     <button class="nav-tab" onclick="showView('supplements', event)">Supplements</button>
+    <button class="nav-tab" onclick="showView('pricing', event)">Pricing</button>
     <button class="nav-tab" onclick="showView('tracker', event)">Tracker</button>
     <button class="nav-tab" onclick="showView('log', event)">Daily Log</button>
     <button class="nav-tab" onclick="showView('printlist', event)">Print List</button>
@@ -275,6 +285,16 @@
   </div>
 
   <!-- TRACKER -->
+  <div id="view-pricing" class="view">
+    <div class="filter-bar">
+      <span style="font-size:13px;font-weight:500;color:var(--text)">Peptide Pricing</span>
+      <button class="filter-btn active" onclick="filterPricing('all',this)">All</button>
+      <button class="filter-btn" onclick="filterPricing('active',this)">Active Only</button>
+      <button class="filter-btn" onclick="refreshPricing()">↻ Refresh</button>
+    </div>
+    <div id="pricing-content"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
+  </div>
+
   <div id="view-tracker" class="view">
     <div class="section-header">
       <h2>Weekly Peptide Tracker</h2>
@@ -329,7 +349,7 @@ if (!TOKEN) {
   if (TOKEN) localStorage.setItem('airtable_token', TOKEN);
 }
 const BASE = 'appmHDG4TGT1xy6R6';
-const TABLES = { peptides: 'tblMs6YRdP4wkndUp', supplements: 'tblSnkc0Gu2BzGACP', dailyLog: 'tblaYuZjl4Pu4nKxS' };
+const TABLES = { peptides: 'tblMs6YRdP4wkndUp', supplements: 'tblSnkc0Gu2BzGACP', dailyLog: 'tblaYuZjl4Pu4nKxS', pricing: 'tblnW21TLSqgVerwQ' };
 
 let data = { peptides: [], supplements: [] };
 let currentPepFilter = 'all';
@@ -667,11 +687,107 @@ function filterSupps(f, el) {
   renderSupplements(f);
 }
 
+let pricingData = [];
+let pricingFilter = 'all';
+
+async function loadPricing() {
+  const el = document.getElementById('pricing-content');
+  el.innerHTML = '<div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div>';
+  try {
+    let records = [], offset = null;
+    do {
+      const url = `https://api.airtable.com/v0/${BASE}/${TABLES.pricing}?pageSize=100${offset ? '&offset=' + offset : ''}`;
+      const res = await fetch(url, { headers: { Authorization: `Bearer ${TOKEN}` } });
+      const json = await res.json();
+      records = records.concat(json.records || []);
+      offset = json.offset;
+    } while (offset);
+    pricingData = records;
+    renderPricing();
+  } catch(e) {
+    el.innerHTML = '<p style="color:var(--red);padding:16px">Failed to load pricing data.</p>';
+  }
+}
+
+function filterPricing(f, btn) {
+  pricingFilter = f;
+  document.querySelectorAll('.filter-bar .filter-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderPricing();
+}
+
+function refreshPricing() { loadPricing(); }
+
+function renderPricing() {
+  const el = document.getElementById('pricing-content');
+  if (!pricingData.length) { el.innerHTML = '<p style="color:var(--muted);padding:16px">No pricing data found.</p>'; return; }
+
+  // Get active peptide names if filtering
+  let activePeptides = new Set();
+  if (pricingFilter === 'active') {
+    data.peptides.filter(r => getField(r,'Status') === 'Active').forEach(r => activePeptides.add(getField(r,'Compound')));
+  }
+
+  // Group by peptide
+  const groups = {};
+  pricingData.forEach(r => {
+    const peptide = r.cellValuesByFieldId ? 
+      Object.values(r.fields || {}) : null;
+    const f = r.fields || {};
+    const name = f['Peptide'] || f[Object.keys(f)[0]] || 'Unknown';
+    if (pricingFilter === 'active' && !activePeptides.has(name)) return;
+    if (!groups[name]) groups[name] = [];
+    groups[name].push(f);
+  });
+
+  // Render
+  let html = '';
+  Object.keys(groups).sort().forEach(peptide => {
+    const rows = groups[peptide];
+    // Find best $/mg
+    const priced = rows.filter(r => r['Price'] && r['Vial Size MG']);
+    let bestIdx = -1, bestPpm = Infinity;
+    priced.forEach((r, i) => {
+      const ppm = r['Price'] / r['Vial Size MG'];
+      if (ppm < bestPpm) { bestPpm = ppm; bestIdx = i; }
+    });
+
+    html += `<div class="pricing-group">
+      <div class="pricing-group-header">
+        ${peptide}
+        ${bestIdx >= 0 ? `<span class="best-badge">Best: ${priced[bestIdx]['Vendor']} @ $${bestPpm.toFixed(2)}/mg</span>` : ''}
+      </div>
+      <div class="table-wrap" style="border-radius:0 0 8px 8px;margin:0">
+        <table class="data-table">
+          <thead><tr><th>Vendor</th><th>Vial Size</th><th>Price</th><th>$/mg</th><th>In Stock</th><th>Link</th></tr></thead>
+          <tbody>
+            ${rows.map((r, i) => {
+              const ppm = r['Price'] && r['Vial Size MG'] ? (r['Price'] / r['Vial Size MG']).toFixed(2) : null;
+              const isBest = priced[bestIdx] === r;
+              return `<tr class="${isBest ? 'pricing-row-best' : ''}">
+                <td style="font-weight:${isBest ? '600' : '400'}">${r['Vendor'] || '—'}</td>
+                <td style="font-family:'DM Mono',monospace;font-size:12px">${r['Vial Size MG'] ? r['Vial Size MG'] + 'mg' : '—'}</td>
+                <td style="font-family:'DM Mono',monospace;font-size:12px">${r['Price'] ? '$' + r['Price'].toFixed(2) : '<span class="no-price">No price</span>'}</td>
+                <td style="font-family:'DM Mono',monospace;font-size:12px;color:${isBest ? 'var(--green)' : 'var(--text)'}">${ppm ? '$' + ppm : '—'}</td>
+                <td>${r['In Stock'] ? '<span style="color:var(--green)">✓</span>' : '<span style="color:var(--muted)">—</span>'}</td>
+                <td>${r['URL'] ? `<button class="price-check-btn" onclick="window.open('${r['URL']}','_blank')">Check Price</button>` : '—'}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+  });
+
+  el.innerHTML = html || '<p style="color:var(--muted);padding:16px">No matching peptides.</p>';
+}
+
 function showView(name, e) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
   document.getElementById('view-' + name).classList.add('active');
   if (e && e.target) e.target.classList.add('active');
+  if (name === 'pricing') loadPricing();
 }
 
 async function saveLog() {
