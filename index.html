@@ -781,10 +781,13 @@ function renderPricing() {
                 <td style="font-family:'DM Mono',monospace;font-size:12px;color:${isBest ? 'var(--green)' : 'var(--text)'}" id="ppm-${r['_id']}">${ppm ? '$' + ppm : '—'}</td>
                 <td>${r['In Stock'] ? '<span style="color:var(--green)">✓</span>' : '<span style="color:var(--muted)">—</span>'}</td>
                 <td><div style="display:flex;gap:4px;align-items:center">
-                  <input type="number" step="0.01" min="0" placeholder="${r['Price'] ? r['Price'].toFixed(2) : '0.00'}"
-                    style="width:68px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;font-family:'DM Mono',monospace"
+                  <input type="number" step="0.01" min="0" placeholder="${r['Price'] ? r['Price'].toFixed(2) : 'price'}"
+                    style="width:65px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;font-family:'DM Mono',monospace"
                     id="pinput-${r['_id']}">
-                  <button class="price-check-btn" onclick="updatePrice('${r['_id']}',${r['Vial Size MG']||0})">Save</button>
+                  <input type="number" step="1" min="0" placeholder="${r['Vial Size MG'] ? r['Vial Size MG'] + 'mg' : 'mg'}"
+                    style="width:55px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;font-family:'DM Mono',monospace"
+                    id="vialinput-${r['_id']}">
+                  <button class="price-check-btn" onclick="updatePrice('${r['_id']}')">Save</button>
                 </div></td>
                 <td>${r['URL'] ? `<button class="price-check-btn" onclick="window.open('${r['URL']}','_blank')">↗</button>` : ''}</td>
               </tr>`;
@@ -854,30 +857,33 @@ function renderVendors() {
   </div>`;
 }
 
-async function updatePrice(recordId, vialSize) {
-  const input = document.getElementById('pinput-' + recordId);
-  const newPrice = parseFloat(input.value);
+async function updatePrice(recordId) {
+  const priceInput = document.getElementById('pinput-' + recordId);
+  const vialInput = document.getElementById('vialinput-' + recordId);
+  const newPrice = parseFloat(priceInput.value);
+  const newVial = parseFloat(vialInput.value);
   if (!newPrice || newPrice <= 0) { alert('Enter a valid price'); return; }
-  input.disabled = true;
+  priceInput.disabled = true; vialInput.disabled = true;
   try {
     const today = new Date().toISOString().split('T')[0];
+    const fields = { 'Price': newPrice, 'Last Update': today };
+    if (newVial > 0) fields['Vial Size MG'] = newVial;
     await fetch(`https://api.airtable.com/v0/${BASE}/${TABLES.pricing}/${recordId}`, {
       method: 'PATCH',
       headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fields: { 'Price': newPrice, 'Last Update': today } })
+      body: JSON.stringify({ fields })
     });
-    // Update display inline
+    const vialSize = newVial > 0 ? newVial : parseFloat(vialInput.placeholder) || 0;
     document.getElementById('pdisplay-' + recordId).textContent = '$' + newPrice.toFixed(2);
     if (vialSize > 0) document.getElementById('ppm-' + recordId).textContent = '$' + (newPrice / vialSize).toFixed(2);
-    input.value = '';
-    input.placeholder = newPrice.toFixed(2);
-    // Update local data and re-render best badge
-    pricingData.forEach(r => { if (r.id === recordId) { r.fields['Price'] = newPrice; r.fields['Last Update'] = today; } });
+    priceInput.value = ''; priceInput.placeholder = newPrice.toFixed(2);
+    if (newVial > 0) { vialInput.value = ''; vialInput.placeholder = newVial + 'mg'; }
+    pricingData.forEach(r => { if (r.id === recordId) { r.fields['Price'] = newPrice; r.fields['Last Update'] = today; if (newVial > 0) r.fields['Vial Size MG'] = newVial; } });
     renderPricing();
   } catch(e) {
     alert('Save failed');
   }
-  input.disabled = false;
+  priceInput.disabled = false; vialInput.disabled = false;
 }
 
 let vendorSortCol = 'Tier', vendorSortDir = 1;
