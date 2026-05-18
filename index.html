@@ -480,6 +480,8 @@ async function loadAll() {
     document.getElementById('statusDot').className = 'status-dot online';
     renderDashboard();
     renderPeptides('all');
+    // Pre-load vendors silently so Add Row dropdown is populated
+    loadVendors();
     renderSupplements('all');
     renderTracker();
     renderPrintList();
