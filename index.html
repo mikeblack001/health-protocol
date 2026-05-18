@@ -835,10 +835,10 @@ function renderPricing() {
   sortedGroups.forEach(peptide => {
     const rows = groups[peptide];
     // Find best $/mg
-    const priced = rows.filter(r => r['Price'] && r['Vial Size MG']);
+    const priced = rows.filter(r => r['Price'] && r['Vial Size']);
     let bestIdx = -1, bestPpm = Infinity;
     priced.forEach((r, i) => {
-      const ppm = r['Price'] / r['Vial Size MG'];
+      const ppm = r['Price'] / r['Vial Size'];
       if (ppm < bestPpm) { bestPpm = ppm; bestIdx = i; }
     });
 
@@ -853,11 +853,11 @@ function renderPricing() {
           <thead><tr><th>Vendor</th><th>Vial Size</th><th>Price</th><th>$/mg</th><th>In Stock</th><th>Update</th><th></th></tr></thead>
           <tbody>
             ${rows.map(r => {
-              const ppm = r['Price'] && r['Vial Size MG'] ? (r['Price'] / r['Vial Size MG']).toFixed(2) : null;
+              const ppm = r['Price'] && r['Vial Size'] ? (r['Price'] / r['Vial Size']).toFixed(2) : null;
               const isBest = priced[bestIdx] && priced[bestIdx]['_id'] === r['_id'];
               return `<tr class="${isBest ? 'pricing-row-best' : ''}">
                 <td style="font-weight:${isBest ? '600' : '400'}">${r['Vendor'] || '—'}</td>
-                <td style="font-family:'DM Mono',monospace;font-size:12px" id="vdisplay-${r['_id']}">${r['Vial Size MG'] ? r['Vial Size MG'] + 'mg' : '—'}</td>
+                <td style="font-family:'DM Mono',monospace;font-size:12px" id="vdisplay-${r['_id']}">${r['Vial Size'] ? r['Vial Size'] + 'mg' : '—'}</td>
                 <td style="font-family:'DM Mono',monospace;font-size:12px" id="pdisplay-${r['_id']}">${r['Price'] ? '$' + r['Price'].toFixed(2) : '<span class=\"no-price\">—</span>'}</td>
                 <td style="font-family:'DM Mono',monospace;font-size:12px;color:${isBest ? 'var(--green)' : 'var(--text)'}" id="ppm-${r['_id']}">${ppm ? '$' + ppm : '—'}</td>
                 <td>${r['In Stock'] ? '<span style="color:var(--green)">✓</span>' : '<span style="color:var(--muted)">—</span>'}</td>
@@ -865,7 +865,7 @@ function renderPricing() {
                   <input type="number" step="0.01" min="0" placeholder="${r['Price'] ? r['Price'].toFixed(2) : 'price'}"
                     style="width:65px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;font-family:'DM Mono',monospace"
                     id="pinput-${r['_id']}">
-                  <input type="number" step="1" min="0" placeholder="${r['Vial Size MG'] ? r['Vial Size MG'] + 'mg' : 'mg'}"
+                  <input type="number" step="1" min="0" placeholder="${r['Vial Size'] ? r['Vial Size'] + 'mg' : 'mg'}"
                     style="width:55px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;font-family:'DM Mono',monospace"
                     id="vialinput-${r['_id']}">
                   <button class="price-check-btn" onclick="updatePrice('${r['_id']}')">Save</button>
@@ -905,7 +905,7 @@ async function saveAddPricing() {
   try {
     const fields = { 'Vendor': vendor, 'Peptide': peptide, 'Type': 'Peptide', 'Last Update': new Date().toISOString().split('T')[0] };
     if (price > 0) fields['Price'] = price;
-    if (vial > 0) fields['Vial Size MG'] = vial;
+    if (vial > 0) fields['Vial Size'] = vial;
     if (url) fields['URL'] = url;
     await fetch(`https://api.airtable.com/v0/${BASE}/${TABLES.pricing}`, {
       method: 'POST',
@@ -1011,7 +1011,7 @@ async function updatePrice(recordId) {
   try {
     const today = new Date().toISOString().split('T')[0];
     const fields = { 'Price': newPrice, 'Last Update': today };
-    if (newVial > 0) fields['Vial Size MG'] = newVial;
+    if (newVial > 0) fields['Vial Size'] = newVial;
     const resp = await fetch(`https://api.airtable.com/v0/${BASE}/${TABLES.pricing}/${recordId}`, {
       method: 'PATCH',
       headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
@@ -1026,7 +1026,7 @@ async function updatePrice(recordId) {
     if (vialSize > 0) document.getElementById('ppm-' + recordId).textContent = '$' + (newPrice / vialSize).toFixed(2);
     priceInput.value = ''; priceInput.placeholder = newPrice.toFixed(2);
     if (newVial > 0) { vialInput.value = ''; vialInput.placeholder = newVial + 'mg'; }
-    pricingData.forEach(r => { if (r.id === recordId) { r.fields['Price'] = newPrice; r.fields['Last Update'] = today; if (newVial > 0) r.fields['Vial Size MG'] = newVial; } });
+    pricingData.forEach(r => { if (r.id === recordId) { r.fields['Price'] = newPrice; r.fields['Last Update'] = today; if (newVial > 0) r.fields['Vial Size'] = newVial; } });
     // Update vial display cell directly without full re-render
     const vialDisplay = document.getElementById('vdisplay-' + recordId);
     if (vialDisplay && newVial > 0) vialDisplay.textContent = newVial + 'mg';
