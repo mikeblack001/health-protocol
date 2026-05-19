@@ -133,6 +133,17 @@
   .loading-dot:nth-child(3) { animation-delay: 0.4s; }
   @keyframes pulse { 0%, 100% { opacity: 0.2; } 50% { opacity: 1; } }
 
+  /* WORKOUTS */
+  .workout-table { width:100%; border-collapse:collapse; font-size:13px; }
+  .workout-table th { background:var(--surface2); padding:8px 10px; text-align:left; font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; border-bottom:1px solid var(--border); }
+  .workout-table td { padding:6px 8px; border-bottom:1px solid var(--border); vertical-align:middle; }
+  .workout-table tr:last-child td { border-bottom:none; }
+  .workout-table .exercise-name { font-weight:500; color:var(--text); font-size:13px; }
+  .workout-table .variation-label { font-size:11px; color:var(--muted); }
+  .set-input { width:60px; padding:4px 6px; border:1px solid var(--border); border-radius:4px; font-size:12px; font-family:'DM Mono',monospace; text-align:center; background:var(--surface); color:var(--text); }
+  .set-input:focus { outline:none; border-color:var(--accent); }
+  .prev-weight { font-size:10px; color:var(--muted); font-family:'DM Mono',monospace; display:block; margin-top:2px; }
+
   /* MODALS */
   .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:1000; align-items:center; justify-content:center; }
   .modal-box { background:var(--surface); border-radius:12px; padding:24px; width:420px; max-width:95vw; box-shadow:0 8px 32px rgba(0,0,0,0.18); }
@@ -201,6 +212,7 @@
     <button class="nav-tab" onclick="showView('supplements', event)">Supplements</button>
     <button class="nav-tab" onclick="showView('pricing', event)">Pricing</button>
     <button class="nav-tab" onclick="showView('vendors', event)">Vendors</button>
+    <button class="nav-tab" onclick="showView('workouts', event)">Workouts</button>
     <button class="nav-tab" onclick="showView('tracker', event)">Tracker</button>
     <button class="nav-tab" onclick="showView('log', event)">Daily Log</button>
     <button class="nav-tab" onclick="showView('printlist', event)">Print List</button>
@@ -330,6 +342,78 @@
     <div id="pricing-content"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
   </div>
 
+  <div id="view-workouts" class="view">
+    <div class="filter-bar">
+      <span style="font-size:13px;font-weight:500;color:var(--text)">Workouts</span>
+      <button class="filter-btn active" onclick="showWorkoutPanel('log', this)">Log Workout</button>
+      <button class="filter-btn" onclick="showWorkoutPanel('history', this)">History</button>
+      <button class="filter-btn" onclick="showWorkoutPanel('progress', this)">Progress</button>
+    </div>
+
+    <!-- LOG PANEL -->
+    <div id="workout-log-panel">
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;align-items:flex-end">
+        <div>
+          <label style="font-size:11px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:0.6px;display:block;margin-bottom:4px">Day</label>
+          <select id="workout-day-select" onchange="loadWorkoutDay(this.value)" style="padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface);min-width:220px">
+            <option value="">Select day...</option>
+            <option value="Monday - Push">Monday — Push</option>
+            <option value="Tuesday - Pull">Tuesday — Pull</option>
+            <option value="Wednesday - Legs / Core">Wednesday — Legs / Core</option>
+            <option value="Thursday - Arms / Chest">Thursday — Arms / Chest</option>
+            <option value="Friday - Shoulders">Friday — Shoulders</option>
+            <option value="Saturday - Cardio">Saturday — Cardio</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:0.6px;display:block;margin-bottom:4px">Date</label>
+          <input type="date" id="workout-date" style="padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface)">
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:0.6px;display:block;margin-bottom:4px">Sleep (hrs)</label>
+          <input type="number" id="workout-sleep" step="0.5" min="0" max="24" placeholder="7.5" style="width:80px;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:'DM Mono',monospace;color:var(--text);background:var(--surface)">
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:0.6px;display:block;margin-bottom:4px">Deep (min)</label>
+          <input type="number" id="workout-deep" step="1" min="0" placeholder="45" style="width:80px;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:'DM Mono',monospace;color:var(--text);background:var(--surface)">
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:0.6px;display:block;margin-bottom:4px">Duration (min)</label>
+          <input type="number" id="workout-duration" step="5" min="0" placeholder="60" style="width:90px;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:'DM Mono',monospace;color:var(--text);background:var(--surface)">
+        </div>
+      </div>
+
+      <div id="workout-exercises-container" style="display:none">
+        <div id="workout-exercises-table"></div>
+        <div style="margin-top:12px">
+          <label style="font-size:11px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:0.6px;display:block;margin-bottom:4px">Notes</label>
+          <textarea id="workout-notes" rows="2" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface);resize:vertical"></textarea>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <button onclick="saveWorkout()" style="padding:9px 20px;background:var(--accent);color:#fff;border:none;border-radius:6px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500">Save Workout</button>
+          <button onclick="printWorkout()" style="padding:9px 16px;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer">Print</button>
+        </div>
+        <div id="workout-save-status" style="margin-top:8px;font-size:12px;color:var(--green);display:none"></div>
+      </div>
+      <div id="workout-empty-state" style="padding:32px;text-align:center;color:var(--muted);font-size:13px">Select a day to start logging</div>
+    </div>
+
+    <!-- HISTORY PANEL -->
+    <div id="workout-history-panel" style="display:none">
+      <div id="workout-history-content"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
+    </div>
+
+    <!-- PROGRESS PANEL -->
+    <div id="workout-progress-panel" style="display:none">
+      <div style="display:flex;gap:8px;margin-bottom:16px;align-items:center">
+        <select id="progress-exercise-select" onchange="loadExerciseProgress(this.value)" style="padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface);min-width:220px">
+          <option value="">Select exercise...</option>
+        </select>
+      </div>
+      <div id="workout-progress-content"><p style="color:var(--muted);font-size:13px">Select an exercise to view progress</p></div>
+    </div>
+  </div>
+
   <div id="view-tracker" class="view">
     <div class="section-header">
       <h2>Weekly Peptide Tracker</h2>
@@ -419,7 +503,7 @@ if (!TOKEN) {
   if (TOKEN) localStorage.setItem('airtable_token', TOKEN);
 }
 const BASE = 'appmHDG4TGT1xy6R6';
-const TABLES = { peptides: 'tblMs6YRdP4wkndUp', supplements: 'tblSnkc0Gu2BzGACP', dailyLog: 'tblaYuZjl4Pu4nKxS', pricing: 'tblnW21TLSqgVerwQ', vendors: 'tblI0nfBBuHXjp3KT' };
+const TABLES = { peptides: 'tblMs6YRdP4wkndUp', supplements: 'tblSnkc0Gu2BzGACP', dailyLog: 'tblaYuZjl4Pu4nKxS', pricing: 'tblnW21TLSqgVerwQ', vendors: 'tblI0nfBBuHXjp3KT', workoutSessions: 'tblk9tTYIcIY4tWjF', workoutSets: 'tblKDqjy5RzqaJvjr' };
 
 let data = { peptides: [], supplements: [] };
 let currentPepFilter = 'Active';
@@ -1167,6 +1251,289 @@ function vendorSortIcon(col) {
   return vendorSortDir === 1 ? ' ↑' : ' ↓';
 }
 
+// ===== WORKOUT DATA =====
+const WORKOUT_DAYS = {
+  'Monday - Push': [
+    { name: 'Wrist Twist - DBs', variations: [] },
+    { name: 'Bench Press', variations: ['45lb Olympic', 'Smith 35lb', 'DBs', 'Cables'] },
+    { name: 'Cable Cross Overs', variations: [], note: '1/2 ea' },
+    { name: 'Incline Press', variations: ['45lb Olympic', 'Smith 35lb', 'DBs', 'Cables'] },
+    { name: 'Lateral Raises', variations: ['DBs', 'Cables', 'EZ Bar'] },
+    { name: 'Seated Shoulder Press', variations: ['45lb Olympic', 'Smith 35lb', 'DBs', 'Cables'] },
+    { name: 'Tricep Pushdowns', variations: ['V-Bar', 'Straight Bar', 'Rope'], note: '1/2' },
+    { name: 'Incline Fly', variations: ['DBs', 'Cables'] },
+    { name: 'Overhead Tricep Ext', variations: ['EZ-Bar', 'DBs', 'Rope'] },
+    { name: 'High Cable Fly', variations: [], note: '1/2 ea' }
+  ],
+  'Tuesday - Pull': [
+    { name: 'Wrist Twist - DBs', variations: [] },
+    { name: 'Lat Pulldown', variations: ['Lat Machine', 'High Cable', '2 Hand Cables'] },
+    { name: 'Bent Over Rows', variations: ['45lb Olympic', 'DBs'] },
+    { name: 'Barbell Shrugs', variations: ['45lb Olympic'] },
+    { name: 'Cable Rows', variations: ['Lat Machine'] },
+    { name: 'Face Pulls', variations: ['Rope'], note: '1/2' },
+    { name: 'Rear Delt Raises', variations: ['DBs'] },
+    { name: 'Bicep Curls - Preacher', variations: ['DBs', 'EZ Bar (15lbs)'] },
+    { name: 'Hammer Curls', variations: ['Rope 1/2', 'DBs'] },
+    { name: 'Cable Shrugs', variations: [], note: '1/2' },
+    { name: 'Cable Curls', variations: [], note: '1/2 ea' }
+  ],
+  'Wednesday - Legs / Core': [
+    { name: 'Forward Back Stretch', variations: [] },
+    { name: 'Back Extension', variations: ['Sit Up'] },
+    { name: 'Leg Press', variations: ['35lbs'] },
+    { name: 'Leg Extensions', variations: ['45lbs', 'Cable 1/2'] },
+    { name: 'Leg Curls', variations: ['45lbs', 'Cable 1/2'] },
+    { name: 'Hip Thrust', variations: ['DBs'] },
+    { name: 'Nordic Curl', variations: [] },
+    { name: 'Reverse Hyper', variations: [] },
+    { name: 'DB Calf Raises', variations: [] },
+    { name: 'Smith Mach Calf Raises', variations: ['35lbs'] }
+  ],
+  'Thursday - Arms / Chest': [
+    { name: 'Wrist Twist - DBs', variations: [] },
+    { name: 'Cable Press', variations: [], note: '1/2 ea' },
+    { name: 'High Cable Fly', variations: [], note: '1/2 ea' },
+    { name: 'Low Cable Fly', variations: [], note: '1/2 ea' },
+    { name: 'Tricep Ext Down', variations: ['Rope', 'Bar'], note: '1/2' },
+    { name: 'Incline Curls', variations: ['DBs'] },
+    { name: 'Overhead Tricep Press', variations: ['EZ-Bar', 'DBs', 'Rope'] },
+    { name: 'Curls (Standing)', variations: ['EZ-Bar (15lbs)'] },
+    { name: 'Tricep Ext Up', variations: ['Rope', 'Bar'] },
+    { name: 'Forearm Raise - Cable', variations: [], note: '1/2' }
+  ],
+  'Friday - Shoulders': [],
+  'Saturday - Cardio': []
+};
+
+let workoutPrevData = {}; // cache previous weights
+
+function showWorkoutPanel(panel, btn) {
+  ['log','history','progress'].forEach(p => {
+    document.getElementById('workout-' + p + '-panel').style.display = p === panel ? 'block' : 'none';
+  });
+  document.querySelectorAll('#view-workouts .filter-bar .filter-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  if (panel === 'history') loadWorkoutHistory();
+  if (panel === 'progress') loadProgressExerciseList();
+}
+
+async function loadPrevWeights(day) {
+  try {
+    const enc = encodeURIComponent(`{Day}='${day}'`);
+    const url = `https://api.airtable.com/v0/${BASE}/${TABLES.workoutSets}?filterByFormula=${enc}&sort[0][field]=Date&sort[0][direction]=desc&pageSize=100`;
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${TOKEN}` } });
+    const json = await res.json();
+    const prev = {};
+    (json.records || []).forEach(r => {
+      const f = r.fields;
+      const key = f['Exercise'] + '|' + (f['Set #'] || 1);
+      if (!prev[key]) prev[key] = { reps: f['Reps'], weight: f['Weight (lbs)'], date: f['Date'] };
+    });
+    return prev;
+  } catch(e) { return {}; }
+}
+
+async function loadWorkoutDay(day) {
+  const container = document.getElementById('workout-exercises-container');
+  const empty = document.getElementById('workout-empty-state');
+  const tbl = document.getElementById('workout-exercises-table');
+  if (!day) { container.style.display='none'; empty.style.display='block'; return; }
+  
+  // Set today's date
+  if (!document.getElementById('workout-date').value) {
+    document.getElementById('workout-date').value = new Date().toISOString().split('T')[0];
+  }
+
+  container.style.display = 'none';
+  empty.style.display = 'block';
+  empty.textContent = 'Loading previous weights...';
+
+  workoutPrevData = await loadPrevWeights(day);
+  const exercises = WORKOUT_DAYS[day] || [];
+
+  if (!exercises.length) {
+    empty.textContent = 'No exercises defined for this day yet.';
+    return;
+  }
+
+  let html = `<div class="table-wrap"><table class="workout-table">
+    <thead><tr>
+      <th style="min-width:180px">Exercise</th>
+      <th>Variation</th>
+      <th colspan="2" style="text-align:center">Set 1</th>
+      <th colspan="2" style="text-align:center">Set 2</th>
+      <th colspan="2" style="text-align:center">Set 3</th>
+    </tr>
+    <tr>
+      <th></th><th></th>
+      <th style="text-align:center">Reps</th><th style="text-align:center">Weight</th>
+      <th style="text-align:center">Reps</th><th style="text-align:center">Weight</th>
+      <th style="text-align:center">Reps</th><th style="text-align:center">Weight</th>
+    </tr></thead><tbody>`;
+
+  exercises.forEach((ex, i) => {
+    const varHtml = ex.variations.length > 1
+      ? `<select class="set-input" style="width:120px" id="var-${i}"><option value="">—</option>${ex.variations.map(v=>`<option>${v}</option>`).join('')}</select>`
+      : `<span class="variation-label">${ex.variations[0] || (ex.note || '—')}</span>`;
+    
+    let setCols = '';
+    for (let s = 1; s <= 3; s++) {
+      const key = ex.name + '|' + s;
+      const prev = workoutPrevData[key];
+      const prevHint = prev ? `<span class="prev-weight">prev: ${prev.weight || '—'}lbs</span>` : '';
+      setCols += `<td style="text-align:center"><input type="number" class="set-input" id="reps-${i}-${s}" placeholder="${prev?.reps || '—'}" min="0"></td>
+                  <td style="text-align:center"><input type="number" class="set-input" id="wt-${i}-${s}" placeholder="${prev?.weight || '—'}" min="0" step="2.5">${prevHint}</td>`;
+    }
+
+    html += `<tr>
+      <td><span class="exercise-name">${ex.name}</span>${ex.note ? `<span class="variation-label"> (${ex.note})</span>` : ''}</td>
+      <td>${varHtml}</td>
+      ${setCols}
+    </tr>`;
+  });
+
+  html += '</tbody></table></div>';
+  tbl.innerHTML = html;
+  container.style.display = 'block';
+  empty.style.display = 'none';
+}
+
+async function saveWorkout() {
+  const day = document.getElementById('workout-day-select').value;
+  const date = document.getElementById('workout-date').value;
+  if (!day || !date) { alert('Select a day and date first'); return; }
+
+  const btn = document.querySelector('[onclick="saveWorkout()"]');
+  const status = document.getElementById('workout-save-status');
+  btn.disabled = true; btn.textContent = 'Saving...';
+
+  const sessionId = day.replace(/[^a-zA-Z]/g, '') + '-' + date;
+  const sleep = parseFloat(document.getElementById('workout-sleep').value) || null;
+  const deep = parseInt(document.getElementById('workout-deep').value) || null;
+  const duration = parseInt(document.getElementById('workout-duration').value) || null;
+  const notes = document.getElementById('workout-notes').value;
+
+  try {
+    // Save session
+    await fetch(`https://api.airtable.com/v0/${BASE}/${TABLES.workoutSessions}`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fields: {
+        'Session': sessionId, 'Date': date, 'Day': day,
+        ...(sleep && {'Sleep (hrs)': sleep}), ...(deep && {'Deep Sleep (min)': deep}),
+        ...(duration && {'Duration (min)': duration}), ...(notes && {'Notes': notes})
+      }})
+    });
+
+    // Save sets
+    const exercises = WORKOUT_DAYS[day] || [];
+    const setRecords = [];
+    exercises.forEach((ex, i) => {
+      const variation = document.getElementById('var-' + i)?.value || ex.variations[0] || '';
+      for (let s = 1; s <= 3; s++) {
+        const reps = parseInt(document.getElementById(`reps-${i}-${s}`)?.value);
+        const weight = parseFloat(document.getElementById(`wt-${i}-${s}`)?.value);
+        if (reps || weight) {
+          setRecords.push({ fields: {
+            'Set ID': `${sessionId}-${ex.name}-S${s}`,
+            'Session': sessionId, 'Exercise': ex.name,
+            'Variation': variation, 'Set #': s,
+            ...(reps && {'Reps': reps}), ...(weight && {'Weight (lbs)': weight}),
+            'Date': date, 'Day': day
+          }});
+        }
+      }
+    });
+
+    // Batch save sets (max 10 per request)
+    for (let i = 0; i < setRecords.length; i += 10) {
+      await fetch(`https://api.airtable.com/v0/${BASE}/${TABLES.workoutSets}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ records: setRecords.slice(i, i + 10) })
+      });
+    }
+
+    status.style.display = 'block';
+    status.textContent = `✅ Workout saved — ${setRecords.length} sets logged`;
+    btn.textContent = 'Saved!';
+    setTimeout(() => { btn.disabled = false; btn.textContent = 'Save Workout'; }, 2000);
+
+  } catch(e) {
+    alert('Save failed: ' + e.message);
+    btn.disabled = false; btn.textContent = 'Save Workout';
+  }
+}
+
+function printWorkout() {
+  window.print();
+}
+
+async function loadWorkoutHistory() {
+  const el = document.getElementById('workout-history-content');
+  el.innerHTML = '<div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div>';
+  try {
+    const url = `https://api.airtable.com/v0/${BASE}/${TABLES.workoutSessions}?sort[0][field]=Date&sort[0][direction]=desc&pageSize=20`;
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${TOKEN}` } });
+    const json = await res.json();
+    const records = json.records || [];
+    if (!records.length) { el.innerHTML = '<p style="color:var(--muted);padding:16px">No workouts logged yet.</p>'; return; }
+    el.innerHTML = `<div class="table-wrap"><table class="data-table">
+      <thead><tr><th>Date</th><th>Day</th><th>Duration</th><th>Sleep</th><th>Deep Sleep</th><th>Notes</th></tr></thead>
+      <tbody>${records.map(r => `<tr>
+        <td style="font-family:'DM Mono',monospace;font-size:12px">${r.fields['Date'] || '—'}</td>
+        <td style="font-weight:500">${r.fields['Day'] || '—'}</td>
+        <td style="font-family:'DM Mono',monospace;font-size:12px">${r.fields['Duration (min)'] ? r.fields['Duration (min)'] + 'min' : '—'}</td>
+        <td style="font-family:'DM Mono',monospace;font-size:12px">${r.fields['Sleep (hrs)'] ? r.fields['Sleep (hrs)'] + 'h' : '—'}</td>
+        <td style="font-family:'DM Mono',monospace;font-size:12px">${r.fields['Deep Sleep (min)'] ? r.fields['Deep Sleep (min)'] + 'min' : '—'}</td>
+        <td style="font-size:12px;color:var(--muted)">${r.fields['Notes'] || ''}</td>
+      </tr>`).join('')}</tbody>
+    </table></div>`;
+  } catch(e) { el.innerHTML = '<p style="color:var(--red);padding:16px">Failed to load history.</p>'; }
+}
+
+async function loadProgressExerciseList() {
+  const sel = document.getElementById('progress-exercise-select');
+  const allExercises = Object.values(WORKOUT_DAYS).flat().map(e => e.name);
+  const unique = [...new Set(allExercises)].sort();
+  sel.innerHTML = '<option value="">Select exercise...</option>' + unique.map(e => `<option>${e}</option>`).join('');
+}
+
+async function loadExerciseProgress(exercise) {
+  if (!exercise) return;
+  const el = document.getElementById('workout-progress-content');
+  el.innerHTML = '<div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div>';
+  try {
+    const enc = encodeURIComponent(`{Exercise}='${exercise}'`);
+    const url = `https://api.airtable.com/v0/${BASE}/${TABLES.workoutSets}?filterByFormula=${enc}&sort[0][field]=Date&sort[0][direction]=asc&pageSize=100`;
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${TOKEN}` } });
+    const json = await res.json();
+    const records = json.records || [];
+    if (!records.length) { el.innerHTML = '<p style="color:var(--muted);padding:16px">No data yet for this exercise.</p>'; return; }
+    
+    // Group by date, show max weight per session
+    const byDate = {};
+    records.forEach(r => {
+      const d = r.fields['Date'];
+      if (!byDate[d]) byDate[d] = { maxWeight: 0, sets: [] };
+      if (r.fields['Weight (lbs)'] > byDate[d].maxWeight) byDate[d].maxWeight = r.fields['Weight (lbs)'];
+      byDate[d].sets.push(r.fields);
+    });
+
+    el.innerHTML = `<div class="table-wrap"><table class="data-table">
+      <thead><tr><th>Date</th><th>Set</th><th>Reps</th><th>Weight</th><th>Variation</th></tr></thead>
+      <tbody>${records.map(r => `<tr>
+        <td style="font-family:'DM Mono',monospace;font-size:12px">${r.fields['Date'] || '—'}</td>
+        <td style="text-align:center">${r.fields['Set #'] || '—'}</td>
+        <td style="text-align:center;font-family:'DM Mono',monospace">${r.fields['Reps'] || '—'}</td>
+        <td style="text-align:center;font-family:'DM Mono',monospace;font-weight:500">${r.fields['Weight (lbs)'] ? r.fields['Weight (lbs)'] + 'lbs' : '—'}</td>
+        <td style="font-size:12px;color:var(--muted)">${r.fields['Variation'] || '—'}</td>
+      </tr>`).join('')}</tbody>
+    </table></div>`;
+  } catch(e) { el.innerHTML = '<p style="color:var(--red)">Failed to load progress.</p>'; }
+}
+
 function showView(name, e) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
@@ -1174,6 +1541,9 @@ function showView(name, e) {
   if (e && e.target) e.target.classList.add('active');
   if (name === 'pricing') loadPricing();
   if (name === 'vendors') loadVendors();
+  if (name === 'workouts') {
+    document.getElementById('workout-date').value = new Date().toISOString().split('T')[0];
+  }
 }
 
 async function saveLog() {
