@@ -1160,6 +1160,7 @@ async function loadVendors() {
       offset = json.offset;
     } while (offset);
     vendorsData = records;
+    console.log('Vendor Tiers:', vendorsData.map(r => r.fields?.['Tier']));
     renderVendors();
   } catch(e) {
     el.innerHTML = '<p style="color:var(--red);padding:16px">Failed to load vendors.</p>';
@@ -1181,7 +1182,7 @@ function renderVendors() {
   }
   rows.sort((a,b) => {
     let av = a[vendorSortCol] || '', bv = b[vendorSortCol] || '';
-    if (vendorSortCol === 'Tier') { const o = {'Primary':0,'Secondary':1,'primary':0,'secondary':1}; av = o[av]||1; bv = o[bv]||1; }
+    if (vendorSortCol === 'Tier') { const o = {'Primary':0,'Secondary':1}; av = o[av]??1; bv = o[bv]??1; }
     return av < bv ? -vendorSortDir : av > bv ? vendorSortDir : 0;
   });
   if (!rows.length) { el.innerHTML = '<p style="color:var(--muted);padding:16px">No vendors found.</p>'; return; }
@@ -1196,7 +1197,7 @@ function renderVendors() {
           const rowId = 'vendor-expand-' + (r.id || r['Vendor Name'] || Math.random());
           return `<tr style="cursor:pointer" onclick="toggleVendorExpand('${rowId}')">
             <td style="font-weight:500">${r['Vendor Name'] || r[Object.keys(r)[0]] || '—'}</td>
-            <td><span style="font-size:11px;padding:2px 7px;border-radius:10px;background:${r['Tier']==='Primary'||r['Tier']==='primary'?'var(--accent-light)':'var(--surface2)'};color:${r['Tier']==='Primary'||r['Tier']==='primary'?'var(--accent)':'var(--muted)'}">${r['Tier']||'—'}</span></td>
+            <td><span style="font-size:11px;padding:2px 7px;border-radius:10px;background:${r['Tier']==='Primary'?'var(--accent-light)':'var(--surface2)'};color:${r['Tier']==='Primary'?'var(--accent)':'var(--muted)'}">${r['Tier']||'—'}</span></td>
             <td onclick="event.stopPropagation()">${r['Website'] ? `<a href="https://${r['Website']}" target="_blank" style="color:var(--accent);font-size:12px">${r['Website']}</a>` : '—'}</td>
             <td><span style="font-size:11px;color:${r['Status']==='Active'?'var(--green)':'var(--muted)'}">${r['Status']||'—'}</span></td>
             <td style="font-size:12px;color:var(--muted)">${peptides.length ? `${peptides.slice(0,3).join(', ')}${peptides.length > 3 ? ` <span style="color:var(--accent);font-size:11px">+${peptides.length-3} more ▼</span>` : ''}` : '—'}</td>
