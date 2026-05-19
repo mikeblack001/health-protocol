@@ -1083,7 +1083,7 @@ function renderPricing() {
 
 // ADD PRICING ROW MODAL
 function showAddPricingModal() {
-  const vendors = vendorsData.map(r => (r.fields||{})['Vendor Name'] || '').filter(Boolean).sort();
+  const vendors = vendorsData.map(r => (r.fields||{})['Vendor'] || '').filter(Boolean).sort();
   const peptides = [...new Set(pricingData.map(r => (r.fields||{})['Peptide']).filter(Boolean))].sort();
   const modal = document.getElementById('add-pricing-modal');
   document.getElementById('apr-vendor').innerHTML = '<option value="">Select vendor...</option>' + vendors.map(v => `<option>${v}</option>`).join('');
@@ -1130,7 +1130,7 @@ async function saveAddVendor() {
   const btn = document.getElementById('av-save-btn');
   btn.disabled = true; btn.textContent = 'Saving...';
   try {
-    const fields = { 'Vendor Name': name, 'Status': 'Active' };
+    const fields = { 'Vendor': name, 'Status': 'Active' };
     if (website) fields['Website'] = website;
     if (tier) fields['Tier'] = tier;
     await fetch(`https://api.airtable.com/v0/${BASE}/${TABLES.vendors}`, {
@@ -1160,6 +1160,7 @@ async function loadVendors() {
       offset = json.offset;
     } while (offset);
     vendorsData = records;
+    console.log('Vendor Tiers:', vendorsData.map(r => r.fields?.['Tier']));
     renderVendors();
   } catch(e) {
     el.innerHTML = '<p style="color:var(--red);padding:16px">Failed to load vendors.</p>';
@@ -1175,29 +1176,51 @@ function filterVendors(f, btn) {
 
 function renderVendors() {
   const el = document.getElementById('vendors-content');
-  let rows = vendorsData.map(r => r.fields || {});
-  if (vendorFilter !== 'all') rows = rows.filter(r => r['Tier'] === vendorFilter);
+  let rows = vendorsData.map(r => ({ id: r.id, ...r.fields || {} }));
+  if (vendorFilter !== 'all') {
+    rows = rows.filter(r => (r['Tier'] || '').trim().toLowerCase() === vendorFilter.toLowerCase());
+  }
   rows.sort((a,b) => {
     let av = a[vendorSortCol] || '', bv = b[vendorSortCol] || '';
-    if (vendorSortCol === 'Tier') { const o = {'Primary':0,'Secondary':1}; av = o[av]||1; bv = o[bv]||1; }
+    if (vendorSortCol === 'Tier') { const o = {'Primary':0,'Secondary':1}; av = o[av]??1; bv = o[bv]??1; }
     return av < bv ? -vendorSortDir : av > bv ? vendorSortDir : 0;
   });
   if (!rows.length) { el.innerHTML = '<p style="color:var(--muted);padding:16px">No vendors found.</p>'; return; }
   el.innerHTML = `<div class="table-wrap">
     <table class="data-table">
-      <thead><tr><th style="cursor:pointer" onclick="sortVendors('Vendor Name')">Vendor${vendorSortIcon('Vendor Name')}</th><th style="cursor:pointer" onclick="sortVendors('Tier')">Tier${vendorSortIcon('Tier')}</th><th>Website</th><th style="cursor:pointer" onclick="sortVendors('Status')">Status${vendorSortIcon('Status')}</th><th>Peptides Carried</th><th>Notes</th></tr></thead>
+      <thead><tr><th style="cursor:pointer" onclick="sortVendors('Vendor')">Vendor${vendorSortIcon('Vendor')}</th><th style="cursor:pointer" onclick="sortVendors('Tier')">Tier${vendorSortIcon('Tier')}</th><th>Website</th><th style="cursor:pointer" onclick="sortVendors('Status')">Status${vendorSortIcon('Status')}</th><th>Peptides Carried</th><th>Notes</th></tr></thead>
       <tbody>
-        ${rows.map(r => `<tr>
-          <td style="font-weight:500">${r['Vendor Name'] || r[Object.keys(r)[0]] || '—'}</td>
-          <td><span style="font-size:11px;padding:2px 7px;border-radius:10px;background:${r['Tier']==='Primary'?'var(--accent-light)':'var(--surface2)'};color:${r['Tier']==='Primary'?'var(--accent)':'var(--muted)'}">${r['Tier']||'—'}</span></td>
-          <td>${r['Website'] ? `<a href="https://${r['Website']}" target="_blank" style="color:var(--accent);font-size:12px">${r['Website']}</a>` : '—'}</td>
-          <td><span style="font-size:11px;color:${r['Status']==='Active'?'var(--green)':'var(--muted)'}">${r['Status']||'—'}</span></td>
-          <td style="font-size:12px;color:var(--muted)">${Array.isArray(r['Peptides Carried']) ? r['Peptides Carried'].map(p=>p.name||p).join(', ') : (r['Peptides Carried']||'—')}</td>
-          <td style="font-size:12px;color:var(--muted)">${r['Notes']||'—'}</td>
-        </tr>`).join('')}
+        ${rows.map(r => {
+          const peptides = Array.isArray(r['Peptides Carried'])
+            ? r['Peptides Carried'].map(p => p.name || p)
+            : (r['Peptides Carried'] ? String(r['Peptides Carried']).split(',').map(s=>s.trim()) : []);
+          const rowId = 'vendor-expand-' + (r.id || r['Vendor'] || Math.random());
+          return `<tr style="cursor:pointer" onclick="toggleVendorExpand('${rowId}')">
+            <td style="font-weight:500">${r['Vendor'] || r[Object.keys(r)[0]] || '—'}</td>
+            <td><span style="font-size:11px;padding:2px 7px;border-radius:10px;background:${r['Tier']==='Primary'?'var(--accent-light)':'var(--surface2)'};color:${r['Tier']==='Primary'?'var(--accent)':'var(--muted)'}">${r['Tier']||'—'}</span></td>
+            <td onclick="event.stopPropagation()">${r['Website'] ? `<a href="https://${r['Website']}" target="_blank" style="color:var(--accent);font-size:12px">${r['Website']}</a>` : '—'}</td>
+            <td><span style="font-size:11px;color:${r['Status']==='Active'?'var(--green)':'var(--muted)'}">${r['Status']||'—'}</span></td>
+            <td style="font-size:12px;color:var(--muted)">${peptides.length ? `${peptides.slice(0,3).join(', ')}${peptides.length > 3 ? ` <span style="color:var(--accent);font-size:11px">+${peptides.length-3} more ▼</span>` : ''}` : '—'}</td>
+            <td style="font-size:12px;color:var(--muted)">${r['Notes']||'—'}</td>
+          </tr>
+          <tr id="${rowId}" style="display:none;background:var(--surface2)">
+            <td colspan="6" style="padding:12px 16px">
+              <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:8px">All Peptides Carried (${peptides.length})</div>
+              <div style="display:flex;flex-wrap:wrap;gap:6px">
+                ${peptides.length ? peptides.map(p=>`<span style="padding:3px 8px;background:var(--accent-light);color:var(--accent);border-radius:10px;font-size:11px">${p}</span>`).join('') : '<span style="color:var(--muted)">None listed</span>'}
+              </div>
+            </td>
+          </tr>`;
+        }).join('')}
       </tbody>
     </table>
   </div>`;
+}
+
+function toggleVendorExpand(rowId) {
+  const row = document.getElementById(rowId);
+  if (!row) return;
+  row.style.display = row.style.display === 'none' ? 'table-row' : 'none';
 }
 
 async function updatePrice(recordId) {
