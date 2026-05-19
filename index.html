@@ -317,6 +317,8 @@
       <button class="filter-btn" onclick="filterVendors('Primary',this)">Primary</button>
       <button class="filter-btn" onclick="filterVendors('Secondary',this)">Secondary</button>
       <button class="filter-btn" onclick="filterVendors('Evaluating',this)">Evaluating</button>
+      <button class="filter-btn" id="vendor-az-btn" onclick="setVendorNameSort(1)" style="margin-left:8px">A→Z</button>
+      <button class="filter-btn" id="vendor-za-btn" onclick="setVendorNameSort(-1)">Z→A</button>
       <button class="filter-btn" onclick="showAddVendorModal()" style="margin-left:auto;background:var(--accent);color:#fff;border-color:var(--accent)">+ Add Vendor</button>
     </div>
     <div id="vendors-content"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
@@ -1278,7 +1280,7 @@ function renderVendors() {
         ${rows.map(r => {
           const peptides = (Array.isArray(r['Peptides Carried'])
             ? r['Peptides Carried'].map(p => p.name || p)
-            : (r['Peptides Carried'] ? String(r['Peptides Carried']).split(',').map(s=>s.trim()) : [])).sort();
+            : (r['Peptides Carried'] ? String(r['Peptides Carried']).split(',').map(s=>s.trim()) : [])).sort((a,b) => a.localeCompare(b));
           const rowId = 'vendor-expand-' + (r.id || r['Vendor'] || Math.random());
           return `<tr style="cursor:pointer" onclick="toggleVendorExpand('${rowId}')">
             <td style="font-weight:500">${r['Vendor'] || '—'}</td>
@@ -1345,6 +1347,14 @@ async function updatePrice(recordId) {
 }
 
 let vendorSortCol = 'Tier', vendorSortDir = 1;
+
+function setVendorNameSort(dir) {
+  vendorSortCol = 'Vendor';
+  vendorSortDir = dir;
+  document.getElementById('vendor-az-btn').classList.toggle('active', dir === 1);
+  document.getElementById('vendor-za-btn').classList.toggle('active', dir === -1);
+  renderVendors();
+}
 
 function sortVendors(col) {
   if (vendorSortCol === col) vendorSortDir *= -1;
