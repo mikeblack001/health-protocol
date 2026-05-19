@@ -316,6 +316,7 @@
       <button class="filter-btn active" onclick="filterVendors('all',this)">All</button>
       <button class="filter-btn" onclick="filterVendors('Primary',this)">Primary</button>
       <button class="filter-btn" onclick="filterVendors('Secondary',this)">Secondary</button>
+      <button class="filter-btn" onclick="filterVendors('Evaluating',this)">Evaluating</button>
       <button class="filter-btn" onclick="showAddVendorModal()" style="margin-left:auto;background:var(--accent);color:#fff;border-color:var(--accent)">+ Add Vendor</button>
     </div>
     <div id="vendors-content"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
@@ -511,7 +512,7 @@
     <div class="modal-field"><label>Vendor Name</label><input type="text" id="av-name" placeholder="e.g. Peptide Sciences"></div>
     <div class="modal-field"><label>Website</label><input type="text" id="av-website" placeholder="peptidesciences.com"></div>
     <div class="modal-field"><label>Tier</label>
-      <select id="av-tier"><option value="Primary">Primary</option><option value="Secondary" selected>Secondary</option></select>
+      <select id="av-tier"><option value="Primary">Primary</option><option value="Secondary" selected>Secondary</option><option value="Evaluating">Evaluating</option></select>
     </div>
     <div class="modal-actions">
       <button class="modal-btn" onclick="hideAddVendorModal()">Cancel</button>
@@ -1225,13 +1226,13 @@ function filterVendors(f, btn) {
 
 function renderVendors() {
   const el = document.getElementById('vendors-content');
-  let rows = vendorsData.map(r => ({ id: r.id, ...r.fields || {} }));
+  let rows = vendorsData.map(r => ({ id: r.id, ...r.fields || {} })).filter(r => r['Vendor']);
   if (vendorFilter !== 'all') {
     rows = rows.filter(r => (r['Tier'] || '').trim().toLowerCase() === vendorFilter.toLowerCase());
   }
   rows.sort((a,b) => {
     let av = a[vendorSortCol] || '', bv = b[vendorSortCol] || '';
-    if (vendorSortCol === 'Tier') { const o = {'Primary':0,'Secondary':1}; av = o[av]??1; bv = o[bv]??1; }
+    if (vendorSortCol === 'Tier') { const o = {'Primary':0,'Secondary':1,'Evaluating':2}; av = o[av]??3; bv = o[bv]??3; }
     return av < bv ? -vendorSortDir : av > bv ? vendorSortDir : 0;
   });
   if (!rows.length) { el.innerHTML = '<p style="color:var(--muted);padding:16px">No vendors found.</p>'; return; }
@@ -1245,8 +1246,8 @@ function renderVendors() {
             : (r['Peptides Carried'] ? String(r['Peptides Carried']).split(',').map(s=>s.trim()) : []);
           const rowId = 'vendor-expand-' + (r.id || r['Vendor'] || Math.random());
           return `<tr style="cursor:pointer" onclick="toggleVendorExpand('${rowId}')">
-            <td style="font-weight:500">${r['Vendor'] || r[Object.keys(r)[0]] || '—'}</td>
-            <td><span style="font-size:11px;padding:2px 7px;border-radius:10px;background:${r['Tier']==='Primary'?'var(--accent-light)':'var(--surface2)'};color:${r['Tier']==='Primary'?'var(--accent)':'var(--muted)'}">${r['Tier']||'—'}</span></td>
+            <td style="font-weight:500">${r['Vendor'] || '—'}</td>
+            <td><span style="font-size:11px;padding:2px 7px;border-radius:10px;background:${r['Tier']==='Primary'?'var(--accent-light)':r['Tier']==='Evaluating'?'#fef9c3':'var(--surface2)'};color:${r['Tier']==='Primary'?'var(--accent)':r['Tier']==='Evaluating'?'#854d0e':'var(--muted)'}">${r['Tier']||'—'}</span></td>
             <td onclick="event.stopPropagation()">${r['Website'] ? `<a href="https://${r['Website']}" target="_blank" style="color:var(--accent);font-size:12px">${r['Website']}</a>` : '—'}</td>
             <td><span style="font-size:11px;color:${r['Status']==='Active'?'var(--green)':'var(--muted)'}">${r['Status']||'—'}</span></td>
             <td style="font-size:12px;color:var(--muted)">${peptides.length ? `${peptides.slice(0,3).join(', ')}${peptides.length > 3 ? ` <span style="color:var(--accent);font-size:11px">+${peptides.length-3} more ▼</span>` : ''}` : '—'}</td>
