@@ -214,6 +214,7 @@
     <button class="nav-tab" onclick="showView('vendors', event)">Vendors</button>
     <button class="nav-tab" onclick="showView('workouts', event)">Workouts</button>
     <button class="nav-tab" onclick="showView('tracker', event)">Tracker</button>
+    <button class="nav-tab" onclick="showView('purchases', event)">Purchases</button>
     <button class="nav-tab" onclick="showView('log', event)">Daily Log</button>
     <button class="nav-tab" onclick="showView('printlist', event)">Print List</button>
   </div>
@@ -459,6 +460,16 @@
   </div>
 </main>
 
+
+  <!-- PURCHASES -->
+  <div id="view-purchases" class="view">
+    <div class="filter-bar">
+      <span style="font-size:13px;font-weight:500;color:var(--text)">Purchase History</span>
+      <button class="filter-btn" onclick="showAddPurchaseModal()" style="margin-left:auto;background:var(--accent);color:#fff;border-color:var(--accent)">+ Log Purchase</button>
+    </div>
+    <div id="purchases-content"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
+  </div>
+
 <!-- ADD PRICING MODAL -->
 <div class="modal-overlay" id="add-pricing-modal" onclick="if(event.target===this)hideAddPricingModal()">
   <div class="modal-box">
@@ -501,7 +512,7 @@ if (!TOKEN) {
   if (TOKEN) localStorage.setItem('airtable_token', TOKEN);
 }
 const BASE = 'appmHDG4TGT1xy6R6';
-const TABLES = { peptides: 'tblMs6YRdP4wkndUp', supplements: 'tblSnkc0Gu2BzGACP', dailyLog: 'tblaYuZjl4Pu4nKxS', pricing: 'tblnW21TLSqgVerwQ', vendors: 'tblI0nfBBuHXjp3KT', workoutSessions: 'tblk9tTYIcIY4tWjF', workoutSets: 'tblKDqjy5RzqaJvjr' };
+const TABLES = { peptides: 'tblMs6YRdP4wkndUp', supplements: 'tblSnkc0Gu2BzGACP', dailyLog: 'tblaYuZjl4Pu4nKxS', pricing: 'tblnW21TLSqgVerwQ', vendors: 'tblI0nfBBuHXjp3KT', workoutSessions: 'tblk9tTYIcIY4tWjF', workoutSets: 'tblKDqjy5RzqaJvjr', purchases: 'PURCHASES_TABLE_ID' };
 
 let data = { peptides: [], supplements: [] };
 let currentPepFilter = 'Active';
@@ -889,7 +900,10 @@ function populateMedDropdown() {
 }
 
 function populateVendorDropdown() {
-  const vendors = [...new Set(pricingData.map(r => (r.fields||{})['Vendor']).filter(Boolean))].sort();
+  // Use Vendors table first, fall back to pricing data
+  let vendors = vendorsData.map(r => (r.fields||{})['Vendor']).filter(Boolean);
+  if (!vendors.length) vendors = [...new Set(pricingData.map(r => (r.fields||{})['Vendor']).filter(Boolean))];
+  vendors = [...new Set(vendors)].sort();
   const sel = document.getElementById('ai-vendor-select');
   if (!sel) return;
   sel.innerHTML = '<option value="">Select vendor...</option>' + vendors.map(v => `<option value="${v}">${v}</option>`).join('');
@@ -903,36 +917,43 @@ async function aiUpdateVendorPricing() {
   statusEl.style.display = 'block';
   statusEl.innerHTML = `⏳ Searching ${vendor} for current pricing...`;
 
-  // Get all rows for this vendor that have a URL
-  const vendorRows = pricingData.filter(r => (r.fields||{})['Vendor'] === vendor && (r.fields||{})['URL']);
-  if (!vendorRows.length) { statusEl.innerHTML = `⚠️ No rows with URLs found for ${vendor}.`; return; }
+  // Get all rows for this vendor from pricing table
+  const vendorRows = pricingData.filter(r => (r.fields||{})['Vendor'] === vendor);
+  if (!vendorRows.length) { statusEl.innerHTML = `⚠️ No pricing rows found for ${vendor}. Add rows in the Pricing tab first.`; return; }
 
-  // Build context for Claude
+  // Get vendor website from Vendors table
+  const vendorRecord = vendorsData.find(r => (r.fields||{})['Vendor'] === vendor);
+  const vendorWebsite = vendorRecord ? ((vendorRecord.fields||{})['Website'] || '') : '';
+
   const peptideList = vendorRows.map(r => ({
     id: r.id,
     peptide: r.fields['Peptide'],
-    url: r.fields['URL'],
+    url: r.fields['URL'] || null,
     currentPrice: r.fields['Price'] || null,
     vialSize: r.fields['Vial Size'] || null
   }));
 
-  statusEl.innerHTML = `⏳ Asking Claude to fetch pricing for ${peptideList.length} peptides from ${vendor}...`;
+  statusEl.innerHTML = `⏳ Asking Claude to search ${vendor} for pricing on ${peptideList.length} compounds...`;
 
   try {
-    const prompt = `You are a pricing assistant. Search the following vendor URLs and return current prices and vial sizes for each peptide. Return ONLY a JSON array, no other text.
+    const prompt = `You are a pricing assistant for a research peptide buyer. Search the vendor website and return current prices and vial sizes for each compound listed. Return ONLY a JSON array, no other text.
 
 Vendor: ${vendor}
-Peptides to check: ${JSON.stringify(peptideList.map(p => ({peptide: p.peptide, url: p.url})))}
+Website: ${vendorWebsite || 'Search for "' + vendor + '" peptide vendor'}
+Compounds to price: ${JSON.stringify(peptideList.map(p => p.peptide))}
+
+Search the vendor's website catalog for each compound. For each one found, return its price and largest available vial size.
 
 Return format - JSON array only:
-[{"peptide": "Name", "price": 99.99, "vialSize": 10, "inStock": true}, ...]
+[{"peptide": "Exact Name From Input", "price": 99.99, "vialSize": 10, "inStock": true}, ...]
 
 Rules:
-- price must be a number (USD, no $)
+- peptide name must match exactly from the input list
+- price must be a number (USD, no dollar sign)
 - vialSize must be a number (mg)
 - inStock must be boolean
-- If price not found, omit that peptide from results
-- Search the largest available vial size`;
+- Omit compounds not found on the site
+- Use the largest available vial size`;
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -1560,6 +1581,7 @@ function showView(name, e) {
   if (e && e.target) e.target.classList.add('active');
   if (name === 'pricing') loadPricing();
   if (name === 'vendors') loadVendors();
+  if (name === 'purchases') loadPurchases();
   if (name === 'workouts') {
     document.getElementById('workout-date').value = new Date().toISOString().split('T')[0];
   }
@@ -1608,6 +1630,115 @@ async function saveLog() {
   btn.disabled = false;
 }
 
+
+// ===== PURCHASES =====
+let purchasesData = [];
+
+async function loadPurchases() {
+  const el = document.getElementById('purchases-content');
+  if (!el) return;
+  if (TABLES.purchases === 'PURCHASES_TABLE_ID') {
+    el.innerHTML = '<div style="padding:20px;background:var(--amber-bg);border:1px solid #fcd34d;border-radius:8px;font-size:13px;color:var(--amber)">⚠️ Purchases table not yet set up in Airtable. Create a table named <strong>Purchases</strong> with fields: Order ID, Vendor, Compound, Date, Qty, Price Paid, Total, Notes — then tell Claude the table ID to add it here.</div>';
+    return;
+  }
+  el.innerHTML = '<div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div>';
+  try {
+    let records = [], offset = null;
+    do {
+      const url = `https://api.airtable.com/v0/${BASE}/${TABLES.purchases}?pageSize=100&sort[0][field]=Date&sort[0][direction]=desc${offset ? '&offset=' + offset : ''}`;
+      const res = await fetch(url, { headers: { Authorization: `Bearer ${TOKEN}` } });
+      const json = await res.json();
+      records = records.concat(json.records || []);
+      offset = json.offset;
+    } while (offset);
+    purchasesData = records;
+    renderPurchases();
+  } catch(e) {
+    el.innerHTML = '<p style="color:var(--red);padding:16px">Failed to load purchases.</p>';
+  }
+}
+
+function renderPurchases() {
+  const el = document.getElementById('purchases-content');
+  if (!purchasesData.length) { el.innerHTML = '<p style="color:var(--muted);padding:16px">No purchases logged yet.</p>'; return; }
+  
+  // Group by vendor
+  const byVendor = {};
+  purchasesData.forEach(r => {
+    const v = r.fields['Vendor'] || 'Unknown';
+    if (!byVendor[v]) byVendor[v] = [];
+    byVendor[v].push(r.fields);
+  });
+
+  // Summary cards
+  const totalSpent = purchasesData.reduce((s, r) => s + (r.fields['Total'] || (r.fields['Price Paid'] * (r.fields['Qty'] || 1)) || 0), 0);
+  const vendorCount = Object.keys(byVendor).length;
+
+  let html = `<div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap">
+    <div class="stat-card" style="flex:1;min-width:140px"><div class="stat-label">Total Spent</div><div class="stat-value blue">$${totalSpent.toFixed(0)}</div></div>
+    <div class="stat-card" style="flex:1;min-width:140px"><div class="stat-label">Orders</div><div class="stat-value">${purchasesData.length}</div></div>
+    <div class="stat-card" style="flex:1;min-width:140px"><div class="stat-label">Vendors</div><div class="stat-value">${vendorCount}</div></div>
+  </div>`;
+
+  html += `<div class="table-wrap"><table class="data-table">
+    <thead><tr><th>Date</th><th>Vendor</th><th>Compound</th><th>Qty</th><th>Price/Item</th><th>Total</th><th>Order ID</th><th>Notes</th></tr></thead>
+    <tbody>
+    ${purchasesData.map(r => {
+      const f = r.fields;
+      const total = f['Total'] || ((f['Price Paid'] || 0) * (f['Qty'] || 1));
+      return `<tr>
+        <td style="font-family:'DM Mono',monospace;font-size:12px">${f['Date'] || '—'}</td>
+        <td style="font-weight:500">${f['Vendor'] || '—'}</td>
+        <td>${f['Compound'] || '—'}</td>
+        <td style="font-family:'DM Mono',monospace;font-size:12px;text-align:center">${f['Qty'] || '—'}</td>
+        <td style="font-family:'DM Mono',monospace;font-size:12px">${f['Price Paid'] ? '$' + f['Price Paid'].toFixed(2) : '—'}</td>
+        <td style="font-family:'DM Mono',monospace;font-size:12px;font-weight:500;color:var(--accent)">${total ? '$' + total.toFixed(2) : '—'}</td>
+        <td style="font-size:11px;color:var(--muted)">${f['Order ID'] || '—'}</td>
+        <td style="font-size:12px;color:var(--muted)">${f['Notes'] || ''}</td>
+      </tr>`;
+    }).join('')}
+    </tbody></table></div>`;
+  
+  el.innerHTML = html;
+}
+
+function showAddPurchaseModal() {
+  const vendors = vendorsData.map(r => (r.fields||{})['Vendor']).filter(Boolean).sort();
+  document.getElementById('ap-vendor').innerHTML = '<option value="">Select vendor...</option>' + vendors.map(v => `<option>${v}</option>`).join('');
+  document.getElementById('ap-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('add-purchase-modal').style.display = 'flex';
+}
+function hideAddPurchaseModal() { document.getElementById('add-purchase-modal').style.display = 'none'; }
+
+async function saveAddPurchase() {
+  if (TABLES.purchases === 'PURCHASES_TABLE_ID') { alert('Purchases table not configured yet.'); return; }
+  const vendor = document.getElementById('ap-vendor').value;
+  const compound = document.getElementById('ap-compound').value.trim();
+  const date = document.getElementById('ap-date').value;
+  const qty = parseInt(document.getElementById('ap-qty').value) || 1;
+  const price = parseFloat(document.getElementById('ap-price').value) || 0;
+  const orderId = document.getElementById('ap-orderid').value.trim();
+  const notes = document.getElementById('ap-notes').value.trim();
+  if (!vendor || !compound) { alert('Vendor and compound required'); return; }
+  const btn = document.getElementById('ap-save-btn');
+  btn.disabled = true; btn.textContent = 'Saving...';
+  try {
+    const fields = { 'Vendor': vendor, 'Compound': compound, 'Qty': qty, 'Total': qty * price };
+    if (date) fields['Date'] = date;
+    if (price) fields['Price Paid'] = price;
+    if (orderId) fields['Order ID'] = orderId;
+    if (notes) fields['Notes'] = notes;
+    await fetch(`https://api.airtable.com/v0/${BASE}/${TABLES.purchases}`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fields })
+    });
+    hideAddPurchaseModal();
+    loadPurchases();
+  } catch(e) { alert('Save failed'); }
+  btn.disabled = false; btn.textContent = 'Save';
+}
+
 // Init
 const hr = new Date().getHours();
 document.getElementById('greeting').textContent = hr < 12 ? 'morning' : hr < 17 ? 'afternoon' : 'evening';
@@ -1615,5 +1746,26 @@ document.getElementById('todayDate').textContent = new Date().toLocaleDateString
 document.getElementById('log-date').textContent = new Date().toLocaleDateString('en-US', {month:'long',day:'numeric',year:'numeric'});
 loadAll();
 </script>
+
+<!-- ADD PURCHASE MODAL -->
+<div class="modal-overlay" id="add-purchase-modal" onclick="if(event.target===this)hideAddPurchaseModal()">
+  <div class="modal-box">
+    <div class="modal-title">Log Purchase</div>
+    <div class="modal-field"><label>Vendor</label><select id="ap-vendor"></select></div>
+    <div class="modal-field"><label>Compound</label><input type="text" id="ap-compound" placeholder="e.g. Tirzepatide"></div>
+    <div class="modal-field"><label>Date</label><input type="date" id="ap-date"></div>
+    <div style="display:flex;gap:8px">
+      <div class="modal-field" style="flex:1"><label>Qty (vials)</label><input type="number" min="1" id="ap-qty" placeholder="1"></div>
+      <div class="modal-field" style="flex:1"><label>Price Per Item ($)</label><input type="number" step="0.01" id="ap-price" placeholder="0.00"></div>
+    </div>
+    <div class="modal-field"><label>Order ID</label><input type="text" id="ap-orderid" placeholder="Optional"></div>
+    <div class="modal-field"><label>Notes</label><input type="text" id="ap-notes" placeholder="Optional"></div>
+    <div class="modal-actions">
+      <button class="modal-btn" onclick="hideAddPurchaseModal()">Cancel</button>
+      <button class="modal-btn primary" id="ap-save-btn" onclick="saveAddPurchase()">Save</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
