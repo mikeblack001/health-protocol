@@ -339,7 +339,7 @@
     </div>
     <div id="ai-update-status" style="display:none;margin-bottom:12px;padding:10px 14px;background:#f0f4ff;border:1px solid #c7d2fe;border-radius:8px;font-size:13px;color:#3730a3"></div>
     <div style="margin-bottom:12px;padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--muted)">
-      💡 Select a vendor and click <strong>✏️ Bulk Edit</strong> to update all their prices at once. Or edit individual rows inline using the fields in the table below.
+      💡 Select a vendor and click <strong>✏️ Bulk Edit</strong> to update all their prices at once. Missing pricing rows are created automatically from the vendor's Peptides Carried list.
     </div>
     <div id="pricing-content"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
   </div>
@@ -925,17 +925,60 @@ function populateVendorDropdown() {
   sel.innerHTML = '<option value="">Select vendor...</option>' + vendors.map(v => `<option value="${v}">${v}</option>`).join('');
 }
 
-function showBulkEdit() {
+async function showBulkEdit() {
   const vendor = document.getElementById('ai-vendor-select').value;
   if (!vendor) { alert('Select a vendor first'); return; }
 
-  const vendorRows = pricingData.filter(r => (r.fields||{})['Vendor'] === vendor);
-  if (!vendorRows.length) { alert(`No pricing rows found for ${vendor}. Add rows first using + Add Row.`); return; }
+  // Show modal with loading state immediately
+  document.getElementById('bulk-modal-title').textContent = `Bulk Edit — ${vendor}`;
+  document.getElementById('bulk-modal-body').innerHTML = '<div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div>';
+  document.getElementById('bulk-save-status').style.display = 'none';
+  document.getElementById('bulk-save-btn').disabled = false;
+  document.getElementById('bulk-save-btn').textContent = '💾 Save All';
+  document.getElementById('bulk-pricing-modal').style.display = 'flex';
 
   const vendorRecord = vendorsData.find(r => (r.fields||{})['Vendor'] === vendor);
   const vendorWebsite = vendorRecord ? ((vendorRecord.fields||{})['Website'] || '') : '';
 
-  document.getElementById('bulk-modal-title').textContent = `Bulk Edit — ${vendor}`;
+  // Get peptides carried from vendor record
+  const peptideCarried = vendorRecord
+    ? (Array.isArray((vendorRecord.fields||{})['Peptides Carried'])
+        ? vendorRecord.fields['Peptides Carried'].map(p => p.name || p)
+        : ((vendorRecord.fields||{})['Peptides Carried'] ? String(vendorRecord.fields['Peptides Carried']).split(',').map(s=>s.trim()) : []))
+    : [];
+
+  // Find existing pricing rows for this vendor
+  let vendorRows = pricingData.filter(r => (r.fields||{})['Vendor'] === vendor);
+  const existingPeptides = new Set(vendorRows.map(r => (r.fields||{})['Peptide']));
+
+  // Auto-create missing rows
+  const missing = peptideCarried.filter(p => p && !existingPeptides.has(p));
+  if (missing.length) {
+    try {
+      // Create in batches of 10
+      for (let i = 0; i < missing.length; i += 10) {
+        const batch = missing.slice(i, i + 10);
+        const res = await fetch(`https://api.airtable.com/v0/${BASE}/${TABLES.pricing}`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ records: batch.map(p => ({ fields: { 'Vendor': vendor, 'Peptide': p } })) })
+        });
+        if (res.ok) {
+          const newData = await res.json();
+          newData.records.forEach(r => { pricingData.push(r); });
+        }
+      }
+      // Refresh vendor rows after creation
+      vendorRows = pricingData.filter(r => (r.fields||{})['Vendor'] === vendor);
+    } catch(e) {
+      console.error('Error creating missing rows:', e);
+    }
+  }
+
+  if (!vendorRows.length) {
+    document.getElementById('bulk-modal-body').innerHTML = '<p style="color:var(--muted);padding:16px">No compounds listed for this vendor. Add Peptides Carried to the vendor record first.</p>';
+    return;
+  }
 
   const sorted = [...vendorRows].sort((a, b) => ((a.fields||{})['Peptide']||'').localeCompare((b.fields||{})['Peptide']||''));
 
