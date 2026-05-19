@@ -317,7 +317,7 @@
       <button class="filter-btn" onclick="filterVendors('Primary',this)">Primary</button>
       <button class="filter-btn" onclick="filterVendors('Secondary',this)">Secondary</button>
       <button class="filter-btn" onclick="filterVendors('Evaluating',this)">Evaluating</button>
-      <button class="filter-btn" id="vendor-az-btn" onclick="setVendorNameSort(1)" style="margin-left:8px">A→Z</button>
+      <button class="filter-btn active" id="vendor-az-btn" onclick="setVendorNameSort(1)" style="margin-left:8px">A→Z</button>
       <button class="filter-btn" id="vendor-za-btn" onclick="setVendorNameSort(-1)">Z→A</button>
       <button class="filter-btn" onclick="showAddVendorModal()" style="margin-left:auto;background:var(--accent);color:#fff;border-color:var(--accent)">+ Add Vendor</button>
     </div>
@@ -1346,7 +1346,7 @@ async function updatePrice(recordId) {
   priceInput.disabled = false; vialInput.disabled = false;
 }
 
-let vendorSortCol = 'Tier', vendorSortDir = 1;
+let vendorSortCol = 'Vendor', vendorSortDir = 1;
 
 function setVendorNameSort(dir) {
   vendorSortCol = 'Vendor';
