@@ -1083,7 +1083,7 @@ function renderPricing() {
 
 // ADD PRICING ROW MODAL
 function showAddPricingModal() {
-  const vendors = vendorsData.map(r => (r.fields||{})['Vendor Name'] || '').filter(Boolean).sort();
+  const vendors = vendorsData.map(r => (r.fields||{})['Vendor'] || '').filter(Boolean).sort();
   const peptides = [...new Set(pricingData.map(r => (r.fields||{})['Peptide']).filter(Boolean))].sort();
   const modal = document.getElementById('add-pricing-modal');
   document.getElementById('apr-vendor').innerHTML = '<option value="">Select vendor...</option>' + vendors.map(v => `<option>${v}</option>`).join('');
@@ -1130,7 +1130,7 @@ async function saveAddVendor() {
   const btn = document.getElementById('av-save-btn');
   btn.disabled = true; btn.textContent = 'Saving...';
   try {
-    const fields = { 'Vendor Name': name, 'Status': 'Active' };
+    const fields = { 'Vendor': name, 'Status': 'Active' };
     if (website) fields['Website'] = website;
     if (tier) fields['Tier'] = tier;
     await fetch(`https://api.airtable.com/v0/${BASE}/${TABLES.vendors}`, {
@@ -1188,15 +1188,15 @@ function renderVendors() {
   if (!rows.length) { el.innerHTML = '<p style="color:var(--muted);padding:16px">No vendors found.</p>'; return; }
   el.innerHTML = `<div class="table-wrap">
     <table class="data-table">
-      <thead><tr><th style="cursor:pointer" onclick="sortVendors('Vendor Name')">Vendor${vendorSortIcon('Vendor Name')}</th><th style="cursor:pointer" onclick="sortVendors('Tier')">Tier${vendorSortIcon('Tier')}</th><th>Website</th><th style="cursor:pointer" onclick="sortVendors('Status')">Status${vendorSortIcon('Status')}</th><th>Peptides Carried</th><th>Notes</th></tr></thead>
+      <thead><tr><th style="cursor:pointer" onclick="sortVendors('Vendor')">Vendor${vendorSortIcon('Vendor')}</th><th style="cursor:pointer" onclick="sortVendors('Tier')">Tier${vendorSortIcon('Tier')}</th><th>Website</th><th style="cursor:pointer" onclick="sortVendors('Status')">Status${vendorSortIcon('Status')}</th><th>Peptides Carried</th><th>Notes</th></tr></thead>
       <tbody>
         ${rows.map(r => {
           const peptides = Array.isArray(r['Peptides Carried'])
             ? r['Peptides Carried'].map(p => p.name || p)
             : (r['Peptides Carried'] ? String(r['Peptides Carried']).split(',').map(s=>s.trim()) : []);
-          const rowId = 'vendor-expand-' + (r.id || r['Vendor Name'] || Math.random());
+          const rowId = 'vendor-expand-' + (r.id || r['Vendor'] || Math.random());
           return `<tr style="cursor:pointer" onclick="toggleVendorExpand('${rowId}')">
-            <td style="font-weight:500">${r['Vendor Name'] || r[Object.keys(r)[0]] || '—'}</td>
+            <td style="font-weight:500">${r['Vendor'] || r[Object.keys(r)[0]] || '—'}</td>
             <td><span style="font-size:11px;padding:2px 7px;border-radius:10px;background:${r['Tier']==='Primary'?'var(--accent-light)':'var(--surface2)'};color:${r['Tier']==='Primary'?'var(--accent)':'var(--muted)'}">${r['Tier']||'—'}</span></td>
             <td onclick="event.stopPropagation()">${r['Website'] ? `<a href="https://${r['Website']}" target="_blank" style="color:var(--accent);font-size:12px">${r['Website']}</a>` : '—'}</td>
             <td><span style="font-size:11px;color:${r['Status']==='Active'?'var(--green)':'var(--muted)'}">${r['Status']||'—'}</span></td>
