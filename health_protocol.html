@@ -331,6 +331,9 @@
       <button class="filter-btn active" onclick="filterPricing('all',this)">All</button>
       <button class="filter-btn" onclick="filterPricing('active',this)">Active Only</button>
       <button class="filter-btn" onclick="refreshPricing()">↻ Refresh</button>
+      <input type="text" id="pricing-search" oninput="renderPricing()" placeholder="Search compound..." style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface);width:150px">
+      <button class="filter-btn" id="pricing-az-btn" onclick="setPricingSort('az')" style="margin-left:4px">A→Z</button>
+      <button class="filter-btn active" id="pricing-za-btn" onclick="setPricingSort('best')">Best $/mg</button>
       <select id="pricing-med-filter" onchange="filterPricingByMed(this.value)" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface)">
         <option value="">All Meds</option>
       </select>
@@ -643,7 +646,8 @@ function getField(record, name) {
     'Supplement': 'fldbdmZ3deAhtMhQV', 'SuppDose': 'fldITqzZfaK0eHv8X', 'SuppPurpose': 'fldEtFsIjizvB0TMM',
     'Brand': 'fldUV7BbEPgXp5aiN', 'Product': 'fldyJ8YmlBlJLYdoi', 'SuppStatus': 'fld1c0IdKsrBWCBkc',
     'SuppTiming': 'fldZHrKEWxpN9eNi2', 'Category': 'fldJL7lIH8Yrzs33g',
-    'Suggested Dose': 'fldB9osFGmDBoZBDX', 'Cycle Type': 'fldVifrYFOsF2JyTT', 'Vials on Hand': 'fld2dkhmc1M6AgnQu'
+    'Suggested Dose': 'fldB9osFGmDBoZBDX', 'Cycle Type': 'fldVifrYFOsF2JyTT', 'Vials on Hand': 'fld2dkhmc1M6AgnQu',
+    'URL': 'fldSwpah2L7TCe8pc'
   };
   // Supp fields may return by name instead of ID
   const suppNameMap = {
@@ -900,6 +904,14 @@ function filterSupps(f, el) {
 
 let pricingData = [];
 let pricingFilter = 'all';
+let pricingSortMode = 'best'; // 'best' = Sort Order/best $/mg, 'az' = alphabetical
+
+function setPricingSort(mode) {
+  pricingSortMode = mode;
+  document.getElementById('pricing-az-btn').classList.toggle('active', mode === 'az');
+  document.getElementById('pricing-za-btn').classList.toggle('active', mode === 'best');
+  renderPricing();
+}
 let pricingMedFilter = '';
 
 async function loadPricing() {
@@ -1023,7 +1035,7 @@ async function showBulkEdit() {
 
   sorted.forEach(r => {
     const f = r.fields || {};
-    const rowUrl = f['URL'] || vendorWebsite || '';
+    const rowUrl = f['fldSwpah2L7TCe8pc'] || f['URL'] || vendorWebsite || '';
     html += `<tr style="border-bottom:1px solid var(--border)" data-id="${r.id}">
       <td style="padding:7px 8px;font-weight:500">${f['Peptide'] || '—'}</td>
       <td style="padding:4px 8px">
@@ -1123,12 +1135,14 @@ function renderPricing() {
   }
 
   // Group by peptide — store record ID
+  const search = (document.getElementById('pricing-search')?.value || '').toLowerCase();
   const groups = {};
   pricingData.forEach(r => {
     const f = r.fields || {};
     const name = f['Peptide'] || f[Object.keys(f)[0]] || 'Unknown';
     if (pricingFilter === 'active' && !activePeptides.has(name)) return;
     if (pricingMedFilter && name !== pricingMedFilter) return;
+    if (search && !name.toLowerCase().includes(search)) return;
     if (!groups[name]) groups[name] = [];
     groups[name].push({...f, _id: r.id});
   });
@@ -1143,6 +1157,7 @@ function renderPricing() {
     if (name && order != null && (peptideOrder[name] == null || order < peptideOrder[name])) peptideOrder[name] = order;
   });
   const sortedGroups = Object.keys(groups).sort((a,b) => {
+    if (pricingSortMode === 'az') return a.localeCompare(b);
     const ao = peptideOrder[a] != null ? peptideOrder[a] : 999;
     const bo = peptideOrder[b] != null ? peptideOrder[b] : 999;
     return ao !== bo ? ao - bo : a.localeCompare(b);
@@ -1161,7 +1176,7 @@ function renderPricing() {
       <div class="pricing-group-header">
         ${peptide}
         ${bestIdx >= 0 ? `<span class="best-badge">Best: ${priced[bestIdx]['Vendor']} @ $${bestPpm.toFixed(2)}/mg</span>` : ''}
-        ${priced[bestIdx] && priced[bestIdx]['URL'] ? `<button class="price-check-btn" onclick="window.open('${priced[bestIdx]['URL']}','_blank')">Check Price ↗</button>` : ''}
+        ${priced[bestIdx] && priced[bestIdx]['fldSwpah2L7TCe8pc'] || priced[bestIdx]['URL'] ? `<button class="price-check-btn" onclick="window.open('${priced[bestIdx]['fldSwpah2L7TCe8pc'] || priced[bestIdx]['URL']}','_blank')">Check Price ↗</button>` : ''}
       </div>
       <div class="table-wrap" style="border-radius:0 0 8px 8px;margin:0">
         <table class="data-table">
@@ -1184,7 +1199,7 @@ function renderPricing() {
                     id="vialinput-${r['_id']}">
                   <button class="price-check-btn" onclick="updatePrice('${r['_id']}')">Save</button>
                 </div></td>
-                <td>${r['URL'] ? `<button class="price-check-btn" onclick="window.open('${r['URL']}','_blank')">↗</button>` : ''}</td>
+                <td>${r['fldSwpah2L7TCe8pc'] || r['URL'] ? `<button class="price-check-btn" onclick="window.open('${r['fldSwpah2L7TCe8pc'] || r['URL']}','_blank')">↗</button>` : ''}</td>
               </tr>`;
             }).join('')}
           </tbody>
