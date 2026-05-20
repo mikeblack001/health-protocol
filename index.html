@@ -307,6 +307,9 @@
       <div class="filter-chip" onclick="filterSupps('Active', this)">Active</div>
       <div class="filter-chip" onclick="filterSupps('Paused', this)">Paused</div>
       <div class="filter-chip" onclick="filterSupps('TBD', this)">TBD</div>
+      <div class="filter-chip" onclick="filterSuppSource('Amazon', this)" style="margin-left:8px">Amazon</div>
+      <div class="filter-chip" onclick="filterSuppSource('Pharmacy', this)">Pharmacy</div>
+      <div class="filter-chip" onclick="filterSuppSource('', this)">All Sources</div>
     </div>
     <div id="supps-content"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
   </div>
@@ -668,7 +671,7 @@ function getField(record, name) {
     'Brand': 'fldUV7BbEPgXp5aiN', 'Product': 'fldyJ8YmlBlJLYdoi', 'SuppStatus': 'fld1c0IdKsrBWCBkc',
     'SuppTiming': 'fldZHrKEWxpN9eNi2', 'Category': 'fldJL7lIH8Yrzs33g',
     'Suggested Dose': 'fldB9osFGmDBoZBDX', 'Cycle Type': 'fldVifrYFOsF2JyTT', 'Vials on Hand': 'fld2dkhmc1M6AgnQu',
-    'URL': 'fldSwpah2L7TCe8pc'
+    'URL': 'fldSwpah2L7TCe8pc', 'SuppSource': 'fldUOuyi2uX3QWG1Z'
   };
   // Supp fields may return by name instead of ID
   const suppNameMap = {
@@ -799,6 +802,7 @@ function renderSupplements(filter) {
   currentSuppFilter = filter;
   let records = data.supplements;
   if (filter !== 'all') records = records.filter(r => (getField(r,'SuppStatus')||'').toLowerCase() === filter.toLowerCase());
+  if (currentSuppSource) records = records.filter(r => (getField(r,'SuppSource')||'') === currentSuppSource);
   records = [...records].sort((a,b) => {
     const av = getField(a, suppSort.col === 'Supplement' ? 'Supplement' : suppSort.col === 'Status' ? 'SuppStatus' : suppSort.col === 'Timing' ? 'SuppTiming' : suppSort.col === 'Dose' ? 'SuppDose' : suppSort.col === 'Brand' ? 'Brand' : 'Supplement') || '';
     const bv = getField(b, suppSort.col === 'Supplement' ? 'Supplement' : suppSort.col === 'Status' ? 'SuppStatus' : suppSort.col === 'Timing' ? 'SuppTiming' : suppSort.col === 'Dose' ? 'SuppDose' : suppSort.col === 'Brand' ? 'Brand' : 'Supplement') || '';
@@ -819,6 +823,7 @@ function renderSupplements(filter) {
         <th>Purpose</th>
         <th style="cursor:pointer" onclick="sortSupp('Brand')">Brand${suppSortIcon('Brand')}</th>
         <th style="cursor:pointer" onclick="sortSupp('Status')">Status${suppSortIcon('Status')}</th>
+        <th>Source</th>
       </tr></thead><tbody>
       ${group.map(r => `<tr>
         <td><div class="compound-name">${getField(r,'Supplement')}</div><div class="compound-sub">${getField(r,'Product')}</div></td>
@@ -826,6 +831,7 @@ function renderSupplements(filter) {
         <td style="font-size:12px;color:var(--muted)">${getField(r,'SuppPurpose')}</td>
         <td style="font-size:12px;color:var(--muted)">${getField(r,'Brand')}</td>
         <td>${badge(getField(r,'SuppStatus'))}</td>
+        <td style="font-size:11px;color:var(--muted)">${getField(r,'SuppSource')||'—'}</td>
       </tr>`).join('')}
       </tbody></table></div>`;
   });
@@ -921,6 +927,14 @@ function filterSupps(f, el) {
   el.closest('.filter-bar').querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
   el.classList.add('active');
   renderSupplements(f);
+}
+
+let currentSuppSource = '';
+function filterSuppSource(source, el) {
+  currentSuppSource = source;
+  el.closest('.filter-bar').querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  renderSupplements(currentSuppFilter || 'all');
 }
 
 let pricingData = [];
