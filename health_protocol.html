@@ -1882,7 +1882,7 @@ function renderPurchases() {
   if (!filtered.length) { el.innerHTML = html + '<p style="color:var(--muted);padding:16px">No results match filters.</p>'; return; }
 
   html += `<div class="table-wrap"><table class="data-table">
-    <thead><tr><th>Date</th><th>Vendor</th><th>Compound</th><th>Qty</th><th>Price/Item</th><th>Total</th><th>Order ID</th><th>Notes</th></tr></thead>
+    <thead><tr><th>Date</th><th>Vendor</th><th>Compound</th><th>Qty</th><th>Vial</th><th>Price/Item</th><th>Total</th><th>Order ID</th><th>Notes</th></tr></thead>
     <tbody>
     ${filtered.map(r => {
       const f = r.fields;
@@ -1892,6 +1892,7 @@ function renderPurchases() {
         <td style="font-weight:500">${f['Vendor'] || '—'}</td>
         <td>${f['Compound'] || '—'}</td>
         <td style="font-family:'DM Mono',monospace;font-size:12px;text-align:center">${f['Qty'] || '—'}</td>
+        <td style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)">${f['Vial Size'] || '—'}</td>
         <td style="font-family:'DM Mono',monospace;font-size:12px">${f['Price Paid'] ? '$' + f['Price Paid'].toFixed(2) : '—'}</td>
         <td style="font-family:'DM Mono',monospace;font-size:12px;font-weight:500;color:var(--accent)">${total ? '$' + total.toFixed(2) : '—'}</td>
         <td style="font-size:11px;color:var(--muted)">${f['Order ID'] || '—'}</td>
