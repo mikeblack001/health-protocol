@@ -2439,7 +2439,7 @@ function printProtocolList() {
   const w = window.open('','_blank','width=800,height=700');
   w.document.write(html);
   w.document.close();
-  w.onload = () => w.print();
+  setTimeout(() => w.print(), 800);
 }
 
 // Init
