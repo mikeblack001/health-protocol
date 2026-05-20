@@ -2307,37 +2307,37 @@ function printTracker() {
 
   function weekTable(weekNum) {
     let t = `
-    <div class="week-hdr" style="background:#1B4332;color:#fff;font-weight:bold;margin-top:${weekNum>1?'8px':'0'}">
+    <div class="week-hdr" style="background-color:#1B4332!important;color:#fff!important;font-weight:bold;margin-top:${weekNum>1?'8px':'0'}">
       Week ${weekNum} &nbsp;&nbsp; Monday Date: _____________________
     </div>
     <table style="table-layout:fixed">
     <colgroup><col style="width:42%">${DAYS.map(()=>'<col style="width:6.5%">').join('')}<col style="width:3%"></colgroup>
-    <thead><tr style="background:#D9D9D9">
+    <thead><tr style="background-color:#D9D9D9!important">
       <th style="border:1px solid #999;text-align:left">Medication</th>
       ${DAYS.map(d=>`<th style="border:1px solid #999;text-align:center">${d}</th>`).join('')}
       <th style="border:1px solid #999;text-align:left">Notes</th>
     </tr></thead><tbody>
-    <tr><td colspan="9" class="sec-hdr" style="background:#E8A838;color:#fff;font-weight:bold">☀ Morning</td></tr>`;
+    <tr><td colspan="9" class="sec-hdr" style="background-color:#E8A838!important;color:#fff!important;font-weight:bold">☀ Morning</td></tr>`;
 
     MORNING.forEach(([name, active]) => {
-      t += `<tr><td style="border:1px solid #ccc;background:${MORN_BG};padding:4px 6px;border-left:2px solid #000">${name}</td>`;
+      t += `<tr><td style="border:1px solid #ccc;background-color:${MORN_BG}!important;padding:4px 6px;border-left:2px solid #000">${name}</td>`;
       for (let d=0; d<7; d++) {
         t += active.includes(d)
-          ? `<td style="border:1px solid #ccc;background:${MORN_BG};"></td>`
-          : `<td style="border:1px solid #ccc;background:${INACTIVE};"></td>`;
+          ? `<td style="border:1px solid #ccc;background-color:${MORN_BG}!important;"></td>`
+          : `<td style="border:1px solid #ccc;background-color:${INACTIVE}!important;"></td>`;
       }
-      t += `<td style="border:1px solid #ccc;background:${MORN_BG};border-right:2px solid #000"></td></tr>`;
+      t += `<td style="border:1px solid #ccc;background-color:${MORN_BG}!important;border-right:2px solid #000"></td></tr>`;
     });
 
-    t += `<tr><td colspan="9" class="sec-hdr" style="background:#4A6FA5;color:#fff;font-weight:bold">🌙 Night</td></tr>`;
+    t += `<tr><td colspan="9" class="sec-hdr" style="background-color:#4A6FA5!important;color:#fff!important;font-weight:bold">🌙 Night</td></tr>`;
     NIGHT.forEach(([name, active]) => {
-      t += `<tr><td style="border:1px solid #ccc;background:${NIGHT_BG};padding:4px 6px;border-left:2px solid #000">${name}</td>`;
+      t += `<tr><td style="border:1px solid #ccc;background-color:${NIGHT_BG}!important;padding:4px 6px;border-left:2px solid #000">${name}</td>`;
       for (let d=0; d<7; d++) {
         t += active.includes(d)
-          ? `<td style="border:1px solid #ccc;background:${NIGHT_BG};"></td>`
-          : `<td style="border:1px solid #ccc;background:${INACTIVE};"></td>`;
+          ? `<td style="border:1px solid #ccc;background-color:${NIGHT_BG}!important;"></td>`
+          : `<td style="border:1px solid #ccc;background-color:${INACTIVE}!important;"></td>`;
       }
-      t += `<td style="border:1px solid #ccc;background:${NIGHT_BG};border-right:2px solid #000"></td></tr>`;
+      t += `<td style="border:1px solid #ccc;background-color:${NIGHT_BG}!important;border-right:2px solid #000"></td></tr>`;
     });
     t += `</tbody></table>`;
     return t;
@@ -2346,13 +2346,11 @@ function printTracker() {
   const html = `<!DOCTYPE html><html><head><title></title>
   <style>
     @page { size: portrait letter; margin: 0.25in; }
-    @page { margin-top: 0.25in; }
-    head { display: none; }
-    body { font-family: Calibri, Arial, sans-serif; margin: 0; font-size: 8pt; }
-    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    body { font-family: Calibri, Arial, sans-serif; margin: 0; font-size: 8pt; -webkit-print-color-adjust: exact; print-color-adjust: exact; color-adjust: exact; }
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
     table { width: 100%; border-collapse: collapse; margin-bottom: 4px; table-layout: fixed; }
-    td, th { padding: 2px 3px !important; line-height: 1.2; overflow: hidden; }
-    .week-hdr { font-size: 8pt; padding: 3px 5px !important; }
+    td, th { padding: 2px 3px !important; line-height: 1.2; overflow: hidden; border: 1px solid #999 !important; }
+    .week-hdr { font-size: 8pt; padding: 3px 5px !important; background-color: #1B4332 !important; color: #ffffff !important; }
     .sec-hdr { font-size: 8pt; padding: 3px 5px !important; }
     .page-break { page-break-after: always; margin-bottom: 0; }
   </style></head><body>
