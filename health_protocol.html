@@ -864,12 +864,20 @@ const TRACKER_NIGHT_ORDER = [
   'CJC-1295 No DAC', 'Ipamorelin', 'DSIP', 'KPV', 'Epitalon'
 ];
 const TRACKER_SCHEDULE = {
-  'Testosterone (TRT)': [0,3], 'Deca (Nano)': [0,3],
-  'NAD+': [1,3,5], 'Retatrutide': [0], 'Cagrilintide': [0],
-  'Tesamorelin': [0,1,2,3,4,5], 'GHK-Cu': [0,1,2,3,4,5,6],
-  'Melanotan II': [0], 'Tirzepatide': [0],
-  'CJC-1295 No DAC': [1,3,5], 'Ipamorelin': [1,3,5],
-  'DSIP': [0,1,2,3,4], 'KPV': [0,1,2,3,4,5,6], 'Epitalon': [0,1,2,3,4,5,6],
+  'Testosterone (TRT)': [0,3],        // Mon/Thu
+  'Deca (Nano)':        [0,3],        // Mon/Thu
+  'NAD+':               [1,4,6],      // Tue/Fri/Sun
+  'Retatrutide':        [2],          // Wed
+  'Cagrilintide':       [2],          // Wed
+  'Tesamorelin':        [0,1,2,3,4,5],// Mon-Sat
+  'GHK-Cu':             [0,1,2,3,4,5,6],// Daily
+  'Melanotan II':       [1],          // Tue
+  'Tirzepatide':        [5],          // Sat
+  'CJC-1295 No DAC':    [0,1,2,3,6], // Mon/Tue/Wed/Thu/Sun
+  'Ipamorelin':         [0,1,2,3,6], // Mon/Tue/Wed/Thu/Sun
+  'DSIP':               [0,2,4,5,6], // Mon/Wed/Fri/Sat/Sun
+  'KPV':                [0,1,2,3,4,5,6],// Daily
+  'Epitalon':           [0,1,2,3,4,5,6],// Daily
 };
 const MORN_BG  = '#FFF8E7';
 const NIGHT_BG = '#EEF4FB';
