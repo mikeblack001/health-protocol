@@ -216,6 +216,7 @@
     <button class="nav-tab" onclick="showView('tracker', event)">Tracker</button>
     <button class="nav-tab" onclick="showView('purchases', event)">Purchases</button>
     <button class="nav-tab" onclick="showView('labs', event)">Labs</button>
+    <button class="nav-tab" onclick="showView('changes', event)">Changes</button>
     <button class="nav-tab" onclick="showView('log', event)">Daily Log</button>
     <button class="nav-tab" onclick="showView('printlist', event)">Print List</button>
   </div>
@@ -497,6 +498,25 @@
     <div id="labs-content"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
   </div>
 
+  <!-- CHANGES VIEW -->
+  <div id="view-changes" class="view">
+    <div class="filter-bar">
+      <span style="font-size:13px;font-weight:500;color:var(--text)">Protocol Changes</span>
+      <select id="changes-type-filter" onchange="renderChanges()" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface)">
+        <option value="">All Types</option>
+        <option>Started</option>
+        <option>Dose Change</option>
+        <option>New Vial</option>
+        <option>Paused</option>
+        <option>Resumed</option>
+        <option>Stopped</option>
+      </select>
+      <input type="text" id="changes-compound-filter" oninput="renderChanges()" placeholder="Search compound..." style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface);width:150px">
+      <button class="filter-btn" onclick="showAddChangeModal()" style="margin-left:auto;background:var(--accent);color:#fff;border-color:var(--accent)">+ Log Change</button>
+    </div>
+    <div id="changes-content"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
+  </div>
+
 <!-- ADD PRICING MODAL -->
 <!-- BULK EDIT PRICING MODAL -->
 <div class="modal-overlay" id="bulk-pricing-modal" onclick="if(event.target===this)hideBulkEdit()" style="align-items:flex-start;padding-top:40px">
@@ -554,7 +574,7 @@ if (!TOKEN) {
   if (TOKEN) localStorage.setItem('airtable_token', TOKEN);
 }
 const BASE = 'appmHDG4TGT1xy6R6';
-const TABLES = { peptides: 'tblMs6YRdP4wkndUp', supplements: 'tblSnkc0Gu2BzGACP', dailyLog: 'tblaYuZjl4Pu4nKxS', pricing: 'tblnW21TLSqgVerwQ', vendors: 'tblI0nfBBuHXjp3KT', workoutSessions: 'tblk9tTYIcIY4tWjF', workoutSets: 'tblKDqjy5RzqaJvjr', purchases: 'tblWmflohL6d6HC9p', bloodwork: 'tbl3200yJid6fXaOp' };
+const TABLES = { peptides: 'tblMs6YRdP4wkndUp', supplements: 'tblSnkc0Gu2BzGACP', dailyLog: 'tblaYuZjl4Pu4nKxS', pricing: 'tblnW21TLSqgVerwQ', vendors: 'tblI0nfBBuHXjp3KT', workoutSessions: 'tblk9tTYIcIY4tWjF', workoutSets: 'tblKDqjy5RzqaJvjr', purchases: 'tblWmflohL6d6HC9p', bloodwork: 'tbl3200yJid6fXaOp', protocolChanges: 'tblolVx7YwO5cJhsE' };
 
 let data = { peptides: [], supplements: [] };
 let currentPepFilter = 'Active';
@@ -1700,6 +1720,7 @@ function showView(name, e) {
   if (name === 'vendors') loadVendors();
   if (name === 'purchases') loadPurchases();
   if (name === 'labs') loadLabs();
+  if (name === 'changes') loadChanges();
   if (name === 'workouts') {
     document.getElementById('workout-date').value = new Date().toISOString().split('T')[0];
   }
@@ -2011,6 +2032,122 @@ async function saveAddLab() {
   btn.disabled = false; btn.textContent = 'Save';
 }
 
+// ===== PROTOCOL CHANGES =====
+let changesData = [];
+
+const CHANGE_FIELDS = {
+  date: 'fldlVjHBC4ds5H1UH',
+  type: 'fld6vTK6VtYTDzy2s',
+  compound: 'fldoavYuElnEH8Wfb',
+  description: 'flde72p4W1kJ9melY',
+  reason: 'fldttkMNhMNcrQomX',
+  notes: 'fld1mpIWeDBwYg0e2',
+  impacted: 'fldGNaFTbrtUxjZhU'
+};
+
+const CHANGE_COLORS = {
+  'Started': 'var(--green)', 'Resumed': 'var(--green)',
+  'Dose Change': 'var(--accent)', 'New Vial': '#6366f1',
+  'Paused': 'var(--amber)', 'Stopped': 'var(--red)'
+};
+
+async function loadChanges() {
+  const el = document.getElementById('changes-content');
+  el.innerHTML = '<div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div>';
+  try {
+    let records = [], offset = null;
+    do {
+      const url = `https://api.airtable.com/v0/${BASE}/${TABLES.protocolChanges || 'tblolVx7YwO5cJhsE'}?pageSize=100&sort[0][field]=${CHANGE_FIELDS.date}&sort[0][direction]=desc${offset ? '&offset=' + offset : ''}`;
+      const res = await fetch(url, { headers: { Authorization: `Bearer ${TOKEN}` } });
+      const d = await res.json();
+      records.push(...(d.records || []));
+      offset = d.offset;
+    } while (offset);
+    changesData = records;
+    renderChanges();
+  } catch(e) { el.innerHTML = `<p style="color:var(--red);padding:16px">Error: ${e.message}</p>`; }
+}
+
+function renderChanges() {
+  const el = document.getElementById('changes-content');
+  const typeFilter = document.getElementById('changes-type-filter')?.value || '';
+  const compoundFilter = (document.getElementById('changes-compound-filter')?.value || '').toLowerCase();
+
+  let filtered = changesData.filter(r => {
+    const f = r.cellValuesByFieldId || r.fields || {};
+    const type = f[CHANGE_FIELDS.type] || '';
+    const compound = (f[CHANGE_FIELDS.compound] || '').toLowerCase();
+    if (typeFilter && type !== typeFilter) return false;
+    if (compoundFilter && !compound.includes(compoundFilter)) return false;
+    return true;
+  });
+
+  if (!filtered.length) { el.innerHTML = '<p style="color:var(--muted);padding:16px">No changes logged yet.</p>'; return; }
+
+  let html = `<div class="table-wrap"><table class="data-table">
+    <thead><tr><th>Date</th><th>Type</th><th>Compound</th><th>Description</th><th>Reason</th><th>Notes</th></tr></thead><tbody>
+    ${filtered.map(r => {
+      const f = r.cellValuesByFieldId || r.fields || {};
+      const type = f[CHANGE_FIELDS.type] || '—';
+      const color = CHANGE_COLORS[type] || 'var(--muted)';
+      return `<tr>
+        <td style="font-family:'DM Mono',monospace;font-size:12px;white-space:nowrap">${f[CHANGE_FIELDS.date] || '—'}</td>
+        <td><span style="color:${color};font-weight:600;font-size:12px">${type}</span></td>
+        <td style="font-weight:500">${f[CHANGE_FIELDS.compound] || '—'}</td>
+        <td style="font-size:12px">${f[CHANGE_FIELDS.description] || '—'}</td>
+        <td style="font-size:12px;color:var(--muted)">${f[CHANGE_FIELDS.reason] || ''}</td>
+        <td style="font-size:12px;color:var(--muted)">${f[CHANGE_FIELDS.notes] || ''}</td>
+      </tr>`;
+    }).join('')}
+    </tbody></table></div>`;
+
+  el.innerHTML = html;
+}
+
+function showAddChangeModal() {
+  document.getElementById('ac-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('ac-compound').value = '';
+  document.getElementById('ac-description').value = '';
+  document.getElementById('ac-reason').value = '';
+  document.getElementById('ac-notes').value = '';
+  document.getElementById('add-change-modal').style.display = 'flex';
+}
+function hideAddChangeModal() { document.getElementById('add-change-modal').style.display = 'none'; }
+
+async function saveAddChange() {
+  const compound = document.getElementById('ac-compound').value.trim();
+  const date = document.getElementById('ac-date').value;
+  const type = document.getElementById('ac-type').value;
+  if (!compound || !date) { alert('Compound and date required'); return; }
+  const btn = document.getElementById('ac-save-btn');
+  btn.disabled = true; btn.textContent = 'Saving...';
+  try {
+    const fields = {
+      [CHANGE_FIELDS.compound]: compound,
+      [CHANGE_FIELDS.date]: date,
+      [CHANGE_FIELDS.type]: type
+    };
+    const desc = document.getElementById('ac-description').value.trim();
+    const reason = document.getElementById('ac-reason').value.trim();
+    const notes = document.getElementById('ac-notes').value.trim();
+    if (desc) fields[CHANGE_FIELDS.description] = desc;
+    if (reason) fields[CHANGE_FIELDS.reason] = reason;
+    if (notes) fields[CHANGE_FIELDS.notes] = notes;
+    const res = await fetch(`https://api.airtable.com/v0/${BASE}/tblolVx7YwO5cJhsE`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fields, typecast: true })
+    });
+    if (res.ok) {
+      const newRec = await res.json();
+      changesData.unshift(newRec);
+      hideAddChangeModal();
+      renderChanges();
+    } else { alert('Save failed'); }
+  } catch(e) { alert('Error: ' + e.message); }
+  btn.disabled = false; btn.textContent = 'Save';
+}
+
 // Init
 const hr = new Date().getHours();
 document.getElementById('greeting').textContent = hr < 12 ? 'morning' : hr < 17 ? 'afternoon' : 'evening';
@@ -2067,6 +2204,34 @@ loadAll();
     <div class="modal-actions">
       <button class="modal-btn" onclick="hideAddLabModal()">Cancel</button>
       <button class="modal-btn primary" id="al-save-btn" onclick="saveAddLab()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD CHANGE MODAL -->
+<div class="modal-overlay" id="add-change-modal" onclick="if(event.target===this)hideAddChangeModal()">
+  <div class="modal-box">
+    <div class="modal-title">Log Protocol Change</div>
+    <div style="display:flex;gap:8px">
+      <div class="modal-field" style="flex:2"><label>Compound</label><input type="text" id="ac-compound" placeholder="e.g. Retatrutide"></div>
+      <div class="modal-field" style="flex:1"><label>Date</label><input type="date" id="ac-date"></div>
+    </div>
+    <div class="modal-field"><label>Change Type</label>
+      <select id="ac-type">
+        <option>Started</option>
+        <option>Dose Change</option>
+        <option>New Vial</option>
+        <option>Paused</option>
+        <option>Resumed</option>
+        <option>Stopped</option>
+      </select>
+    </div>
+    <div class="modal-field"><label>Description</label><input type="text" id="ac-description" placeholder="e.g. Increased dose from 8mg to 12mg weekly"></div>
+    <div class="modal-field"><label>Reason</label><input type="text" id="ac-reason" placeholder="e.g. Tolerating well, seeking further weight loss"></div>
+    <div class="modal-field"><label>Notes</label><input type="text" id="ac-notes" placeholder="Optional..."></div>
+    <div class="modal-actions">
+      <button class="modal-btn" onclick="hideAddChangeModal()">Cancel</button>
+      <button class="modal-btn primary" id="ac-save-btn" onclick="saveAddChange()">Save</button>
     </div>
   </div>
 </div>
