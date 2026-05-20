@@ -218,7 +218,7 @@
     <button class="nav-tab" onclick="showView('vendors', event)">Vendors</button>
     <span style="width:1px;background:var(--border);margin:6px 4px;display:inline-block;height:20px;vertical-align:middle;opacity:0.5"></span>
     <button class="nav-tab" onclick="showView('workouts', event)">Workouts</button>
-    <button class="nav-tab" onclick="showView('tracker', event)">Tracker</button>
+    <button class="nav-tab" onclick="showView('tracker', event)">Peptide Tracker</button>
     <button class="nav-tab" onclick="showView('log', event)">Daily Log</button>
     <button class="nav-tab" onclick="showView('printlist', event)">Print List</button>
   </div>
@@ -863,26 +863,31 @@ function renderSupplements(filter) {
 function renderTracker(weekNum) {
   weekNum = weekNum || 1;
   const activePeps = data.peptides.filter(r => getField(r,'Status') === 'Active');
-  const morning = activePeps.filter(r => !getField(r,'Timing').toLowerCase().includes('night'));
-  const night = activePeps.filter(r => getField(r,'Timing').toLowerCase().includes('night'));
-  const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+
+  // Force exact order matching Med Tracker 5
+  const MORNING_ORDER = [
+    'Testosterone (TRT)', 'Deca (Nano)', 'NAD+', 'Retatrutide',
+    'Cagrilintide', 'Tesamorelin', 'GHK-Cu', 'Melanotan II', 'Tirzepatide'
+  ];
+  const NIGHT_ORDER = [
+    'CJC-1295 No DAC', 'Ipamorelin', 'DSIP', 'KPV', 'Epitalon'
+  ];
 
   const SCHEDULE = {
-    'Testosterone (TRT)':   [0,3],
-    'Deca (Nano)':          [0,3],
-    'NAD+':                 [1,3,5],
-    'Retatrutide':          [0],
-    'Cagrilintide':         [0],
-    'Tesamorelin':          [0,1,2,3,4,5],
-    'GHK-Cu':               [0,1,2,3,4,5,6],
-    'Melanotan II':         [0],
-    'Tirzepatide':          [0],
-    'CJC-1295 No DAC':      [1,3,5],
-    'Ipamorelin':           [1,3,5],
-    'DSIP':                 [0,1,2,3,4],
-    'KPV':                  [0,1,2,3,4,5,6],
-    'Epitalon':             [0,1,2,3,4,5,6],
+    'Testosterone (TRT)': [0,3], 'Deca (Nano)': [0,3],
+    'NAD+': [1,3,5], 'Retatrutide': [0], 'Cagrilintide': [0],
+    'Tesamorelin': [0,1,2,3,4,5], 'GHK-Cu': [0,1,2,3,4,5,6],
+    'Melanotan II': [0], 'Tirzepatide': [0],
+    'CJC-1295 No DAC': [1,3,5], 'Ipamorelin': [1,3,5],
+    'DSIP': [0,1,2,3,4], 'KPV': [0,1,2,3,4,5,6], 'Epitalon': [0,1,2,3,4,5,6],
   };
+
+  // Sort active peps into correct order
+  const pepMap = {};
+  activePeps.forEach(r => { pepMap[getField(r,'Compound')] = r; });
+  const morning = MORNING_ORDER.map(n => pepMap[n]).filter(Boolean);
+  const night   = NIGHT_ORDER.map(n => pepMap[n]).filter(Boolean);
+  const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
 
   const today = new Date();
   const monday = new Date(today);
@@ -895,40 +900,58 @@ function renderTracker(weekNum) {
     ).join('');
   }
 
+  const MORN_BG  = '#FFF8E7';
+  const NIGHT_BG = '#EEF4FB';
+  const INACTIVE = '#DEDEDE';
+
   let html = `<div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--muted);margin-bottom:10px">Week of ${weekLabel}</div>
-  <table class="tracker-table"><thead><tr>
-    <th>Compound / Dose</th>${days.map(d=>`<th>${d}</th>`).join('')}<th>Notes</th>
+  <table class="tracker-table" style="border-collapse:collapse;width:100%"><thead><tr>
+    <th style="text-align:left;padding:6px 10px">Compound / Dose</th>
+    ${days.map(d=>`<th style="text-align:center;padding:6px 4px;width:46px">${d}</th>`).join('')}
+    <th style="text-align:left;padding:6px 10px">Notes</th>
   </tr></thead><tbody>`;
 
-  function dayCell(compound, dayIdx) {
+  function dayCell(compound, dayIdx, bg) {
     const activeDays = SCHEDULE[compound];
     if (activeDays && !activeDays.includes(dayIdx)) {
-      return `<td style="background:#EFEFEF;border:1px solid #ddd;"></td>`;
+      return `<td style="background:${INACTIVE};border:1px solid #ccc;"></td>`;
     }
-    return `<td><div class="check-box" onclick="
-      var s=this.dataset.s||'0';
-      if(s==='0'){this.dataset.s='L';this.textContent='L';this.style.background='var(--accent-light)';this.style.borderColor='var(--accent)';this.style.color='var(--accent)';}
-      else if(s==='L'){this.dataset.s='R';this.textContent='R';this.style.background='#fef3c7';this.style.borderColor='#d97706';this.style.color='#92400e';}
-      else{this.dataset.s='0';this.textContent='';this.style.background='';this.style.borderColor='';this.style.color='';}
-    " style="margin:0 auto"></div></td>`;
+    return `<td style="background:${bg};border:1px solid #ccc;text-align:center;padding:2px">
+      <div class="check-box" onclick="
+        var s=this.dataset.s||'0';
+        if(s==='0'){this.dataset.s='L';this.textContent='L';this.style.background='var(--accent-light)';this.style.borderColor='var(--accent)';this.style.color='var(--accent)';}
+        else if(s==='L'){this.dataset.s='R';this.textContent='R';this.style.background='#fef3c7';this.style.borderColor='#d97706';this.style.color='#92400e';}
+        else{this.dataset.s='0';this.textContent='';this.style.background='';this.style.borderColor='';this.style.color='';}
+      " style="margin:0 auto"></div></td>`;
   }
 
   if (morning.length) {
-    html += `<tr class="tracker-section"><td colspan="9">☀ Morning</td></tr>`;
+    html += `<tr><td colspan="9" style="background:#E8A838;color:#fff;font-weight:bold;padding:5px 10px;font-size:13px">☀ Morning</td></tr>`;
     morning.forEach(r => {
       const name = getField(r,'Compound');
-      html += `<tr><td><div class="compound-name">${name}</div><div class="compound-sub">${getField(r,'Dose')}</div></td>
-        ${days.map((_,i) => dayCell(name, i)).join('')}
-        <td></td></tr>`;
+      html += `<tr style="background:${MORN_BG}">
+        <td style="padding:5px 10px;border:1px solid #ddd;border-right:2px solid #000">
+          <div class="compound-name">${name}</div>
+          <div class="compound-sub">${getField(r,'Dose')}</div>
+        </td>
+        ${days.map((_,i) => dayCell(name, i, MORN_BG)).join('')}
+        <td style="border:1px solid #ddd;border-left:none;background:${MORN_BG}"></td>
+      </tr>`;
     });
   }
+
   if (night.length) {
-    html += `<tr class="tracker-section"><td colspan="9">🌙 Night</td></tr>`;
+    html += `<tr><td colspan="9" style="background:#4A6FA5;color:#fff;font-weight:bold;padding:5px 10px;font-size:13px">🌙 Night</td></tr>`;
     night.forEach(r => {
       const name = getField(r,'Compound');
-      html += `<tr><td><div class="compound-name">${name}</div><div class="compound-sub">${getField(r,'Dose')}</div></td>
-        ${days.map((_,i) => dayCell(name, i)).join('')}
-        <td></td></tr>`;
+      html += `<tr style="background:${NIGHT_BG}">
+        <td style="padding:5px 10px;border:1px solid #ddd;border-right:2px solid #000">
+          <div class="compound-name">${name}</div>
+          <div class="compound-sub">${getField(r,'Dose')}</div>
+        </td>
+        ${days.map((_,i) => dayCell(name, i, NIGHT_BG)).join('')}
+        <td style="border:1px solid #ddd;border-left:none;background:${NIGHT_BG}"></td>
+      </tr>`;
     });
   }
 
