@@ -1208,7 +1208,7 @@ function renderPricing() {
       <div class="pricing-group-header">
         ${peptide}
         ${bestIdx >= 0 ? `<span class="best-badge">Best: ${priced[bestIdx]['Vendor']} @ $${bestPpm.toFixed(2)}/mg</span>` : ''}
-        ${priced[bestIdx] && priced[bestIdx]['fldSwpah2L7TCe8pc'] || priced[bestIdx]['URL'] ? `<button class="price-check-btn" onclick="window.open('${priced[bestIdx]['fldSwpah2L7TCe8pc'] || priced[bestIdx]['URL']}','_blank')">Check Price ↗</button>` : ''}
+        ${bestIdx >= 0 && (priced[bestIdx]['fldSwpah2L7TCe8pc'] || priced[bestIdx]['URL']) ? `<button class="price-check-btn" onclick="window.open('${priced[bestIdx]['fldSwpah2L7TCe8pc'] || priced[bestIdx]['URL']}','_blank')">Check Price ↗</button>` : ''}
       </div>
       <div class="table-wrap" style="border-radius:0 0 8px 8px;margin:0">
         <table class="data-table">
