@@ -166,9 +166,10 @@
 
   /* PRINT */
   @media print {
-    body > * { display: none !important; }
-    #print-tracker-frame { display: block !important; }
     body { background: #fff; margin: 0; }
+    nav, .filter-bar, .nav-right, .warning-bar,
+    .filter-chip, .print-btn, button { display: none !important; }
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
     .view { display: none !important; }
     .view.active { display: block !important; }
     th span { display: none !important; }
