@@ -2224,7 +2224,7 @@ function renderChanges() {
   if (!filtered.length) { el.innerHTML = '<p style="color:var(--muted);padding:16px">No changes logged yet.</p>'; return; }
 
   let html = `<div class="table-wrap"><table class="data-table">
-    <thead><tr><th>Date</th><th>Type</th><th>Compound</th><th>Description</th><th>Reason</th><th>Notes</th></tr></thead><tbody>
+    <thead><tr><th>Date</th><th>Type</th><th>Compound</th><th>Description</th><th>Reason</th><th>Impacted</th><th>Notes</th></tr></thead><tbody>
     ${filtered.map(r => {
       const f = r.fields || {};
       const type = f['Change Type'] || '—';
@@ -2235,6 +2235,7 @@ function renderChanges() {
         <td style="font-weight:500">${f['Compound'] || '—'}</td>
         <td style="font-size:12px">${f['Description of Change'] || '—'}</td>
         <td style="font-size:12px;color:var(--muted)">${f['Reason for Change'] || ''}</td>
+        <td style="font-size:12px;color:var(--muted)">${f['Impacted Peptides'] || ''}</td>
         <td style="font-size:12px;color:var(--muted)">${f['Notes'] || ''}</td>
       </tr>`;
     }).join('')}
@@ -2245,19 +2246,20 @@ function renderChanges() {
 
 function showAddChangeModal() {
   document.getElementById('ac-date').value = new Date().toISOString().split('T')[0];
-  // Populate compound select from active peptides + supplements
+  // Populate compound select from active peptides
   const sel = document.getElementById('ac-compound');
-  const current = sel.value;
-  sel.innerHTML = '<option value="">— select —</option>';
-  const names = new Set();
-  (data.peptides || []).forEach(r => { const n = getField(r,'Compound'); if(n) names.add(n); });
-  (data.supplements || []).forEach(r => { const n = getField(r,'Supplement'); if(n) names.add(n); });
-  [...names].sort().forEach(n => { const o = document.createElement('option'); o.value = n; o.textContent = n; sel.appendChild(o); });
-  if (current) sel.value = current;
+  sel.innerHTML = '<option value="">— Select —</option>';
+  const names = (data.peptides || [])
+    .filter(r => (r.fields||{})['Status'] === 'Active')
+    .map(r => (r.fields||{})['Compound'] || '')
+    .filter(Boolean)
+    .sort();
+  names.forEach(n => { const o = document.createElement('option'); o.value = n; o.textContent = n; sel.appendChild(o); });
+  sel.value = '';
   document.getElementById('ac-description').value = '';
   document.getElementById('ac-reason').value = '';
-  document.getElementById('ac-notes').value = '';
   document.getElementById('ac-impacted').value = '';
+  document.getElementById('ac-notes').value = '';
   document.getElementById('add-change-modal').style.display = 'flex';
 }
 function hideAddChangeModal() { document.getElementById('add-change-modal').style.display = 'none'; }
@@ -2528,7 +2530,7 @@ loadAll();
   <div class="modal-box">
     <div class="modal-title">Log Protocol Change</div>
     <div style="display:flex;gap:8px">
-      <div class="modal-field" style="flex:2"><label>Compound</label><select id="ac-compound" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface)"><option value="">— select —</option></select></div>
+      <div class="modal-field" style="flex:2"><label>Compound</label><select id="ac-compound"><option value="">— Select —</option></select></div>
       <div class="modal-field" style="flex:1"><label>Date</label><input type="date" id="ac-date"></div>
     </div>
     <div class="modal-field"><label>Change Type</label>
@@ -2543,8 +2545,8 @@ loadAll();
     </div>
     <div class="modal-field"><label>Description</label><input type="text" id="ac-description" placeholder="e.g. Increased dose from 8mg to 12mg weekly"></div>
     <div class="modal-field"><label>Reason</label><input type="text" id="ac-reason" placeholder="e.g. Tolerating well, seeking further weight loss"></div>
+    <div class="modal-field"><label>Impacted Peptides</label><input type="text" id="ac-impacted" placeholder="Optional — other compounds affected"></div>
     <div class="modal-field"><label>Notes</label><input type="text" id="ac-notes" placeholder="Optional..."></div>
-    <div class="modal-field"><label>Impacted Peptides</label><input type="text" id="ac-impacted" placeholder="Optional — other compounds affected..."></div>
     <div class="modal-actions">
       <button class="modal-btn" onclick="hideAddChangeModal()">Cancel</button>
       <button class="modal-btn primary" id="ac-save-btn" onclick="saveAddChange()">Save</button>
