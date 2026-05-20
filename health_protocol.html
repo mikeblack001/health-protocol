@@ -2343,9 +2343,11 @@ function printTracker() {
     return t;
   }
 
-  const html = `<!DOCTYPE html><html><head><title>Peptide Tracker</title>
+  const html = `<!DOCTYPE html><html><head><title></title>
   <style>
     @page { size: portrait letter; margin: 0.25in; }
+    @page { margin-top: 0.25in; }
+    head { display: none; }
     body { font-family: Calibri, Arial, sans-serif; margin: 0; font-size: 8pt; }
     * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
     table { width: 100%; border-collapse: collapse; margin-bottom: 4px; table-layout: fixed; }
