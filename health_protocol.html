@@ -2310,17 +2310,17 @@ function printTracker() {
 
   function weekTable(weekNum) {
     let t = `
-    <div style="background:#1B4332;color:#fff;font-weight:bold;font-size:12px;padding:5px 10px;margin-top:${weekNum>1?'14px':'0'}">
+    <div class="week-hdr" style="background:#1B4332;color:#fff;font-weight:bold;margin-top:${weekNum>1?'8px':'0'}">
       Week ${weekNum} &nbsp;&nbsp; Monday Date: _____________________
     </div>
-    <table style="width:100%;border-collapse:collapse;font-size:10px;table-layout:fixed">
-    <colgroup><col style="width:28%">${DAYS.map(()=>'<col style="width:8%">').join('')}<col style="width:16%"></colgroup>
+    <table style="table-layout:fixed">
+    <colgroup><col style="width:27%">${DAYS.map(()=>'<col style="width:7.5%">').join('')}<col style="width:14%"></colgroup>
     <thead><tr style="background:#D9D9D9">
-      <th style="border:1px solid #999;padding:4px 6px;text-align:left">Medication</th>
-      ${DAYS.map(d=>`<th style="border:1px solid #999;padding:4px 2px;text-align:center">${d}</th>`).join('')}
-      <th style="border:1px solid #999;padding:4px 6px;text-align:left">Notes</th>
+      <th style="border:1px solid #999;text-align:left">Medication</th>
+      ${DAYS.map(d=>`<th style="border:1px solid #999;text-align:center">${d}</th>`).join('')}
+      <th style="border:1px solid #999;text-align:left">Notes</th>
     </tr></thead><tbody>
-    <tr><td colspan="9" style="background:#E8A838;color:#fff;font-weight:bold;padding:4px 8px">☀ Morning</td></tr>`;
+    <tr><td colspan="9" class="sec-hdr" style="background:#E8A838;color:#fff;font-weight:bold">☀ Morning</td></tr>`;
 
     MORNING.forEach(([name, active]) => {
       t += `<tr><td style="border:1px solid #ccc;background:${MORN_BG};padding:4px 6px;border-left:2px solid #000">${name}</td>`;
@@ -2332,7 +2332,7 @@ function printTracker() {
       t += `<td style="border:1px solid #ccc;background:${MORN_BG};border-right:2px solid #000"></td></tr>`;
     });
 
-    t += `<tr><td colspan="9" style="background:#4A6FA5;color:#fff;font-weight:bold;padding:4px 8px">🌙 Night</td></tr>`;
+    t += `<tr><td colspan="9" class="sec-hdr" style="background:#4A6FA5;color:#fff;font-weight:bold">🌙 Night</td></tr>`;
     NIGHT.forEach(([name, active]) => {
       t += `<tr><td style="border:1px solid #ccc;background:${NIGHT_BG};padding:4px 6px;border-left:2px solid #000">${name}</td>`;
       for (let d=0; d<7; d++) {
@@ -2348,10 +2348,14 @@ function printTracker() {
 
   const html = `<!DOCTYPE html><html><head><title>Peptide Tracker</title>
   <style>
-    @page { size: landscape letter; margin: 0.4in; }
-    body { font-family: Calibri, Arial, sans-serif; margin: 0; }
+    @page { size: landscape letter; margin: 0.3in; }
+    body { font-family: Calibri, Arial, sans-serif; margin: 0; font-size: 9pt; }
     * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-    .page-break { page-break-after: always; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 6px; }
+    td, th { padding: 2px 4px !important; line-height: 1.2; }
+    .week-hdr { font-size: 9pt; padding: 3px 6px !important; }
+    .sec-hdr { font-size: 9pt; padding: 3px 6px !important; }
+    .page-break { page-break-after: always; margin-bottom: 0; }
   </style></head><body>
   <div class="page-break">${weekTable(1)}${weekTable(2)}</div>
   <div>${weekTable(3)}${weekTable(4)}</div>
