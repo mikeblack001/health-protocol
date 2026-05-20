@@ -2284,63 +2284,57 @@ async function saveAddChange() {
 
 
 function printTracker() {
-  const MORNING = [
-    ['TRT (Testosterone) - 75u (150mg)',  [0,3]],
-    ['Deca (Nano) - 37u (75mg)',           [0,3]],
-    ['NAD+ - 10u (50mg)',                  [1,4,6]],
-    ['Retatrutide - 40u (12mg)',           [2]],
-    ['Cagrilintide - 10u (0.5mg)',         [2]],
-    ['Tesamorelin - 20u (2mg)',            [0,1,2,3,4,5]],
-    ['GHK-Cu - 5u (1.25mg)',              [0,1,2,3,4,5,6]],
-    ['Melanotan II - 5u (250mcg)',         [1]],
-    ['Tirzepatide - 36u (9mg)',            [5]],
+  // Build dynamically from live data + schedule
+  const activePeps = data.peptides.filter(r => getField(r,'Status') === 'Active');
+  const pepMap = {};
+  activePeps.forEach(r => { pepMap[getField(r,'Compound')] = r; });
+
+  const MORNING_ORDER = [
+    'Testosterone (TRT)', 'Deca (Nano)', 'NAD+', 'Retatrutide',
+    'Cagrilintide', 'Tesamorelin', 'GHK-Cu', 'Melanotan II', 'Tirzepatide'
   ];
-  const NIGHT = [
-    ['CJC-1295 No DAC - 5u (250mcg)',     [0,1,2,3,6]],
-    ['Ipamorelin - 5u (250mcg)',           [0,1,2,3,6]],
-    ['DSIP - 4u (200mcg)',                 [0,2,4,5,6]],
-    ['KPV - 10u (500mcg)',                 [0,1,2,3,4,5,6]],
-    ['Epitalon - 20u (5mg)',               [0,1,2,3,4,5,6]],
+  const NIGHT_ORDER = [
+    'CJC-1295 No DAC', 'Ipamorelin', 'DSIP', 'KPV', 'Epitalon'
   ];
-  const DAYS = ['Mon','Tues','Wed','Thurs','Fri','Sat','Sun'];
+
   const MORN_BG = '#FFF8E7'; const NIGHT_BG = '#EEF4FB'; const INACTIVE = '#DEDEDE';
+  const DAYS = ['Mon','Tues','Wed','Thurs','Fri','Sat','Sun'];
+
+  function rows(order, bg) {
+    return order.map(name => {
+      const r = pepMap[name];
+      if (!r) return '';
+      const dose = getField(r,'Dose');
+      const label = dose ? `${name} - ${dose}` : name;
+      const active = TRACKER_SCHEDULE[name] || [0,1,2,3,4,5,6];
+      let tr = `<tr><td style="background-color:${bg}!important;border:1px solid #ccc;border-left:2px solid #000;padding:3px 5px">${label}</td>`;
+      for (let d=0; d<7; d++) {
+        tr += active.includes(d)
+          ? `<td style="background-color:${bg}!important;border:1px solid #ccc;"></td>`
+          : `<td style="background-color:${INACTIVE}!important;border:1px solid #ccc;"></td>`;
+      }
+      tr += `<td style="background-color:${bg}!important;border:1px solid #ccc;border-right:2px solid #000"></td></tr>`;
+      return tr;
+    }).join('');
+  }
 
   function weekTable(weekNum) {
-    let t = `
-    <div class="week-hdr" style="background-color:#1B4332!important;color:#fff!important;font-weight:bold;margin-top:${weekNum>1?'8px':'0'}">
+    return `
+    <div style="background-color:#1B4332!important;color:#fff!important;font-weight:bold;font-size:8pt;padding:3px 5px;margin-top:${weekNum>1?'8px':'0'}">
       Week ${weekNum} &nbsp;&nbsp; Monday Date: _____________________
     </div>
-    <table style="table-layout:fixed">
+    <table style="width:100%;border-collapse:collapse;font-size:8pt;table-layout:fixed">
     <colgroup><col style="width:42%">${DAYS.map(()=>'<col style="width:6.5%">').join('')}<col style="width:3%"></colgroup>
     <thead><tr style="background-color:#D9D9D9!important">
-      <th style="border:1px solid #999;text-align:left">Medication</th>
-      ${DAYS.map(d=>`<th style="border:1px solid #999;text-align:center">${d}</th>`).join('')}
-      <th style="border:1px solid #999;text-align:left">Notes</th>
+      <th style="border:1px solid #999;padding:2px 4px;text-align:left">Medication</th>
+      ${DAYS.map(d=>`<th style="border:1px solid #999;padding:2px;text-align:center">${d}</th>`).join('')}
+      <th style="border:1px solid #999;padding:2px;text-align:left">Notes</th>
     </tr></thead><tbody>
-    <tr><td colspan="9" class="sec-hdr" style="background-color:#E8A838!important;color:#fff!important;font-weight:bold">☀ Morning</td></tr>`;
-
-    MORNING.forEach(([name, active]) => {
-      t += `<tr><td style="border:1px solid #ccc;background-color:${MORN_BG}!important;padding:4px 6px;border-left:2px solid #000">${name}</td>`;
-      for (let d=0; d<7; d++) {
-        t += active.includes(d)
-          ? `<td style="border:1px solid #ccc;background-color:${MORN_BG}!important;"></td>`
-          : `<td style="border:1px solid #ccc;background-color:${INACTIVE}!important;"></td>`;
-      }
-      t += `<td style="border:1px solid #ccc;background-color:${MORN_BG}!important;border-right:2px solid #000"></td></tr>`;
-    });
-
-    t += `<tr><td colspan="9" class="sec-hdr" style="background-color:#4A6FA5!important;color:#fff!important;font-weight:bold">🌙 Night</td></tr>`;
-    NIGHT.forEach(([name, active]) => {
-      t += `<tr><td style="border:1px solid #ccc;background-color:${NIGHT_BG}!important;padding:4px 6px;border-left:2px solid #000">${name}</td>`;
-      for (let d=0; d<7; d++) {
-        t += active.includes(d)
-          ? `<td style="border:1px solid #ccc;background-color:${NIGHT_BG}!important;"></td>`
-          : `<td style="border:1px solid #ccc;background-color:${INACTIVE}!important;"></td>`;
-      }
-      t += `<td style="border:1px solid #ccc;background-color:${NIGHT_BG}!important;border-right:2px solid #000"></td></tr>`;
-    });
-    t += `</tbody></table>`;
-    return t;
+    <tr><td colspan="9" style="background-color:#E8A838!important;color:#fff!important;font-weight:bold;padding:3px 5px;font-size:8pt">☀ Morning</td></tr>
+    ${rows(MORNING_ORDER, MORN_BG)}
+    <tr><td colspan="9" style="background-color:#4A6FA5!important;color:#fff!important;font-weight:bold;padding:3px 5px;font-size:8pt">🌙 Night</td></tr>
+    ${rows(NIGHT_ORDER, NIGHT_BG)}
+    </tbody></table>`;
   }
 
   const html = `<!DOCTYPE html><html><head><title></title>
@@ -2349,10 +2343,8 @@ function printTracker() {
     body { font-family: Calibri, Arial, sans-serif; margin: 0; font-size: 8pt; -webkit-print-color-adjust: exact; print-color-adjust: exact; color-adjust: exact; }
     * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
     table { width: 100%; border-collapse: collapse; margin-bottom: 4px; table-layout: fixed; }
-    td, th { padding: 2px 3px !important; line-height: 1.2; overflow: hidden; border: 1px solid #999 !important; }
-    .week-hdr { font-size: 8pt; padding: 3px 5px !important; background-color: #1B4332 !important; color: #ffffff !important; }
-    .sec-hdr { font-size: 8pt; padding: 3px 5px !important; }
-    .page-break { page-break-after: always; margin-bottom: 0; }
+    td, th { padding: 2px 3px !important; line-height: 1.2; overflow: hidden; }
+    .page-break { page-break-after: always; }
   </style></head><body>
   <div class="page-break">${weekTable(1)}${weekTable(2)}</div>
   <div>${weekTable(3)}${weekTable(4)}</div>
@@ -2361,7 +2353,7 @@ function printTracker() {
   const w = window.open('','_blank','width=900,height=700');
   w.document.write(html);
   w.document.close();
-  w.onload = () => w.print();
+  setTimeout(() => w.print(), 800);
 }
 
 
