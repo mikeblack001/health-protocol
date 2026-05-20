@@ -2377,6 +2377,7 @@ function printTracker() {
 
 
 function printProtocolList() {
+  alert('DEBUG: peptides=' + data.peptides.length + ' supplements=' + data.supplements.length);
   const activePep = data.peptides.filter(r => getField(r,'Status') === 'Active');
   const amPep = activePep.filter(r => !getField(r,'Timing').toLowerCase().includes('night'));
   const pmPep = activePep.filter(r => getField(r,'Timing').toLowerCase().includes('night'));
