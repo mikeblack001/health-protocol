@@ -731,6 +731,8 @@ function renderPeptides(filter) {
       <th style="cursor:pointer" onclick="sortPep('Frequency')">Frequency${pepSortIcon('Frequency')}</th>
       <th style="cursor:pointer" onclick="sortPep('Source')">Source${pepSortIcon('Source')}</th>
       <th>Vial</th>
+      <th>Suggested Dose</th>
+      <th>Cycle</th>
       <th>On Hand</th>
       <th style="cursor:pointer" onclick="sortPep('Status')">Status${pepSortIcon('Status')}</th>
     </tr></thead><tbody>
@@ -740,6 +742,8 @@ function renderPeptides(filter) {
       <td style="font-family:'DM Mono',monospace;font-size:12px">${getField(r,'Frequency')}</td>
       <td style="font-size:12px;color:var(--muted)">${getField(r,'Source')}</td>
       <td style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)">${getField(r,'Vial Size')}</td>
+      <td style="font-size:11px;color:var(--muted)">${getField(r,'Suggested Dose') || '—'}</td>
+      <td style="font-size:11px;color:var(--muted)">${getField(r,'Cycle Type') || '—'}</td>
       <td style="font-family:'DM Mono',monospace;font-size:12px;text-align:center">${getField(r,'Vials on Hand') !== '' ? `<span style="color:${getField(r,'Vials on Hand') <= 1 ? 'var(--red)' : getField(r,'Vials on Hand') <= 3 ? 'var(--amber)' : 'var(--green)'};font-weight:600">${getField(r,'Vials on Hand')}</span>` : '—'}</td>
       <td>${badge(getField(r,'Status'))}</td>
     </tr>`).join('')}
