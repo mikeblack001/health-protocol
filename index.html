@@ -305,8 +305,8 @@
       <span>⚠ LDN: No opioids within 4–6 hrs</span>
     </div>
     <div class="filter-bar">
-      <div class="filter-chip active" onclick="filterSupps('all', this)">All</div>
-      <div class="filter-chip" onclick="filterSupps('Active', this)">Active</div>
+      <div class="filter-chip" onclick="filterSupps('all', this)">All</div>
+      <div class="filter-chip active" onclick="filterSupps('Active', this)">Active</div>
       <div class="filter-chip" onclick="filterSupps('Paused', this)">Paused</div>
       <div class="filter-chip" onclick="filterSupps('TBD', this)">TBD</div>
       <div class="filter-chip" onclick="filterSuppSource('Amazon', this)" style="margin-left:8px">Amazon</div>
@@ -580,7 +580,7 @@ const TABLES = { peptides: 'tblMs6YRdP4wkndUp', supplements: 'tblSnkc0Gu2BzGACP'
 
 let data = { peptides: [], supplements: [] };
 let currentPepFilter = 'Active';
-let currentSuppFilter = 'all';
+let currentSuppFilter = 'Active';
 
 async function fetchTable(tableId) {
   const res = await fetch(`https://api.airtable.com/v0/${BASE}/${tableId}?pageSize=100`, {
@@ -647,10 +647,10 @@ async function loadAll() {
     data.supplements = s;
     document.getElementById('statusDot').className = 'status-dot online';
     renderDashboard();
-    renderPeptides('all');
+    renderPeptides('Active');
     // Pre-load vendors silently so Add Row dropdown is populated
     loadVendors();
-    renderSupplements('all');
+    renderSupplements('Active');
     renderTracker();
     renderPrintList();
   } catch(e) {
@@ -864,7 +864,29 @@ function renderTracker() {
   const night = activePeps.filter(r => getField(r,'Timing').toLowerCase().includes('night'));
   const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
 
-  // Calculate Monday of current week
+  const SCHEDULE = {
+    'Testosterone (TRT)':   [0,3],
+    'Deca (Nano)':          [0,3],
+    'Retatrutide':          [0],
+    'Cagrilintide':         [0],
+    'Tirzepatide':          [0],
+    'Tesamorelin':          [0,1,2,3,4,5],
+    'GHK-Cu':               [0,1,2,3,4,5,6],
+    'Melanotan II':         [0],
+    'NAD+':                 [1,3,5],
+    'Mots-C':               [0,3],
+    'CJC-1295 No DAC':      [1,3,5],
+    'Ipamorelin':           [1,3,5],
+    'DSIP':                 [0,1,2,3,4],
+    'KPV':                  [0,1,2,3,4,5,6],
+    'Selank':               [0,1,2,3,4,5,6],
+    'Semax':                [0,1,2,3,4,5,6],
+    'Epitalon':             [0,1,2,3,4,5,6],
+    'BPC-157':              [0,1,2,3,4,5,6],
+    'TB-500':               [0,3],
+    'SS-31 (Elamipretide)': [0,1,2,3,4,5,6],
+  };
+
   const today = new Date();
   const monday = new Date(today);
   monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
@@ -879,7 +901,11 @@ function renderTracker() {
     <th>Compound / Dose</th>${days.map(d=>`<th>${d}</th>`).join('')}<th>Notes</th>
   </tr></thead><tbody>`;
 
-  function lrCell() {
+  function dayCell(compound, dayIdx) {
+    const activeDays = SCHEDULE[compound];
+    if (activeDays && !activeDays.includes(dayIdx)) {
+      return `<td style="background:#EFEFEF;border:1px solid #ddd;"></td>`;
+    }
     return `<td><div class="check-box" onclick="
       var s=this.dataset.s||'0';
       if(s==='0'){this.dataset.s='L';this.textContent='L';this.style.background='var(--accent-light)';this.style.borderColor='var(--accent)';this.style.color='var(--accent)';}
@@ -889,18 +915,20 @@ function renderTracker() {
   }
 
   if (morning.length) {
-    html += `<tr class="tracker-section"><td colspan="9">Morning</td></tr>`;
+    html += `<tr class="tracker-section"><td colspan="9">☀ Morning</td></tr>`;
     morning.forEach(r => {
-      html += `<tr><td><div class="compound-name">${getField(r,'Compound')}</div><div class="compound-sub">${getField(r,'Dose')}</div></td>
-        ${days.map(() => lrCell()).join('')}
+      const name = getField(r,'Compound');
+      html += `<tr><td><div class="compound-name">${name}</div><div class="compound-sub">${getField(r,'Dose')}</div></td>
+        ${days.map((_,i) => dayCell(name, i)).join('')}
         <td></td></tr>`;
     });
   }
   if (night.length) {
-    html += `<tr class="tracker-section"><td colspan="9">Night</td></tr>`;
+    html += `<tr class="tracker-section"><td colspan="9">🌙 Night</td></tr>`;
     night.forEach(r => {
-      html += `<tr><td><div class="compound-name">${getField(r,'Compound')}</div><div class="compound-sub">${getField(r,'Dose')}</div></td>
-        ${days.map(() => lrCell()).join('')}
+      const name = getField(r,'Compound');
+      html += `<tr><td><div class="compound-name">${name}</div><div class="compound-sub">${getField(r,'Dose')}</div></td>
+        ${days.map((_,i) => dayCell(name, i)).join('')}
         <td></td></tr>`;
     });
   }
@@ -2060,7 +2088,7 @@ async function loadChanges() {
   try {
     let records = [], offset = null;
     do {
-      const url = `https://api.airtable.com/v0/${BASE}/${TABLES.protocolChanges || 'tblolVx7YwO5cJhsE'}?pageSize=100&sort[0][field]=${CHANGE_FIELDS.date}&sort[0][direction]=desc${offset ? '&offset=' + offset : ''}`;
+      const url = `https://api.airtable.com/v0/${BASE}/${TABLES.protocolChanges}?pageSize=100&sort[0][field]=Change%20Date&sort[0][direction]=desc${offset ? '&offset=' + offset : ''}`;
       const res = await fetch(url, { headers: { Authorization: `Bearer ${TOKEN}` } });
       const d = await res.json();
       records.push(...(d.records || []));
@@ -2077,9 +2105,9 @@ function renderChanges() {
   const compoundFilter = (document.getElementById('changes-compound-filter')?.value || '').toLowerCase();
 
   let filtered = changesData.filter(r => {
-    const f = r.cellValuesByFieldId || r.fields || {};
-    const type = f[CHANGE_FIELDS.type] || '';
-    const compound = (f[CHANGE_FIELDS.compound] || '').toLowerCase();
+    const f = r.fields || {};
+    const type = f['Change Type'] || '';
+    const compound = (f['Compound'] || '').toLowerCase();
     if (typeFilter && type !== typeFilter) return false;
     if (compoundFilter && !compound.includes(compoundFilter)) return false;
     return true;
@@ -2090,16 +2118,16 @@ function renderChanges() {
   let html = `<div class="table-wrap"><table class="data-table">
     <thead><tr><th>Date</th><th>Type</th><th>Compound</th><th>Description</th><th>Reason</th><th>Notes</th></tr></thead><tbody>
     ${filtered.map(r => {
-      const f = r.cellValuesByFieldId || r.fields || {};
-      const type = f[CHANGE_FIELDS.type] || '—';
+      const f = r.fields || {};
+      const type = f['Change Type'] || '—';
       const color = CHANGE_COLORS[type] || 'var(--muted)';
       return `<tr>
-        <td style="font-family:'DM Mono',monospace;font-size:12px;white-space:nowrap">${f[CHANGE_FIELDS.date] || '—'}</td>
+        <td style="font-family:'DM Mono',monospace;font-size:12px;white-space:nowrap">${f['Change Date'] || '—'}</td>
         <td><span style="color:${color};font-weight:600;font-size:12px">${type}</span></td>
-        <td style="font-weight:500">${f[CHANGE_FIELDS.compound] || '—'}</td>
-        <td style="font-size:12px">${f[CHANGE_FIELDS.description] || '—'}</td>
-        <td style="font-size:12px;color:var(--muted)">${f[CHANGE_FIELDS.reason] || ''}</td>
-        <td style="font-size:12px;color:var(--muted)">${f[CHANGE_FIELDS.notes] || ''}</td>
+        <td style="font-weight:500">${f['Compound'] || '—'}</td>
+        <td style="font-size:12px">${f['Description of Change'] || '—'}</td>
+        <td style="font-size:12px;color:var(--muted)">${f['Reason for Change'] || ''}</td>
+        <td style="font-size:12px;color:var(--muted)">${f['Notes'] || ''}</td>
       </tr>`;
     }).join('')}
     </tbody></table></div>`;
