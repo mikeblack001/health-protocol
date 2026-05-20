@@ -2311,7 +2311,7 @@ function printTracker() {
       Week ${weekNum} &nbsp;&nbsp; Monday Date: _____________________
     </div>
     <table style="table-layout:fixed">
-    <colgroup><col style="width:32%">${DAYS.map(()=>'<col style="width:7%">').join('')}<col style="width:17%"></colgroup>
+    <colgroup><col style="width:35%">${DAYS.map(()=>'<col style="width:6.5%">').join('')}<col style="width:10%"></colgroup>
     <thead><tr style="background:#D9D9D9">
       <th style="border:1px solid #999;text-align:left">Medication</th>
       ${DAYS.map(d=>`<th style="border:1px solid #999;text-align:center">${d}</th>`).join('')}
@@ -2345,13 +2345,13 @@ function printTracker() {
 
   const html = `<!DOCTYPE html><html><head><title>Peptide Tracker</title>
   <style>
-    @page { size: portrait letter; margin: 0.3in; }
-    body { font-family: Calibri, Arial, sans-serif; margin: 0; font-size: 9pt; }
+    @page { size: portrait letter; margin: 0.25in; }
+    body { font-family: Calibri, Arial, sans-serif; margin: 0; font-size: 8pt; }
     * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-    table { width: 100%; border-collapse: collapse; margin-bottom: 6px; }
-    td, th { padding: 2px 4px !important; line-height: 1.2; }
-    .week-hdr { font-size: 9pt; padding: 3px 6px !important; }
-    .sec-hdr { font-size: 9pt; padding: 3px 6px !important; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 4px; table-layout: fixed; }
+    td, th { padding: 2px 3px !important; line-height: 1.2; overflow: hidden; }
+    .week-hdr { font-size: 8pt; padding: 3px 5px !important; }
+    .sec-hdr { font-size: 8pt; padding: 3px 5px !important; }
     .page-break { page-break-after: always; margin-bottom: 0; }
   </style></head><body>
   <div class="page-break">${weekTable(1)}${weekTable(2)}</div>
