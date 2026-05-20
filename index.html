@@ -466,8 +466,18 @@
 
   <!-- PURCHASES -->
   <div id="view-purchases" class="view">
-    <div class="filter-bar">
+    <div class="filter-bar" style="flex-wrap:wrap;gap:6px">
       <span style="font-size:13px;font-weight:500;color:var(--text)">Purchase History</span>
+      <select id="purchase-vendor-filter" onchange="filterPurchases()" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface)">
+        <option value="">All Vendors</option>
+      </select>
+      <input type="text" id="purchase-compound-filter" oninput="filterPurchases()" placeholder="Search compound..." style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface);width:150px">
+      <select id="purchase-year-filter" onchange="filterPurchases()" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface)">
+        <option value="">All Years</option>
+        <option value="2026">2026</option>
+        <option value="2025">2025</option>
+      </select>
+      <button class="filter-btn" onclick="clearPurchaseFilters()">✕ Clear</button>
       <button class="filter-btn" onclick="showAddPurchaseModal()" style="margin-left:auto;background:var(--accent);color:#fff;border-color:var(--accent)">+ Log Purchase</button>
     </div>
     <div id="purchases-content"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
@@ -1732,32 +1742,58 @@ async function loadPurchases() {
   }
 }
 
+function filterPurchases() { renderPurchases(); }
+
+function clearPurchaseFilters() {
+  document.getElementById('purchase-vendor-filter').value = '';
+  document.getElementById('purchase-compound-filter').value = '';
+  document.getElementById('purchase-year-filter').value = '';
+  renderPurchases();
+}
+
 function renderPurchases() {
   const el = document.getElementById('purchases-content');
   if (!purchasesData.length) { el.innerHTML = '<p style="color:var(--muted);padding:16px">No purchases logged yet.</p>'; return; }
-  
-  // Group by vendor
-  const byVendor = {};
-  purchasesData.forEach(r => {
-    const v = r.fields['Vendor'] || 'Unknown';
-    if (!byVendor[v]) byVendor[v] = [];
-    byVendor[v].push(r.fields);
+
+  // Populate vendor dropdown
+  const vendorSel = document.getElementById('purchase-vendor-filter');
+  if (vendorSel && vendorSel.options.length <= 1) {
+    const vendors = [...new Set(purchasesData.map(r => r.fields['Vendor']).filter(Boolean))].sort();
+    vendors.forEach(v => { const o = document.createElement('option'); o.value = v; o.textContent = v; vendorSel.appendChild(o); });
+  }
+
+  // Apply filters
+  const vendorFilter = document.getElementById('purchase-vendor-filter')?.value || '';
+  const compoundFilter = (document.getElementById('purchase-compound-filter')?.value || '').toLowerCase();
+  const yearFilter = document.getElementById('purchase-year-filter')?.value || '';
+
+  let filtered = purchasesData.filter(r => {
+    const f = r.fields;
+    if (vendorFilter && f['Vendor'] !== vendorFilter) return false;
+    if (compoundFilter && !(f['Compound'] || '').toLowerCase().includes(compoundFilter)) return false;
+    if (yearFilter && !(f['Date'] || '').startsWith(yearFilter)) return false;
+    return true;
   });
 
-  // Summary cards
-  const totalSpent = purchasesData.reduce((s, r) => s + (r.fields['Total'] || (r.fields['Price Paid'] * (r.fields['Qty'] || 1)) || 0), 0);
+  // Group by vendor for summary
+  const byVendor = {};
+  filtered.forEach(r => { const v = r.fields['Vendor'] || 'Unknown'; if (!byVendor[v]) byVendor[v] = []; byVendor[v].push(r.fields); });
+
+  const totalSpent = filtered.reduce((s, r) => s + (r.fields['Total'] || (r.fields['Price Paid'] * (r.fields['Qty'] || 1)) || 0), 0);
   const vendorCount = Object.keys(byVendor).length;
 
   let html = `<div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap">
     <div class="stat-card" style="flex:1;min-width:140px"><div class="stat-label">Total Spent</div><div class="stat-value blue">$${totalSpent.toFixed(0)}</div></div>
-    <div class="stat-card" style="flex:1;min-width:140px"><div class="stat-label">Orders</div><div class="stat-value">${purchasesData.length}</div></div>
+    <div class="stat-card" style="flex:1;min-width:140px"><div class="stat-label">Rows</div><div class="stat-value">${filtered.length}</div></div>
     <div class="stat-card" style="flex:1;min-width:140px"><div class="stat-label">Vendors</div><div class="stat-value">${vendorCount}</div></div>
   </div>`;
+
+  if (!filtered.length) { el.innerHTML = html + '<p style="color:var(--muted);padding:16px">No results match filters.</p>'; return; }
 
   html += `<div class="table-wrap"><table class="data-table">
     <thead><tr><th>Date</th><th>Vendor</th><th>Compound</th><th>Qty</th><th>Price/Item</th><th>Total</th><th>Order ID</th><th>Notes</th></tr></thead>
     <tbody>
-    ${purchasesData.map(r => {
+    ${filtered.map(r => {
       const f = r.fields;
       const total = f['Total'] || ((f['Price Paid'] || 0) * (f['Qty'] || 1));
       return `<tr>
@@ -1772,7 +1808,7 @@ function renderPurchases() {
       </tr>`;
     }).join('')}
     </tbody></table></div>`;
-  
+
   el.innerHTML = html;
 }
 
