@@ -855,7 +855,7 @@ let trackerMondayOffset = 0; // weeks offset from current week
 
 const TRACKER_MORNING_ORDER = [
   'Testosterone (TRT)', 'Deca (Nano)', 'NAD+', 'Retatrutide',
-  'Cagrilintide', 'Tesamorelin', 'GHK-Cu', 'Melanotan II', 'Tirzepatide'
+  'Cagrilintide', 'Tesamorelin', 'GHK-Cu', 'Melanotan II', 'Tirzepatide - 36u (9mg)'
 ];
 const TRACKER_NIGHT_ORDER = [
   'CJC-1295 No DAC', 'Ipamorelin', 'DSIP', 'KPV', 'Epitalon'
@@ -869,7 +869,7 @@ const TRACKER_SCHEDULE = {
   'Tesamorelin':        [0,1,2,3,4,5],// Mon-Sat
   'GHK-Cu':             [0,1,2,3,4,5,6],// Daily
   'Melanotan II':       [1],          // Tue
-  'Tirzepatide':        [5],          // Sat
+  'Tirzepatide - 36u (9mg)':        [5],          // Sat
   'CJC-1295 No DAC':    [0,1,2,3,6], // Mon/Tue/Wed/Thu/Sun
   'Ipamorelin':         [0,1,2,3,6], // Mon/Tue/Wed/Thu/Sun
   'DSIP':               [0,2,4,5,6], // Mon/Wed/Fri/Sat/Sun
@@ -2288,12 +2288,12 @@ function printTracker() {
     ['TRT (Testosterone) - 75 units',  [0,3]],
     ['Deca (Nano) - 37 units',          [0,3]],
     ['NAD+ - 10 units',                 [1,3,5]],
-    ['Retatrutide - 15 units',          [0]],
+    ['Retatrutide - 25u (7.5mg)',          [0]],
     ['Cagrilintide - 10 units',         [0]],
-    ['Tesamorelin - 20 units',          [0,1,2,3,4,5]],
-    ['GHK-Cu - 4 units',                [0,1,2,3,4,5,6]],
+    ['Tesamorelin - 20u (2mg)',          [0,1,2,3,4,5]],
+    ['GHK-Cu - 5u (1.25mg)',                [0,1,2,3,4,5,6]],
     ['Melanotan II - 5 Units',          [0]],
-    ['Tirzepatide',                     [0]],
+    ['Tirzepatide - 36u (9mg)',                     [0]],
   ];
   const NIGHT = [
     ['CJC-1295 No DAC - 5 units',       [1,3,5]],
@@ -2456,7 +2456,7 @@ loadAll();
   <div class="modal-box">
     <div class="modal-title">Log Purchase</div>
     <div class="modal-field"><label>Vendor</label><select id="ap-vendor"></select></div>
-    <div class="modal-field"><label>Compound</label><input type="text" id="ap-compound" placeholder="e.g. Tirzepatide"></div>
+    <div class="modal-field"><label>Compound</label><input type="text" id="ap-compound" placeholder="e.g. Tirzepatide - 36u (9mg)"></div>
     <div class="modal-field"><label>Date</label><input type="date" id="ap-date"></div>
     <div style="display:flex;gap:8px">
       <div class="modal-field" style="flex:1"><label>Qty (vials)</label><input type="number" min="1" id="ap-qty" placeholder="1"></div>
