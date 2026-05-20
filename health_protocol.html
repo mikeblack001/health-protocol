@@ -2448,10 +2448,26 @@ function printProtocolList() {
   </div>
   </body></html>`;
 
-  const w = window.open('','_blank','width=800,height=700');
-  w.document.write(html);
-  w.document.close();
-  setTimeout(() => w.print(), 800);
+  // Use hidden iframe to avoid popup blocker
+  let iframe = document.getElementById('_print_frame');
+  if (!iframe) {
+    iframe = document.createElement('iframe');
+    iframe.id = '_print_frame';
+    iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:0;height:0;border:0';
+    document.body.appendChild(iframe);
+  }
+  iframe.srcdoc = html;
+  iframe.onload = () => {
+    try {
+      iframe.contentWindow.focus();
+      iframe.contentWindow.print();
+    } catch(e) {
+      // Fallback: open in new tab
+      const w = window.open('','_blank');
+      if (w) { w.document.write(html); w.document.close(); setTimeout(() => w.print(), 600); }
+      else { alert('Please allow popups for this site to print, or use Ctrl+P after viewing the Print List.'); }
+    }
+  };
 }
 
 // Backup reminder
