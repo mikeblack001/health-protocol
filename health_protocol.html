@@ -215,6 +215,7 @@
     <button class="nav-tab" onclick="showView('workouts', event)">Workouts</button>
     <button class="nav-tab" onclick="showView('tracker', event)">Tracker</button>
     <button class="nav-tab" onclick="showView('purchases', event)">Purchases</button>
+    <button class="nav-tab" onclick="showView('labs', event)">Labs</button>
     <button class="nav-tab" onclick="showView('log', event)">Daily Log</button>
     <button class="nav-tab" onclick="showView('printlist', event)">Print List</button>
   </div>
@@ -478,9 +479,19 @@
         <option value="2025">2025</option>
       </select>
       <button class="filter-btn" onclick="clearPurchaseFilters()">✕ Clear</button>
+      <button class="filter-btn" onclick="exportPurchasesCSV()" style="background:var(--surface2)">⬇ CSV</button>
       <button class="filter-btn" onclick="showAddPurchaseModal()" style="margin-left:auto;background:var(--accent);color:#fff;border-color:var(--accent)">+ Log Purchase</button>
     </div>
     <div id="purchases-content"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
+  </div>
+
+  <!-- LABS VIEW -->
+  <div id="view-labs" class="view">
+    <div class="filter-bar">
+      <span style="font-size:13px;font-weight:500;color:var(--text)">Bloodwork / Labs</span>
+      <button class="filter-btn" onclick="showAddLabModal()" style="margin-left:auto;background:var(--accent);color:#fff;border-color:var(--accent)">+ Add Result</button>
+    </div>
+    <div id="labs-content"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
   </div>
 
 <!-- ADD PRICING MODAL -->
@@ -540,7 +551,7 @@ if (!TOKEN) {
   if (TOKEN) localStorage.setItem('airtable_token', TOKEN);
 }
 const BASE = 'appmHDG4TGT1xy6R6';
-const TABLES = { peptides: 'tblMs6YRdP4wkndUp', supplements: 'tblSnkc0Gu2BzGACP', dailyLog: 'tblaYuZjl4Pu4nKxS', pricing: 'tblnW21TLSqgVerwQ', vendors: 'tblI0nfBBuHXjp3KT', workoutSessions: 'tblk9tTYIcIY4tWjF', workoutSets: 'tblKDqjy5RzqaJvjr', purchases: 'tblWmflohL6d6HC9p' };
+const TABLES = { peptides: 'tblMs6YRdP4wkndUp', supplements: 'tblSnkc0Gu2BzGACP', dailyLog: 'tblaYuZjl4Pu4nKxS', pricing: 'tblnW21TLSqgVerwQ', vendors: 'tblI0nfBBuHXjp3KT', workoutSessions: 'tblk9tTYIcIY4tWjF', workoutSets: 'tblKDqjy5RzqaJvjr', purchases: 'tblWmflohL6d6HC9p', bloodwork: 'tbl3200yJid6fXaOp' };
 
 let data = { peptides: [], supplements: [] };
 let currentPepFilter = 'Active';
@@ -720,6 +731,7 @@ function renderPeptides(filter) {
       <th style="cursor:pointer" onclick="sortPep('Frequency')">Frequency${pepSortIcon('Frequency')}</th>
       <th style="cursor:pointer" onclick="sortPep('Source')">Source${pepSortIcon('Source')}</th>
       <th>Vial</th>
+      <th>On Hand</th>
       <th style="cursor:pointer" onclick="sortPep('Status')">Status${pepSortIcon('Status')}</th>
     </tr></thead><tbody>
     ${rows.map(r => `<tr>
@@ -728,6 +740,7 @@ function renderPeptides(filter) {
       <td style="font-family:'DM Mono',monospace;font-size:12px">${getField(r,'Frequency')}</td>
       <td style="font-size:12px;color:var(--muted)">${getField(r,'Source')}</td>
       <td style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)">${getField(r,'Vial Size')}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:12px;text-align:center">${getField(r,'Vials on Hand') !== '' ? `<span style="color:${getField(r,'Vials on Hand') <= 1 ? 'var(--red)' : getField(r,'Vials on Hand') <= 3 ? 'var(--amber)' : 'var(--green)'};font-weight:600">${getField(r,'Vials on Hand')}</span>` : '—'}</td>
       <td>${badge(getField(r,'Status'))}</td>
     </tr>`).join('')}
     </tbody></table>`;
@@ -1666,6 +1679,7 @@ function showView(name, e) {
   if (name === 'pricing') loadPricing();
   if (name === 'vendors') loadVendors();
   if (name === 'purchases') loadPurchases();
+  if (name === 'labs') loadLabs();
   if (name === 'workouts') {
     document.getElementById('workout-date').value = new Date().toISOString().split('T')[0];
   }
@@ -1749,6 +1763,30 @@ function clearPurchaseFilters() {
   document.getElementById('purchase-compound-filter').value = '';
   document.getElementById('purchase-year-filter').value = '';
   renderPurchases();
+}
+
+function exportPurchasesCSV() {
+  const vendorFilter = document.getElementById('purchase-vendor-filter')?.value || '';
+  const compoundFilter = (document.getElementById('purchase-compound-filter')?.value || '').toLowerCase();
+  const yearFilter = document.getElementById('purchase-year-filter')?.value || '';
+  let filtered = purchasesData.filter(r => {
+    const f = r.fields;
+    if (vendorFilter && f['Vendor'] !== vendorFilter) return false;
+    if (compoundFilter && !(f['Compound'] || '').toLowerCase().includes(compoundFilter)) return false;
+    if (yearFilter && !(f['Date'] || '').startsWith(yearFilter)) return false;
+    return true;
+  });
+  const headers = ['Date','Vendor','Compound','Qty','Price Paid','Total','Vial Size','Order ID','Notes'];
+  const rows = filtered.map(r => {
+    const f = r.fields;
+    const total = f['Total'] || ((f['Price Paid'] || 0) * (f['Qty'] || 1));
+    return [f['Date']||'',f['Vendor']||'',f['Compound']||'',f['Qty']||'',f['Price Paid']||'',total||'',f['Vial Size']||'',f['Order ID']||'',(f['Notes']||'').replace(/,/g,' ')].join(',');
+  });
+  const csv = [headers.join(','), ...rows].join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = `purchases_${new Date().toISOString().split('T')[0]}.csv`;
+  a.click();
 }
 
 function renderPurchases() {
@@ -1849,6 +1887,110 @@ async function saveAddPurchase() {
   btn.disabled = false; btn.textContent = 'Save';
 }
 
+// ===== LABS =====
+let labsData = [];
+
+const LAB_MARKERS = [
+  'Total Testosterone', 'Free Testosterone', 'Estradiol (E2 Sensitive)', 'SHBG',
+  'IGF-1', 'LH', 'FSH', 'Prolactin',
+  'ALT', 'AST', 'GGT', 'Bilirubin', 'Albumin',
+  'AM Cortisol', 'DHEA-S', 'Progesterone', 'TSH', 'Free T3', 'Free T4', 'Reverse T3',
+  'Hematocrit', 'Hemoglobin', 'RBC', 'WBC', 'Platelets', 'Neutrophils',
+  'Glucose', 'HbA1c', 'Insulin', 'BUN', 'Creatinine', 'eGFR',
+  'Total Cholesterol', 'LDL', 'HDL', 'Triglycerides',
+  'Vitamin D', 'Ferritin', 'Iron', 'PSA', 'CRP', 'Homocysteine'
+];
+
+async function loadLabs() {
+  const el = document.getElementById('labs-content');
+  el.innerHTML = '<div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div>';
+  try {
+    let records = [], offset = null;
+    do {
+      const url = `https://api.airtable.com/v0/${BASE}/${TABLES.bloodwork}?pageSize=100&sort[0][field]=Date&sort[0][direction]=desc${offset ? '&offset=' + offset : ''}`;
+      const res = await fetch(url, { headers: { Authorization: `Bearer ${TOKEN}` } });
+      const d = await res.json();
+      records.push(...(d.records || []));
+      offset = d.offset;
+    } while (offset);
+    labsData = records;
+    renderLabs();
+  } catch(e) { el.innerHTML = `<p style="color:var(--red);padding:16px">Error loading labs: ${e.message}</p>`; }
+}
+
+function renderLabs() {
+  const el = document.getElementById('labs-content');
+  if (!labsData.length) {
+    el.innerHTML = '<p style="color:var(--muted);padding:16px">No lab results yet. Click + Add Result to log bloodwork.</p>';
+    return;
+  }
+
+  // Group by date
+  const byDate = {};
+  labsData.forEach(r => {
+    const d = r.fields['Date'] || 'Unknown';
+    if (!byDate[d]) byDate[d] = [];
+    byDate[d].push(r.fields);
+  });
+
+  let html = '';
+  Object.keys(byDate).sort((a,b) => b.localeCompare(a)).forEach(date => {
+    const results = byDate[date];
+    html += `<div class="table-wrap" style="margin-bottom:16px">
+      <div class="timing-header">📋 ${date}</div>
+      <table class="data-table"><thead><tr><th>Marker</th><th>Value</th><th>Unit</th><th>Range</th><th>Flag</th><th>Notes</th></tr></thead><tbody>
+      ${results.map(f => {
+        const flag = f['Flag'] || '';
+        const flagColor = flag === 'High' || flag === 'Critical High' ? 'var(--red)' : flag === 'Low' || flag === 'Critical Low' ? 'var(--amber)' : 'var(--green)';
+        return `<tr>
+          <td style="font-weight:500">${f['Marker'] || '—'}</td>
+          <td style="font-family:'DM Mono',monospace;font-weight:600">${f['Value'] || '—'}</td>
+          <td style="font-size:12px;color:var(--muted)">${f['Unit'] || '—'}</td>
+          <td style="font-size:12px;color:var(--muted)">${f['Reference Range'] || '—'}</td>
+          <td>${flag ? `<span style="color:${flagColor};font-size:12px;font-weight:600">${flag}</span>` : '—'}</td>
+          <td style="font-size:12px;color:var(--muted)">${f['Notes'] || ''}</td>
+        </tr>`;
+      }).join('')}
+      </tbody></table></div>`;
+  });
+  el.innerHTML = html;
+}
+
+function showAddLabModal() {
+  document.getElementById('al-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('al-marker').innerHTML = LAB_MARKERS.map(m => `<option>${m}</option>`).join('');
+  document.getElementById('add-lab-modal').style.display = 'flex';
+}
+function hideAddLabModal() { document.getElementById('add-lab-modal').style.display = 'none'; }
+
+async function saveAddLab() {
+  const marker = document.getElementById('al-marker').value;
+  const date = document.getElementById('al-date').value;
+  const value = document.getElementById('al-value').value.trim();
+  const unit = document.getElementById('al-unit').value.trim();
+  const range = document.getElementById('al-range').value.trim();
+  const flag = document.getElementById('al-flag').value;
+  const notes = document.getElementById('al-notes').value.trim();
+  if (!marker || !value || !date) { alert('Marker, date and value required'); return; }
+  const btn = document.getElementById('al-save-btn');
+  btn.disabled = true; btn.textContent = 'Saving...';
+  try {
+    const fields = { 'Marker': marker, 'Date': date, 'Value': parseFloat(value) || value };
+    if (unit) fields['Unit'] = unit;
+    if (range) fields['Reference Range'] = range;
+    if (flag) fields['Flag'] = flag;
+    if (notes) fields['Notes'] = notes;
+    await fetch(`https://api.airtable.com/v0/${BASE}/${TABLES.bloodwork}`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fields })
+    });
+    hideAddLabModal();
+    loadLabs();
+  } catch(e) { alert('Save failed'); }
+  btn.disabled = false; btn.textContent = 'Save';
+}
+
 // Init
 const hr = new Date().getHours();
 document.getElementById('greeting').textContent = hr < 12 ? 'morning' : hr < 17 ? 'afternoon' : 'evening';
@@ -1873,6 +2015,38 @@ loadAll();
     <div class="modal-actions">
       <button class="modal-btn" onclick="hideAddPurchaseModal()">Cancel</button>
       <button class="modal-btn primary" id="ap-save-btn" onclick="saveAddPurchase()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD LAB MODAL -->
+<div class="modal-overlay" id="add-lab-modal" onclick="if(event.target===this)hideAddLabModal()">
+  <div class="modal-box">
+    <div class="modal-title">Add Lab Result</div>
+    <div style="display:flex;gap:8px">
+      <div class="modal-field" style="flex:2"><label>Marker</label><select id="al-marker" style="width:100%"></select></div>
+      <div class="modal-field" style="flex:1"><label>Date</label><input type="date" id="al-date"></div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <div class="modal-field" style="flex:1"><label>Value</label><input type="text" id="al-value" placeholder="e.g. 850"></div>
+      <div class="modal-field" style="flex:1"><label>Unit</label><input type="text" id="al-unit" placeholder="e.g. ng/dL"></div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <div class="modal-field" style="flex:2"><label>Reference Range</label><input type="text" id="al-range" placeholder="e.g. 300-1000"></div>
+      <div class="modal-field" style="flex:1"><label>Flag</label>
+        <select id="al-flag">
+          <option value="">Normal</option>
+          <option value="Low">Low</option>
+          <option value="High">High</option>
+          <option value="Critical Low">Critical Low</option>
+          <option value="Critical High">Critical High</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-field"><label>Notes</label><input type="text" id="al-notes" placeholder="Optional context..."></div>
+    <div class="modal-actions">
+      <button class="modal-btn" onclick="hideAddLabModal()">Cancel</button>
+      <button class="modal-btn primary" id="al-save-btn" onclick="saveAddLab()">Save</button>
     </div>
   </div>
 </div>
