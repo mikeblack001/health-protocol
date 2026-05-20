@@ -336,8 +336,6 @@
       <button class="filter-btn active" onclick="filterPricing('all',this)">All</button>
       <button class="filter-btn" onclick="filterPricing('active',this)">Active Only</button>
       <button class="filter-btn" onclick="refreshPricing()">↻ Refresh</button>
-      <button class="filter-btn active" id="pricing-az-btn" onclick="setPricingSort('az')">A→Z</button>
-      <button class="filter-btn" id="pricing-za-btn" onclick="setPricingSort('best')">Best $/mg</button>
       <select id="pricing-med-filter" onchange="filterPricingByMed(this.value)" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface)">
         <option value="">All Meds</option>
       </select>
@@ -938,14 +936,6 @@ function filterSuppSource(source, el) {
 
 let pricingData = [];
 let pricingFilter = 'all';
-let pricingSortMode = 'best'; // 'best' = Sort Order/best $/mg, 'az' = alphabetical
-
-function setPricingSort(mode) {
-  pricingSortMode = mode;
-  document.getElementById('pricing-az-btn').classList.toggle('active', mode === 'az');
-  document.getElementById('pricing-za-btn').classList.toggle('active', mode === 'best');
-  renderPricing();
-}
 let pricingMedFilter = '';
 
 async function loadPricing() {
@@ -1189,7 +1179,6 @@ function renderPricing() {
     if (name && order != null && (peptideOrder[name] == null || order < peptideOrder[name])) peptideOrder[name] = order;
   });
   const sortedGroups = Object.keys(groups).sort((a,b) => {
-    if (pricingSortMode === 'az') return a.localeCompare(b);
     const ao = peptideOrder[a] != null ? peptideOrder[a] : 999;
     const bo = peptideOrder[b] != null ? peptideOrder[b] : 999;
     return ao !== bo ? ao - bo : a.localeCompare(b);
