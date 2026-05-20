@@ -336,9 +336,8 @@
       <button class="filter-btn active" onclick="filterPricing('all',this)">All</button>
       <button class="filter-btn" onclick="filterPricing('active',this)">Active Only</button>
       <button class="filter-btn" onclick="refreshPricing()">↻ Refresh</button>
-      <input type="text" id="pricing-search" oninput="renderPricing()" placeholder="Search compound..." style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface);width:150px">
-      <button class="filter-btn" id="pricing-az-btn" onclick="setPricingSort('az')" style="margin-left:4px">A→Z</button>
-      <button class="filter-btn active" id="pricing-za-btn" onclick="setPricingSort('best')">Best $/mg</button>
+      <button class="filter-btn active" id="pricing-az-btn" onclick="setPricingSort('az')">A→Z</button>
+      <button class="filter-btn" id="pricing-za-btn" onclick="setPricingSort('best')">Best $/mg</button>
       <select id="pricing-med-filter" onchange="filterPricingByMed(this.value)" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface)">
         <option value="">All Meds</option>
       </select>
@@ -1170,14 +1169,12 @@ function renderPricing() {
   }
 
   // Group by peptide — store record ID
-  const search = (document.getElementById('pricing-search')?.value || '').toLowerCase();
   const groups = {};
   pricingData.forEach(r => {
     const f = r.fields || {};
     const name = f['Peptide'] || f[Object.keys(f)[0]] || 'Unknown';
     if (pricingFilter === 'active' && !activePeptides.has(name)) return;
     if (pricingMedFilter && name !== pricingMedFilter) return;
-    if (search && !name.toLowerCase().includes(search)) return;
     if (!groups[name]) groups[name] = [];
     groups[name].push({...f, _id: r.id});
   });
