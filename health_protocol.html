@@ -239,6 +239,11 @@
       </div>
       <button class="print-btn" onclick="window.print()">Print</button>
     </div>
+    <div id="backup-reminder" style="display:none;background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:12px;color:#92400e;font-family:'DM Sans',sans-serif;display:flex;align-items:center;justify-content:space-between">
+      <span>📦 <strong>Monthly backup due</strong> — Export your Airtable data to keep a local copy.</span>
+      <a href="https://airtable.com" target="_blank" style="color:#92400e;font-weight:600;text-decoration:underline;margin-left:12px">Open Airtable ↗</a>
+      <button onclick="snoozeBackup()" style="margin-left:12px;padding:3px 10px;border:1px solid #d97706;border-radius:5px;background:transparent;color:#92400e;cursor:pointer;font-size:11px">Dismiss (1 month)</button>
+    </div>
     <div class="stats-grid">
       <div class="stat-card"><div class="stat-label">Active Peptides</div><div class="stat-value green" id="stat-active-peptides">—</div></div>
       <div class="stat-card"><div class="stat-label">Active Supplements</div><div class="stat-value green" id="stat-active-supps">—</div></div>
@@ -2434,6 +2439,17 @@ function printProtocolList() {
   w.document.write(html);
   w.document.close();
   setTimeout(() => w.print(), 800);
+}
+
+// Backup reminder
+const lastBackup = localStorage.getItem('lastBackupDismiss');
+const oneMonthAgo = new Date(); oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+if (!lastBackup || new Date(lastBackup) < oneMonthAgo) {
+  document.getElementById('backup-reminder').style.display = 'flex';
+}
+function snoozeBackup() {
+  localStorage.setItem('lastBackupDismiss', new Date().toISOString());
+  document.getElementById('backup-reminder').style.display = 'none';
 }
 
 // Init
