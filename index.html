@@ -563,11 +563,7 @@
 </div>
 
 <script>
-let TOKEN = localStorage.getItem('airtable_token');
-if (!TOKEN) {
-  TOKEN = prompt('Enter your Airtable API token:');
-  if (TOKEN) localStorage.setItem('airtable_token', TOKEN);
-}
+const TOKEN = 'pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
 const BASE = 'appmHDG4TGT1xy6R6';
 const TABLES = { peptides: 'tblMs6YRdP4wkndUp', supplements: 'tblSnkc0Gu2BzGACP', dailyLog: 'tblaYuZjl4Pu4nKxS', pricing: 'tblnW21TLSqgVerwQ', vendors: 'tblI0nfBBuHXjp3KT', workoutSessions: 'tblk9tTYIcIY4tWjF', workoutSets: 'tblKDqjy5RzqaJvjr', purchases: 'tblWmflohL6d6HC9p', bloodwork: 'tbl3200yJid6fXaOp', protocolChanges: 'tblolVx7YwO5cJhsE' };
 
@@ -2457,4 +2453,3 @@ loadAll();
 
 </body>
 </html>
-# trigger rebuild
