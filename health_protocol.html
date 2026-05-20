@@ -2245,10 +2245,19 @@ function renderChanges() {
 
 function showAddChangeModal() {
   document.getElementById('ac-date').value = new Date().toISOString().split('T')[0];
-  document.getElementById('ac-compound').value = '';
+  // Populate compound select from active peptides + supplements
+  const sel = document.getElementById('ac-compound');
+  const current = sel.value;
+  sel.innerHTML = '<option value="">— select —</option>';
+  const names = new Set();
+  (data.peptides || []).forEach(r => { const n = getField(r,'Compound'); if(n) names.add(n); });
+  (data.supplements || []).forEach(r => { const n = getField(r,'Supplement'); if(n) names.add(n); });
+  [...names].sort().forEach(n => { const o = document.createElement('option'); o.value = n; o.textContent = n; sel.appendChild(o); });
+  if (current) sel.value = current;
   document.getElementById('ac-description').value = '';
   document.getElementById('ac-reason').value = '';
   document.getElementById('ac-notes').value = '';
+  document.getElementById('ac-impacted').value = '';
   document.getElementById('add-change-modal').style.display = 'flex';
 }
 function hideAddChangeModal() { document.getElementById('add-change-modal').style.display = 'none'; }
@@ -2272,6 +2281,8 @@ async function saveAddChange() {
     if (desc) fields[CHANGE_FIELDS.description] = desc;
     if (reason) fields[CHANGE_FIELDS.reason] = reason;
     if (notes) fields[CHANGE_FIELDS.notes] = notes;
+    const impacted = document.getElementById('ac-impacted').value.trim();
+    if (impacted) fields[CHANGE_FIELDS.impacted] = impacted;
     const res = await fetch(`https://api.airtable.com/v0/${BASE}/tblolVx7YwO5cJhsE`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
@@ -2517,7 +2528,7 @@ loadAll();
   <div class="modal-box">
     <div class="modal-title">Log Protocol Change</div>
     <div style="display:flex;gap:8px">
-      <div class="modal-field" style="flex:2"><label>Compound</label><input type="text" id="ac-compound" placeholder="e.g. Retatrutide"></div>
+      <div class="modal-field" style="flex:2"><label>Compound</label><select id="ac-compound" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface)"><option value="">— select —</option></select></div>
       <div class="modal-field" style="flex:1"><label>Date</label><input type="date" id="ac-date"></div>
     </div>
     <div class="modal-field"><label>Change Type</label>
@@ -2533,6 +2544,7 @@ loadAll();
     <div class="modal-field"><label>Description</label><input type="text" id="ac-description" placeholder="e.g. Increased dose from 8mg to 12mg weekly"></div>
     <div class="modal-field"><label>Reason</label><input type="text" id="ac-reason" placeholder="e.g. Tolerating well, seeking further weight loss"></div>
     <div class="modal-field"><label>Notes</label><input type="text" id="ac-notes" placeholder="Optional..."></div>
+    <div class="modal-field"><label>Impacted Peptides</label><input type="text" id="ac-impacted" placeholder="Optional — other compounds affected..."></div>
     <div class="modal-actions">
       <button class="modal-btn" onclick="hideAddChangeModal()">Cancel</button>
       <button class="modal-btn primary" id="ac-save-btn" onclick="saveAddChange()">Save</button>
