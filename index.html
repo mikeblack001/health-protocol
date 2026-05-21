@@ -179,7 +179,9 @@
     .table-wrap { border: 1px solid #ccc !important; break-inside: avoid; margin-bottom: 12px; border-radius: 0; }
     .timing-header { background: #ebf2ff !important; color: #1a56db !important; font-weight: 600; padding: 5px 10px; font-size: 10px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .tracker-section td { background: #ebf2ff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    td, th { font-size: 10px !important; padding: 5px 8px !important; color: #000 !important; }
+    td, th { font-size: 11px !important; padding: 8px 10px !important; color: #000 !important; }
+    .tracker-day-block { margin-bottom: 20px !important; }
+    .tracker-section { margin-bottom: 16px !important; }
     .compound-name { font-size: 10px !important; font-weight: 600; }
     .compound-sub { font-size: 9px !important; color: #555 !important; }
     .quick-item { padding: 5px 0 !important; }
@@ -319,19 +321,21 @@
 }
 
 @media print {
-  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-  body > * { display: none !important; }
-  #weekly-print-modal {
+  /* When weekly print modal is open - hide everything except modal */
+  body.printing-weekly > *:not(#weekly-print-modal) { display: none !important; }
+  body.printing-weekly #weekly-print-modal {
     display: block !important; position: static !important;
     background: white !important; padding: 0 !important;
     z-index: auto !important; overflow: visible !important;
   }
-  #weekly-print-modal > div {
+  body.printing-weekly #weekly-print-modal > div {
     background: white !important; border-radius: 0 !important;
     padding: 0 !important; max-width: 100% !important; box-shadow: none !important;
   }
-  #weekly-print-modal > div > div:first-child { display: none !important; }
-  #weekly-print-preview { padding: 0 !important; background: white !important; border-radius: 0 !important; }
+  body.printing-weekly #weekly-print-modal > div > div:first-child { display: none !important; }
+  body.printing-weekly #weekly-print-preview {
+    padding: 0 !important; background: white !important; border-radius: 0 !important;
+  }
   .print-page { page-break-after: always; margin: 0; padding: 0; }
   .print-page:last-child { page-break-after: auto; }
   .ptable { font-size: 11.5px; }
@@ -2613,6 +2617,7 @@ loadAll();
 // ── WEEKLY PRINT ────────────────────────────────────────
 function openWeeklyPrint() {
   document.getElementById('weekly-print-modal').style.display = 'block';
+  document.body.classList.add('printing-weekly');
   const today = new Date();
   const monday = new Date(today);
   monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
@@ -2788,7 +2793,7 @@ function buildWeeklyHTML(monday) {
         <input type="date" id="modal-print-date" onchange="renderWeeklyPrint()"
           style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:'DM Mono',monospace;color:var(--text);background:var(--surface2)">
         <button onclick="window.print()" style="padding:6px 16px;background:var(--accent);color:#000;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer">🖨 Print</button>
-        <button onclick="document.getElementById('weekly-print-modal').style.display='none'"
+        <button onclick="document.getElementById('weekly-print-modal').style.display='none';document.body.classList.remove('printing-weekly')"
           style="padding:6px 12px;background:var(--surface2);color:var(--muted);border:1px solid var(--border);border-radius:6px;font-size:12px;cursor:pointer">✕ Close</button>
       </div>
     </div>
