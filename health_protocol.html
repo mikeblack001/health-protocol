@@ -201,6 +201,36 @@
     nav { flex-wrap: wrap; gap: 8px; height: auto; padding: 12px 16px; }
     .nav-tabs { order: 3; width: 100%; overflow-x: auto; }
   }
+
+/* ── PRINT STYLES ── */
+.print-day-block { margin-bottom: 18px; }
+.print-table { width: 100%; border-collapse: collapse; font-family: Arial, sans-serif; font-size: 11px; }
+.print-day-header { background: #1a1a1a; color: #fff; font-size: 13px; font-weight: bold; padding: 6px 8px; text-align: left; }
+.print-meta-row td { padding: 4px 6px; background: #f5f5f5; font-size: 10px; border: 1px solid #ddd; }
+.print-meta-val { font-weight: 500; }
+.print-col-header th { background: #e8e8e8; padding: 4px 6px; font-size: 9px; text-align: center; border: 1px solid #ccc; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; }
+.print-col-header th.ex-col { text-align: left; width: 22%; }
+.print-col-header th.var-col { text-align: left; width: 20%; }
+.print-ex-row td { border: 1px solid #ddd; padding: 5px 6px; vertical-align: middle; }
+.print-ex-row td.ex-col { font-weight: 600; font-size: 11px; }
+.print-ex-row td.var-col { font-size: 9px; color: #555; }
+.print-ex-row td:not(.ex-col):not(.var-col) { text-align: center; color: #aaa; font-size: 9px; min-width: 24px; }
+.print-notes-row td { border: 1px solid #ddd; padding: 4px 6px; font-size: 10px; background: #fafafa; }
+.print-note { font-size: 9px; color: #888; font-style: italic; }
+
+@media print {
+  /* Hide everything except print sheet */
+  body > *:not(#print-only-wrapper) { display: none !important; }
+  .nav-sidebar, .filter-bar, header, .tab-bar { display: none !important; }
+  #view-workouts .filter-bar { display: none !important; }
+  #workout-log-panel, #workout-history-panel, #workout-progress-panel { display: none !important; }
+  #workout-print-panel { display: block !important; }
+  #print-week-date, button[onclick*="window.print"], span[style*="Cmd+P"] { display: none !important; }
+  .print-day-block { page-break-inside: avoid; margin-bottom: 12px; }
+  body { background: white !important; color: black !important; }
+  .print-table { font-size: 10px; }
+  @page { margin: 0.5in; size: letter portrait; }
+}
 </style>
 </head>
 <body>
@@ -365,6 +395,7 @@
       <button class="filter-btn active" onclick="showWorkoutPanel('log', this)">Log Workout</button>
       <button class="filter-btn" onclick="showWorkoutPanel('history', this)">History</button>
       <button class="filter-btn" onclick="showWorkoutPanel('progress', this)">Progress</button>
+      <button class="filter-btn" onclick="showWorkoutPanel('print', this)">🖨 Print Sheet</button>
     </div>
 
     <!-- LOG PANEL -->
@@ -426,6 +457,19 @@
         </select>
       </div>
       <div id="workout-progress-content"><p style="color:var(--muted);font-size:13px">Select an exercise to view progress</p></div>
+
+    <!-- PRINT PANEL -->
+    <div id="workout-print-panel" style="display:none">
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap">
+        <div>
+          <label style="font-size:11px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:0.6px;display:block;margin-bottom:4px">Week Starting</label>
+          <input type="date" id="print-week-date" style="padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface)" onchange="renderPrintSheet()">
+        </div>
+        <button onclick="window.print()" style="padding:8px 16px;background:var(--accent);color:#000;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;margin-top:18px">Print</button>
+        <span style="font-size:11px;color:var(--muted);margin-top:18px">Or use Cmd+P / Ctrl+P</span>
+      </div>
+      <div id="print-sheet-preview"></div>
+    </div>
     </div>
   </div>
 
@@ -1573,64 +1617,67 @@ const WORKOUT_DAYS = {
   'Monday - Push': [
     { name: 'Wrist Twist - DBs', variations: [] },
     { name: 'Bench Press', variations: ['45lb Olympic', 'Smith 35lb', 'DBs', 'Cables'] },
-    { name: 'Cable Cross Overs', variations: [], note: '1/2 ea' },
     { name: 'Incline Press', variations: ['45lb Olympic', 'Smith 35lb', 'DBs', 'Cables'] },
+    { name: 'Incline Fly', variations: ['DBs', 'Cables'] },
+    { name: 'High Cable Fly', variations: [], note: '1/2 ea' },
+    { name: 'Tricep Pushdowns', variations: ['V-Bar', 'Straight Bar', 'Rope'], note: '1/2' },
+    { name: 'Overhead Tricep Ext', variations: ['EZ-Bar', 'DBs', 'Rope'] },
     { name: 'Lateral Raises', variations: ['DBs', 'Cables', 'EZ Bar'] },
     { name: 'Seated Shoulder Press', variations: ['45lb Olympic', 'Smith 35lb', 'DBs', 'Cables'] },
-    { name: 'Tricep Pushdowns', variations: ['V-Bar', 'Straight Bar', 'Rope'], note: '1/2' },
-    { name: 'Incline Fly', variations: ['DBs', 'Cables'] },
-    { name: 'Overhead Tricep Ext', variations: ['EZ-Bar', 'DBs', 'Rope'] },
-    { name: 'High Cable Fly', variations: [], note: '1/2 ea' }
   ],
   'Tuesday - Pull': [
     { name: 'Wrist Twist - DBs', variations: [] },
     { name: 'Lat Pulldown', variations: ['Lat Machine', 'High Cable', '2 Hand Cables'] },
-    { name: 'Bent Over Rows', variations: ['45lb Olympic', 'DBs'] },
-    { name: 'Barbell Shrugs', variations: ['45lb Olympic'] },
     { name: 'Cable Rows', variations: ['Lat Machine'] },
+    { name: 'Hammer Curls', variations: ['Rope 1/2', 'DBs'] },
     { name: 'Face Pulls', variations: ['Rope'], note: '1/2' },
     { name: 'Rear Delt Raises', variations: ['DBs'] },
-    { name: 'Bicep Curls - Preacher', variations: ['DBs', 'EZ Bar (15lbs)'] },
-    { name: 'Hammer Curls', variations: ['Rope 1/2', 'DBs'] },
-    { name: 'Cable Shrugs', variations: [], note: '1/2' },
-    { name: 'Cable Curls', variations: [], note: '1/2 ea' }
+    { name: 'Cable Curls', variations: [], note: '1/2 ea' },
+    { name: 'Barbell Shrugs', variations: ['45lb Olympic'] },
   ],
   'Wednesday - Legs / Core': [
     { name: 'Forward Back Stretch', variations: [] },
-    { name: 'Back Extension', variations: ['Sit Up'] },
     { name: 'Leg Press', variations: ['35lbs'] },
     { name: 'Leg Extensions', variations: ['45lbs', 'Cable 1/2'] },
     { name: 'Leg Curls', variations: ['45lbs', 'Cable 1/2'] },
-    { name: 'Hip Thrust', variations: ['DBs'] },
-    { name: 'Nordic Curl', variations: [] },
-    { name: 'Reverse Hyper', variations: [] },
+    { name: 'Hip Thrust', variations: ['DBs', 'Smith 35lb'] },
+    { name: 'Back Extension', variations: ['Bodyweight', 'Sit Up'] },
     { name: 'DB Calf Raises', variations: [] },
-    { name: 'Smith Mach Calf Raises', variations: ['35lbs'] }
+    { name: 'Smith Mach Calf Raises', variations: ['35lbs'] },
   ],
   'Thursday - Arms / Chest': [
     { name: 'Wrist Twist - DBs', variations: [] },
     { name: 'Cable Press', variations: [], note: '1/2 ea' },
     { name: 'High Cable Fly', variations: [], note: '1/2 ea' },
     { name: 'Low Cable Fly', variations: [], note: '1/2 ea' },
+    { name: 'Cable Cross Overs', variations: [], note: '1/2 ea' },
     { name: 'Tricep Ext Down', variations: ['Rope', 'Bar'], note: '1/2' },
     { name: 'Incline Curls', variations: ['DBs'] },
-    { name: 'Overhead Tricep Press', variations: ['EZ-Bar', 'DBs', 'Rope'] },
-    { name: 'Curls (Standing)', variations: ['EZ-Bar (15lbs)'] },
     { name: 'Tricep Ext Up', variations: ['Rope', 'Bar'] },
-    { name: 'Forearm Raise - Cable', variations: [], note: '1/2' }
+    { name: 'Bicep Curls - Preacher', variations: ['DBs', 'EZ Bar (15lbs)'] },
+    { name: 'Forearm Raise - Cable', variations: [], note: '1/2' },
   ],
 };
 
 let workoutPrevData = {}; // cache previous weights
 
 function showWorkoutPanel(panel, btn) {
-  ['log','history','progress'].forEach(p => {
-    document.getElementById('workout-' + p + '-panel').style.display = p === panel ? 'block' : 'none';
+  ['log','history','progress','print'].forEach(p => {
+    const el = document.getElementById('workout-' + p + '-panel');
+    if (el) el.style.display = p === panel ? 'block' : 'none';
   });
   document.querySelectorAll('#view-workouts .filter-bar .filter-btn').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
   if (panel === 'history') loadWorkoutHistory();
   if (panel === 'progress') loadProgressExerciseList();
+  if (panel === 'print') {
+    // default to current week's Monday
+    const today = new Date();
+    const monday = new Date(today);
+    monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+    document.getElementById('print-week-date').value = monday.toISOString().split('T')[0];
+    renderPrintSheet();
+  }
 }
 
 async function loadPrevWeights(day) {
@@ -2472,6 +2519,77 @@ document.getElementById('greeting').textContent = hr < 12 ? 'morning' : hr < 17 
 document.getElementById('todayDate').textContent = new Date().toLocaleDateString('en-US', {weekday:'long',year:'numeric',month:'long',day:'numeric'});
 document.getElementById('log-date').textContent = new Date().toLocaleDateString('en-US', {month:'long',day:'numeric',year:'numeric'});
 loadAll();
+
+// ── PRINT SHEET ──────────────────────────────────────────
+function renderPrintSheet() {
+  const dateVal = document.getElementById('print-week-date').value;
+  const monday = dateVal ? new Date(dateVal) : new Date();
+  const days = [
+    { label: 'Monday — Push',         key: 'Monday - Push',           offset: 0 },
+    { label: 'Tuesday — Pull',        key: 'Tuesday - Pull',          offset: 1 },
+    { label: 'Wednesday — Legs / Core', key: 'Wednesday - Legs / Core', offset: 2 },
+    { label: 'Thursday — Arms / Chest', key: 'Thursday - Arms / Chest', offset: 3 },
+  ];
+
+  const notes = {
+    'Monday - Push':           'Variations: 45lb Olym — 35lb Smith — DBs — Cables  |  V-Bar — Straight — Rope',
+    'Tuesday - Pull':          'Variation: Lat Machine — High Cable — 2 Hand Cables',
+    'Wednesday - Legs / Core': 'Nordic Curl / Reverse Hyper optional when back allows',
+    'Thursday - Arms / Chest': 'Chest first → Tricep Ext Down[TRI] → Incline Curls[BI] → Tricep Ext Up[TRI] → Preacher[BI] → Forearm Raise',
+  };
+
+  let html = '';
+  days.forEach(day => {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + day.offset);
+    const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    const exercises = WORKOUT_DAYS[day.key] || [];
+
+    html += `<div class="print-day-block">
+      <table class="print-table">
+        <thead>
+          <tr>
+            <th colspan="11" class="print-day-header">${day.label}</th>
+          </tr>
+          <tr class="print-meta-row">
+            <td colspan="2">Date: <span class="print-meta-val">${dateStr}</span></td>
+            <td colspan="2">Sleep: ___________</td>
+            <td colspan="2">Deep: ___________</td>
+            <td colspan="5" style="text-align:right">Workout Duration: ___________</td>
+          </tr>
+          <tr class="print-col-header">
+            <th class="ex-col">Exercise</th>
+            <th class="var-col">Variation</th>
+            <th>S1</th><th>Reps</th><th>Weight</th>
+            <th>S2</th><th>Reps</th><th>Weight</th>
+            <th>S3</th><th>Reps</th><th>Weight</th>
+          </tr>
+        </thead>
+        <tbody>`;
+
+    exercises.forEach(ex => {
+      const varStr = ex.variations && ex.variations.length ? ex.variations.join(' — ') : '';
+      const noteSuffix = ex.note ? ` <span class="print-note">${ex.note}</span>` : '';
+      html += `<tr class="print-ex-row">
+        <td class="ex-col">${ex.name}${noteSuffix}</td>
+        <td class="var-col">${varStr}</td>
+        <td>1</td><td></td><td></td>
+        <td>2</td><td></td><td></td>
+        <td>3</td><td></td><td></td>
+      </tr>`;
+    });
+
+    html += `<tr class="print-notes-row">
+        <td>Notes:</td>
+        <td colspan="10" style="font-size:9px;color:#666;font-style:italic">${notes[day.key] || ''}</td>
+      </tr>
+        </tbody>
+      </table>
+    </div>`;
+  });
+
+  document.getElementById('print-sheet-preview').innerHTML = html;
+}
 </script>
 
 <!-- ADD PURCHASE MODAL -->
