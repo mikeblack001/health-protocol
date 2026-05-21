@@ -1202,7 +1202,8 @@ function filterPeptides(f, el) {
 }
 
 function filterSupps(f, el) {
-  el.closest('.filter-bar').querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  // Only update status chips — leave source chips alone
+  el.closest('.filter-bar').querySelectorAll('.filter-chip[data-group="status"]').forEach(c => c.classList.remove('active'));
   el.classList.add('active');
   renderSupplements(f);
 }
@@ -1210,9 +1211,10 @@ function filterSupps(f, el) {
 let currentSuppSource = '';
 function filterSuppSource(source, el) {
   currentSuppSource = source;
-  el.closest('.filter-bar').querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  // Only update source chips — leave status chips alone
+  el.closest('.filter-bar').querySelectorAll('.filter-chip[data-group="source"]').forEach(c => c.classList.remove('active'));
   el.classList.add('active');
-  renderSupplements(currentSuppFilter || 'all');
+  renderSupplements(currentSuppFilter || 'Active');
 }
 
 let pricingData = [];
