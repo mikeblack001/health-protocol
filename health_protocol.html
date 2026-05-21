@@ -203,33 +203,100 @@
   }
 
 /* ── PRINT STYLES ── */
-.print-day-block { margin-bottom: 18px; }
-.print-table { width: 100%; border-collapse: collapse; font-family: Arial, sans-serif; font-size: 11px; }
-.print-day-header { background: #1a1a1a; color: #fff; font-size: 13px; font-weight: bold; padding: 6px 8px; text-align: left; }
-.print-meta-row td { padding: 4px 6px; background: #f5f5f5; font-size: 10px; border: 1px solid #ddd; }
-.print-meta-val { font-weight: 500; }
-.print-col-header th { background: #e8e8e8; padding: 4px 6px; font-size: 9px; text-align: center; border: 1px solid #ccc; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; }
-.print-col-header th.ex-col { text-align: left; width: 22%; }
-.print-col-header th.var-col { text-align: left; width: 20%; }
-.print-ex-row td { border: 1px solid #ddd; padding: 5px 6px; vertical-align: middle; }
-.print-ex-row td.ex-col { font-weight: 600; font-size: 11px; }
-.print-ex-row td.var-col { font-size: 9px; color: #555; }
-.print-ex-row td:not(.ex-col):not(.var-col) { text-align: center; color: #aaa; font-size: 9px; min-width: 24px; }
-.print-notes-row td { border: 1px solid #ddd; padding: 4px 6px; font-size: 10px; background: #fafafa; }
-.print-note { font-size: 9px; color: #888; font-style: italic; }
+.print-page {
+  width: 100%;
+  margin-bottom: 24px;
+  background: white;
+}
+.ptable {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: Arial, sans-serif;
+  font-size: 10px;
+  margin-bottom: 14px;
+  table-layout: fixed;
+}
+.pday-hdr {
+  background: #222;
+  color: #fff;
+  font-size: 12px;
+  font-weight: bold;
+  padding: 5px 8px;
+  text-align: left;
+  letter-spacing: 0.3px;
+}
+.pmeta td, .pmeta-cell {
+  background: #f2f2f2;
+  padding: 3px 6px;
+  font-size: 9px;
+  border: 1px solid #ccc;
+  vertical-align: middle;
+}
+.pmeta-val { font-weight: 600; }
+.pcol-hdr th {
+  background: #e0e0e0;
+  padding: 3px 4px;
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  border: 1px solid #bbb;
+  text-align: center;
+}
+.pcol-hdr th.pex-name, .pcol-hdr th.pex-var { text-align: left; }
+.pex td { border: 1px solid #ccc; padding: 4px 5px; vertical-align: middle; }
+.pex-name { font-weight: 600; font-size: 10px; word-break: break-word; }
+.pex-var  { font-size: 8px; color: #555; word-break: break-word; }
+.pset     { text-align: center; color: #999; font-size: 8px; background: #fafafa; }
+.preps, .pwt { text-align: center; }
+.pnotes td { border: 1px solid #ccc; padding: 3px 6px; background: #fafafa; }
+.pnotes-label { font-weight: 700; font-size: 9px; white-space: nowrap; }
+.pnotes-val   { font-size: 8px; color: #555; font-style: italic; }
+
+@media screen {
+  .print-page { border: 1px solid #ddd; padding: 16px; border-radius: 6px; background: white; }
+  #print-sheet-preview { background: #f0f0f0; padding: 16px; border-radius: 8px; }
+}
 
 @media print {
-  /* Hide everything except print sheet */
-  body > *:not(#print-only-wrapper) { display: none !important; }
-  .nav-sidebar, .filter-bar, header, .tab-bar { display: none !important; }
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  body, html { background: white !important; margin: 0; padding: 0; }
+
+  /* Hide entire app chrome */
+  body > * { display: none !important; }
+  #app-container, .nav-sidebar, header, .tab-bar { display: none !important; }
+
+  /* Show only the print view */
+  #view-workouts { display: block !important; position: static !important; }
   #view-workouts .filter-bar { display: none !important; }
-  #workout-log-panel, #workout-history-panel, #workout-progress-panel { display: none !important; }
+  #workout-log-panel,
+  #workout-history-panel,
+  #workout-progress-panel { display: none !important; }
   #workout-print-panel { display: block !important; }
-  #print-week-date, button[onclick*="window.print"], span[style*="Cmd+P"] { display: none !important; }
-  .print-day-block { page-break-inside: avoid; margin-bottom: 12px; }
-  body { background: white !important; color: black !important; }
-  .print-table { font-size: 10px; }
-  @page { margin: 0.5in; size: letter portrait; }
+  #print-week-date,
+  #print-sheet-preview + *,
+  button { display: none !important; }
+  .print-page-controls { display: none !important; }
+
+  .print-page {
+    page-break-after: always;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+  }
+  .print-page:last-child { page-break-after: auto; }
+
+  .ptable {
+    width: 100%;
+    font-size: 9.5px;
+    margin-bottom: 10px;
+  }
+  .pday-hdr { font-size: 11px; }
+
+  @page {
+    size: letter portrait;
+    margin: 0.45in 0.45in 0.45in 0.45in;
+  }
 }
 </style>
 </head>
@@ -2523,70 +2590,84 @@ loadAll();
 // ── PRINT SHEET ──────────────────────────────────────────
 function renderPrintSheet() {
   const dateVal = document.getElementById('print-week-date').value;
-  const monday = dateVal ? new Date(dateVal) : new Date();
+  const monday = dateVal ? new Date(dateVal + 'T00:00:00') : new Date();
+
   const days = [
-    { label: 'Monday — Push',         key: 'Monday - Push',           offset: 0 },
-    { label: 'Tuesday — Pull',        key: 'Tuesday - Pull',          offset: 1 },
-    { label: 'Wednesday — Legs / Core', key: 'Wednesday - Legs / Core', offset: 2 },
-    { label: 'Thursday — Arms / Chest', key: 'Thursday - Arms / Chest', offset: 3 },
+    { label: 'Monday - Push',          key: 'Monday - Push',           offset: 0 },
+    { label: 'Tuesday - Pull',         key: 'Tuesday - Pull',          offset: 1 },
+    { label: 'Wednesday - Legs / Core',key: 'Wednesday - Legs / Core', offset: 2 },
+    { label: 'Thursday - Arms / Chest',key: 'Thursday - Arms / Chest', offset: 3 },
   ];
 
-  const notes = {
-    'Monday - Push':           'Variations: 45lb Olym — 35lb Smith — DBs — Cables  |  V-Bar — Straight — Rope',
-    'Tuesday - Pull':          'Variation: Lat Machine — High Cable — 2 Hand Cables',
-    'Wednesday - Legs / Core': 'Nordic Curl / Reverse Hyper optional when back allows',
-    'Thursday - Arms / Chest': 'Chest first → Tricep Ext Down[TRI] → Incline Curls[BI] → Tricep Ext Up[TRI] → Preacher[BI] → Forearm Raise',
+  const dayNotes = {
+    'Monday - Push':           'Variations - 45lb Olym -- 35lb Smith -- DBs -- Cables\t\t\t\tV - Bar -- Straight bar -- Rope',
+    'Tuesday - Pull':          'Variation: Lat Machine -- High Cable -- 2 Hand Cables',
+    'Wednesday - Legs / Core': 'Nordic Curl / Reverse Hyper - optional when back allows',
+    'Thursday - Arms / Chest': 'Chest first (Cable Press > HCF > LCF > Cross Overs) then TRI/BI: TED > Incline Curls > TEU > Preacher > Forearm Raise',
   };
 
-  let html = '';
-  days.forEach(day => {
+  function makePageHTML(day1, day2) {
+    return `<div class="print-page">
+      ${makeDayHTML(day1)}
+      ${makeDayHTML(day2)}
+    </div>`;
+  }
+
+  function makeDayHTML(day) {
     const d = new Date(monday);
     d.setDate(monday.getDate() + day.offset);
-    const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    const dateStr = d.toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric', year:'numeric' });
     const exercises = WORKOUT_DAYS[day.key] || [];
+    const notes = dayNotes[day.key] || '';
 
-    html += `<div class="print-day-block">
-      <table class="print-table">
-        <thead>
-          <tr>
-            <th colspan="11" class="print-day-header">${day.label}</th>
-          </tr>
-          <tr class="print-meta-row">
-            <td colspan="2">Date: <span class="print-meta-val">${dateStr}</span></td>
-            <td colspan="2">Sleep: ___________</td>
-            <td colspan="2">Deep: ___________</td>
-            <td colspan="5" style="text-align:right">Workout Duration: ___________</td>
-          </tr>
-          <tr class="print-col-header">
-            <th class="ex-col">Exercise</th>
-            <th class="var-col">Variation</th>
-            <th>S1</th><th>Reps</th><th>Weight</th>
-            <th>S2</th><th>Reps</th><th>Weight</th>
-            <th>S3</th><th>Reps</th><th>Weight</th>
-          </tr>
-        </thead>
-        <tbody>`;
-
+    let exRows = '';
     exercises.forEach(ex => {
-      const varStr = ex.variations && ex.variations.length ? ex.variations.join(' — ') : '';
-      const noteSuffix = ex.note ? ` <span class="print-note">${ex.note}</span>` : '';
-      html += `<tr class="print-ex-row">
-        <td class="ex-col">${ex.name}${noteSuffix}</td>
-        <td class="var-col">${varStr}</td>
-        <td>1</td><td></td><td></td>
-        <td>2</td><td></td><td></td>
-        <td>3</td><td></td><td></td>
+      const varStr = ex.variations && ex.variations.length ? ex.variations.join(' -- ') : '';
+      const nameStr = ex.note ? ex.name + ' ' + ex.note : ex.name;
+      exRows += `<tr class="pex">
+        <td class="pex-name">${nameStr}</td>
+        <td class="pex-var">${varStr}</td>
+        <td class="pset">1</td><td class="preps"></td><td class="pwt"></td>
+        <td class="pset">2</td><td class="preps"></td><td class="pwt"></td>
+        <td class="pset">3</td><td class="preps"></td><td class="pwt"></td>
       </tr>`;
     });
 
-    html += `<tr class="print-notes-row">
-        <td>Notes:</td>
-        <td colspan="10" style="font-size:9px;color:#666;font-style:italic">${notes[day.key] || ''}</td>
-      </tr>
-        </tbody>
-      </table>
-    </div>`;
-  });
+    return `<table class="ptable">
+      <colgroup>
+        <col style="width:22%"><col style="width:20%">
+        <col style="width:3%"><col style="width:6%"><col style="width:9%">
+        <col style="width:3%"><col style="width:6%"><col style="width:9%">
+        <col style="width:3%"><col style="width:6%"><col style="width:9%">
+      </colgroup>
+      <thead>
+        <tr><th colspan="11" class="pday-hdr">${day.label}</th></tr>
+        <tr class="pmeta">
+          <td colspan="2" class="pmeta-cell">Date: <span class="pmeta-val">${dateStr}</span></td>
+          <td colspan="3" class="pmeta-cell">Sleep: _____________ &nbsp; Deep: _____________</td>
+          <td colspan="6" class="pmeta-cell" style="text-align:right">Workout Duration: _____________</td>
+        </tr>
+        <tr class="pcol-hdr">
+          <th class="pex-name">Exercise</th>
+          <th class="pex-var">Variation:</th>
+          <th>Set</th><th>Reps</th><th>Weight</th>
+          <th>Set</th><th>Reps</th><th>Weight</th>
+          <th>Set</th><th>Reps</th><th>Weight</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${exRows}
+        <tr class="pnotes">
+          <td class="pnotes-label">Notes:</td>
+          <td colspan="10" class="pnotes-val">${notes}</td>
+        </tr>
+      </tbody>
+    </table>`;
+  }
+
+  const html =
+    makePageHTML(days[0], days[1]) +
+    makePageHTML(days[2], days[3]);
 
   document.getElementById('print-sheet-preview').innerHTML = html;
 }
