@@ -456,13 +456,13 @@
       <span>⚠ LDN: No opioids within 4–6 hrs</span>
     </div>
     <div class="filter-bar">
-      <div class="filter-chip" onclick="filterSupps('all', this)">All</div>
-      <div class="filter-chip active" onclick="filterSupps('Active', this)">Active</div>
-      <div class="filter-chip" onclick="filterSupps('Paused', this)">Paused</div>
-      <div class="filter-chip" onclick="filterSupps('TBD', this)">TBD</div>
-      <div class="filter-chip" onclick="filterSuppSource('Amazon', this)" style="margin-left:8px">Amazon</div>
-      <div class="filter-chip" onclick="filterSuppSource('Pharmacy', this)">Pharmacy</div>
-      <div class="filter-chip" onclick="filterSuppSource('', this)">All Sources</div>
+      <div class="filter-chip" data-group="status" onclick="filterSupps('all', this)">All</div>
+      <div class="filter-chip active" data-group="status" onclick="filterSupps('Active', this)">Active</div>
+      <div class="filter-chip" data-group="status" onclick="filterSupps('Paused', this)">Paused</div>
+      <div class="filter-chip" data-group="status" onclick="filterSupps('TBD', this)">TBD</div>
+      <div class="filter-chip" data-group="source" onclick="filterSuppSource('Amazon', this)" style="margin-left:8px">Amazon</div>
+      <div class="filter-chip" data-group="source" onclick="filterSuppSource('Pharmacy', this)">Pharmacy</div>
+      <div class="filter-chip active" data-group="source" onclick="filterSuppSource('', this)">All Sources</div>
     </div>
     <div id="supps-content"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
   </div>
