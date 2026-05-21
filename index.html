@@ -1199,18 +1199,19 @@ function filterPeptides(f, el) {
   renderPeptides(f);
 }
 
+let currentSuppSource = '';
+
 function filterSupps(f, el) {
-  // Only update status chips — leave source chips alone
-  el.closest('.filter-bar').querySelectorAll('.filter-chip[data-group="status"]').forEach(c => c.classList.remove('active'));
+  // Update status chips only
+  document.querySelectorAll('#view-supplements .filter-chip[data-group="status"]').forEach(c => c.classList.remove('active'));
   el.classList.add('active');
   renderSupplements(f);
 }
 
-let currentSuppSource = '';
 function filterSuppSource(source, el) {
   currentSuppSource = source;
-  // Only update source chips — leave status chips alone
-  el.closest('.filter-bar').querySelectorAll('.filter-chip[data-group="source"]').forEach(c => c.classList.remove('active'));
+  // Update source chips only
+  document.querySelectorAll('#view-supplements .filter-chip[data-group="source"]').forEach(c => c.classList.remove('active'));
   el.classList.add('active');
   renderSupplements(currentSuppFilter || 'Active');
 }
