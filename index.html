@@ -203,6 +203,13 @@
   }
 
 /* ── WEEKLY PRINT STYLES ── */
+
+/* Day color themes — blue/grey palette */
+.pday-push    { --day-hdr: #2C5F8A; --day-hdr-text: #fff; --day-col-bg: #D6E8F5; --day-row-alt: #EEF6FC; }
+.pday-pull    { --day-hdr: #4A5568; --day-hdr-text: #fff; --day-col-bg: #DDE3EC; --day-row-alt: #F0F3F7; }
+.pday-legs    { --day-hdr: #1A7A9A; --day-hdr-text: #fff; --day-col-bg: #D0EAF2; --day-row-alt: #EBF6FA; }
+.pday-arms    { --day-hdr: #3D6B9E; --day-hdr-text: #fff; --day-col-bg: #D8E7F5; --day-row-alt: #EDF4FB; }
+
 .ptable {
   width: 100%;
   border-collapse: collapse;
@@ -212,8 +219,8 @@
   table-layout: fixed;
 }
 .pday-hdr {
-  background: #1a1a1a;
-  color: #fff;
+  color: var(--day-hdr-text);
+  background: var(--day-hdr);
   font-size: 12px;
   font-weight: bold;
   padding: 0;
@@ -232,7 +239,7 @@
   align-items: center;
   font-size: 11px;
   font-weight: normal;
-  color: #fff;
+  color: var(--day-hdr-text);
 }
 .pday-meta-field {
   display: flex;
@@ -243,13 +250,13 @@
 .pday-meta-line {
   display: inline-block;
   width: 100px;
-  border-bottom: 1px solid #fff;
+  border-bottom: 1px solid rgba(255,255,255,0.7);
   height: 14px;
 }
 .pday-duration {
   font-size: 11px;
   font-weight: normal;
-  color: #fff;
+  color: var(--day-hdr-text);
   display: flex;
   align-items: center;
   gap: 6px;
@@ -258,18 +265,19 @@
 .pday-duration-line {
   display: inline-block;
   width: 120px;
-  border-bottom: 1px solid #fff;
+  border-bottom: 1px solid rgba(255,255,255,0.7);
   height: 14px;
 }
 .pcol-hdr th {
-  background: #e8e8e8;
+  background: var(--day-col-bg);
+  color: #222;
   padding: 6px 4px;
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.3px;
-  border-bottom: 1px solid #bbb;
-  border-right: 1px solid #ddd;
+  border-bottom: 1px solid rgba(0,0,0,0.15);
+  border-right: 1px solid rgba(0,0,0,0.08);
   text-align: center;
 }
 .pcol-hdr th.pex-name { text-align: left; padding-left: 8px; }
@@ -280,16 +288,18 @@
   border-right: 1px solid #ececec;
   vertical-align: middle;
   height: 28px;
+  background: white;
 }
-.pex-name { font-weight: 600; font-size: 12px; padding-left: 8px !important; }
+.pex:nth-child(even) td { background: var(--day-row-alt); }
+.pex-name { font-weight: 600; font-size: 12px; padding-left: 8px !important; color: #111; }
 .pex-var  { font-size: 10px; color: #555; padding-left: 8px !important; }
-.pset     { text-align: center; color: #bbb; font-size: 9px; background: #fafafa; width: 3%; }
+.pset     { text-align: center; color: #999; font-size: 9px; width: 3%; }
 .preps    { text-align: center; width: 7%; }
 .pwt      { text-align: center; width: 10%; }
 .pnotes td {
-  border-top: 1px solid #ccc;
+  border-top: 2px solid var(--day-hdr);
   padding: 8px 8px;
-  background: #fafafa;
+  background: var(--day-row-alt);
   height: 80px;
   vertical-align: top;
 }
@@ -297,7 +307,7 @@
   font-weight: 700;
   font-size: 10px;
   white-space: nowrap;
-  color: #444;
+  color: #333;
   width: 6%;
 }
 .pnotes-val { font-size: 10px; color: #aaa; }
@@ -2650,10 +2660,10 @@ function renderWeeklyPrint() {
 
 function buildWeeklyHTML(monday) {
   const days = [
-    { label:'Monday - Push',           key:'Monday - Push',           offset:0 },
-    { label:'Tuesday - Pull',          key:'Tuesday - Pull',          offset:1 },
-    { label:'Wednesday - Legs / Core', key:'Wednesday - Legs / Core', offset:2 },
-    { label:'Thursday - Arms / Chest', key:'Thursday - Arms / Chest', offset:3 },
+    { label:'Monday - Push',           key:'Monday - Push',           offset:0, cls:'pday-push' },
+    { label:'Tuesday - Pull',          key:'Tuesday - Pull',          offset:1, cls:'pday-pull' },
+    { label:'Wednesday - Legs / Core', key:'Wednesday - Legs / Core', offset:2, cls:'pday-legs' },
+    { label:'Thursday - Arms / Chest', key:'Thursday - Arms / Chest', offset:3, cls:'pday-arms' },
   ];
 
   function dayTable(day) {
@@ -2675,10 +2685,9 @@ function buildWeeklyHTML(monday) {
       </tr>`;
     });
 
-    return `<table class="ptable">
+    return `<table class="ptable ${day.cls}">
       <colgroup>
-        <col style="width:24%">
-        <col style="width:18%">
+        <col style="width:24%"><col style="width:18%">
         <col style="width:3%"><col style="width:7%"><col style="width:10%">
         <col style="width:3%"><col style="width:7%"><col style="width:10%">
         <col style="width:3%"><col style="width:7%"><col style="width:8%">
@@ -2687,7 +2696,7 @@ function buildWeeklyHTML(monday) {
         <tr>
           <th colspan="11" class="pday-hdr" style="padding:0">
             <div class="pday-hdr-inner">
-              <span style="font-size:12px;font-weight:bold">${day.label} &nbsp;&nbsp; ${ds}</span>
+              <span style="font-size:13px;font-weight:bold">${day.label} &nbsp;&nbsp; ${ds}</span>
               <div class="pday-meta">
                 <div class="pday-meta-field">Sleep: <span class="pday-meta-line"></span></div>
                 <div class="pday-meta-field">Deep: <span class="pday-meta-line"></span></div>
