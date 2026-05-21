@@ -228,49 +228,45 @@
   font-size: 12px;
   font-weight: bold;
   padding: 0;
-  height: 36px;
 }
 .pday-hdr-inner {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 0 12px;
-  height: 36px;
+  gap: 16px;
+  padding: 10px 14px;
+  flex-wrap: nowrap;
+}
+.pday-title {
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+  color: #fff;
+  min-width: 180px;
 }
 .pday-meta {
   display: flex;
-  gap: 28px;
+  gap: 20px;
   align-items: center;
   font-size: 11px;
   font-weight: normal;
-  color: var(--day-hdr-text);
+  color: rgba(255,255,255,0.95);
+  flex: 1;
 }
 .pday-meta-field {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   white-space: nowrap;
 }
 .pday-meta-line {
   display: inline-block;
-  width: 100px;
-  border-bottom: 1px solid rgba(255,255,255,0.7);
-  height: 14px;
+  width: 88px;
+  border-bottom: 1px solid rgba(255,255,255,0.6);
+  height: 16px;
+  vertical-align: bottom;
 }
-.pday-duration {
-  font-size: 11px;
-  font-weight: normal;
-  color: var(--day-hdr-text);
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  white-space: nowrap;
-}
-.pday-duration-line {
-  display: inline-block;
-  width: 120px;
-  border-bottom: 1px solid rgba(255,255,255,0.7);
-  height: 14px;
+.pday-dur-line {
+  width: 110px;
 }
 .pcol-hdr th {
   background: var(--day-col-bg);
@@ -2672,12 +2668,13 @@ function buildWeeklyHTML(monday) {
         <tr>
           <th colspan="11" class="pday-hdr" style="padding:0">
             <div class="pday-hdr-inner">
-              <span style="font-size:13px;font-weight:bold">${day.label} &nbsp;&nbsp; ${ds}</span>
+              <div class="pday-title">${day.label}</div>
               <div class="pday-meta">
+                <div class="pday-meta-field">Date: <span class="pday-meta-line"></span></div>
                 <div class="pday-meta-field">Sleep: <span class="pday-meta-line"></span></div>
                 <div class="pday-meta-field">Deep: <span class="pday-meta-line"></span></div>
+                <div class="pday-meta-field">Duration: <span class="pday-meta-line pday-dur-line"></span></div>
               </div>
-              <div class="pday-duration">Duration: <span class="pday-duration-line"></span></div>
             </div>
           </th>
         </tr>
