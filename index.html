@@ -2464,11 +2464,11 @@ function printTracker() {
       const dose = getField(r,'Dose');
       const label = dose ? `${name} - ${dose}` : name;
       const active = TRACKER_SCHEDULE[name] || [0,1,2,3,4,5,6];
-      let tr = `<tr><td style="background-color:${bg}!important;border:1px solid #ccc;border-left:2px solid #000;padding:3px 6px;font-size:8pt">${label}</td>`;
+      let tr = `<tr><td style="background-color:${bg}!important;border:1px solid #ccc;border-left:2px solid #000;padding:5px 6px;font-size:8pt">${label}</td>`;
       for (let d=0; d<7; d++) {
         tr += active.includes(d)
-          ? `<td style="background-color:${bg}!important;border:1px solid #ccc;height:20px"></td>`
-          : `<td style="background-color:${INACTIVE}!important;border:1px solid #ccc;height:20px"></td>`;
+          ? `<td style="background-color:${bg}!important;border:1px solid #ccc;height:26px"></td>`
+          : `<td style="background-color:${INACTIVE}!important;border:1px solid #ccc;height:26px"></td>`;
       }
       tr += `<td style="background-color:${bg}!important;border:1px solid #ccc;"></td></tr>`;
       return tr;
