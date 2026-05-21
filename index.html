@@ -452,13 +452,12 @@
       <span>⚠ LDN: No opioids within 4–6 hrs</span>
     </div>
     <div class="filter-bar">
-      <div class="filter-chip" data-group="status" onclick="filterSupps('all', this)">All</div>
-      <div class="filter-chip active" data-group="status" onclick="filterSupps('Active', this)">Active</div>
-      <div class="filter-chip" data-group="status" onclick="filterSupps('Paused', this)">Paused</div>
-      <div class="filter-chip" data-group="status" onclick="filterSupps('TBD', this)">TBD</div>
-      <div class="filter-chip" data-group="source" onclick="filterSuppSource('Amazon', this)" style="margin-left:8px">Amazon</div>
-      <div class="filter-chip" data-group="source" onclick="filterSuppSource('Pharmacy', this)">Pharmacy</div>
-      <div class="filter-chip active" data-group="source" onclick="filterSuppSource('', this)">All Sources</div>
+      <div class="filter-chip" onclick="filterSupps('all', this)">All</div>
+      <div class="filter-chip active" onclick="filterSupps('Active', this)">Active</div>
+      <div class="filter-chip" onclick="filterSupps('Paused', this)">Paused</div>
+      <div class="filter-chip" onclick="filterSupps('TBD', this)">TBD</div>
+      <div class="filter-chip" onclick="filterSupps('amazon', this)" style="margin-left:8px">Amazon</div>
+      <div class="filter-chip" onclick="filterSupps('pharmacy', this)">Pharmacy</div>
     </div>
     <div id="supps-content"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
   </div>
@@ -936,8 +935,13 @@ function suppSortIcon(col) {
 function renderSupplements(filter) {
   currentSuppFilter = filter;
   let records = data.supplements;
-  if (filter && filter !== 'all') records = records.filter(r => (getField(r,'SuppStatus')||'').toLowerCase() === filter.toLowerCase());
-  if (currentSuppSource && currentSuppSource !== '') records = records.filter(r => (getField(r,'SuppSource')||'') === currentSuppSource);
+  if (filter === 'amazon') {
+    records = records.filter(r => (getField(r,'SuppSource')||'').toLowerCase().includes('amazon'));
+  } else if (filter === 'pharmacy') {
+    records = records.filter(r => (getField(r,'SuppSource')||'').toLowerCase().includes('pharmacy'));
+  } else if (filter && filter !== 'all') {
+    records = records.filter(r => (getField(r,'SuppStatus')||'').toLowerCase() === filter.toLowerCase());
+  }
   records = [...records].sort((a,b) => {
     const av = getField(a, suppSort.col === 'Supplement' ? 'Supplement' : suppSort.col === 'Status' ? 'SuppStatus' : suppSort.col === 'Timing' ? 'SuppTiming' : suppSort.col === 'Dose' ? 'SuppDose' : suppSort.col === 'Brand' ? 'Brand' : 'Supplement') || '';
     const bv = getField(b, suppSort.col === 'Supplement' ? 'Supplement' : suppSort.col === 'Status' ? 'SuppStatus' : suppSort.col === 'Timing' ? 'SuppTiming' : suppSort.col === 'Dose' ? 'SuppDose' : suppSort.col === 'Brand' ? 'Brand' : 'Supplement') || '';
@@ -1199,20 +1203,10 @@ function filterPeptides(f, el) {
   renderPeptides(f);
 }
 
-let currentSuppSource = '';
-
 function filterSupps(f, el) {
-  document.querySelectorAll('#view-supplements .filter-chip[data-group="status"]').forEach(c => c.classList.remove('active'));
+  document.querySelectorAll('#view-supplements .filter-chip').forEach(c => c.classList.remove('active'));
   el.classList.add('active');
   renderSupplements(f);
-}
-
-function filterSuppSource(source, el) {
-  currentSuppSource = source;
-  document.querySelectorAll('#view-supplements .filter-chip[data-group="source"]').forEach(c => c.classList.remove('active'));
-  el.classList.add('active');
-  // Re-render keeping current status filter
-  renderSupplements(currentSuppFilter);
 }
 
 let pricingData = [];
