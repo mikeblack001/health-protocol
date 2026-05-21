@@ -201,6 +201,49 @@
     nav { flex-wrap: wrap; gap: 8px; height: auto; padding: 12px 16px; }
     .nav-tabs { order: 3; width: 100%; overflow-x: auto; }
   }
+
+/* ── WEEKLY PRINT STYLES ── */
+.ptable { width:100%; border-collapse:collapse; font-family:Arial,sans-serif; font-size:10px; margin-bottom:12px; table-layout:fixed; }
+.pday-hdr { background:#222; color:#fff; font-size:12px; font-weight:bold; padding:5px 8px; text-align:left; }
+.pmeta td { background:#f2f2f2; padding:3px 6px; font-size:9px; border:1px solid #ccc; }
+.pmeta-val { font-weight:600; }
+.pcol-hdr th { background:#e0e0e0; padding:3px 4px; font-size:8px; font-weight:700; text-transform:uppercase; border:1px solid #bbb; text-align:center; }
+.pcol-hdr .pex-name, .pcol-hdr .pex-var { text-align:left; }
+.pex td { border:1px solid #ccc; padding:4px 5px; vertical-align:middle; }
+.pex-name { font-weight:600; font-size:10px; width:22%; }
+.pex-var  { font-size:8px; color:#555; width:20%; }
+.pset     { text-align:center; color:#aaa; font-size:8px; background:#fafafa; width:3%; }
+.preps, .pwt { text-align:center; width:6%; }
+.pwt { width:9%; }
+.pnotes td { border:1px solid #ccc; padding:3px 6px; background:#fafafa; }
+.pnotes-label { font-weight:700; font-size:9px; white-space:nowrap; }
+.pnotes-val { font-size:8px; color:#555; font-style:italic; }
+
+@media print {
+  * { -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; }
+  body > * { display:none !important; }
+  #weekly-print-modal {
+    display:block !important;
+    position:static !important;
+    background:white !important;
+    padding:0 !important;
+    z-index:auto !important;
+    overflow:visible !important;
+  }
+  #weekly-print-modal > div {
+    background:white !important;
+    border-radius:0 !important;
+    padding:0 !important;
+    max-width:100% !important;
+    box-shadow:none !important;
+  }
+  #weekly-print-modal > div > div:first-child { display:none !important; }
+  #weekly-print-preview { padding:0 !important; background:white !important; border-radius:0 !important; }
+  .print-page { page-break-after:always; margin:0; padding:0; }
+  .print-page:last-child { page-break-after:auto; }
+  .ptable { font-size:9.5px; margin-bottom:10px; }
+  @page { size:letter portrait; margin:0.45in; }
+}
 </style>
 </head>
 <body>
@@ -365,6 +408,7 @@
       <button class="filter-btn active" onclick="showWorkoutPanel('log', this)">Log Workout</button>
       <button class="filter-btn" onclick="showWorkoutPanel('history', this)">History</button>
       <button class="filter-btn" onclick="showWorkoutPanel('progress', this)">Progress</button>
+      <button onclick="openWeeklyPrint()" style="margin-left:auto;padding:5px 14px;background:var(--accent);color:#000;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:0.3px">🖨 Weekly Print</button>
     </div>
 
     <!-- LOG PANEL -->
@@ -1573,51 +1617,45 @@ const WORKOUT_DAYS = {
   'Monday - Push': [
     { name: 'Wrist Twist - DBs', variations: [] },
     { name: 'Bench Press', variations: ['45lb Olympic', 'Smith 35lb', 'DBs', 'Cables'] },
-    { name: 'Cable Cross Overs', variations: [], note: '1/2 ea' },
     { name: 'Incline Press', variations: ['45lb Olympic', 'Smith 35lb', 'DBs', 'Cables'] },
+    { name: 'Incline Fly', variations: ['DBs', 'Cables'] },
+    { name: 'High Cable Fly', variations: [], note: '1/2 ea' },
+    { name: 'Tricep Pushdowns', variations: ['V-Bar', 'Straight Bar', 'Rope'], note: '1/2' },
+    { name: 'Overhead Tricep Ext', variations: ['EZ-Bar', 'DBs', 'Rope'] },
     { name: 'Lateral Raises', variations: ['DBs', 'Cables', 'EZ Bar'] },
     { name: 'Seated Shoulder Press', variations: ['45lb Olympic', 'Smith 35lb', 'DBs', 'Cables'] },
-    { name: 'Tricep Pushdowns', variations: ['V-Bar', 'Straight Bar', 'Rope'], note: '1/2' },
-    { name: 'Incline Fly', variations: ['DBs', 'Cables'] },
-    { name: 'Overhead Tricep Ext', variations: ['EZ-Bar', 'DBs', 'Rope'] },
-    { name: 'High Cable Fly', variations: [], note: '1/2 ea' }
   ],
   'Tuesday - Pull': [
     { name: 'Wrist Twist - DBs', variations: [] },
     { name: 'Lat Pulldown', variations: ['Lat Machine', 'High Cable', '2 Hand Cables'] },
-    { name: 'Bent Over Rows', variations: ['45lb Olympic', 'DBs'] },
-    { name: 'Barbell Shrugs', variations: ['45lb Olympic'] },
     { name: 'Cable Rows', variations: ['Lat Machine'] },
+    { name: 'Hammer Curls', variations: ['Rope 1/2', 'DBs'] },
     { name: 'Face Pulls', variations: ['Rope'], note: '1/2' },
     { name: 'Rear Delt Raises', variations: ['DBs'] },
-    { name: 'Bicep Curls - Preacher', variations: ['DBs', 'EZ Bar (15lbs)'] },
-    { name: 'Hammer Curls', variations: ['Rope 1/2', 'DBs'] },
-    { name: 'Cable Shrugs', variations: [], note: '1/2' },
-    { name: 'Cable Curls', variations: [], note: '1/2 ea' }
+    { name: 'Cable Curls', variations: [], note: '1/2 ea' },
+    { name: 'Barbell Shrugs', variations: ['45lb Olympic'] },
   ],
   'Wednesday - Legs / Core': [
     { name: 'Forward Back Stretch', variations: [] },
-    { name: 'Back Extension', variations: ['Sit Up'] },
     { name: 'Leg Press', variations: ['35lbs'] },
     { name: 'Leg Extensions', variations: ['45lbs', 'Cable 1/2'] },
     { name: 'Leg Curls', variations: ['45lbs', 'Cable 1/2'] },
-    { name: 'Hip Thrust', variations: ['DBs'] },
-    { name: 'Nordic Curl', variations: [] },
-    { name: 'Reverse Hyper', variations: [] },
+    { name: 'Hip Thrust', variations: ['DBs', 'Smith 35lb'] },
+    { name: 'Back Extension', variations: ['Bodyweight', 'Sit Up'] },
     { name: 'DB Calf Raises', variations: [] },
-    { name: 'Smith Mach Calf Raises', variations: ['35lbs'] }
+    { name: 'Smith Mach Calf Raises', variations: ['35lbs'] },
   ],
   'Thursday - Arms / Chest': [
     { name: 'Wrist Twist - DBs', variations: [] },
     { name: 'Cable Press', variations: [], note: '1/2 ea' },
     { name: 'High Cable Fly', variations: [], note: '1/2 ea' },
     { name: 'Low Cable Fly', variations: [], note: '1/2 ea' },
+    { name: 'Cable Cross Overs', variations: [], note: '1/2 ea' },
     { name: 'Tricep Ext Down', variations: ['Rope', 'Bar'], note: '1/2' },
     { name: 'Incline Curls', variations: ['DBs'] },
-    { name: 'Overhead Tricep Press', variations: ['EZ-Bar', 'DBs', 'Rope'] },
-    { name: 'Curls (Standing)', variations: ['EZ-Bar (15lbs)'] },
     { name: 'Tricep Ext Up', variations: ['Rope', 'Bar'] },
-    { name: 'Forearm Raise - Cable', variations: [], note: '1/2' }
+    { name: 'Bicep Curls - Preacher', variations: ['DBs', 'EZ Bar (15lbs)'] },
+    { name: 'Forearm Raise - Cable', variations: [], note: '1/2' },
   ],
 };
 
@@ -2367,7 +2405,25 @@ function printTracker() {
   </style></head><body>
   <div class="page-break">${weekTable(1)}${weekTable(2)}</div>
   <div>${weekTable(3)}${weekTable(4)}</div>
-  </body></html>`;
+  
+<!-- WEEKLY PRINT MODAL -->
+<div id="weekly-print-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9999;overflow-y:auto;padding:24px">
+  <div style="max-width:900px;margin:0 auto;background:var(--surface);border-radius:12px;padding:24px;position:relative">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+      <div style="font-family:'DM Mono',monospace;font-size:13px;font-weight:600;color:var(--accent);letter-spacing:1px">WEEKLY PRINT</div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <label style="font-size:11px;color:var(--muted)">Week of Monday:</label>
+        <input type="date" id="modal-print-date" onchange="renderWeeklyPrint()"
+          style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:'DM Mono',monospace;color:var(--text);background:var(--surface2)">
+        <button onclick="window.print()" style="padding:6px 16px;background:var(--accent);color:#000;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer">🖨 Print</button>
+        <button onclick="document.getElementById('weekly-print-modal').style.display='none'"
+          style="padding:6px 12px;background:var(--surface2);color:var(--muted);border:1px solid var(--border);border-radius:6px;font-size:12px;cursor:pointer">✕ Close</button>
+      </div>
+    </div>
+    <div id="weekly-print-preview" style="background:white;border-radius:8px;padding:16px"></div>
+  </div>
+</div>
+</body></html>`;
 
   const w = window.open('','_blank','width=900,height=700');
   w.document.write(html);
@@ -2446,7 +2502,25 @@ function printProtocolList() {
     ${suppTable('🍽 Dinner', dinSupp)}
     ${suppTable('🌙 Night', nightSupp)}
   </div>
-  </body></html>`;
+  
+<!-- WEEKLY PRINT MODAL -->
+<div id="weekly-print-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9999;overflow-y:auto;padding:24px">
+  <div style="max-width:900px;margin:0 auto;background:var(--surface);border-radius:12px;padding:24px;position:relative">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+      <div style="font-family:'DM Mono',monospace;font-size:13px;font-weight:600;color:var(--accent);letter-spacing:1px">WEEKLY PRINT</div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <label style="font-size:11px;color:var(--muted)">Week of Monday:</label>
+        <input type="date" id="modal-print-date" onchange="renderWeeklyPrint()"
+          style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:'DM Mono',monospace;color:var(--text);background:var(--surface2)">
+        <button onclick="window.print()" style="padding:6px 16px;background:var(--accent);color:#000;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer">🖨 Print</button>
+        <button onclick="document.getElementById('weekly-print-modal').style.display='none'"
+          style="padding:6px 12px;background:var(--surface2);color:var(--muted);border:1px solid var(--border);border-radius:6px;font-size:12px;cursor:pointer">✕ Close</button>
+      </div>
+    </div>
+    <div id="weekly-print-preview" style="background:white;border-radius:8px;padding:16px"></div>
+  </div>
+</div>
+</body></html>`;
 
   const w = window.open('','_blank','width=800,height=700');
   w.document.write(html);
@@ -2471,6 +2545,79 @@ document.getElementById('greeting').textContent = hr < 12 ? 'morning' : hr < 17 
 document.getElementById('todayDate').textContent = new Date().toLocaleDateString('en-US', {weekday:'long',year:'numeric',month:'long',day:'numeric'});
 document.getElementById('log-date').textContent = new Date().toLocaleDateString('en-US', {month:'long',day:'numeric',year:'numeric'});
 loadAll();
+
+// ── WEEKLY PRINT ────────────────────────────────────────
+function openWeeklyPrint() {
+  document.getElementById('weekly-print-modal').style.display = 'block';
+  const today = new Date();
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+  document.getElementById('modal-print-date').value = monday.toISOString().split('T')[0];
+  renderWeeklyPrint();
+}
+
+function renderWeeklyPrint() {
+  const dateVal = document.getElementById('modal-print-date').value;
+  const monday = dateVal ? new Date(dateVal + 'T00:00:00') : new Date();
+  document.getElementById('weekly-print-preview').innerHTML = buildWeeklyHTML(monday);
+}
+
+function buildWeeklyHTML(monday) {
+  const days = [
+    { label:'Monday - Push',           key:'Monday - Push',           offset:0 },
+    { label:'Tuesday - Pull',          key:'Tuesday - Pull',          offset:1 },
+    { label:'Wednesday - Legs / Core', key:'Wednesday - Legs / Core', offset:2 },
+    { label:'Thursday - Arms / Chest', key:'Thursday - Arms / Chest', offset:3 },
+  ];
+  const notes = {
+    'Monday - Push':           'Variations - 45lb Olym -- 35lb Smith -- DBs -- Cables          V-Bar -- Straight -- Rope',
+    'Tuesday - Pull':          'Variation: Lat Machine -- High Cable -- 2 Hand Cables',
+    'Wednesday - Legs / Core': 'Nordic Curl / Reverse Hyper optional when back allows',
+    'Thursday - Arms / Chest': 'Chest: CP > HCF > LCF > CCO  |  TED[TRI] > Incline Curls[BI] > TEU[TRI] > Preacher[BI] > Forearm Raise',
+  };
+
+  function dayTable(day) {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + day.offset);
+    const ds = d.toLocaleDateString('en-US',{month:'numeric',day:'numeric',year:'numeric'});
+    const exs = WORKOUT_DAYS[day.key] || [];
+    let rows = '';
+    exs.forEach(ex => {
+      const v = ex.variations && ex.variations.length ? ex.variations.join(' -- ') : '';
+      const n = ex.note ? ex.name+' '+ex.note : ex.name;
+      rows += `<tr class="pex">
+        <td class="pex-name">${n}</td><td class="pex-var">${v}</td>
+        <td class="pset">1</td><td class="preps"></td><td class="pwt"></td>
+        <td class="pset">2</td><td class="preps"></td><td class="pwt"></td>
+        <td class="pset">3</td><td class="preps"></td><td class="pwt"></td>
+      </tr>`;
+    });
+    return `<table class="ptable">
+      <colgroup><col style="width:22%"><col style="width:20%"><col style="width:3%"><col style="width:6%"><col style="width:9%"><col style="width:3%"><col style="width:6%"><col style="width:9%"><col style="width:3%"><col style="width:6%"><col style="width:9%"></colgroup>
+      <thead>
+        <tr><th colspan="11" class="pday-hdr">${day.label}</th></tr>
+        <tr class="pmeta">
+          <td colspan="2" class="pmeta-cell">Date: <span class="pmeta-val">${ds}</span></td>
+          <td colspan="3" class="pmeta-cell">Sleep: ___________ &nbsp; Deep: ___________</td>
+          <td colspan="6" class="pmeta-cell" style="text-align:right">Workout Duration: ___________</td>
+        </tr>
+        <tr class="pcol-hdr">
+          <th class="pex-name">Exercise</th><th class="pex-var">Variation:</th>
+          <th>Set</th><th>Reps</th><th>Weight</th>
+          <th>Set</th><th>Reps</th><th>Weight</th>
+          <th>Set</th><th>Reps</th><th>Weight</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows}
+        <tr class="pnotes"><td class="pnotes-label">Notes:</td><td colspan="10" class="pnotes-val">${notes[day.key]||''}</td></tr>
+      </tbody>
+    </table>`;
+  }
+
+  return `<div class="print-page">${dayTable(days[0])}${dayTable(days[1])}</div>` +
+         `<div class="print-page">${dayTable(days[2])}${dayTable(days[3])}</div>`;
+}
 </script>
 
 <!-- ADD PURCHASE MODAL -->
@@ -2554,5 +2701,23 @@ loadAll();
   </div>
 </div>
 
+
+<!-- WEEKLY PRINT MODAL -->
+<div id="weekly-print-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9999;overflow-y:auto;padding:24px">
+  <div style="max-width:900px;margin:0 auto;background:var(--surface);border-radius:12px;padding:24px;position:relative">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+      <div style="font-family:'DM Mono',monospace;font-size:13px;font-weight:600;color:var(--accent);letter-spacing:1px">WEEKLY PRINT</div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <label style="font-size:11px;color:var(--muted)">Week of Monday:</label>
+        <input type="date" id="modal-print-date" onchange="renderWeeklyPrint()"
+          style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:'DM Mono',monospace;color:var(--text);background:var(--surface2)">
+        <button onclick="window.print()" style="padding:6px 16px;background:var(--accent);color:#000;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer">🖨 Print</button>
+        <button onclick="document.getElementById('weekly-print-modal').style.display='none'"
+          style="padding:6px 12px;background:var(--surface2);color:var(--muted);border:1px solid var(--border);border-radius:6px;font-size:12px;cursor:pointer">✕ Close</button>
+      </div>
+    </div>
+    <div id="weekly-print-preview" style="background:white;border-radius:8px;padding:16px"></div>
+  </div>
+</div>
 </body>
 </html>
