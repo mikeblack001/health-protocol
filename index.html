@@ -936,8 +936,8 @@ function suppSortIcon(col) {
 function renderSupplements(filter) {
   currentSuppFilter = filter;
   let records = data.supplements;
-  if (filter !== 'all') records = records.filter(r => (getField(r,'SuppStatus')||'').toLowerCase() === filter.toLowerCase());
-  if (currentSuppSource) records = records.filter(r => (getField(r,'SuppSource')||'') === currentSuppSource);
+  if (filter && filter !== 'all') records = records.filter(r => (getField(r,'SuppStatus')||'').toLowerCase() === filter.toLowerCase());
+  if (currentSuppSource && currentSuppSource !== '') records = records.filter(r => (getField(r,'SuppSource')||'') === currentSuppSource);
   records = [...records].sort((a,b) => {
     const av = getField(a, suppSort.col === 'Supplement' ? 'Supplement' : suppSort.col === 'Status' ? 'SuppStatus' : suppSort.col === 'Timing' ? 'SuppTiming' : suppSort.col === 'Dose' ? 'SuppDose' : suppSort.col === 'Brand' ? 'Brand' : 'Supplement') || '';
     const bv = getField(b, suppSort.col === 'Supplement' ? 'Supplement' : suppSort.col === 'Status' ? 'SuppStatus' : suppSort.col === 'Timing' ? 'SuppTiming' : suppSort.col === 'Dose' ? 'SuppDose' : suppSort.col === 'Brand' ? 'Brand' : 'Supplement') || '';
@@ -1202,7 +1202,6 @@ function filterPeptides(f, el) {
 let currentSuppSource = '';
 
 function filterSupps(f, el) {
-  // Update status chips only
   document.querySelectorAll('#view-supplements .filter-chip[data-group="status"]').forEach(c => c.classList.remove('active'));
   el.classList.add('active');
   renderSupplements(f);
@@ -1210,10 +1209,10 @@ function filterSupps(f, el) {
 
 function filterSuppSource(source, el) {
   currentSuppSource = source;
-  // Update source chips only
   document.querySelectorAll('#view-supplements .filter-chip[data-group="source"]').forEach(c => c.classList.remove('active'));
   el.classList.add('active');
-  renderSupplements(currentSuppFilter || 'Active');
+  // Re-render keeping current status filter
+  renderSupplements(currentSuppFilter);
 }
 
 let pricingData = [];
@@ -2464,11 +2463,11 @@ function printTracker() {
       const dose = getField(r,'Dose');
       const label = dose ? `${name} - ${dose}` : name;
       const active = TRACKER_SCHEDULE[name] || [0,1,2,3,4,5,6];
-      let tr = `<tr><td style="background-color:${bg}!important;border:1px solid #ccc;border-left:2px solid #000;padding:5px 6px;font-size:8pt">${label}</td>`;
+      let tr = `<tr><td style="background-color:${bg}!important;border:1px solid #ccc;border-left:2px solid #000;padding:2px 6px;font-size:8pt">${label}</td>`;
       for (let d=0; d<7; d++) {
         tr += active.includes(d)
-          ? `<td style="background-color:${bg}!important;border:1px solid #ccc;height:26px"></td>`
-          : `<td style="background-color:${INACTIVE}!important;border:1px solid #ccc;height:26px"></td>`;
+          ? `<td style="background-color:${bg}!important;border:1px solid #ccc;height:22px"></td>`
+          : `<td style="background-color:${INACTIVE}!important;border:1px solid #ccc;height:22px"></td>`;
       }
       tr += `<td style="background-color:${bg}!important;border:1px solid #ccc;"></td></tr>`;
       return tr;
@@ -2502,7 +2501,7 @@ function printTracker() {
     table { width: 100%; border-collapse: collapse; margin-bottom: 0; table-layout: fixed; }
     td, th { padding: 4px 4px !important; line-height: 1.2; overflow: hidden; }
     .page-break { page-break-after: always; padding-bottom: 0; }
-    .week-spacer { height: 14px; }
+    .week-spacer { height: 18px; }
   </style></head><body>
   <div class="page-break">${weekTable(1)}<div class="week-spacer"></div>${weekTable(2)}</div>
   <div>${weekTable(3)}<div class="week-spacer"></div>${weekTable(4)}</div>
