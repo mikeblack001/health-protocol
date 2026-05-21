@@ -273,9 +273,12 @@
   #workout-history-panel,
   #workout-progress-panel { display: none !important; }
   #workout-print-panel { display: block !important; }
-  #print-week-date,
-  #print-sheet-preview + *,
-  button { display: none !important; }
+  /* Modal print - show modal content only */
+  #weekly-print-modal { display: block !important; position: static !important; background: white !important; padding: 0 !important; z-index: auto !important; overflow: visible !important; }
+  #weekly-print-modal > div { background: white !important; border-radius: 0 !important; padding: 0 !important; max-width: 100% !important; box-shadow: none !important; }
+  #weekly-print-modal > div > div:first-child { display: none !important; }
+  #modal-print-preview { padding: 0 !important; }
+  #print-week-date, button { display: none !important; }
   .print-page-controls { display: none !important; }
 
   .print-page {
@@ -321,6 +324,7 @@
     <button class="nav-tab" onclick="showView('printlist', event)">Print List</button>
   </div>
   <div class="nav-right">
+    <button onclick="openWeeklyPrint()" style="padding:5px 12px;background:var(--accent);color:#000;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;letter-spacing:0.3px;display:flex;align-items:center;gap:5px">🖨 Weekly Print</button>
     <div class="status-dot" id="statusDot"></div>
     <button class="sync-btn" onclick="loadAll()">↻ Sync</button>
   </div>
@@ -2481,7 +2485,23 @@ function printTracker() {
   </style></head><body>
   <div class="page-break">${weekTable(1)}${weekTable(2)}</div>
   <div>${weekTable(3)}${weekTable(4)}</div>
-  </body></html>`;
+  
+<!-- WEEKLY PRINT MODAL -->
+<div id="weekly-print-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;overflow-y:auto;padding:24px">
+  <div style="max-width:860px;margin:0 auto;background:var(--surface);border-radius:12px;padding:24px;position:relative">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div style="font-family:'DM Mono',monospace;font-size:13px;font-weight:600;color:var(--accent);letter-spacing:1px">WEEKLY PRINT</div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <label style="font-size:11px;color:var(--muted)">Week of Monday:</label>
+        <input type="date" id="modal-print-date" style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:'DM Mono',monospace;color:var(--text);background:var(--surface2)" onchange="renderModalPrintSheet()">
+        <button onclick="window.print()" style="padding:6px 14px;background:var(--accent);color:#000;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer">Print</button>
+        <button onclick="document.getElementById('weekly-print-modal').style.display='none'" style="padding:6px 12px;background:var(--surface2);color:var(--muted);border:1px solid var(--border);border-radius:6px;font-size:12px;cursor:pointer">✕ Close</button>
+      </div>
+    </div>
+    <div id="modal-print-preview" style="background:white;border-radius:8px;padding:16px"></div>
+  </div>
+</div>
+</body></html>`;
 
   const w = window.open('','_blank','width=900,height=700');
   w.document.write(html);
@@ -2560,7 +2580,23 @@ function printProtocolList() {
     ${suppTable('🍽 Dinner', dinSupp)}
     ${suppTable('🌙 Night', nightSupp)}
   </div>
-  </body></html>`;
+  
+<!-- WEEKLY PRINT MODAL -->
+<div id="weekly-print-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;overflow-y:auto;padding:24px">
+  <div style="max-width:860px;margin:0 auto;background:var(--surface);border-radius:12px;padding:24px;position:relative">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div style="font-family:'DM Mono',monospace;font-size:13px;font-weight:600;color:var(--accent);letter-spacing:1px">WEEKLY PRINT</div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <label style="font-size:11px;color:var(--muted)">Week of Monday:</label>
+        <input type="date" id="modal-print-date" style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:'DM Mono',monospace;color:var(--text);background:var(--surface2)" onchange="renderModalPrintSheet()">
+        <button onclick="window.print()" style="padding:6px 14px;background:var(--accent);color:#000;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer">Print</button>
+        <button onclick="document.getElementById('weekly-print-modal').style.display='none'" style="padding:6px 12px;background:var(--surface2);color:var(--muted);border:1px solid var(--border);border-radius:6px;font-size:12px;cursor:pointer">✕ Close</button>
+      </div>
+    </div>
+    <div id="modal-print-preview" style="background:white;border-radius:8px;padding:16px"></div>
+  </div>
+</div>
+</body></html>`;
 
   const w = window.open('','_blank','width=800,height=700');
   if (!w) { alert('Popups are blocked — please allow popups for mikeblack001.github.io and try again.'); return; }
@@ -2589,35 +2625,54 @@ loadAll();
 
 // ── PRINT SHEET ──────────────────────────────────────────
 function renderPrintSheet() {
-  const dateVal = document.getElementById('print-week-date').value;
+  const dateVal = document.getElementById('print-week-date') ? document.getElementById('print-week-date').value : '';
   const monday = dateVal ? new Date(dateVal + 'T00:00:00') : new Date();
+  const html = buildWeeklyPrintHTML(monday);
+  if (document.getElementById('print-sheet-preview')) document.getElementById('print-sheet-preview').innerHTML = html;
+}
 
+// ── WEEKLY PRINT MODAL ──────────────────────────────────
+function openWeeklyPrint() {
+  const modal = document.getElementById('weekly-print-modal');
+  modal.style.display = 'block';
+  // Default to current week Monday
+  const today = new Date();
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+  document.getElementById('modal-print-date').value = monday.toISOString().split('T')[0];
+  renderModalPrintSheet();
+}
+
+function renderModalPrintSheet() {
+  const dateVal = document.getElementById('modal-print-date').value;
+  const monday = dateVal ? new Date(dateVal + 'T00:00:00') : new Date();
+  const html = buildWeeklyPrintHTML(monday);
+  document.getElementById('modal-print-preview').innerHTML = html;
+  // Also update the inline print panel if visible
+  const inlinePreview = document.getElementById('print-sheet-preview');
+  if (inlinePreview) inlinePreview.innerHTML = html;
+}
+
+function buildWeeklyPrintHTML(monday) {
   const days = [
-    { label: 'Monday - Push',          key: 'Monday - Push',           offset: 0 },
-    { label: 'Tuesday - Pull',         key: 'Tuesday - Pull',          offset: 1 },
-    { label: 'Wednesday - Legs / Core',key: 'Wednesday - Legs / Core', offset: 2 },
-    { label: 'Thursday - Arms / Chest',key: 'Thursday - Arms / Chest', offset: 3 },
+    { label: 'Monday - Push',           key: 'Monday - Push',           offset: 0 },
+    { label: 'Tuesday - Pull',          key: 'Tuesday - Pull',          offset: 1 },
+    { label: 'Wednesday - Legs / Core', key: 'Wednesday - Legs / Core', offset: 2 },
+    { label: 'Thursday - Arms / Chest', key: 'Thursday - Arms / Chest', offset: 3 },
   ];
 
   const dayNotes = {
-    'Monday - Push':           'Variations - 45lb Olym -- 35lb Smith -- DBs -- Cables\t\t\t\tV - Bar -- Straight bar -- Rope',
+    'Monday - Push':           'Variations - 45lb Olym -- 35lb Smith -- DBs -- Cables          V - Bar -- Straight bar -- Rope',
     'Tuesday - Pull':          'Variation: Lat Machine -- High Cable -- 2 Hand Cables',
     'Wednesday - Legs / Core': 'Nordic Curl / Reverse Hyper - optional when back allows',
-    'Thursday - Arms / Chest': 'Chest first (Cable Press > HCF > LCF > Cross Overs) then TRI/BI: TED > Incline Curls > TEU > Preacher > Forearm Raise',
+    'Thursday - Arms / Chest': 'Chest first (Cable Press > HCF > LCF > Cross Overs) then: TED[TRI] > Incline Curls[BI] > TEU[TRI] > Preacher[BI] > Forearm Raise',
   };
 
-  function makePageHTML(day1, day2) {
-    return `<div class="print-page">
-      ${makeDayHTML(day1)}
-      ${makeDayHTML(day2)}
-    </div>`;
-  }
-
-  function makeDayHTML(day) {
+  function makeDayTable(day) {
     const d = new Date(monday);
     d.setDate(monday.getDate() + day.offset);
-    const dateStr = d.toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric', year:'numeric' });
-    const exercises = WORKOUT_DAYS[day.key] || [];
+    const dateStr = d.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' });
+    const exercises = (typeof WORKOUT_DAYS !== 'undefined' ? WORKOUT_DAYS[day.key] : null) || [];
     const notes = dayNotes[day.key] || '';
 
     let exRows = '';
@@ -2644,8 +2699,8 @@ function renderPrintSheet() {
         <tr><th colspan="11" class="pday-hdr">${day.label}</th></tr>
         <tr class="pmeta">
           <td colspan="2" class="pmeta-cell">Date: <span class="pmeta-val">${dateStr}</span></td>
-          <td colspan="3" class="pmeta-cell">Sleep: _____________ &nbsp; Deep: _____________</td>
-          <td colspan="6" class="pmeta-cell" style="text-align:right">Workout Duration: _____________</td>
+          <td colspan="3" class="pmeta-cell">Sleep: _______________ &nbsp;&nbsp; Deep: _______________</td>
+          <td colspan="6" class="pmeta-cell" style="text-align:right">Workout Duration: _______________</td>
         </tr>
         <tr class="pcol-hdr">
           <th class="pex-name">Exercise</th>
@@ -2665,11 +2720,8 @@ function renderPrintSheet() {
     </table>`;
   }
 
-  const html =
-    makePageHTML(days[0], days[1]) +
-    makePageHTML(days[2], days[3]);
-
-  document.getElementById('print-sheet-preview').innerHTML = html;
+  return `<div class="print-page">${makeDayTable(days[0])}${makeDayTable(days[1])}</div>` +
+         `<div class="print-page">${makeDayTable(days[2])}${makeDayTable(days[3])}</div>`;
 }
 </script>
 
@@ -2754,6 +2806,22 @@ function renderPrintSheet() {
   </div>
 </div>
 
+
+<!-- WEEKLY PRINT MODAL -->
+<div id="weekly-print-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;overflow-y:auto;padding:24px">
+  <div style="max-width:860px;margin:0 auto;background:var(--surface);border-radius:12px;padding:24px;position:relative">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div style="font-family:'DM Mono',monospace;font-size:13px;font-weight:600;color:var(--accent);letter-spacing:1px">WEEKLY PRINT</div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <label style="font-size:11px;color:var(--muted)">Week of Monday:</label>
+        <input type="date" id="modal-print-date" style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:'DM Mono',monospace;color:var(--text);background:var(--surface2)" onchange="renderModalPrintSheet()">
+        <button onclick="window.print()" style="padding:6px 14px;background:var(--accent);color:#000;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer">Print</button>
+        <button onclick="document.getElementById('weekly-print-modal').style.display='none'" style="padding:6px 12px;background:var(--surface2);color:var(--muted);border:1px solid var(--border);border-radius:6px;font-size:12px;cursor:pointer">✕ Close</button>
+      </div>
+    </div>
+    <div id="modal-print-preview" style="background:white;border-radius:8px;padding:16px"></div>
+  </div>
+</div>
 </body>
 </html>
 <!-- cache bust Wed May 20 21:43:30 UTC 2026 -->
