@@ -2907,6 +2907,7 @@ function buildWeeklyPrintHTML(monday) {
     if (viewId === 'profile') loadProfileView();
     if (viewId === 'aicontext') loadAIContext();
     if (viewId === 'suppchanges') loadSuppChanges();
+    if (viewId === 'workout-suggestions') loadWorkoutSuggestions();
     closeAllDrops();
   }
   document.addEventListener('click', function(e) {
@@ -2948,11 +2949,11 @@ function buildWeeklyPrintHTML(monday) {
         cursor = d.offset;
         // Stop once we have enough data (2+ distinct dates)
         const dates = [...new Set(allRecs.map(r => r.fields['Date']))];
-        if (dates.length >= 2 && allRecs.filter(r => r.fields['Date'] === dates[1]).length > 0) break;
+        if (dates.length >= 4) break;
       } while (cursor && allRecs.length < 600);
 
       // Get last 2 distinct session dates
-      const dates = [...new Set(allRecs.map(r => r.fields['Date']))].slice(0, 2);
+      const dates = [...new Set(allRecs.map(r => r.fields['Date']))].slice(0, 4);
       if (!dates.length) { el.innerHTML = '<div style="color:var(--muted);padding:16px">No data found for ' + _wsDay + '.</div>'; return; }
 
       const sessionRecs = allRecs.filter(r => dates.includes(r.fields['Date']));
@@ -3023,7 +3024,7 @@ Return ONLY a JSON array, no markdown, no explanation:
       const lastDate = dates[0];
       const prevDate = dates[1] || '—';
       let html = `<div style="margin-bottom:12px;font-size:11px;color:var(--muted);font-family:'DM Mono',monospace">
-        Last session: ${lastDate} · Previous: ${prevDate} · ${Object.keys(exHistory).length} exercises analyzed
+        Sessions: ${dates.join(' · ')} · ${Object.keys(exHistory).length} exercises
       </div>
       <div class="table-wrap"><table class="data-table">
         <thead><tr>
