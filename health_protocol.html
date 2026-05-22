@@ -2941,6 +2941,7 @@ function buildWeeklyPrintHTML(monday) {
         const url = "https://api.airtable.com/v0/" + BASE + "/" + TABLES.workoutSets + "?pageSize=200&filterByFormula=" + formula + "&sort[0][field]=Date&sort[0][direction]=desc" + (cursor ? "&offset=" + cursor : "");
         const res = await fetch(url, {headers:{Authorization:"Bearer " + TOKEN}});
         const d = await res.json();
+        if (d.error) { el.innerHTML = '<div style="color:var(--red);padding:16px">AT Error: ' + JSON.stringify(d.error) + '</div>'; return; }
         allRecs.push(...(d.records||[]));
         cursor = d.offset;
         const dates = [...new Set(allRecs.map(r => r.fields['Date']))];
@@ -2949,7 +2950,10 @@ function buildWeeklyPrintHTML(monday) {
 
       // Get last 2 distinct session dates
       const dates = [...new Set(allRecs.map(r => r.fields['Date']))].slice(0, 2);
-      if (!dates.length) { el.innerHTML = '<div style="color:var(--muted);padding:16px">No data found for ' + _wsDay + '.</div>'; return; }
+      if (!dates.length) {
+        el.innerHTML = '<div style="color:var(--muted);padding:16px">No data found for ' + _wsDay + '.<br><small style="font-size:11px">Records fetched: ' + allRecs.length + ' | Formula: {Day}=\'' + _wsDay + '\'</small></div>';
+        return;
+      }
 
       const sessionRecs = allRecs.filter(r => dates.includes(r.fields['Date']));
 
