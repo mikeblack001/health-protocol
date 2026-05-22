@@ -2938,7 +2938,7 @@ function buildWeeklyPrintHTML(monday) {
       let allRecs = [], cursor = null;
       do {
         const formula = encodeURIComponent("{Day}='" + _wsDay + "'");
-        const url = "https://api.airtable.com/v0/" + BASE + "/" + TABLES.workoutSets + "?pageSize=200&filterByFormula=" + formula + "&sort[0][field]=Date&sort[0][direction]=desc" + (cursor ? "&offset=" + cursor : "");
+        const url = "https://api.airtable.com/v0/" + BASE + "/" + TABLES.workoutSets + "?pageSize=100&filterByFormula=" + formula + "&sort[0][field]=Date&sort[0][direction]=desc" + (cursor ? "&offset=" + cursor : "");
         const res = await fetch(url, {headers:{Authorization:"Bearer " + TOKEN}});
         const d = await res.json();
         if (d.error) { el.innerHTML = '<div style="color:var(--red);padding:16px">AT Error: ' + JSON.stringify(d.error) + '</div>'; return; }
