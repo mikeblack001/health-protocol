@@ -2558,51 +2558,47 @@ function printProtocolList() {
   const dinSupp  = activeSupp.filter(r => getField(r,'SuppTiming') === 'Dinner');
   const nightSupp= activeSupp.filter(r => getField(r,'SuppTiming') === 'Night');
 
+  const dateStr = new Date().toLocaleDateString('en-US', {month:'long',day:'numeric',year:'numeric'});
+
   const html = `<!DOCTYPE html><html><head><title>Active Protocol</title>
   <style>
     @page { size: letter portrait; margin: 0.5in; }
-    body { font-family: Arial, sans-serif; margin: 0; font-size: 11px; }
+    body { font-family: Arial, sans-serif; margin: 0; font-size: 11px; color: #000; background: #fff; }
     * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
     .page-title { font-size: 16px; font-weight: bold; margin-bottom: 4px; }
     .page-sub { font-size: 11px; color: #666; margin-bottom: 12px; }
-    .page-break { page-break-after: always; }
+    .page-break { page-break-after: always; margin-bottom: 24px; }
   </style></head><body>
   <div class="page-break">
     <div class="page-title">Active Peptide Protocol</div>
-    <div class="page-sub">Generated ${new Date().toLocaleDateString('en-US', {month:'long',day:'numeric',year:'numeric'})}</div>
+    <div class="page-sub">Generated ${dateStr}</div>
     ${pepTable('☀ Morning', amPep)}
     ${pepTable('🌙 Night', pmPep)}
   </div>
   <div>
     <div class="page-title">Active Supplement Protocol</div>
-    <div class="page-sub">Generated ${new Date().toLocaleDateString('en-US', {month:'long',day:'numeric',year:'numeric'})}</div>
+    <div class="page-sub">Generated ${dateStr}</div>
     ${suppTable('☀ Morning', mornSupp)}
     ${suppTable('🍽 Dinner', dinSupp)}
     ${suppTable('🌙 Night', nightSupp)}
   </div>
-  
-<!-- WEEKLY PRINT MODAL -->
-<div id="weekly-print-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;overflow-y:auto;padding:24px">
-  <div style="max-width:860px;margin:0 auto;background:var(--surface);border-radius:12px;padding:24px;position:relative">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-      <div style="font-family:'DM Mono',monospace;font-size:13px;font-weight:600;color:var(--accent);letter-spacing:1px">WEEKLY PRINT</div>
-      <div style="display:flex;gap:10px;align-items:center">
-        <label style="font-size:11px;color:var(--muted)">Week of Monday:</label>
-        <input type="date" id="modal-print-date" style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:'DM Mono',monospace;color:var(--text);background:var(--surface2)" onchange="renderModalPrintSheet()">
-        <button onclick="window.print()" style="padding:6px 14px;background:var(--accent);color:#000;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer">Print</button>
-        <button onclick="document.getElementById('weekly-print-modal').style.display='none'" style="padding:6px 12px;background:var(--surface2);color:var(--muted);border:1px solid var(--border);border-radius:6px;font-size:12px;cursor:pointer">✕ Close</button>
-      </div>
-    </div>
-    <div id="modal-print-preview" style="background:white;border-radius:8px;padding:16px"></div>
-  </div>
-</div>
-</body></html>`;
+  </body></html>`;
 
-  const w = window.open('','_blank','width=800,height=700');
-  if (!w) { alert('Popups are blocked — please allow popups for mikeblack001.github.io and try again.'); return; }
-  w.document.write(html);
-  w.document.close();
-  setTimeout(() => w.print(), 800);
+  // Use hidden iframe to avoid popup blocking
+  let iframe = document.getElementById('_print_iframe');
+  if (iframe) iframe.remove();
+  iframe = document.createElement('iframe');
+  iframe.id = '_print_iframe';
+  iframe.style.cssText = 'position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;border:none;';
+  document.body.appendChild(iframe);
+  iframe.contentDocument.open();
+  iframe.contentDocument.write(html);
+  iframe.contentDocument.close();
+  setTimeout(() => {
+    iframe.contentWindow.focus();
+    iframe.contentWindow.print();
+    setTimeout(() => iframe.remove(), 2000);
+  }, 600);
 }
 
 // Backup reminder
