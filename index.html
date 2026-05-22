@@ -3078,14 +3078,16 @@ function buildWeeklyHTML(monday) {
       const activePeps = (data.peptides||[]).filter(r=>getField(r,'Status')==='Active');
       const allSupp = data.supplements||[];
       const amSupp = allSupp.filter(r=>(getField(r,'SuppStatus')||'').toLowerCase()==='active'&&(getField(r,'SuppTiming')||'').toLowerCase().includes('morning'));
-      const pmSupp = allSupp.filter(r=>(getField(r,'SuppStatus')||'').toLowerCase()==='active'&&((getField(r,'SuppTiming')||'').toLowerCase().includes('night')||(getField(r,'SuppTiming')||'').toLowerCase().includes('evening')));
+      const dinSupp = allSupp.filter(r=>(getField(r,'SuppStatus')||'').toLowerCase()==='active'&&(getField(r,'SuppTiming')||'').toLowerCase().includes('dinner'));
+      const pmSupp = allSupp.filter(r=>(getField(r,'SuppStatus')||'').toLowerCase()==='active'&&((getField(r,'SuppTiming')||'').toLowerCase().includes('night')||(getField(r,'SuppTiming')||'').toLowerCase().includes('evening')||(getField(r,'SuppTiming')||'').toLowerCase()==='pm'));
       let html = `<div style="padding:16px">
         <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:16px;font-size:12px;color:var(--muted)">
-          Data loaded ${now} · ${activePeps.length} active peptides · ${amSupp.length+pmSupp.length} active supplements · ${window._aiGoalRecs.length} goals
+          Data loaded ${now} · ${activePeps.length} active peptides · ${amSupp.length+dinSupp.length+pmSupp.length} active supplements · ${window._aiGoalRecs.length} goals
         </div>`;
       const sections = [
         {title:'Active Peptides', items: activePeps.map(r=>`${getField(r,'Compound')} | ${getField(r,'Dose')} | ${getField(r,'Frequency')}`)},
         {title:'Morning Supplements', items: amSupp.map(r=>`${getField(r,'Supplement')} | ${getField(r,'SuppDose')}`)},
+        ...(dinSupp.length?[{title:'Dinner Supplements', items: dinSupp.map(r=>`${getField(r,'Supplement')} | ${getField(r,'SuppDose')}`)}]:[]),
         {title:'Night Supplements', items: pmSupp.map(r=>`${getField(r,'Supplement')} | ${getField(r,'SuppDose')}`)},
         {title:'Goals', items: window._aiGoalRecs.map(r=>`[${r.fields['Priority']}] ${r.fields['Goal']} (${r.fields['Category']||''})${r.fields['TargetMetric']?' → '+r.fields['TargetMetric']:''}`)},
       ];
@@ -3100,13 +3102,25 @@ function buildWeeklyHTML(monday) {
   }
 
   // ── COPY FOR AI ──
-  function copyForAI() {
+  async function copyForAI() {
     const btn = document.getElementById('copyAIBtn');
+    btn.textContent = 'Loading…'; btn.disabled = true;
+    // Ensure profile + goals are loaded
+    if (!window._aiProfileRecs || !window._aiProfileRecs.length) {
+      const [pR,gR] = await Promise.all([
+        fetch(`https://api.airtable.com/v0/${BASE}/${TABLES.profile}?sort[0][field]=Section`,{headers:{Authorization:'Bearer '+TOKEN}}).then(r=>r.json()),
+        fetch(`https://api.airtable.com/v0/${BASE}/${TABLES.goals}?sort[0][field]=Priority`,{headers:{Authorization:'Bearer '+TOKEN}}).then(r=>r.json())
+      ]);
+      window._aiProfileRecs = pR.records||[];
+      window._aiGoalRecs = gR.records||[];
+    }
+    btn.textContent = '📋 Copy for AI'; btn.disabled = false;
     const now = new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
     const activePeps = (data.peptides||[]).filter(r=>getField(r,'Status')==='Active');
     const allSupp = data.supplements||[];
     const amSupp = allSupp.filter(r=>(getField(r,'SuppStatus')||'').toLowerCase()==='active'&&(getField(r,'SuppTiming')||'').toLowerCase().includes('morning'));
-    const pmSupp = allSupp.filter(r=>(getField(r,'SuppStatus')||'').toLowerCase()==='active'&&((getField(r,'SuppTiming')||'').toLowerCase().includes('night')||(getField(r,'SuppTiming')||'').toLowerCase().includes('evening')));
+    const dinSupp = allSupp.filter(r=>(getField(r,'SuppStatus')||'').toLowerCase()==='active'&&(getField(r,'SuppTiming')||'').toLowerCase().includes('dinner'));
+    const pmSupp = allSupp.filter(r=>(getField(r,'SuppStatus')||'').toLowerCase()==='active'&&((getField(r,'SuppTiming')||'').toLowerCase().includes('night')||(getField(r,'SuppTiming')||'').toLowerCase().includes('evening')||(getField(r,'SuppTiming')||'').toLowerCase()==='pm'));
     const profRecs = window._aiProfileRecs||[];
     const goalRecs = window._aiGoalRecs||[];
     const profSecs = {};
@@ -3123,6 +3137,7 @@ function buildWeeklyHTML(monday) {
     txt += activePeps.map(r=>`  - ${getField(r,'Compound')} | ${getField(r,'Dose')} | ${getField(r,'Frequency')}`).join('\n');
     txt += `\n\n---\n## SUPPLEMENTS\n\n### Morning (${amSupp.length})\n`;
     txt += amSupp.map(r=>`  - ${getField(r,'Supplement')} | ${getField(r,'SuppDose')}`).join('\n');
+    if (dinSupp.length) { txt += `\n\n### Dinner (${dinSupp.length})\n`; txt += dinSupp.map(r=>`  - ${getField(r,'Supplement')} | ${getField(r,'SuppDose')}`).join('\n'); }
     txt += `\n\n### Night (${pmSupp.length})\n`;
     txt += pmSupp.map(r=>`  - ${getField(r,'Supplement')} | ${getField(r,'SuppDose')}`).join('\n');
     txt += `\n\n---\n## GOALS (${goalRecs.length})\n`;
@@ -3138,7 +3153,7 @@ function buildWeeklyHTML(monday) {
 
   // ── SUPPLEMENT CHANGES ──
   const SC_FIELDS = {
-    date: 'fldIJ6m9KcDlGwxhv', type: 'fldv0vOSkqiewnuX9',
+    date: 'fldIJ6m9KcDlGwxhv', type: 'fldvOvOSkqiewnuX9',
     supplement: 'fldMtxK7c0jnu1gdb', description: 'fld4jRTrO7apwO0XQ',
     reason: 'fldngmDIRpJF9yIWl', notes: 'fldiP9us73MUkmt39'
   };
