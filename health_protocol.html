@@ -2983,30 +2983,33 @@ function buildWeeklyPrintHTML(monday) {
       const dates = [...new Set(allRecs.map(r => r.fields['Date']))].slice(0, 2);
       if (!dates.length) { el.innerHTML = '<div style="color:var(--muted);padding:16px">No data found for ' + _wsDay + '.</div>'; return; }
 
-      // Group sets by exercise + date
+      // Group sets by exercise + variation + date
       const byExDate = {};
       allRecs.filter(r => dates.includes(r.fields['Date'])).forEach(r => {
         const f = r.fields;
         const ex = f['Exercise'] || ''; const date = f['Date'] || '';
         if (!ex || !date) return;
-        const key = ex + '||' + date;
-        if (!byExDate[key]) byExDate[key] = {ex, date, sets:[]};
+        const varArr = f['Variation'];
+        const variation = varArr && varArr.length ? varArr.join(', ') : '';
+        const exKey = ex + (variation ? ' (' + variation + ')' : '');
+        const key = exKey + '||' + date;
+        if (!byExDate[key]) byExDate[key] = {ex: exKey, baseEx: ex, date, sets:[]};
         byExDate[key].sets.push({reps: f['Reps']||0, weight: f['Weight (lbs)']||0});
       });
 
-      // Build per-exercise history (newest first)
+      // Build per-exercise+variation history (newest first)
       const exHistory = {};
-      Object.values(byExDate).forEach(({ex, date, sets}) => {
-        if (!exHistory[ex]) exHistory[ex] = [];
+      Object.values(byExDate).forEach(({ex, baseEx, date, sets}) => {
+        if (!exHistory[ex]) exHistory[ex] = {baseEx, sessions:[]};
         const avgReps = sets.reduce((a,b) => a + b.reps, 0) / sets.length;
         const topWeight = Math.max(...sets.map(s => s.weight));
-        exHistory[ex].push({date, topWeight, avgReps, sets});
+        exHistory[ex].sessions.push({date, topWeight, avgReps, sets});
       });
-      Object.values(exHistory).forEach(arr => arr.sort((a,b) => b.date.localeCompare(a.date)));
+      Object.values(exHistory).forEach(e => e.sessions.sort((a,b) => b.date.localeCompare(a.date)));
 
-      const suggestions = Object.entries(exHistory).map(([ex, sessions]) => {
+      const suggestions = Object.entries(exHistory).map(([ex, {baseEx, sessions}]) => {
         const last = sessions[0], prev = sessions[1];
-        const target = getTarget(ex);
+        const target = getTarget(baseEx);
         const lastAvg = parseFloat(last.avgReps.toFixed(1));
         const prevAvg = prev ? parseFloat(prev.avgReps.toFixed(1)) : null;
 
@@ -3030,7 +3033,7 @@ function buildWeeklyPrintHTML(monday) {
           note = 'Build to ' + target.min + '+ reps first';
         }
 
-        return {ex, last, prev, lastAvg, prevAvg, trend, target, suggestedWeight, note};
+        return {ex, baseEx, last, prev, lastAvg, prevAvg, trend, target, suggestedWeight, note};
       });
 
       suggestions.sort((a,b) => a.ex.localeCompare(b.ex));
