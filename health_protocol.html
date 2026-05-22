@@ -471,6 +471,7 @@
       <div class="filter-chip" onclick="filterSupps('TBD', this)">TBD</div>
       <div class="filter-chip" onclick="filterSuppSource('Amazon', this)" style="margin-left:8px">Amazon</div>
       <div class="filter-chip" onclick="filterSuppSource('Pharmacy', this)">Pharmacy</div>
+      <div class="filter-chip" onclick="filterSuppSource('Way to Wellness', this)">Way to Wellness</div>
       <div class="filter-chip" onclick="filterSuppSource('', this)">All Sources</div>
     </div>
     <div id="supps-content"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
@@ -649,7 +650,14 @@
   </div>
 
   <div id="view-profile" class="view">
-    <div class="section-header"><h2>Profile &amp; Health Context</h2><button class="btn-secondary" onclick="loadProfileView(true)">↻ Refresh</button></div>
+    <div class="section-header">
+      <div>
+        <h2>Profile &amp; Health Context</h2>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px">Click any field to edit</div>
+      </div>
+      <button class="btn-secondary" onclick="loadProfileView(true)">↻ Refresh</button>
+    </div>
+    <div id="profile-filter-bar" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px"></div>
     <div id="profile-content"><div class="loading">Loading...</div></div>
   </div>
 
@@ -3052,6 +3060,14 @@ function buildWeeklyPrintHTML(monday) {
 
   // ── PROFILE VIEW ──
   let profileLoaded = false;
+  let _profileRecs = [];
+
+  const PROFILE_FIELDS = {
+    label: 'fldq0HAgitSmocGRJ', section: 'flddEgBGuQLPmqeuy',
+    value: 'fldm1GtfhLUSPS2NN', notes: 'fldUrr3SyCbfNZxlD',
+    updated: 'fldN7FBrHU5pUSPCh'
+  };
+
   async function loadProfileView(force) {
     if (profileLoaded && !force) return;
     const el = document.getElementById('profile-content');
@@ -3060,27 +3076,97 @@ function buildWeeklyPrintHTML(monday) {
       const url = `https://api.airtable.com/v0/${BASE}/${TABLES.profile}?sort[0][field]=Section&sort[0][direction]=asc`;
       const r = await fetch(url, {headers:{Authorization:'Bearer '+TOKEN}});
       const d = await r.json();
-      const recs = d.records || [];
+      _profileRecs = d.records || [];
       profileLoaded = true;
-      const secs = {};
-      recs.forEach(r => {
-        const s = r.fields['Section'] || 'Other';
-        if (!secs[s]) secs[s] = [];
-        secs[s].push(r);
-      });
-      let html = '<div style="padding:16px">';
-      Object.entries(secs).forEach(([sec, items]) => {
-        html += `<div style="margin-bottom:20px"><div style="font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border)">${sec}</div>`;
-        html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px">';
-        items.forEach(r => {
-          const val = (r.fields['Value']||'').replace(/\n/g,'<br>');
-          html += `<div class="card" style="padding:10px 12px"><div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">${r.fields['Label']||''}</div><div style="font-size:12px;line-height:1.5">${val}</div></div>`;
-        });
-        html += '</div></div>';
-      });
-      html += '</div>';
-      el.innerHTML = html;
+      _renderProfile();
     } catch(e) { el.innerHTML = `<div style="color:var(--red);padding:16px">Error: ${e.message}</div>`; }
+  }
+
+  let _profileActiveSec = 'All';
+
+  function _renderProfile() {
+    const el = document.getElementById('profile-content');
+    const fb = document.getElementById('profile-filter-bar');
+    const recs = _profileRecs;
+    const secOrder = ['All','Personal','Health Context','Constraints','Bloodwork','Nutrition'];
+    const allSecs = [...new Set(recs.map(r => r.fields['Section'] || 'Other'))];
+    const secs = {};
+    recs.forEach(r => {
+      const s = r.fields['Section'] || 'Other';
+      if (!secs[s]) secs[s] = [];
+      secs[s].push(r);
+    });
+    // Filter chips
+    const chipSecs = ['All', ...secOrder.filter(s => s !== 'All' && allSecs.includes(s)), ...allSecs.filter(s => !secOrder.includes(s))];
+    if (fb) fb.innerHTML = chipSecs.map(s => `<button class="filter-chip${s===_profileActiveSec?' active':''}" onclick="_setProfileSec('${s}')">${s}${s==='All'?` ${recs.length}`:` ${(secs[s]||[]).length}`}</button>`).join('');
+    const visibleSecs = _profileActiveSec === 'All' ? Object.entries(secs) : Object.entries(secs).filter(([s]) => s === _profileActiveSec);
+    let html = '<div style="padding:0">';
+    visibleSecs.forEach(([sec, items]) => {
+      html += `<div style="margin-bottom:24px">
+        <div style="font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin:${_profileActiveSec==='All'?'20px':'0'} 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border)">${sec} <span style="font-weight:400;color:var(--muted)">(${items.length})</span></div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:8px">`;
+      items.forEach(rec => {
+        const f = rec.fields;
+        const val = (f['Value']||'').replace(/\n/g,'<br>');
+        const updated = f['LastUpdated'] ? new Date(f['LastUpdated']).toLocaleDateString('en-US',{month:'short',day:'numeric'}) : '';
+        html += `<div class="card" style="padding:12px 14px;cursor:pointer;transition:box-shadow .15s;position:relative"
+          onmouseover="this.querySelector('.edit-hint').style.opacity='1'"
+          onmouseout="this.querySelector('.edit-hint').style.opacity='0'"
+          onclick="editProfileField('${rec.id}')">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
+            <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-family:'DM Mono',monospace">${f['Label']||''}</div>
+            <span class="edit-hint" style="font-size:10px;color:var(--accent);opacity:0;transition:opacity .15s;flex-shrink:0;margin-left:6px">✏ edit</span>
+          </div>
+          <div style="font-size:12px;line-height:1.6;color:var(--text)">${val||'<span style="color:var(--muted);font-style:italic">—</span>'}</div>
+          ${updated?`<div style="font-size:10px;color:var(--muted);margin-top:6px;font-family:'DM Mono',monospace">${updated}</div>`:''}
+        </div>`;
+      });
+      html += '</div></div>';
+    });
+    html += '</div>';
+    el.innerHTML = html;
+  }
+
+  function editProfileField(id) {
+    const rec = _profileRecs.find(r => r.id === id);
+    if (!rec) return;
+    const f = rec.fields;
+    document.getElementById('pm-id').value = id;
+    document.getElementById('pm-label').value = f['Label'] || '';
+    document.getElementById('pm-label-display').textContent = f['Label'] || 'Edit Field';
+    document.getElementById('pm-section').value = f['Section'] || '';
+    document.getElementById('pm-value').value = f['Value'] || '';
+    document.getElementById('pm-notes').value = f['Notes'] || '';
+    document.getElementById('profile-modal').style.display = 'flex';
+  }
+
+  function hideProfileModal() { document.getElementById('profile-modal').style.display = 'none'; }
+  function _setProfileSec(sec) { _profileActiveSec = sec; _renderProfile(); }
+
+  async function saveProfileField() {
+    const id = document.getElementById('pm-id').value;
+    if (!id) return;
+    const fields = {
+      [PROFILE_FIELDS.value]:   document.getElementById('pm-value').value,
+      [PROFILE_FIELDS.notes]:   document.getElementById('pm-notes').value.trim(),
+      [PROFILE_FIELDS.updated]: new Date().toISOString().split('T')[0]
+    };
+    const btn = document.getElementById('pm-save-btn');
+    btn.textContent = 'Saving…'; btn.disabled = true;
+    try {
+      const res = await fetch(`https://api.airtable.com/v0/${BASE}/${TABLES.profile}/${id}`, {
+        method:'PATCH',
+        headers:{Authorization:'Bearer '+TOKEN,'Content-Type':'application/json'},
+        body:JSON.stringify({fields})
+      });
+      if (!res.ok) throw new Error(await res.text());
+      // Update local cache
+      const rec = _profileRecs.find(r => r.id === id);
+      if (rec) { rec.fields['Value'] = fields[PROFILE_FIELDS.value]; rec.fields['LastUpdated'] = fields[PROFILE_FIELDS.updated]; }
+      hideProfileModal();
+      _renderProfile();
+    } catch(e) { alert('Error: ' + e.message); }
+    finally { btn.textContent = 'Save'; btn.disabled = false; }
   }
 
   // ── AI CONTEXT VIEW ──
@@ -3356,6 +3442,36 @@ function buildWeeklyPrintHTML(monday) {
   </div>
 </div>
 
+<!-- PROFILE EDIT MODAL -->
+<div class="modal-overlay" id="profile-modal" onclick="if(event.target===this)hideProfileModal()" style="display:none">
+  <div class="modal-box" style="width:460px">
+    <div class="modal-header"><h3 id="pm-label-display">Edit Field</h3><button class="modal-close" onclick="hideProfileModal()">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="pm-id">
+      <div class="form-row">
+        <label id="pm-label-heading">Label</label>
+        <input type="text" id="pm-label" readonly style="background:var(--surface2);color:var(--muted)">
+      </div>
+      <div class="form-row">
+        <label>Section</label>
+        <input type="text" id="pm-section" readonly style="background:var(--surface2);color:var(--muted)">
+      </div>
+      <div class="form-row">
+        <label>Value</label>
+        <textarea id="pm-value" rows="4"></textarea>
+      </div>
+      <div class="form-row">
+        <label>Notes</label>
+        <textarea id="pm-notes" rows="2" placeholder="Optional notes"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="modal-btn" onclick="hideProfileModal()">Cancel</button>
+      <button class="modal-btn primary" id="pm-save-btn" onclick="saveProfileField()">Save</button>
+    </div>
+  </div>
+</div>
+
 <!-- GOALS MODAL -->
 <div class="modal-overlay" id="goal-modal" onclick="if(event.target===this)hideGoalModal()" style="display:none">
   <div class="modal-box" style="width:480px">
@@ -3367,8 +3483,9 @@ function buildWeeklyPrintHTML(monday) {
         <div class="form-row"><label>Category</label>
           <select id="gm-category" style="padding:7px 10px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);font-size:13px;width:100%">
             <option value="">— Select —</option>
-            <option>Body Composition</option><option>Performance</option><option>Recovery</option>
-            <option>Health</option><option>Hormones</option><option>Sleep</option><option>Strength</option><option>Other</option>
+            <option>Body Composition</option><option>Performance</option><option>Health</option>
+            <option>Bloodwork</option><option>Nutrition</option><option>Recovery</option>
+            <option>Hormones</option><option>Sleep</option><option>Strength</option><option>Other</option>
           </select>
         </div>
         <div class="form-row"><label>Priority</label>
