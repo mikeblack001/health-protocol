@@ -2934,19 +2934,18 @@ function buildWeeklyPrintHTML(monday) {
     el.innerHTML = '<div class="loading-msg">Fetching last 2 sessions for ' + _wsDay + '…</div>';
 
     try {
-      // Server-side filter by Day — only fetch matching records, much more efficient
+      // DEBUG: fetch first page, no filter, show raw response
       let allRecs = [], cursor = null;
-      do {
-        const formula = encodeURIComponent("{Day}='" + _wsDay + "'");
-        const url = "https://api.airtable.com/v0/" + BASE + "/" + TABLES.workoutSets + "?pageSize=200&filterByFormula=" + formula + "&sort[0][field]=Date&sort[0][direction]=desc" + (cursor ? "&offset=" + cursor : "");
-        const res = await fetch(url, {headers:{Authorization:"Bearer " + TOKEN}});
-        const d = await res.json();
-        if (d.error) { el.innerHTML = '<div style="color:var(--red);padding:16px">AT Error: ' + JSON.stringify(d.error) + '</div>'; return; }
-        allRecs.push(...(d.records||[]));
-        cursor = d.offset;
-        const dates = [...new Set(allRecs.map(r => r.fields['Date']))];
-        if (dates.length >= 2) break;
-      } while (cursor && allRecs.length < 600);
+      const debugUrl = "https://api.airtable.com/v0/" + BASE + "/" + TABLES.workoutSets + "?pageSize=5&sort[0][field]=Date&sort[0][direction]=desc";
+      const debugRes = await fetch(debugUrl, {headers:{Authorization:"Bearer " + TOKEN}});
+      const debugData = await debugRes.json();
+      if (!debugRes.ok || debugData.error) {
+        el.innerHTML = '<div style="color:var(--red);padding:16px">HTTP ' + debugRes.status + '<br>' + JSON.stringify(debugData).slice(0,300) + '</div>';
+        return;
+      }
+      const firstRec = debugData.records && debugData.records[0];
+      el.innerHTML = '<div style="padding:16px;font-size:12px;font-family:monospace;background:var(--surface2);border-radius:8px"><b>DEBUG — First record fields:</b><br>' + JSON.stringify(firstRec ? firstRec.fields : 'no records', null, 2).replace(/\n/g,'<br>').replace(/ /g,'&nbsp;') + '</div>';
+      return;
 
       // Get last 2 distinct session dates
       const dates = [...new Set(allRecs.map(r => r.fields['Date']))].slice(0, 2);
