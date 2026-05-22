@@ -397,8 +397,8 @@
       <div class="drop-menu" id="drop-personal">
         <button class="drop-item" onclick="navDrop('log','nav-personal')">Daily Log</button>
         <button class="drop-item" onclick="navDrop('labs','nav-personal')">Labs</button>
-        <button class="drop-item drop-soon" disabled>Goals</button>
-        <button class="drop-item drop-soon" disabled>Profile</button>
+        <button class="drop-item" onclick="navDrop('goals','nav-personal')">Goals</button>
+        <button class="drop-item" onclick="navDrop('profile','nav-personal')">Profile</button>
       </div>
     </div>
 
@@ -406,7 +406,7 @@
       <button class="nav-tab drop-trigger" id="nav-tools" onclick="toggleDrop('drop-tools',event)">Tools <span class="drop-caret">▾</span></button>
       <div class="drop-menu" id="drop-tools">
         <button class="drop-item" onclick="navDrop('printlist','nav-tools')">Print List</button>
-        <a class="drop-item" href="context.html" target="_blank" onclick="closeAllDrops()">AI Context ↗</a>
+        <button class="drop-item" onclick="navDrop('aicontext','nav-tools')">AI Context</button>
       </div>
     </div>
   </div>
@@ -752,13 +752,32 @@
       <button class="modal-btn" onclick="hideAddVendorModal()">Cancel</button>
       <button class="modal-btn primary" id="av-save-btn" onclick="saveAddVendor()">Save</button>
     </div>
+  
+  <div id="view-goals" class="view">
+    <div class="section-header"><h2>Goals</h2><button class="btn-secondary" onclick="loadGoals(true)">↻ Refresh</button></div>
+    <div id="goals-content" class="loading-msg">Loading...</div>
   </div>
+
+  <div id="view-profile" class="view">
+    <div class="section-header"><h2>Profile &amp; Health Context</h2><button class="btn-secondary" onclick="loadProfileView(true)">↻ Refresh</button></div>
+    <div id="profile-content" class="loading-msg">Loading...</div>
+  </div>
+
+  <div id="view-aicontext" class="view">
+    <div class="section-header">
+      <h2>AI Context</h2>
+      <button class="btn-primary" id="copyAIBtn" onclick="copyForAI()" style="background:var(--accent);color:#000;border:none;padding:8px 18px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600">📋 Copy for AI</button>
+    </div>
+    <div id="aicontext-content" class="loading-msg">Loading...</div>
+  </div>
+
+</div>
 </div>
 
 <script>
 const TOKEN = 'pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
 const BASE = 'appmHDG4TGT1xy6R6';
-const TABLES = { peptides: 'tblMs6YRdP4wkndUp', supplements: 'tblSnkc0Gu2BzGACP', dailyLog: 'tblaYuZjl4Pu4nKxS', pricing: 'tblnW21TLSqgVerwQ', vendors: 'tblI0nfBBuHXjp3KT', workoutSessions: 'tblk9tTYIcIY4tWjF', workoutSets: 'tblKDqjy5RzqaJvjr', purchases: 'tblWmflohL6d6HC9p', bloodwork: 'tbl3200yJid6fXaOp', protocolChanges: 'tblolVx7YwO5cJhsE' };
+const TABLES = { peptides: 'tblMs6YRdP4wkndUp', supplements: 'tblSnkc0Gu2BzGACP', dailyLog: 'tblaYuZjl4Pu4nKxS', pricing: 'tblnW21TLSqgVerwQ', vendors: 'tblI0nfBBuHXjp3KT', workoutSessions: 'tblk9tTYIcIY4tWjF', workoutSets: 'tblKDqjy5RzqaJvjr', purchases: 'tblWmflohL6d6HC9p', bloodwork: 'tbl3200yJid6fXaOp', protocolChanges: 'tblolVx7YwO5cJhsE', goals: 'tblRuaROlyG93Bz4Y', profile: 'tblPBJkYqlnzrBK3B' };
 
 let data = { peptides: [], supplements: [] };
 let currentPepFilter = 'Active';
@@ -2691,11 +2710,162 @@ function buildWeeklyHTML(monday) {
     if (viewId === 'labs') loadLabs();
     if (viewId === 'changes') loadChanges();
     if (viewId === 'workouts') document.getElementById('workout-date').value = new Date().toISOString().split('T')[0];
+    if (viewId === 'goals') loadGoals();
+    if (viewId === 'profile') loadProfileView();
+    if (viewId === 'aicontext') loadAIContext();
     closeAllDrops();
   }
   document.addEventListener('click', function(e) {
     if (!e.target.closest('.nav-dropdown')) closeAllDrops();
   });
+
+  // ── GOALS VIEW ──
+  let goalsLoaded = false;
+  async function loadGoals(force) {
+    if (goalsLoaded && !force) return;
+    const el = document.getElementById('goals-content');
+    el.innerHTML = '<div class="loading-msg">Loading...</div>';
+    try {
+      const url = `https://api.airtable.com/v0/${BASE}/${TABLES.goals}?sort[0][field]=Priority&sort[0][direction]=asc&sort[1][field]=Category`;
+      const r = await fetch(url, {headers:{Authorization:'Bearer '+TOKEN}});
+      const d = await r.json();
+      const recs = d.records || [];
+      goalsLoaded = true;
+      const cats = {};
+      recs.forEach(r => {
+        const cat = r.fields['Category'] || 'Other';
+        if (!cats[cat]) cats[cat] = [];
+        cats[cat].push(r);
+      });
+      const priColor = p => p==='High'?'var(--red)':p==='Medium'?'var(--amber)':'var(--green)';
+      let html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;padding:16px">';
+      recs.forEach(rec => {
+        const f = rec.fields;
+        const pri = f['Priority']||'';
+        html += `<div class="card" style="border-left:3px solid ${priColor(pri)}">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <span style="font-weight:500;font-size:13px;flex:1">${f['Goal']||''}</span>
+            <span style="font-size:11px;font-weight:600;color:${priColor(pri)}">${pri}</span>
+          </div>
+          ${f['Category']?`<div style="font-size:11px;color:var(--accent);margin-bottom:4px">${f['Category']}</div>`:''}
+          ${f['TargetMetric']?`<div style="font-size:11px;color:var(--muted);margin-bottom:2px">→ ${f['TargetMetric']}</div>`:''}
+          ${f['CurrentStatus']?`<div style="font-size:11px;color:var(--muted)">Status: ${f['CurrentStatus']}</div>`:''}
+        </div>`;
+      });
+      html += '</div>';
+      el.innerHTML = html;
+    } catch(e) { el.innerHTML = `<div style="color:var(--red);padding:16px">Error: ${e.message}</div>`; }
+  }
+
+  // ── PROFILE VIEW ──
+  let profileLoaded = false;
+  async function loadProfileView(force) {
+    if (profileLoaded && !force) return;
+    const el = document.getElementById('profile-content');
+    el.innerHTML = '<div class="loading-msg">Loading...</div>';
+    try {
+      const url = `https://api.airtable.com/v0/${BASE}/${TABLES.profile}?sort[0][field]=Section&sort[0][direction]=asc`;
+      const r = await fetch(url, {headers:{Authorization:'Bearer '+TOKEN}});
+      const d = await r.json();
+      const recs = d.records || [];
+      profileLoaded = true;
+      const secs = {};
+      recs.forEach(r => {
+        const s = r.fields['Section'] || 'Other';
+        if (!secs[s]) secs[s] = [];
+        secs[s].push(r);
+      });
+      let html = '<div style="padding:16px">';
+      Object.entries(secs).forEach(([sec, items]) => {
+        html += `<div style="margin-bottom:20px"><div style="font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border)">${sec}</div>`;
+        html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px">';
+        items.forEach(r => {
+          const val = (r.fields['Value']||'').replace(/
+/g,'<br>');
+          html += `<div class="card" style="padding:10px 12px"><div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">${r.fields['Label']||''}</div><div style="font-size:12px;line-height:1.5">${val}</div></div>`;
+        });
+        html += '</div></div>';
+      });
+      html += '</div>';
+      el.innerHTML = html;
+    } catch(e) { el.innerHTML = `<div style="color:var(--red);padding:16px">Error: ${e.message}</div>`; }
+  }
+
+  // ── AI CONTEXT VIEW ──
+  let aiContextLoaded = false;
+  async function loadAIContext(force) {
+    if (aiContextLoaded && !force) return;
+    const el = document.getElementById('aicontext-content');
+    el.innerHTML = '<div class="loading-msg">Loading data from Airtable...</div>';
+    try {
+      const [profR, goalR] = await Promise.all([
+        fetch(`https://api.airtable.com/v0/${BASE}/${TABLES.profile}?sort[0][field]=Section`, {headers:{Authorization:'Bearer '+TOKEN}}).then(r=>r.json()),
+        fetch(`https://api.airtable.com/v0/${BASE}/${TABLES.goals}?sort[0][field]=Priority`, {headers:{Authorization:'Bearer '+TOKEN}}).then(r=>r.json())
+      ]);
+      aiContextLoaded = true;
+      window._aiProfileRecs = profR.records || [];
+      window._aiGoalRecs = goalR.records || [];
+      const now = new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+      const activePeps = (data.peptides||[]).filter(r=>getField(r,'Status')==='Active');
+      const allSupp = data.supplements||[];
+      const amSupp = allSupp.filter(r=>(getField(r,'SuppStatus')||'').toLowerCase()==='active'&&(getField(r,'SuppTiming')||'').toLowerCase().includes('morning'));
+      const pmSupp = allSupp.filter(r=>(getField(r,'SuppStatus')||'').toLowerCase()==='active'&&((getField(r,'SuppTiming')||'').toLowerCase().includes('night')||(getField(r,'SuppTiming')||'').toLowerCase().includes('evening')));
+      let html = `<div style="padding:16px">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:16px;font-size:12px;color:var(--muted)">
+          Data loaded ${now} · ${activePeps.length} active peptides · ${amSupp.length+pmSupp.length} active supplements · ${window._aiGoalRecs.length} goals
+        </div>`;
+      const sections = [
+        {title:'Active Peptides', items: activePeps.map(r=>`${getField(r,'Compound')} | ${getField(r,'Dose')} | ${getField(r,'Frequency')}`)},
+        {title:'Morning Supplements', items: amSupp.map(r=>`${getField(r,'Supplement')} | ${getField(r,'SuppDose')}`)},
+        {title:'Night Supplements', items: pmSupp.map(r=>`${getField(r,'Supplement')} | ${getField(r,'SuppDose')}`)},
+        {title:'Goals', items: window._aiGoalRecs.map(r=>`[${r.fields['Priority']}] ${r.fields['Goal']} (${r.fields['Category']||''})${r.fields['TargetMetric']?' → '+r.fields['TargetMetric']:''}`)},
+      ];
+      sections.forEach(s => {
+        html += `<div style="margin-bottom:14px"><div style="font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:8px">${s.title} (${s.items.length})</div>`;
+        html += s.items.map(i=>`<div style="font-size:12px;padding:4px 0;border-bottom:1px solid var(--border);color:var(--text)">${i}</div>`).join('');
+        html += '</div>';
+      });
+      html += '</div>';
+      el.innerHTML = html;
+    } catch(e) { el.innerHTML = `<div style="color:var(--red);padding:16px">Error: ${e.message}</div>`; }
+  }
+
+  // ── COPY FOR AI ──
+  function copyForAI() {
+    const btn = document.getElementById('copyAIBtn');
+    const now = new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+    const activePeps = (data.peptides||[]).filter(r=>getField(r,'Status')==='Active');
+    const allSupp = data.supplements||[];
+    const amSupp = allSupp.filter(r=>(getField(r,'SuppStatus')||'').toLowerCase()==='active'&&(getField(r,'SuppTiming')||'').toLowerCase().includes('morning'));
+    const pmSupp = allSupp.filter(r=>(getField(r,'SuppStatus')||'').toLowerCase()==='active'&&((getField(r,'SuppTiming')||'').toLowerCase().includes('night')||(getField(r,'SuppTiming')||'').toLowerCase().includes('evening')));
+    const profRecs = window._aiProfileRecs||[];
+    const goalRecs = window._aiGoalRecs||[];
+    const profSecs = {};
+    profRecs.forEach(r=>{const s=r.fields['Section']||'Other';if(!profSecs[s])profSecs[s]=[];profSecs[s].push(`  ${r.fields['Label']}: ${r.fields['Value']||''}`)});
+    const WORKOUTS=[
+      {day:'Monday — Push',ex:['Bench Press','Incline Press','Decline Press','Incline Fly','High Cable Fly','Lateral Raises','Seated Shoulder Press','Tricep Pushdowns','Overhead Tricep Ext','Cable Cross Overs','Wrist Twist']},
+      {day:'Tuesday — Pull',ex:['Lat Pulldown','Bent Over Rows','Cable Rows','Face Pulls','Rear Delt Raises','Bicep Curls-Preacher','Hammer Curls','Cable Shrugs','Cable Curls','Barbell Shrugs']},
+      {day:'Wednesday — Legs/Core',ex:['Leg Press','Leg Extensions','Leg Curls','Hip Thrust','Nordic Curl','Reverse Hyper','DB Calf Raises','Smith Mach Calf Raises','Back Extension','Forward Back Stretch']},
+      {day:'Thursday — Arms/Chest',ex:['Cable Press','Low Cable Fly','Incline Curls','Overhead Tricep Press','Curls (Standing)','Tricep Ext Down','Tricep Ext Up','Forearm Raise - Cable']}
+    ];
+    let txt = `=== MB HEALTH PROTOCOL — AI CONTEXT ===\nGenerated: ${now}\n---\n\n## PERSONAL PROFILE\n`;
+    Object.entries(profSecs).forEach(([s,lines])=>{txt+=`\n### ${s}\n${lines.join('\n')}\n`});
+    txt += `\n---\n## ACTIVE PEPTIDES (${activePeps.length})\n`;
+    txt += activePeps.map(r=>`  - ${getField(r,'Compound')} | ${getField(r,'Dose')} | ${getField(r,'Frequency')}`).join('\n');
+    txt += `\n\n---\n## SUPPLEMENTS\n\n### Morning (${amSupp.length})\n`;
+    txt += amSupp.map(r=>`  - ${getField(r,'Supplement')} | ${getField(r,'SuppDose')}`).join('\n');
+    txt += `\n\n### Night (${pmSupp.length})\n`;
+    txt += pmSupp.map(r=>`  - ${getField(r,'Supplement')} | ${getField(r,'SuppDose')}`).join('\n');
+    txt += `\n\n---\n## GOALS (${goalRecs.length})\n`;
+    txt += goalRecs.map(r=>`  [${r.fields['Priority']}] ${r.fields['Goal']} (${r.fields['Category']||''})${r.fields['TargetMetric']?'\n    Target: '+r.fields['TargetMetric']:''}${r.fields['CurrentStatus']?'\n    Status: '+r.fields['CurrentStatus']:''}`).join('\n\n');
+    txt += `\n\n---\n## WORKOUT SPLIT (4-Day)\nNo squats (back surgery). USA G20 Pro cables 2:1.\n\n`;
+    txt += WORKOUTS.map(d=>`  ${d.day}:\n${d.ex.map(e=>'    - '+e).join('\n')}`).join('\n\n');
+    txt += `\n\n---\nEND OF CONTEXT\n`;
+    navigator.clipboard.writeText(txt).then(()=>{
+      btn.textContent='✓ Copied!';btn.style.background='var(--green)';
+      setTimeout(()=>{btn.innerHTML='📋 Copy for AI';btn.style.background='var(--accent)';},2500);
+    });
+  }
 </script>
 
 <!-- ADD PURCHASE MODAL -->
