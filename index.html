@@ -38,6 +38,15 @@
   .nav-tab { background: none; border: none; color: var(--muted); font-family: 'DM Sans', sans-serif; font-size: 13px; padding: 7px 14px; border-radius: 6px; cursor: pointer; transition: all 0.15s; font-weight: 400; }
   .nav-tab:hover { color: var(--text); background: var(--surface2); }
   .nav-tab.active { color: var(--accent); background: var(--accent-light); font-weight: 500; }
+  .nav-dropdown { position: relative; display: inline-block; }
+  .drop-caret { font-size: 9px; margin-left: 1px; opacity: 0.7; }
+  .drop-menu { position: absolute; top: calc(100% + 4px); left: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 4px; min-width: 190px; z-index: 999; display: none; }
+  .nav-dropdown.open .drop-menu { display: block; }
+  .drop-item { display: block; width: 100%; text-align: left; background: none; border: none; color: var(--muted); font-family: 'DM Sans', sans-serif; font-size: 13px; padding: 7px 12px; border-radius: 5px; cursor: pointer; text-decoration: none; }
+  .drop-item:hover:not(:disabled) { color: var(--text); background: var(--surface2); }
+  .drop-soon { opacity: 0.4; cursor: default; font-style: italic; }
+  .drop-soon::after { content: ' · soon'; font-size: 11px; }
+  .drop-divider { height: 1px; background: var(--border); margin: 4px 8px; }
   .nav-right { display: flex; align-items: center; gap: 10px; }
   .status-dot { width: 7px; height: 7px; border-radius: 50%; background: #d1d5db; flex-shrink: 0; }
   .status-dot.online { background: #16a34a; box-shadow: 0 0 0 2px #dcfce7; }
@@ -351,21 +360,55 @@
 
 <nav>
   <div class="nav-logo">Health Protocol</div>
-  <div class="nav-tabs">
-    <button class="nav-tab active" onclick="showView('dashboard', event)">Dashboard</button>
-    <button class="nav-tab" onclick="showView('peptides', event)">Peptides</button>
-    <button class="nav-tab" onclick="showView('supplements', event)">Supplements</button>
-    <button class="nav-tab" onclick="showView('changes', event)">Protocol Changes</button>
-    <button class="nav-tab" onclick="showView('labs', event)">Labs</button>
-    <span style="width:1px;background:var(--border);margin:6px 4px;display:inline-block;height:20px;vertical-align:middle;opacity:0.5"></span>
-    <button class="nav-tab" onclick="showView('purchases', event)">Purchases</button>
-    <button class="nav-tab" onclick="showView('pricing', event)">Pricing</button>
-    <button class="nav-tab" onclick="showView('vendors', event)">Vendors</button>
-    <span style="width:1px;background:var(--border);margin:6px 4px;display:inline-block;height:20px;vertical-align:middle;opacity:0.5"></span>
-    <button class="nav-tab" onclick="showView('workouts', event)">Workouts</button>
-    <button class="nav-tab" onclick="showView('tracker', event)">Peptide Tracker</button>
-    <button class="nav-tab" onclick="showView('log', event)">Daily Log</button>
-    <button class="nav-tab" onclick="showView('printlist', event)">Print List</button>
+  <div class="nav-tabs" id="mainNav">
+    <button class="nav-tab active" id="nav-dashboard" onclick="showView('dashboard', event)">Dashboard</button>
+
+    <div class="nav-dropdown">
+      <button class="nav-tab drop-trigger" id="nav-pep" onclick="toggleDrop('drop-pep',event)">Peptides <span class="drop-caret">▾</span></button>
+      <div class="drop-menu" id="drop-pep">
+        <button class="drop-item" onclick="navDrop('peptides','nav-pep')">Peptides</button>
+        <button class="drop-item" onclick="navDrop('tracker','nav-pep')">Peptide Tracker</button>
+        <button class="drop-item" onclick="navDrop('changes','nav-pep')">Protocol Changes</button>
+        <div class="drop-divider"></div>
+        <button class="drop-item" onclick="navDrop('pricing','nav-pep')">Pricing</button>
+        <button class="drop-item" onclick="navDrop('purchases','nav-pep')">Purchases</button>
+        <button class="drop-item" onclick="navDrop('vendors','nav-pep')">Vendors</button>
+      </div>
+    </div>
+
+    <div class="nav-dropdown">
+      <button class="nav-tab drop-trigger" id="nav-supp" onclick="toggleDrop('drop-supp',event)">Supplements <span class="drop-caret">▾</span></button>
+      <div class="drop-menu" id="drop-supp">
+        <button class="drop-item" onclick="navDrop('supplements','nav-supp')">Supplements</button>
+        <button class="drop-item drop-soon" disabled>Supplement Changes</button>
+      </div>
+    </div>
+
+    <div class="nav-dropdown">
+      <button class="nav-tab drop-trigger" id="nav-ex" onclick="toggleDrop('drop-ex',event)">Exercise <span class="drop-caret">▾</span></button>
+      <div class="drop-menu" id="drop-ex">
+        <button class="drop-item" onclick="navDrop('workouts','nav-ex')">Workouts</button>
+        <button class="drop-item drop-soon" disabled>Workout Suggestions</button>
+      </div>
+    </div>
+
+    <div class="nav-dropdown">
+      <button class="nav-tab drop-trigger" id="nav-personal" onclick="toggleDrop('drop-personal',event)">Personal <span class="drop-caret">▾</span></button>
+      <div class="drop-menu" id="drop-personal">
+        <button class="drop-item" onclick="navDrop('log','nav-personal')">Daily Log</button>
+        <button class="drop-item" onclick="navDrop('labs','nav-personal')">Labs</button>
+        <button class="drop-item drop-soon" disabled>Goals</button>
+        <button class="drop-item drop-soon" disabled>Profile</button>
+      </div>
+    </div>
+
+    <div class="nav-dropdown">
+      <button class="nav-tab drop-trigger" id="nav-tools" onclick="toggleDrop('drop-tools',event)">Tools <span class="drop-caret">▾</span></button>
+      <div class="drop-menu" id="drop-tools">
+        <button class="drop-item" onclick="navDrop('printlist','nav-tools')">Print List</button>
+        <a class="drop-item" href="context.html" target="_blank" onclick="closeAllDrops()">AI Context ↗</a>
+      </div>
+    </div>
   </div>
   <div class="nav-right">
     <div class="status-dot" id="statusDot"></div>
@@ -2624,6 +2667,35 @@ function buildWeeklyHTML(monday) {
   return `<div class="print-page">${dayTable(days[0])}<div class="pspacer"></div>${dayTable(days[1])}</div>` +
          `<div class="print-page">${dayTable(days[2])}<div class="pspacer"></div>${dayTable(days[3])}</div>`;
 }
+
+  function toggleDrop(id, e) {
+    if (e) e.stopPropagation();
+    const menu = document.getElementById(id);
+    const isOpen = menu.parentElement.classList.contains('open');
+    closeAllDrops();
+    if (!isOpen) menu.parentElement.classList.add('open');
+  }
+  function closeAllDrops() {
+    document.querySelectorAll('.nav-dropdown').forEach(d => d.classList.remove('open'));
+  }
+  function navDrop(viewId, triggerId) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+    const view = document.getElementById('view-' + viewId);
+    if (view) view.classList.add('active');
+    const trigger = document.getElementById(triggerId);
+    if (trigger) trigger.classList.add('active');
+    if (viewId === 'pricing') loadPricing();
+    if (viewId === 'vendors') loadVendors();
+    if (viewId === 'purchases') loadPurchases();
+    if (viewId === 'labs') loadLabs();
+    if (viewId === 'changes') loadChanges();
+    if (viewId === 'workouts') document.getElementById('workout-date').value = new Date().toISOString().split('T')[0];
+    closeAllDrops();
+  }
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('.nav-dropdown')) closeAllDrops();
+  });
 </script>
 
 <!-- ADD PURCHASE MODAL -->
