@@ -2838,18 +2838,14 @@ function buildWeeklyHTML(monday) {
     el.innerHTML = '<div class="loading-msg">Fetching last 2 sessions for ' + _wsDay + '…</div>';
 
     try {
-      // Pull sets for this day sorted desc, stop after 2 distinct dates found
+      // Server-side filter by Day — only fetch matching records, much more efficient
       let allRecs = [], cursor = null;
       do {
-        const url = `https://api.airtable.com/v0/${BASE}/${TABLES.workoutSets}?pageSize=200&sort[0][field]=Date&sort[0][direction]=desc${cursor?'&offset='+cursor:''}`;
-        const res = await fetch(url, {headers:{Authorization:'Bearer '+TOKEN}});
+        const formula = encodeURIComponent("{Day}='" + _wsDay + "'");
+        const url = "https://api.airtable.com/v0/" + BASE + "/" + TABLES.workoutSets + "?pageSize=200&filterByFormula=" + formula + "&sort[0][field]=Date&sort[0][direction]=desc" + (cursor ? "&offset=" + cursor : "");
+        const res = await fetch(url, {headers:{Authorization:"Bearer " + TOKEN}});
         const d = await res.json();
-        const dayRecs = (d.records||[]).filter(r => {
-          const dayVal = r.fields['Day'];
-          const dv = typeof dayVal === 'object' ? dayVal.name : dayVal;
-          return dv === _wsDay;
-        });
-        allRecs.push(...dayRecs);
+        allRecs.push(...(d.records||[]));
         cursor = d.offset;
         const dates = [...new Set(allRecs.map(r => r.fields['Date']))];
         if (dates.length >= 2) break;
