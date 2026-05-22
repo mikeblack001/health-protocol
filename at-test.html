@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head><title>AT Workout Sets Test</title>
+<style>body{font-family:monospace;padding:20px;background:#111;color:#eee}pre{background:#222;padding:16px;border-radius:8px;overflow:auto;font-size:12px}button{padding:8px 16px;margin:4px;cursor:pointer;background:#333;color:#eee;border:1px solid #555;border-radius:6px}</style>
+</head>
+<body>
+<h2>Airtable Workout Sets Diagnostic</h2>
+<button onclick="testFetch('none')">1. Fetch 3 records (no filter)</button>
+<button onclick="testFetch('Push')">2. Filter: Push</button>
+<button onclick="testFetch('Pull')">3. Filter: Pull</button>
+<button onclick="testFetch('Legs/Core')">4. Filter: Legs/Core</button>
+<button onclick="testFetch('Arms/Chest')">5. Filter: Arms/Chest</button>
+<div id="out"></div>
+<script>
+const TOKEN = 'pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
+const BASE = 'appmHDG4TGT1xy6R6';
+const TABLE = 'tblKDqjy5RzqaJvjr';
+
+async function testFetch(day) {
+  const el = document.getElementById('out');
+  el.innerHTML = '<p>Fetching...</p>';
+  try {
+    let url;
+    if (day === 'none') {
+      url = `https://api.airtable.com/v0/${BASE}/${TABLE}?pageSize=3&sort[0][field]=Date&sort[0][direction]=desc`;
+    } else {
+      const formula = encodeURIComponent(`{Day}='${day}'`);
+      url = `https://api.airtable.com/v0/${BASE}/${TABLE}?pageSize=5&filterByFormula=${formula}&sort[0][field]=Date&sort[0][direction]=desc`;
+    }
+    el.innerHTML += `<p>URL: ${url}</p>`;
+    const res = await fetch(url, {headers:{Authorization:'Bearer '+TOKEN}});
+    const d = await res.json();
+    el.innerHTML = `<p><b>HTTP Status: ${res.status}</b> | Records returned: ${(d.records||[]).length}</p>
+<p>Has error: ${d.error ? JSON.stringify(d.error) : 'none'}</p>
+<pre>${JSON.stringify(d.records ? d.records.slice(0,2) : d, null, 2)}</pre>`;
+  } catch(e) {
+    el.innerHTML = `<p style="color:red">CATCH ERROR: ${e.message}</p>`;
+  }
+}
+</script>
+</body>
+</html>
