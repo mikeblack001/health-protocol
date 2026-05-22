@@ -2837,61 +2837,68 @@ function buildWeeklyHTML(monday) {
     if (!el) return;
     el.innerHTML = '<div class="loading-msg">Fetching last 2 sessions for ' + _wsDay + '…</div>';
 
+    // Rep target map by exercise — science-based per muscle group
+    const REP_TARGETS = {
+      // Calves — high rep
+      'DB Calf Raises':         {min:20, max:25},
+      'Smith Mach Calf Raises': {min:20, max:25},
+      // Legs — moderate/high rep
+      'Leg Press':              {min:15, max:20},
+      'Leg Extensions':         {min:15, max:20},
+      'Leg Curls':              {min:15, max:20},
+      'Hip Thrust':             {min:15, max:20},
+      'Reverse Hyper':          {min:15, max:20},
+      'Nordic Curl':            {min:12, max:15},
+      'Back Extension':         {min:15, max:20},
+      // Isolation / rear delt / core
+      'Lateral Raises':         {min:12, max:15},
+      'Face Pulls':             {min:15, max:20},
+      'Rear Delt Raises':       {min:15, max:20},
+      'Wrist Twist':            {min:15, max:20},
+      'Forearm Raise - Cable':  {min:15, max:20},
+      'Forward Back Stretch':   {min:15, max:20},
+    };
+    function getTarget(ex) {
+      return REP_TARGETS[ex] || {min:8, max:12};
+    }
+    function isCable(ex) {
+      return /cable|pushdown|pulldown|fly|face pull|cross|lat machine|forearm raise/i.test(ex);
+    }
+    function increment(ex, weight) {
+      return isCable(ex) ? weight + 10 : weight + 5;
+    }
+
     try {
       let allRecs = [], cursor = null;
       do {
         const formula = encodeURIComponent("{Day}='" + _wsDay + "'");
-        const url = "https://api.airtable.com/v0/" + BASE + "/" + TABLES.workoutSets + "?pageSize=100&filterByFormula=" + formula + "&sort[0][field]=Date&sort[0][direction]=desc" + (cursor ? "&offset=" + cursor : "");
-        let res, rawText, d;
-        try {
-          res = await fetch(url, {headers:{Authorization:"Bearer " + TOKEN}});
-          rawText = await res.text();
-          d = JSON.parse(rawText);
-        } catch(fetchErr) {
-          el.innerHTML = '<div style="color:var(--red);padding:16px;font-family:monospace;font-size:12px"><b>FETCH ERROR:</b> ' + fetchErr.message + '<br>URL: ' + url.slice(0,120) + '</div>';
-          return;
-        }
-        if (!res.ok || d.error) {
-          el.innerHTML = '<div style="color:var(--red);padding:16px;font-family:monospace;font-size:12px"><b>HTTP ' + res.status + '</b><br>' + rawText.slice(0,400) + '</div>';
-          return;
-        }
+        const url = "https://api.airtable.com/v0/" + BASE + "/" + TABLES.workoutSets
+          + "?pageSize=100&filterByFormula=" + formula
+          + "&sort[0][field]=Date&sort[0][direction]=desc"
+          + (cursor ? "&offset=" + cursor : "");
+        const res = await fetch(url, {headers:{Authorization:"Bearer " + TOKEN}});
+        const d = await res.json();
+        if (d.error) { el.innerHTML = '<div style="color:var(--red);padding:16px">AT Error: ' + JSON.stringify(d.error) + '</div>'; return; }
         allRecs.push(...(d.records||[]));
         cursor = d.offset;
-        const dates = [...new Set(allRecs.map(r => r.fields['Date']))];
-        if (dates.length >= 2) break;
+        if ([...new Set(allRecs.map(r => r.fields['Date']))].length >= 2) break;
       } while (cursor && allRecs.length < 600);
-      // If still no records after loop, show exactly what happened
-      if (!allRecs.length) {
-        const formula2 = encodeURIComponent("{Day}='" + _wsDay + "'");
-        const debugUrl = "https://api.airtable.com/v0/" + BASE + "/" + TABLES.workoutSets + "?pageSize=3&filterByFormula=" + formula2;
-        const dr = await fetch(debugUrl, {headers:{Authorization:"Bearer " + TOKEN}});
-        const dt = await dr.text();
-        el.innerHTML = '<div style="padding:16px;font-family:monospace;font-size:11px;background:var(--surface2);border-radius:8px"><b>0 records returned. Raw response:</b><br>' + dt.slice(0,600).replace(/</g,"&lt;") + '</div>';
-        return;
-      }
 
-      // Get last 2 distinct session dates
       const dates = [...new Set(allRecs.map(r => r.fields['Date']))].slice(0, 2);
-      if (!dates.length) {
-        el.innerHTML = '<div style="color:var(--muted);padding:16px">No data found for ' + _wsDay + '.<br><small style="font-size:11px">Records fetched: ' + allRecs.length + ' | Formula: {Day}=\'' + _wsDay + '\'</small></div>';
-        return;
-      }
-
-      const sessionRecs = allRecs.filter(r => dates.includes(r.fields['Date']));
+      if (!dates.length) { el.innerHTML = '<div style="color:var(--muted);padding:16px">No data found for ' + _wsDay + '.</div>'; return; }
 
       // Group sets by exercise + date
       const byExDate = {};
-      sessionRecs.forEach(r => {
+      allRecs.filter(r => dates.includes(r.fields['Date'])).forEach(r => {
         const f = r.fields;
-        const ex = f['Exercise'] || '';
-        const date = f['Date'] || '';
+        const ex = f['Exercise'] || ''; const date = f['Date'] || '';
         if (!ex || !date) return;
         const key = ex + '||' + date;
         if (!byExDate[key]) byExDate[key] = {ex, date, sets:[]};
         byExDate[key].sets.push({reps: f['Reps']||0, weight: f['Weight (lbs)']||0});
       });
 
-      // Build exercise history: most recent session first
+      // Build per-exercise history (newest first)
       const exHistory = {};
       Object.values(byExDate).forEach(({ex, date, sets}) => {
         if (!exHistory[ex]) exHistory[ex] = [];
@@ -2899,97 +2906,83 @@ function buildWeeklyHTML(monday) {
         const topWeight = Math.max(...sets.map(s => s.weight));
         exHistory[ex].push({date, topWeight, avgReps, sets});
       });
-      // Sort each exercise history newest first
       Object.values(exHistory).forEach(arr => arr.sort((a,b) => b.date.localeCompare(a.date)));
 
-      // Progression logic
-      function isCable(ex) {
-        return /cable|pushdown|pulldown|fly|curl.*1\/2|row.*cable|face pull|shrug.*1\/2|cross|lat machine/i.test(ex);
-      }
-      function increment(ex, weight) {
-        if (isCable(ex)) return weight + 10; // stack display +10 = +5 actual each side
-        return weight + 5;
-      }
-
       const suggestions = Object.entries(exHistory).map(([ex, sessions]) => {
-        const last = sessions[0];
-        const prev = sessions[1];
-        const lastWeight = last.topWeight;
-        const lastAvgReps = Math.round(last.avgReps);
-        const lastSetsCount = last.sets.length;
+        const last = sessions[0], prev = sessions[1];
+        const target = getTarget(ex);
+        const lastAvg = parseFloat(last.avgReps.toFixed(1));
+        const prevAvg = prev ? parseFloat(prev.avgReps.toFixed(1)) : null;
 
-        // Did they hit 10+ reps on average across sets?
-        const hitTarget = last.avgReps >= 10;
-        // Did weight increase from prev session?
-        const progressed = prev && last.topWeight > prev.topWeight;
-        // Stalled? Same weight 2 sessions
-        const stalled = prev && last.topWeight === prev.topWeight && prev.avgReps >= 10;
-
-        let suggestedWeight, note;
-        if (hitTarget) {
-          suggestedWeight = increment(ex, lastWeight);
-          note = stalled ? 'Plateaued — push the increment' : 'All sets completed — increase weight';
-        } else {
-          suggestedWeight = lastWeight;
-          note = `Avg ${lastAvgReps} reps — hit 10+ before adding weight`;
+        // Trend arrow for avg reps
+        let trend = '→';
+        if (prevAvg !== null) {
+          if (lastAvg > prevAvg + 0.5) trend = '↑';
+          else if (lastAvg < prevAvg - 0.5) trend = '↓';
         }
 
-        const lastSetsStr = last.sets.map(s => `${s.weight}×${s.reps}`).join(', ');
-        const prevStr = prev ? prev.sets.map(s => `${s.weight}×${s.reps}`).join(', ') : '—';
+        // Weight suggestion
+        let suggestedWeight, note;
+        if (last.avgReps >= target.max) {
+          suggestedWeight = increment(ex, last.topWeight);
+          note = 'Hit top of range — increase weight';
+        } else if (last.avgReps >= target.min) {
+          suggestedWeight = last.topWeight;
+          note = 'In target range — hold, push reps';
+        } else {
+          suggestedWeight = last.topWeight;
+          note = 'Build to ' + target.min + '+ reps first';
+        }
 
-        return {
-          exercise: ex,
-          lastDate: last.date,
-          lastSetsStr,
-          prevDate: prev ? prev.date : null,
-          prevStr,
-          lastWeight,
-          lastReps: lastAvgReps,
-          suggestedWeight,
-          suggestedReps: '10–12',
-          note
-        };
+        return {ex, last, prev, lastAvg, prevAvg, trend, target, suggestedWeight, note};
       });
 
-      // Sort alphabetically
-      suggestions.sort((a,b) => a.exercise.localeCompare(b.exercise));
+      suggestions.sort((a,b) => a.ex.localeCompare(b.ex));
 
-      let html = `<div style="margin-bottom:12px;font-size:11px;color:var(--muted);font-family:'DM Mono',monospace">
-        Sessions: ${dates.join(' · ')} &nbsp;·&nbsp; ${suggestions.length} exercises &nbsp;·&nbsp; Progressive overload targets
-      </div>
-      <div class="table-wrap"><table class="data-table">
-        <thead><tr>
-          <th>Exercise</th>
-          <th>Last Session</th>
-          <th>Prev Session</th>
-          <th style="color:var(--accent)">→ Target Weight</th>
-          <th style="color:var(--accent)">→ Target Reps</th>
-          <th>Note</th>
-        </tr></thead><tbody>`;
+      const [lastDate, prevDate] = dates;
+      let html = '<div style="margin-bottom:12px;font-size:11px;color:var(--muted);font-family:\'DM Mono\',monospace">'
+        + 'Last: ' + lastDate + (prevDate ? ' &nbsp;·&nbsp; Prev: ' + prevDate : '') + ' &nbsp;·&nbsp; ' + suggestions.length + ' exercises</div>'
+        + '<div class="table-wrap"><table class="data-table"><thead><tr>'
+        + '<th>Exercise</th>'
+        + '<th style="text-align:right">Prev<br><span style="font-weight:400;font-size:10px;color:var(--muted)">' + (prevDate||'—') + '</span></th>'
+        + '<th style="text-align:right">Last<br><span style="font-weight:400;font-size:10px;color:var(--muted)">' + lastDate + '</span></th>'
+        + '<th style="text-align:center">Trend</th>'
+        + '<th style="color:var(--accent);text-align:right">→ Weight</th>'
+        + '<th style="color:var(--accent);text-align:center">→ Reps</th>'
+        + '<th>Note</th>'
+        + '</tr></thead><tbody>';
 
       suggestions.forEach(s => {
-        const up = s.suggestedWeight > s.lastWeight;
-        const same = s.suggestedWeight === s.lastWeight;
-        const arrow = up ? '↑' : same ? '→' : '↓';
-        const arrowColor = up ? 'var(--green)' : same ? 'var(--amber)' : 'var(--muted)';
-        html += `<tr>
-          <td style="font-weight:500">${s.exercise}</td>
-          <td style="font-family:'DM Mono',monospace;font-size:12px">${s.lastSetsStr}</td>
-          <td style="font-family:'DM Mono',monospace;font-size:12px;color:var(--muted)">${s.prevStr}</td>
-          <td style="font-family:'DM Mono',monospace;font-weight:600;color:${arrowColor}">${arrow} ${s.suggestedWeight}lbs</td>
-          <td style="font-family:'DM Mono',monospace;color:var(--accent)">${s.suggestedReps}</td>
-          <td style="font-size:12px;color:var(--muted)">${s.note}</td>
-        </tr>`;
+        const up = s.suggestedWeight > s.last.topWeight;
+        const same = s.suggestedWeight === s.last.topWeight;
+        const wArrow = up ? '↑' : '→';
+        const wColor = up ? 'var(--green)' : 'var(--amber)';
+        const tColor = s.trend === '↑' ? 'var(--green)' : s.trend === '↓' ? 'var(--red)' : 'var(--muted)';
+        const prevCell = s.prev
+          ? '<span style="color:var(--muted);font-size:12px">' + s.prev.topWeight + 'lbs</span>'
+            + '<br><span style="color:var(--muted);font-size:11px">' + s.prevAvg + ' avg</span>'
+          : '<span style="color:var(--muted);font-size:12px">—</span>';
+        const lastCell = '<span style="font-size:13px;font-weight:500">' + s.last.topWeight + 'lbs</span>'
+          + '<br><span style="font-size:11px;color:var(--text-secondary)">' + s.lastAvg + ' avg</span>';
+
+        html += '<tr>'
+          + '<td style="font-weight:500">' + s.ex + '</td>'
+          + '<td style="text-align:right;font-family:\'DM Mono\',monospace">' + prevCell + '</td>'
+          + '<td style="text-align:right;font-family:\'DM Mono\',monospace">' + lastCell + '</td>'
+          + '<td style="text-align:center;font-size:16px;color:' + tColor + '">' + s.trend + '</td>'
+          + '<td style="text-align:right;font-family:\'DM Mono\',monospace;font-weight:600;color:' + wColor + '">' + wArrow + ' ' + s.suggestedWeight + 'lbs</td>'
+          + '<td style="text-align:center;font-family:\'DM Mono\',monospace;color:var(--accent)">' + s.target.min + '–' + s.target.max + '</td>'
+          + '<td style="font-size:11px;color:var(--muted)">' + s.note + '</td>'
+          + '</tr>';
       });
 
-      html += '</tbody></table></div>';
-      html += `<div style="margin-top:12px;text-align:right">
-        <button class="btn-secondary" onclick="loadWorkoutSuggestions(true)">↻ Refresh</button>
-      </div>`;
+      html += '</tbody></table></div>'
+        + '<div style="margin-top:12px;text-align:right">'
+        + '<button class="btn-secondary" onclick="loadWorkoutSuggestions(true)">↻ Refresh</button></div>';
       el.innerHTML = html;
       _wsLoaded = true;
 
-    } catch(e) { el.innerHTML = `<div style="color:var(--red);padding:16px">Error: ${e.message}</div>`; }
+    } catch(e) { el.innerHTML = '<div style="color:var(--red);padding:16px">Error: ' + e.message + '</div>'; }
   }
 
 
