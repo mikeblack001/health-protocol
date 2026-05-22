@@ -163,6 +163,16 @@
   .modal-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:16px; }
   .modal-btn { padding:7px 16px; border-radius:6px; font-size:13px; cursor:pointer; border:1px solid var(--border); background:var(--surface2); color:var(--text); font-family:'DM Sans',sans-serif; }
   .modal-btn.primary { background:var(--accent); color:#fff; border-color:var(--accent); }
+  .modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
+  .modal-header h3 { font-size:15px; font-weight:600; color:var(--text); margin:0; }
+  .modal-close { background:none; border:none; font-size:16px; color:var(--muted); cursor:pointer; padding:2px 6px; border-radius:4px; }
+  .modal-close:hover { background:var(--surface2); color:var(--text); }
+  .modal-body { display:flex; flex-direction:column; }
+  .modal-footer { display:flex; gap:8px; justify-content:flex-end; margin-top:16px; }
+  .form-row { display:flex; flex-direction:column; gap:4px; margin-bottom:10px; }
+  .form-row label { font-size:11px; font-weight:500; color:var(--muted); text-transform:uppercase; letter-spacing:0.6px; }
+  .form-row input, .form-row textarea { padding:8px 10px; border:1px solid var(--border); border-radius:6px; font-size:13px; font-family:'DM Sans',sans-serif; background:var(--surface); color:var(--text); width:100%; box-sizing:border-box; }
+  .form-row textarea { resize:vertical; }
 
   /* PRICING */
   .pricing-group { margin-bottom: 20px; }
@@ -656,7 +666,14 @@
   </div>
 
   <div id="view-goals" class="view">
-    <div class="section-header"><h2>Goals</h2><button class="btn-secondary" onclick="loadGoals(true)">↻ Refresh</button></div>
+    <div class="section-header">
+      <h2>Goals</h2>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn-secondary" onclick="loadGoals(true)">↻ Refresh</button>
+        <button class="print-btn" onclick="showAddGoalModal()">+ Add Goal</button>
+      </div>
+    </div>
+    <div id="goals-filter-bar" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px"></div>
     <div id="goals-content"><div class="loading">Loading...</div></div>
   </div>
 
@@ -2778,6 +2795,22 @@ function buildWeeklyHTML(monday) {
 
   // ── GOALS VIEW ──
   let goalsLoaded = false;
+  let _goalRecs = [];
+  let _goalsActiveCat = 'All';
+
+  const GOAL_FIELDS = {
+    goal: 'fldTdho3ego6v12we', category: 'fldcnyQ6zKIEY23t8',
+    priority: 'fldYNwrYZSmrzpjKj', target: 'fld4jOeGiTWGi2g1P',
+    status: 'fldOrPt7SJmpGv6Sm', notes: 'fldCwheZHpMlTGM7s',
+    updated: 'fldFPwQfZ2lOOWKgZ'
+  };
+
+  const priMeta = p => ({
+    High:   {color:'var(--red)',   bg:'var(--red-bg)',   dot:'🔴'},
+    Medium: {color:'var(--amber)', bg:'var(--amber-bg)', dot:'🟡'},
+    Low:    {color:'var(--green)', bg:'var(--green-bg)', dot:'🟢'}
+  }[p] || {color:'var(--muted)', bg:'var(--surface2)', dot:'⚪'});
+
   async function loadGoals(force) {
     if (goalsLoaded && !force) return;
     const el = document.getElementById('goals-content');
@@ -2786,32 +2819,128 @@ function buildWeeklyHTML(monday) {
       const url = `https://api.airtable.com/v0/${BASE}/${TABLES.goals}?sort[0][field]=Priority&sort[0][direction]=asc&sort[1][field]=Category`;
       const r = await fetch(url, {headers:{Authorization:'Bearer '+TOKEN}});
       const d = await r.json();
-      const recs = d.records || [];
+      _goalRecs = d.records || [];
       goalsLoaded = true;
-      const cats = {};
-      recs.forEach(r => {
-        const cat = r.fields['Category'] || 'Other';
-        if (!cats[cat]) cats[cat] = [];
-        cats[cat].push(r);
-      });
-      const priColor = p => p==='High'?'var(--red)':p==='Medium'?'var(--amber)':'var(--green)';
-      let html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;padding:16px">';
-      recs.forEach(rec => {
+      _renderGoals();
+    } catch(e) { el.innerHTML = `<div style="color:var(--red);padding:16px">Error: ${e.message}</div>`; }
+  }
+
+  function _renderGoals() {
+    const el = document.getElementById('goals-content');
+    const fb = document.getElementById('goals-filter-bar');
+    const recs = _goalRecs;
+    const cats = ['All', ...new Set(recs.map(r => r.fields['Category']||'Other'))];
+    fb.innerHTML = cats.map(c => `<button class="filter-chip${c===_goalsActiveCat?' active':''}" onclick="_setGoalsCat('${c}')">${c} ${c==='All'?recs.length:recs.filter(r=>(r.fields['Category']||'Other')===c).length}</button>`).join('');
+    const visible = _goalsActiveCat === 'All' ? recs : recs.filter(r => (r.fields['Category']||'Other') === _goalsActiveCat);
+    if (!visible.length) { el.innerHTML = '<div style="color:var(--muted);padding:24px">No goals found.</div>'; return; }
+    const grouped = {};
+    visible.forEach(r => {
+      const cat = r.fields['Category'] || 'Other';
+      if (!grouped[cat]) grouped[cat] = [];
+      grouped[cat].push(r);
+    });
+    let html = '<div style="padding:0">';
+    Object.entries(grouped).forEach(([cat, items]) => {
+      if (_goalsActiveCat === 'All') {
+        html += `<div style="font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin:20px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border)">${cat} <span style="font-weight:400;color:var(--muted)">(${items.length})</span></div>`;
+      }
+      html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px;margin-bottom:8px">';
+      items.forEach(rec => {
         const f = rec.fields;
-        const pri = f['Priority']||'';
-        html += `<div class="card" style="border-left:3px solid ${priColor(pri)}">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-            <span style="font-weight:500;font-size:13px;flex:1">${f['Goal']||''}</span>
-            <span style="font-size:11px;font-weight:600;color:${priColor(pri)}">${pri}</span>
+        const pri = f['Priority'] || '';
+        const m = priMeta(pri);
+        const updated = f['LastUpdated'] ? new Date(f['LastUpdated']).toLocaleDateString('en-US',{month:'short',day:'numeric'}) : '';
+        html += `<div class="card" style="border-left:3px solid ${m.color};cursor:pointer;transition:box-shadow .15s"
+          onmouseover="this.style.boxShadow='0 2px 12px rgba(0,0,0,0.1)'"
+          onmouseout="this.style.boxShadow=''"
+          onclick="editGoal('${rec.id}')">
+          <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px">
+            <div style="flex:1;font-weight:500;font-size:13px;line-height:1.4">${f['Goal']||''}</div>
+            ${pri?`<span style="font-size:10px;font-weight:600;color:${m.color};background:${m.bg};padding:2px 8px;border-radius:10px;white-space:nowrap;flex-shrink:0">${m.dot} ${pri}</span>`:''}
           </div>
-          ${f['Category']?`<div style="font-size:11px;color:var(--accent);margin-bottom:4px">${f['Category']}</div>`:''}
-          ${f['TargetMetric']?`<div style="font-size:11px;color:var(--muted);margin-bottom:2px">→ ${f['TargetMetric']}</div>`:''}
-          ${f['CurrentStatus']?`<div style="font-size:11px;color:var(--muted)">Status: ${f['CurrentStatus']}</div>`:''}
+          ${f['TargetMetric']?`<div style="font-size:11px;color:var(--muted);margin-bottom:4px;display:flex;gap:4px;align-items:center"><span style="color:var(--accent)">→</span> ${f['TargetMetric']}</div>`:''}
+          ${f['CurrentStatus']?`<div style="font-size:11px;color:var(--muted);margin-bottom:4px;font-family:'DM Mono',monospace">📍 ${f['CurrentStatus']}</div>`:''}
+          ${f['Notes']?`<div style="font-size:11px;color:var(--muted);margin-top:4px;line-height:1.5;border-top:1px solid var(--border);padding-top:6px">${f['Notes']}</div>`:''}
+          ${updated?`<div style="font-size:10px;color:var(--muted);margin-top:6px;text-align:right;font-family:'DM Mono',monospace">${updated}</div>`:''}
         </div>`;
       });
       html += '</div>';
-      el.innerHTML = html;
-    } catch(e) { el.innerHTML = `<div style="color:var(--red);padding:16px">Error: ${e.message}</div>`; }
+    });
+    html += '</div>';
+    el.innerHTML = html;
+  }
+
+  function _setGoalsCat(cat) { _goalsActiveCat = cat; _renderGoals(); }
+
+  function showAddGoalModal() {
+    document.getElementById('goal-modal-title').textContent = 'Add Goal';
+    document.getElementById('gm-id').value = '';
+    document.getElementById('gm-goal').value = '';
+    document.getElementById('gm-category').value = '';
+    document.getElementById('gm-priority').value = '';
+    document.getElementById('gm-target').value = '';
+    document.getElementById('gm-status').value = '';
+    document.getElementById('gm-notes').value = '';
+    document.getElementById('gm-delete-btn').style.display = 'none';
+    document.getElementById('goal-modal').style.display = 'flex';
+  }
+
+  function editGoal(id) {
+    const rec = _goalRecs.find(r => r.id === id);
+    if (!rec) return;
+    const f = rec.fields;
+    document.getElementById('goal-modal-title').textContent = 'Edit Goal';
+    document.getElementById('gm-id').value = id;
+    document.getElementById('gm-goal').value = f['Goal'] || '';
+    document.getElementById('gm-category').value = f['Category'] || '';
+    document.getElementById('gm-priority').value = f['Priority'] || '';
+    document.getElementById('gm-target').value = f['TargetMetric'] || '';
+    document.getElementById('gm-status').value = f['CurrentStatus'] || '';
+    document.getElementById('gm-notes').value = f['Notes'] || '';
+    document.getElementById('gm-delete-btn').style.display = 'inline-block';
+    document.getElementById('goal-modal').style.display = 'flex';
+  }
+
+  function hideGoalModal() { document.getElementById('goal-modal').style.display = 'none'; }
+
+  async function saveGoal() {
+    const id = document.getElementById('gm-id').value;
+    const fields = {
+      [GOAL_FIELDS.goal]:     document.getElementById('gm-goal').value.trim(),
+      [GOAL_FIELDS.category]: document.getElementById('gm-category').value,
+      [GOAL_FIELDS.priority]: document.getElementById('gm-priority').value,
+      [GOAL_FIELDS.target]:   document.getElementById('gm-target').value.trim(),
+      [GOAL_FIELDS.status]:   document.getElementById('gm-status').value.trim(),
+      [GOAL_FIELDS.notes]:    document.getElementById('gm-notes').value.trim(),
+      [GOAL_FIELDS.updated]:  new Date().toISOString().split('T')[0]
+    };
+    if (!fields[GOAL_FIELDS.goal]) { alert('Goal is required.'); return; }
+    const btn = document.getElementById('gm-save-btn');
+    btn.textContent = 'Saving…'; btn.disabled = true;
+    try {
+      const method = id ? 'PATCH' : 'POST';
+      const url = id
+        ? `https://api.airtable.com/v0/${BASE}/${TABLES.goals}/${id}`
+        : `https://api.airtable.com/v0/${BASE}/${TABLES.goals}`;
+      const body = id ? {fields} : {records:[{fields}]};
+      const res = await fetch(url, {method, headers:{Authorization:'Bearer '+TOKEN,'Content-Type':'application/json'}, body:JSON.stringify(body)});
+      if (!res.ok) throw new Error(await res.text());
+      hideGoalModal();
+      goalsLoaded = false;
+      loadGoals(true);
+    } catch(e) { alert('Error: ' + e.message); }
+    finally { btn.textContent = 'Save'; btn.disabled = false; }
+  }
+
+  async function deleteGoal() {
+    const id = document.getElementById('gm-id').value;
+    if (!id || !confirm('Delete this goal?')) return;
+    try {
+      await fetch(`https://api.airtable.com/v0/${BASE}/${TABLES.goals}/${id}`, {method:'DELETE', headers:{Authorization:'Bearer '+TOKEN}});
+      hideGoalModal();
+      goalsLoaded = false;
+      loadGoals(true);
+    } catch(e) { alert('Error: ' + e.message); }
   }
 
   // ── PROFILE VIEW ──
@@ -3119,6 +3248,42 @@ function buildWeeklyHTML(monday) {
       </div>
     </div>
     <div id="weekly-print-preview" style="background:white;border-radius:8px;padding:16px"></div>
+  </div>
+</div>
+
+<!-- GOALS MODAL -->
+<div class="modal-overlay" id="goal-modal" onclick="if(event.target===this)hideGoalModal()" style="display:none">
+  <div class="modal-box" style="width:480px">
+    <div class="modal-header"><h3 id="goal-modal-title">Add Goal</h3><button class="modal-close" onclick="hideGoalModal()">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="gm-id">
+      <div class="form-row"><label>Goal</label><input type="text" id="gm-goal" placeholder="Describe the goal"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="form-row"><label>Category</label>
+          <select id="gm-category" style="padding:7px 10px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);font-size:13px;width:100%">
+            <option value="">— Select —</option>
+            <option>Body Composition</option><option>Performance</option><option>Recovery</option>
+            <option>Health</option><option>Hormones</option><option>Sleep</option><option>Strength</option><option>Other</option>
+          </select>
+        </div>
+        <div class="form-row"><label>Priority</label>
+          <select id="gm-priority" style="padding:7px 10px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);font-size:13px;width:100%">
+            <option value="">— Select —</option>
+            <option>High</option><option>Medium</option><option>Low</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row"><label>Target Metric</label><input type="text" id="gm-target" placeholder="e.g. 215 lbs, 18% BF, 8hr sleep"></div>
+      <div class="form-row"><label>Current Status</label><input type="text" id="gm-status" placeholder="Where things stand now"></div>
+      <div class="form-row"><label>Notes</label><textarea id="gm-notes" rows="3" placeholder="Additional context, obstacles, plan..."></textarea></div>
+    </div>
+    <div class="modal-footer" style="display:flex;justify-content:space-between;align-items:center">
+      <button class="modal-btn" id="gm-delete-btn" onclick="deleteGoal()" style="color:var(--red);border-color:var(--red);display:none">Delete</button>
+      <div style="display:flex;gap:8px;margin-left:auto">
+        <button class="modal-btn" onclick="hideGoalModal()">Cancel</button>
+        <button class="modal-btn primary" id="gm-save-btn" onclick="saveGoal()">Save</button>
+      </div>
+    </div>
   </div>
 </div>
 </body>
