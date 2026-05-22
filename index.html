@@ -196,6 +196,9 @@
     .check-box { border: 1px solid #ccc !important; width: 16px !important; height: 16px !important; font-size: 8px !important; }
     h2 { font-size: 13px !important; margin-bottom: 8px; }
     .section-header { margin-bottom: 8px; }
+    #view-printlist .section-header { display: none !important; }
+    .printlist-pep-section { page-break-after: always; }
+    .printlist-supp-section { page-break-before: always; }
   }
 
   @media (max-width: 768px) {
@@ -732,11 +735,12 @@ function renderPrintList() {
   const pmPep = activePep.filter(r => getField(r,'Timing').toLowerCase().includes('night'));
   const activeSupp = data.supplements.filter(r => getField(r,'SuppStatus') === 'Active');
 
-  let html = '';
+  let pepHtml = '';
+  let suppHtml = '';
 
   // Morning Peptides
   if (amPep.length) {
-    html += `<div class="table-wrap"><div class="timing-header">☀ Morning Peptides</div>
+    pepHtml += `<div class="table-wrap"><div class="timing-header">☀ Morning Peptides</div>
       <table class="data-table"><thead><tr><th>Compound</th><th>Dose</th><th>Frequency</th><th>Source</th></tr></thead><tbody>
       ${amPep.map(r => `<tr>
         <td><div class="compound-name">${getField(r,'Compound')}</div></td>
@@ -748,7 +752,7 @@ function renderPrintList() {
 
   // Night Peptides
   if (pmPep.length) {
-    html += `<div class="table-wrap"><div class="timing-header">🌙 Night Peptides</div>
+    pepHtml += `<div class="table-wrap"><div class="timing-header">🌙 Night Peptides</div>
       <table class="data-table"><thead><tr><th>Compound</th><th>Dose</th><th>Frequency</th><th>Source</th></tr></thead><tbody>
       ${pmPep.map(r => `<tr>
         <td><div class="compound-name">${getField(r,'Compound')}</div></td>
@@ -763,7 +767,7 @@ function renderPrintList() {
     const icon = t === 'Morning' ? '☀' : t === 'Dinner' ? '🍽' : '🌙';
     const group = activeSupp.filter(r => getField(r,'SuppTiming') === t);
     if (!group.length) return;
-    html += `<div class="table-wrap"><div class="timing-header">${icon} ${t} Supplements</div>
+    suppHtml += `<div class="table-wrap"><div class="timing-header">${icon} ${t} Supplements</div>
       <table class="data-table"><thead><tr><th>Supplement</th><th>Dose</th><th>Brand</th></tr></thead><tbody>
       ${group.map(r => `<tr>
         <td><div class="compound-name">${getField(r,'Supplement')}</div></td>
@@ -771,6 +775,10 @@ function renderPrintList() {
         <td style="font-size:12px;color:var(--muted)">${getField(r,'Brand')}</td>
       </tr>`).join('')}</tbody></table></div>`;
   });
+
+  const html = pepHtml
+    ? `<div class="printlist-pep-section">${pepHtml}</div><div class="printlist-supp-section">${suppHtml}</div>`
+    : suppHtml;
 
   document.getElementById('printlist-content').innerHTML = html || '<p style="color:var(--muted)">No data loaded yet.</p>';
 }
