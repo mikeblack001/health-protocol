@@ -625,6 +625,24 @@
     </div>
     <div id="printlist-content"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
   </div>
+
+  <div id="view-goals" class="view">
+    <div class="section-header"><h2>Goals</h2><button class="btn-secondary" onclick="loadGoals(true)">↻ Refresh</button></div>
+    <div id="goals-content"><div class="loading">Loading...</div></div>
+  </div>
+
+  <div id="view-profile" class="view">
+    <div class="section-header"><h2>Profile &amp; Health Context</h2><button class="btn-secondary" onclick="loadProfileView(true)">↻ Refresh</button></div>
+    <div id="profile-content"><div class="loading">Loading...</div></div>
+  </div>
+
+  <div id="view-aicontext" class="view">
+    <div class="section-header">
+      <h2>AI Context</h2>
+      <button id="copyAIBtn" onclick="copyForAI()" style="background:var(--accent);color:#000;border:none;padding:8px 18px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;font-family:'DM Sans',sans-serif">📋 Copy for AI</button>
+    </div>
+    <div id="aicontext-content"><div class="loading">Loading...</div></div>
+  </div>
 </main>
 
 
@@ -724,21 +742,12 @@
       <button class="modal-btn primary" id="av-save-btn" onclick="saveAddVendor()">Save</button>
     </div>
   
-  <div id="view-goals" class="view">
-    <div class="section-header"><h2>Goals</h2><button class="btn-secondary" onclick="loadGoals(true)">↻ Refresh</button></div>
     <div id="goals-content" class="loading-msg">Loading...</div>
   </div>
 
-  <div id="view-profile" class="view">
-    <div class="section-header"><h2>Profile &amp; Health Context</h2><button class="btn-secondary" onclick="loadProfileView(true)">↻ Refresh</button></div>
     <div id="profile-content" class="loading-msg">Loading...</div>
   </div>
 
-  <div id="view-aicontext" class="view">
-    <div class="section-header">
-      <h2>AI Context</h2>
-      <button class="btn-primary" id="copyAIBtn" onclick="copyForAI()" style="background:var(--accent);color:#000;border:none;padding:8px 18px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600">📋 Copy for AI</button>
-    </div>
     <div id="aicontext-content" class="loading-msg">Loading...</div>
   </div>
 
