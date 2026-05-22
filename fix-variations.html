@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head><title>Fix AT Variations</title>
+<style>
+body{font-family:monospace;padding:20px;background:#111;color:#eee}
+button{padding:8px 16px;margin:4px;cursor:pointer;background:#333;color:#eee;border:1px solid #555;border-radius:6px}
+button.go{background:#1a5c2a;border-color:#2d8a42}
+#log{background:#1a1a1a;padding:16px;border-radius:8px;margin-top:16px;font-size:12px;max-height:500px;overflow:auto}
+.ok{color:#4caf50} .err{color:#f44} .info{color:#aaa}
+</style>
+</head>
+<body>
+<h2>AT Variation Cleanup</h2>
+<p>Finds all records with Variation = "Cables" or "Cable" and updates to "Cables (2:1)"</p>
+<button onclick="dryRun()">1. Dry Run (count only)</button>
+<button class="go" onclick="runFix()">2. Run Fix</button>
+<div id="log"></div>
+<script>
+const TOKEN = 'pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
+const BASE = 'appmHDG4TGT1xy6R6';
+const TABLE = 'tblKDqjy5RzqaJvjr';
+// Variation field ID
+const VAR_FIELD = 'fld2TZdmCOloH0gAK';
+// Option IDs to replace → target
+const REPLACE_OPTS = ['selgdEBGcPcsTp7aM', 'selg01spiCDykd5FY']; // Cables, Cable
+const TARGET_OPT = 'selJJNPXylEk8mRdf'; // Cables (2:1)
+
+const log = msg => { document.getElementById('log').innerHTML += msg + '<br>'; };
+
+async function fetchToFix() {
+  log('<span class="info">Scanning for Cables / Cable records...</span>');
+  let toFix = [], offset = null, page = 0;
+  do {
+    const f1 = encodeURIComponent("FIND('Cables', ARRAYJOIN({Variation})) > 0");
+    const url = `https://api.airtable.com/v0/${BASE}/${TABLE}?pageSize=100&fields[]=${VAR_FIELD}${offset?'&offset='+offset:''}`;
+    const res = await fetch(url, {headers:{Authorization:'Bearer '+TOKEN}});
+    const d = await res.json();
+    if (d.error) { log('<span class="err">Error: '+JSON.stringify(d.error)+'</span>'); return []; }
+    for (const rec of d.records||[]) {
+      const varArr = rec.fields[VAR_FIELD];
+      if (!varArr || !varArr.length) continue;
+      const names = varArr.map(v => v.name || v);
+      if (names.includes('Cables') || names.includes('Cable')) {
+        toFix.push({id: rec.id, current: names});
+      }
+    }
+    offset = d.offset;
+    page++;
+    log(`<span class="info">Page ${page}: scanned ${page*100} records, found ${toFix.length} to fix so far...</span>`);
+  } while (offset);
+  return toFix;
+}
+
+async function dryRun() {
+  document.getElementById('log').innerHTML = '';
+  const toFix = await fetchToFix();
+  log(`<br><span class="ok">DRY RUN: Found ${toFix.length} records to update.</span>`);
+  toFix.slice(0,5).forEach(r => log(`  ${r.id}: [${r.current.join(', ')}]`));
+  if (toFix.length > 5) log(`  ... and ${toFix.length-5} more`);
+}
+
+async function runFix() {
+  document.getElementById('log').innerHTML = '';
+  const toFix = await fetchToFix();
+  log(`<br><span class="info">Updating ${toFix.length} records...</span>`);
+  let done = 0, errors = 0;
+  // Batch 10 at a time
+  for (let i = 0; i < toFix.length; i += 10) {
+    const batch = toFix.slice(i, i+10);
+    const records = batch.map(r => {
+      // Replace Cables/Cable with Cables (2:1), keep other variations
+      const current = r.current.filter(n => n !== 'Cables' && n !== 'Cable');
+      if (!current.includes('Cables (2:1)')) current.push('Cables (2:1)');
+      return {id: r.id, fields: {[VAR_FIELD]: current}};
+    });
+    const res = await fetch(`https://api.airtable.com/v0/${BASE}/${TABLE}`, {
+      method: 'PATCH',
+      headers: {Authorization:'Bearer '+TOKEN, 'Content-Type':'application/json'},
+      body: JSON.stringify({records})
+    });
+    const d = await res.json();
+    if (d.error) { log('<span class="err">Batch error: '+JSON.stringify(d.error)+'</span>'); errors++; }
+    else { done += batch.length; }
+    log(`<span class="info">Progress: ${done}/${toFix.length}</span>`);
+    await new Promise(r => setTimeout(r, 250)); // rate limit
+  }
+  log(`<br><span class="ok">Done! Updated: ${done}, Errors: ${errors}</span>`);
+}
+</script>
+</body>
+</html>
