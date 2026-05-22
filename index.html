@@ -672,6 +672,26 @@
     </div>
     <div id="aicontext-content"><div class="loading">Loading...</div></div>
   </div>
+
+  <div id="view-suppchanges" class="view">
+    <div class="filter-bar">
+      <span style="font-size:13px;font-weight:500;color:var(--text)">Supplement Changes</span>
+      <select id="sc-type-filter" onchange="renderSuppChanges()" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface)">
+        <option value="">All Types</option>
+        <option>Started</option>
+        <option>Dose Change</option>
+        <option>Added</option>
+        <option>Paused</option>
+        <option>Resumed</option>
+        <option>Stopped</option>
+        <option>Removed</option>
+        <option>Note</option>
+      </select>
+      <input type="text" id="sc-supp-filter" oninput="renderSuppChanges()" placeholder="Search supplement..." style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface);width:160px">
+      <button class="filter-btn" onclick="showAddSuppChangeModal()" style="margin-left:auto;background:var(--accent);color:#fff;border-color:var(--accent)">+ Log Change</button>
+    </div>
+    <div id="suppchanges-content"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
+  </div>
 </main>
 
 
@@ -786,7 +806,7 @@
 <script>
 const TOKEN = 'pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
 const BASE = 'appmHDG4TGT1xy6R6';
-const TABLES = { peptides: 'tblMs6YRdP4wkndUp', supplements: 'tblSnkc0Gu2BzGACP', dailyLog: 'tblaYuZjl4Pu4nKxS', pricing: 'tblnW21TLSqgVerwQ', vendors: 'tblI0nfBBuHXjp3KT', workoutSessions: 'tblk9tTYIcIY4tWjF', workoutSets: 'tblKDqjy5RzqaJvjr', purchases: 'tblWmflohL6d6HC9p', bloodwork: 'tbl3200yJid6fXaOp', protocolChanges: 'tblolVx7YwO5cJhsE', goals: 'tblRuaROlyG93Bz4Y', profile: 'tblPBJkYqlnzrBK3B' };
+const TABLES = { peptides: 'tblMs6YRdP4wkndUp', supplements: 'tblSnkc0Gu2BzGACP', dailyLog: 'tblaYuZjl4Pu4nKxS', pricing: 'tblnW21TLSqgVerwQ', vendors: 'tblI0nfBBuHXjp3KT', workoutSessions: 'tblk9tTYIcIY4tWjF', workoutSets: 'tblKDqjy5RzqaJvjr', purchases: 'tblWmflohL6d6HC9p', bloodwork: 'tbl3200yJid6fXaOp', protocolChanges: 'tblolVx7YwO5cJhsE', goals: 'tblRuaROlyG93Bz4Y', profile: 'tblPBJkYqlnzrBK3B', suppChanges: 'tblcwqEVCMfSwNSMu' };
 
 let data = { peptides: [], supplements: [] };
 let currentPepFilter = 'Active';
@@ -2579,6 +2599,33 @@ function printTracker() {
   <div class="page-break">${weekTable(1)}<div class="week-spacer"></div>${weekTable(2)}</div>
   <div>${weekTable(3)}<div class="week-spacer"></div>${weekTable(4)}</div>
 
+
+<!-- ADD SUPP CHANGE MODAL -->
+<div class="modal-overlay" id="add-supp-change-modal" onclick="if(event.target===this)hideAddSuppChangeModal()" style="display:none">
+  <div class="modal-box">
+    <div class="modal-header"><h3>Log Supplement Change</h3><button class="modal-close" onclick="hideAddSuppChangeModal()">✕</button></div>
+    <div class="modal-body">
+      <div class="form-row"><label>Date</label><input type="date" id="asc-date"></div>
+      <div class="form-row"><label>Type</label>
+        <select id="asc-type" style="padding:7px 10px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);font-size:13px;width:100%">
+          <option value="">— Select —</option>
+          <option>Started</option><option>Dose Change</option><option>Added</option>
+          <option>Paused</option><option>Resumed</option><option>Stopped</option><option>Removed</option><option>Note</option>
+        </select>
+      </div>
+      <div class="form-row"><label>Supplement</label>
+        <select id="asc-supplement" style="padding:7px 10px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);font-size:13px;width:100%"></select>
+      </div>
+      <div class="form-row"><label>Description</label><textarea id="asc-description" rows="2" placeholder="What changed?"></textarea></div>
+      <div class="form-row"><label>Reason</label><textarea id="asc-reason" rows="2" placeholder="Why?"></textarea></div>
+      <div class="form-row"><label>Notes</label><textarea id="asc-notes" rows="2"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="modal-btn" onclick="hideAddSuppChangeModal()">Cancel</button>
+      <button class="modal-btn primary" id="asc-save-btn" onclick="saveAddSuppChange()">Save</button>
+    </div>
+  </div>
+</div>
 </body></html>`;
 
   const w = window.open('','_blank','width=900,height=700');
@@ -2722,6 +2769,7 @@ function buildWeeklyHTML(monday) {
     if (viewId === 'goals') loadGoals();
     if (viewId === 'profile') loadProfileView();
     if (viewId === 'aicontext') loadAIContext();
+    if (viewId === 'suppchanges') loadSuppChanges();
     closeAllDrops();
   }
   document.addEventListener('click', function(e) {
@@ -2873,6 +2921,104 @@ function buildWeeklyHTML(monday) {
       btn.textContent='✓ Copied!';btn.style.background='var(--green)';
       setTimeout(()=>{btn.innerHTML='📋 Copy for AI';btn.style.background='var(--accent)';},2500);
     });
+  }
+
+  // ── SUPPLEMENT CHANGES ──
+  const SC_FIELDS = {
+    date: 'fldIJ6m9KcDlGwxhv', type: 'fldv0vOSkqiewnuX9',
+    supplement: 'fldMtxK7c0jnu1gdb', description: 'fld4jRTrO7apwO0XQ',
+    reason: 'fldngmDIRpJF9yIWl', notes: 'fldiP9us73MUkmt39'
+  };
+  let suppChangesData = [];
+
+  async function loadSuppChanges() {
+    const el = document.getElementById('suppchanges-content');
+    el.innerHTML = '<div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div>';
+    try {
+      let records = [], offset = null;
+      do {
+        const url = `https://api.airtable.com/v0/${BASE}/${TABLES.suppChanges}?pageSize=100&sort[0][field]=Change%20Date&sort[0][direction]=desc${offset ? '&offset=' + offset : ''}`;
+        const res = await fetch(url, { headers: { Authorization: `Bearer ${TOKEN}` } });
+        const d = await res.json();
+        records.push(...(d.records || []));
+        offset = d.offset;
+      } while (offset);
+      suppChangesData = records;
+      renderSuppChanges();
+    } catch(e) { el.innerHTML = `<p style="color:var(--red);padding:16px">Error: ${e.message}</p>`; }
+  }
+
+  function renderSuppChanges() {
+    const el = document.getElementById('suppchanges-content');
+    const typeFilter = document.getElementById('sc-type-filter')?.value || '';
+    const suppFilter = (document.getElementById('sc-supp-filter')?.value || '').toLowerCase();
+    let filtered = suppChangesData.filter(r => {
+      const f = r.fields || {};
+      if (typeFilter && (f['Change Type'] || '') !== typeFilter) return false;
+      if (suppFilter && !(f['Supplement'] || '').toLowerCase().includes(suppFilter)) return false;
+      return true;
+    });
+    if (!filtered.length) { el.innerHTML = '<p style="color:var(--muted);padding:16px">No supplement changes logged yet.</p>'; return; }
+    el.innerHTML = `<div class="table-wrap"><table class="data-table">
+      <thead><tr><th>Date</th><th>Type</th><th>Supplement</th><th>Description</th><th>Reason</th><th>Notes</th></tr></thead>
+      <tbody>${filtered.map(r => {
+        const f = r.fields || {};
+        const type = f['Change Type'] || '—';
+        const color = CHANGE_COLORS[type] || 'var(--muted)';
+        return `<tr>
+          <td style="font-family:'DM Mono',monospace;font-size:12px;white-space:nowrap">${f['Change Date'] || '—'}</td>
+          <td><span style="color:${color};font-weight:600;font-size:12px">${type}</span></td>
+          <td style="font-weight:500">${f['Supplement'] || '—'}</td>
+          <td style="font-size:12px">${f['Description of Change'] || '—'}</td>
+          <td style="font-size:12px;color:var(--muted)">${f['Reason for Change'] || ''}</td>
+          <td style="font-size:12px;color:var(--muted)">${f['Notes'] || ''}</td>
+        </tr>`;
+      }).join('')}</tbody></table></div>`;
+  }
+
+  function showAddSuppChangeModal() {
+    document.getElementById('asc-date').value = new Date().toISOString().split('T')[0];
+    const sel = document.getElementById('asc-supplement');
+    sel.innerHTML = '<option value="">— Select —</option>';
+    const names = (data.supplements || [])
+      .filter(r => (getField(r,'SuppStatus')||'').toLowerCase() === 'active')
+      .map(r => getField(r,'Supplement') || '')
+      .filter(Boolean).sort();
+    names.forEach(n => { const o = document.createElement('option'); o.value = n; o.textContent = n; sel.appendChild(o); });
+    ['asc-description','asc-reason','asc-notes'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('add-supp-change-modal').style.display = 'flex';
+  }
+
+  function hideAddSuppChangeModal() {
+    document.getElementById('add-supp-change-modal').style.display = 'none';
+  }
+
+  async function saveAddSuppChange() {
+    const btn = document.getElementById('asc-save-btn');
+    btn.disabled = true; btn.textContent = 'Saving...';
+    const fields = {};
+    const date = document.getElementById('asc-date').value;
+    const type = document.getElementById('asc-type').value;
+    const supp = document.getElementById('asc-supplement').value;
+    const desc = document.getElementById('asc-description').value;
+    const reason = document.getElementById('asc-reason').value;
+    const notes = document.getElementById('asc-notes').value;
+    if (date) fields[SC_FIELDS.date] = date;
+    if (type) fields[SC_FIELDS.type] = type;
+    if (supp) fields[SC_FIELDS.supplement] = supp;
+    if (desc) fields[SC_FIELDS.description] = desc;
+    if (reason) fields[SC_FIELDS.reason] = reason;
+    if (notes) fields[SC_FIELDS.notes] = notes;
+    try {
+      const r = await fetch(`https://api.airtable.com/v0/${BASE}/${TABLES.suppChanges}`, {
+        method: 'POST', headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ records: [{ fields }] })
+      });
+      const d = await r.json();
+      if (d.records) { hideAddSuppChangeModal(); loadSuppChanges(); }
+      else alert('Error: ' + JSON.stringify(d.error || d));
+    } catch(e) { alert('Error: ' + e.message); }
+    btn.disabled = false; btn.textContent = 'Save';
   }
 </script>
 
