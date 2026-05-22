@@ -354,7 +354,7 @@
       <button class="nav-tab drop-trigger" id="nav-ex" onclick="toggleDrop('drop-ex',event)">Exercise <span class="drop-caret">▾</span></button>
       <div class="drop-menu" id="drop-ex">
         <button class="drop-item" onclick="navDrop('workouts','nav-ex')">Workouts</button>
-        <button class="drop-item drop-soon" disabled>Workout Suggestions</button>
+        <button class="drop-item" onclick="navDrop('workout-suggestions','nav-ex')">Workout Suggestions</button>
       </div>
     </div>
 
@@ -628,6 +628,23 @@
       <span class="save-status" id="log-save-status"></span>
     </div>
   </div>
+  <!-- WORKOUT SUGGESTIONS -->
+  <div id="view-workout-suggestions" class="view">
+    <div class="section-header">
+      <div>
+        <h2>Workout Suggestions</h2>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px">AI-generated progressive overload targets from your last 2 sessions</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+      <button class="filter-chip active" id="ws-btn-Push" onclick="selectWsDay('Push')">Push</button>
+      <button class="filter-chip" id="ws-btn-Pull" onclick="selectWsDay('Pull')">Pull</button>
+      <button class="filter-chip" id="ws-btn-Legs/Core" onclick="selectWsDay('Legs/Core')">Legs/Core</button>
+      <button class="filter-chip" id="ws-btn-Arms/Chest" onclick="selectWsDay('Arms/Chest')">Arms/Chest</button>
+    </div>
+    <div id="ws-content"><div class="loading-msg">Select a day to load suggestions.</div></div>
+  </div>
+
   <!-- PRINT LIST -->
   <div id="view-printlist" class="view">
     <div class="section-header">
@@ -2895,6 +2912,154 @@ function buildWeeklyPrintHTML(monday) {
   document.addEventListener('click', function(e) {
     if (!e.target.closest('.nav-dropdown')) closeAllDrops();
   });
+
+  // ── WORKOUT SUGGESTIONS ──
+  let _wsDay = 'Push';
+  let _wsLoaded = false;
+
+  function selectWsDay(day) {
+    _wsDay = day;
+    document.querySelectorAll('[id^="ws-btn-"]').forEach(b => b.classList.remove('active'));
+    const btn = document.getElementById('ws-btn-' + day);
+    if (btn) btn.classList.add('active');
+    _wsLoaded = false;
+    loadWorkoutSuggestions();
+  }
+
+  async function loadWorkoutSuggestions(force) {
+    if (_wsLoaded && !force) return;
+    const el = document.getElementById('ws-content');
+    if (!el) return;
+    el.innerHTML = '<div class="loading-msg">Fetching last 2 sessions for ' + _wsDay + '…</div>';
+
+    try {
+      // Pull all sets for this day, sorted desc, get last 2 distinct dates
+      let allRecs = [], cursor = null;
+      do {
+        const url = `https://api.airtable.com/v0/${BASE}/${TABLES.workoutSets}?pageSize=200&sort[0][field]=Date&sort[0][direction]=desc${cursor?'&offset='+cursor:''}`;
+        const res = await fetch(url, {headers:{Authorization:'Bearer '+TOKEN}});
+        const d = await res.json();
+        const dayRecs = (d.records||[]).filter(r => {
+          const dayVal = r.fields['Day'];
+          const dv = typeof dayVal === 'object' ? dayVal.name : dayVal;
+          return dv === _wsDay;
+        });
+        allRecs.push(...dayRecs);
+        cursor = d.offset;
+        // Stop once we have enough data (2+ distinct dates)
+        const dates = [...new Set(allRecs.map(r => r.fields['Date']))];
+        if (dates.length >= 2 && allRecs.filter(r => r.fields['Date'] === dates[1]).length > 0) break;
+      } while (cursor && allRecs.length < 600);
+
+      // Get last 2 distinct session dates
+      const dates = [...new Set(allRecs.map(r => r.fields['Date']))].slice(0, 2);
+      if (!dates.length) { el.innerHTML = '<div style="color:var(--muted);padding:16px">No data found for ' + _wsDay + '.</div>'; return; }
+
+      const sessionRecs = allRecs.filter(r => dates.includes(r.fields['Date']));
+
+      // Group by exercise + date → find best set (max reps at max weight)
+      const byExDate = {};
+      sessionRecs.forEach(r => {
+        const f = r.fields;
+        const ex = f['Exercise'] || '';
+        const date = f['Date'] || '';
+        const key = ex + '||' + date;
+        if (!byExDate[key]) byExDate[key] = {ex, date, sets:[]};
+        byExDate[key].sets.push({set: f['Set #']||0, reps: f['Reps']||0, weight: f['Weight (lbs)']||0});
+      });
+
+      // Per exercise, collect history across both dates
+      const exHistory = {};
+      Object.values(byExDate).forEach(({ex, date, sets}) => {
+        if (!exHistory[ex]) exHistory[ex] = [];
+        const bestSet = sets.reduce((a,b) => (b.weight > a.weight || (b.weight===a.weight && b.reps > a.reps)) ? b : a, sets[0]);
+        exHistory[ex].push({date, weight: bestSet.weight, reps: bestSet.reps, allSets: sets});
+      });
+
+      // Build compact history string for Claude
+      const historyLines = Object.entries(exHistory).map(([ex, sessions]) => {
+        const lines = sessions.map(s => `  ${s.date}: ${s.allSets.map(st => `${st.weight}lbs×${st.reps}`).join(', ')}`).join('\n');
+        return `${ex}:\n${lines}`;
+      }).join('\n\n');
+
+      el.innerHTML = '<div class="loading-msg">Generating AI suggestions…</div>';
+
+      const prompt = `You are a strength coach analyzing workout logs for a 6\'4" male doing body recomposition (fat loss + muscle building focus on arms/chest). Equipment: USA G20 Pro cable machine (weights displayed at 2:1 — actual load = displayed ÷ 2), Smith machine (35lb bar), Olympic bar (45lb). No squats due to back surgery. GLP-1 active (appetite suppressed, protein target 200-220g/day). Active peptides include Retatrutide, Tirzepatide, Tesamorelin, Ipamorelin supporting recovery and body composition.
+
+Workout day: ${_wsDay}
+Dates covered: ${dates.join(', ')}
+
+RECENT SETS (weight in lbs as logged, reps):
+${historyLines}
+
+For each exercise, suggest:
+1. Target weight for next session
+2. Target rep range
+3. Brief note (progression, form cue, or flag if weight seems plateaued)
+
+IMPORTANT: Cable machine weights shown are the stack display (actual load = displayed ÷ 2 per side). Account for this in progression — only suggest small increments (5-10 lbs on stack = 2.5-5 lbs actual per side).
+
+Return ONLY a JSON array, no markdown, no explanation:
+[{"exercise": "...", "lastWeight": ..., "lastReps": ..., "suggestedWeight": ..., "suggestedReps": "...", "note": "..."}]`;
+
+      const apiRes = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 1000,
+          messages: [{role:'user', content: prompt}]
+        })
+      });
+      const apiData = await apiRes.json();
+      let raw = (apiData.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
+      raw = raw.replace(/```json|```/g,'').trim();
+      let suggestions;
+      try { suggestions = JSON.parse(raw); } catch(e) {
+        el.innerHTML = `<div style="color:var(--red);padding:16px">Parse error: ${e.message}<br><pre style="font-size:11px;overflow:auto">${raw.slice(0,500)}</pre></div>`;
+        return;
+      }
+
+      const lastDate = dates[0];
+      const prevDate = dates[1] || '—';
+      let html = `<div style="margin-bottom:12px;font-size:11px;color:var(--muted);font-family:'DM Mono',monospace">
+        Last session: ${lastDate} · Previous: ${prevDate} · ${Object.keys(exHistory).length} exercises analyzed
+      </div>
+      <div class="table-wrap"><table class="data-table">
+        <thead><tr>
+          <th>Exercise</th>
+          <th>Last Weight</th>
+          <th>Last Reps</th>
+          <th style="color:var(--accent)">→ Target Weight</th>
+          <th style="color:var(--accent)">→ Target Reps</th>
+          <th>Note</th>
+        </tr></thead><tbody>`;
+
+      suggestions.forEach(s => {
+        const up = s.suggestedWeight > s.lastWeight;
+        const same = s.suggestedWeight === s.lastWeight;
+        const arrow = up ? '↑' : same ? '→' : '↓';
+        const arrowColor = up ? 'var(--green)' : same ? 'var(--amber)' : 'var(--muted)';
+        html += `<tr>
+          <td style="font-weight:500">${s.exercise}</td>
+          <td style="font-family:'DM Mono',monospace">${s.lastWeight}lbs</td>
+          <td style="font-family:'DM Mono',monospace">${s.lastReps}</td>
+          <td style="font-family:'DM Mono',monospace;font-weight:600;color:${arrowColor}">${arrow} ${s.suggestedWeight}lbs</td>
+          <td style="font-family:'DM Mono',monospace;color:var(--accent)">${s.suggestedReps}</td>
+          <td style="font-size:12px;color:var(--muted)">${s.note||''}</td>
+        </tr>`;
+      });
+
+      html += '</tbody></table></div>';
+      html += `<div style="margin-top:12px;text-align:right">
+        <button class="btn-secondary" onclick="loadWorkoutSuggestions(true)">↻ Regenerate</button>
+      </div>`;
+      el.innerHTML = html;
+      _wsLoaded = true;
+
+    } catch(e) { el.innerHTML = `<div style="color:var(--red);padding:16px">Error: ${e.message}</div>`; }
+  }
+
 
   // ── GOALS VIEW ──
   let goalsLoaded = false;
