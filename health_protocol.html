@@ -324,7 +324,7 @@
       <div class="drop-menu" id="drop-pep">
         <button class="drop-item" onclick="navDrop('peptides','nav-pep')">Peptides</button>
         <button class="drop-item" onclick="navDrop('tracker','nav-pep')">Peptide Tracker</button>
-        <button class="drop-item" onclick="navDrop('changes','nav-pep')">Protocol Changes</button>
+        <button class="drop-item" onclick="navDrop('changes','nav-pep')">Peptide Changes</button>
         <div class="drop-divider"></div>
         <button class="drop-item" onclick="navDrop('pricing','nav-pep')">Pricing</button>
         <button class="drop-item" onclick="navDrop('purchases','nav-pep')">Purchases</button>
@@ -336,7 +336,7 @@
       <button class="nav-tab drop-trigger" id="nav-supp" onclick="toggleDrop('drop-supp',event)">Supplements <span class="drop-caret">▾</span></button>
       <div class="drop-menu" id="drop-supp">
         <button class="drop-item" onclick="navDrop('supplements','nav-supp')">Supplements</button>
-        <button class="drop-item drop-soon" disabled>Supplement Changes</button>
+        <button class="drop-item" onclick="navDrop('suppchanges','nav-supp')">Supplement Changes</button>
       </div>
     </div>
 
@@ -678,7 +678,7 @@
   <!-- CHANGES VIEW -->
   <div id="view-changes" class="view">
     <div class="filter-bar">
-      <span style="font-size:13px;font-weight:500;color:var(--text)">Protocol Changes</span>
+      <span style="font-size:13px;font-weight:500;color:var(--text)">Peptide Changes</span>
       <select id="changes-type-filter" onchange="renderChanges()" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface)">
         <option value="">All Types</option>
         <option>Started</option>
