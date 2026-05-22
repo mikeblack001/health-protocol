@@ -5,445 +5,213 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>MB Health Protocol — AI Context</title>
 <style>
-  :root {
-    --bg: #0a0a0f;
-    --surface: #13131a;
-    --border: #1e1e2e;
-    --accent: #00d4ff;
-    --accent2: #7c3aed;
-    --green: #00ff88;
-    --yellow: #fbbf24;
-    --red: #f87171;
-    --text: #e2e8f0;
-    --muted: #64748b;
-    --card: #0f0f1a;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: var(--bg); color: var(--text); font-family: 'SF Mono', 'Fira Code', monospace; font-size: 13px; min-height: 100vh; }
-
-  /* Header */
-  .header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
-  .header-title { display: flex; align-items: center; gap: 10px; }
-  .header-title h1 { font-size: 15px; font-weight: 600; color: #fff; letter-spacing: 0.05em; }
-  .header-title span { color: var(--accent); font-size: 11px; }
-  .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px var(--green); animation: pulse 2s infinite; }
-  @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
-
-  /* Copy Button */
-  .copy-btn { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; border: none; padding: 9px 20px; border-radius: 6px; cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 600; letter-spacing: 0.03em; transition: opacity 0.2s, transform 0.1s; display: flex; align-items: center; gap: 8px; }
-  .copy-btn:hover { opacity: 0.9; transform: translateY(-1px); }
-  .copy-btn:active { transform: translateY(0); }
-  .copy-btn.copied { background: var(--green); color: #000; }
-
-  /* Layout */
-  .container { max-width: 960px; margin: 0 auto; padding: 24px; }
-  .meta { color: var(--muted); font-size: 11px; margin-bottom: 20px; display: flex; gap: 16px; }
-  .meta span { display: flex; align-items: center; gap: 4px; }
-
-  /* Sections */
-  .section { background: var(--card); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 16px; overflow: hidden; }
-  .section-header { padding: 12px 16px; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
-  .section-title { font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); display: flex; align-items: center; gap: 8px; }
-  .section-count { background: var(--border); color: var(--muted); font-size: 10px; padding: 2px 7px; border-radius: 10px; }
-  .section-body { padding: 14px 16px; }
-
-  /* Tags / Pills */
-  .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; margin: 2px 2px 2px 0; }
-  .tag-active { background: rgba(0,255,136,0.12); color: var(--green); border: 1px solid rgba(0,255,136,0.2); }
-  .tag-high { background: rgba(248,113,113,0.12); color: var(--red); border: 1px solid rgba(248,113,113,0.2); }
-  .tag-med { background: rgba(251,191,36,0.12); color: var(--yellow); border: 1px solid rgba(251,191,36,0.2); }
-  .tag-low { background: rgba(100,116,139,0.12); color: var(--muted); border: 1px solid rgba(100,116,139,0.2); }
-
-  /* Profile grid */
-  .profile-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
-  .profile-item { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
-  .profile-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; }
-  .profile-value { color: var(--text); font-size: 12px; line-height: 1.5; }
-
-  /* Peptide / Supplement rows */
-  .item-row { display: flex; align-items: baseline; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--border); }
-  .item-row:last-child { border-bottom: none; }
-  .item-name { color: #fff; font-size: 13px; font-weight: 500; flex: 0 0 auto; min-width: 160px; }
-  .item-dose { color: var(--accent); font-size: 12px; }
-  .item-timing { color: var(--muted); font-size: 11px; margin-left: auto; }
-
-  /* Goals */
-  .goal-row { padding: 10px 0; border-bottom: 1px solid var(--border); }
-  .goal-row:last-child { border-bottom: none; }
-  .goal-top { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
-  .goal-name { color: #fff; font-size: 13px; font-weight: 500; }
-  .goal-meta { font-size: 11px; color: var(--muted); }
-  .goal-target { font-size: 11px; color: var(--accent); margin-top: 2px; }
-
-  /* Workout */
-  .workout-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px; }
-  .workout-day { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 12px; }
-  .workout-day-title { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--yellow); margin-bottom: 8px; }
-  .workout-exercise { font-size: 11px; color: var(--text); padding: 2px 0; line-height: 1.5; }
-  .workout-exercise::before { content: '›'; color: var(--muted); margin-right: 5px; }
-
-  /* Loading */
-  .loading { color: var(--muted); padding: 20px 0; display: flex; align-items: center; gap: 8px; }
-  .spinner { width: 14px; height: 14px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .error { color: var(--red); font-size: 12px; padding: 8px 0; }
-
-  /* Two col for supps */
-  .supp-col { display: grid; grid-template-columns: 1fr 1fr; gap: 0 24px; }
-  .supp-header { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--yellow); margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+  :root { --bg:#0a0a0f; --surface:#13131a; --border:#1e1e2e; --accent:#00d4ff; --accent2:#7c3aed; --green:#00ff88; --yellow:#fbbf24; --red:#f87171; --text:#e2e8f0; --muted:#64748b; --card:#0f0f1a; }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:'SF Mono','Fira Code',monospace;font-size:13px;min-height:100vh}
+  .header{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+  .htitle{display:flex;align-items:center;gap:10px}
+  .htitle h1{font-size:15px;font-weight:600;color:#fff;letter-spacing:.05em}
+  .htitle span{color:var(--accent);font-size:11px}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);animation:pulse 2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+  .copy-btn{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;padding:9px 20px;border-radius:6px;cursor:pointer;font-family:inherit;font-size:13px;font-weight:600;letter-spacing:.03em;transition:opacity .2s,transform .1s;display:flex;align-items:center;gap:8px}
+  .copy-btn:hover{opacity:.9;transform:translateY(-1px)}
+  .copy-btn.copied{background:var(--green);color:#000}
+  .container{max-width:960px;margin:0 auto;padding:24px}
+  .meta{color:var(--muted);font-size:11px;margin-bottom:20px;display:flex;gap:16px}
+  .section{background:var(--card);border:1px solid var(--border);border-radius:10px;margin-bottom:16px;overflow:hidden}
+  .section-header{padding:12px 16px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+  .section-title{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);display:flex;align-items:center;gap:8px}
+  .section-count{background:var(--border);color:var(--muted);font-size:10px;padding:2px 7px;border-radius:10px}
+  .section-body{padding:14px 16px}
+  .tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;margin:2px 2px 2px 0}
+  .tag-active{background:rgba(0,255,136,.12);color:var(--green);border:1px solid rgba(0,255,136,.2)}
+  .tag-high{background:rgba(248,113,113,.12);color:var(--red);border:1px solid rgba(248,113,113,.2)}
+  .tag-med{background:rgba(251,191,36,.12);color:var(--yellow);border:1px solid rgba(251,191,36,.2)}
+  .tag-low{background:rgba(100,116,139,.12);color:var(--muted);border:1px solid rgba(100,116,139,.2)}
+  .profile-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}
+  .profile-item{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:10px 12px}
+  .profile-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+  .profile-value{color:var(--text);font-size:12px;line-height:1.5}
+  .item-row{display:flex;align-items:baseline;gap:10px;padding:6px 0;border-bottom:1px solid var(--border)}
+  .item-row:last-child{border-bottom:none}
+  .item-name{color:#fff;font-size:13px;font-weight:500;flex:0 0 auto;min-width:160px}
+  .item-dose{color:var(--accent);font-size:12px}
+  .item-timing{color:var(--muted);font-size:11px;margin-left:auto}
+  .goal-row{padding:10px 0;border-bottom:1px solid var(--border)}
+  .goal-row:last-child{border-bottom:none}
+  .goal-top{display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap}
+  .goal-name{color:#fff;font-size:13px;font-weight:500}
+  .goal-meta{font-size:11px;color:var(--muted)}
+  .goal-target{font-size:11px;color:var(--accent);margin-top:2px}
+  .workout-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+  .workout-day{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:12px}
+  .workout-day-title{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--yellow);margin-bottom:8px}
+  .workout-exercise{font-size:11px;color:var(--text);padding:2px 0;line-height:1.5}
+  .workout-exercise::before{content:'›';color:var(--muted);margin-right:5px}
+  .loading{color:var(--muted);padding:20px 0;display:flex;align-items:center;gap:8px}
+  .spinner{width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .error{color:var(--red);font-size:12px;padding:8px 0}
+  .supp-col{display:grid;grid-template-columns:1fr 1fr;gap:0 24px}
+  .supp-header{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--yellow);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+  .sec-group{margin-bottom:14px}
 </style>
 </head>
 <body>
-
 <div class="header">
-  <div class="header-title">
-    <div class="status-dot"></div>
+  <div class="htitle">
+    <div class="dot"></div>
     <h1>MB HEALTH PROTOCOL</h1>
     <span>LIVE · AI CONTEXT</span>
   </div>
-  <button class="copy-btn" id="copyBtn" onclick="copyForAI()">
-    <span>📋</span> Copy for AI
-  </button>
+  <button class="copy-btn" id="copyBtn" onclick="copyForAI()"><span>📋</span> Copy for AI</button>
 </div>
-
 <div class="container">
   <div class="meta">
-    <span>⏱ Auto-refreshes on load</span>
+    <span>⚡ Live from Airtable</span>
     <span id="loadTime"></span>
-    <span>🔗 <a href="https://mikeblack001.github.io/health-protocol" style="color:var(--accent);text-decoration:none">health-protocol</a></span>
+    <span>← <a href="health_protocol.html" style="color:var(--accent);text-decoration:none">Back to Protocol</a></span>
   </div>
 
-  <!-- PROFILE -->
   <div class="section" id="sec-profile">
-    <div class="section-header">
-      <div class="section-title">👤 Profile & Health Context</div>
-      <div class="section-count" id="cnt-profile">—</div>
-    </div>
-    <div class="section-body">
-      <div class="loading"><div class="spinner"></div> Loading...</div>
-    </div>
+    <div class="section-header"><div class="section-title">👤 Profile & Health Context</div><div class="section-count" id="cnt-profile">—</div></div>
+    <div class="section-body"><div class="loading"><div class="spinner"></div> Loading...</div></div>
   </div>
-
-  <!-- ACTIVE PEPTIDES -->
   <div class="section" id="sec-peptides">
-    <div class="section-header">
-      <div class="section-title">💉 Active Peptides</div>
-      <div class="section-count" id="cnt-peptides">—</div>
-    </div>
-    <div class="section-body">
-      <div class="loading"><div class="spinner"></div> Loading...</div>
-    </div>
+    <div class="section-header"><div class="section-title">💉 Active Peptides</div><div class="section-count" id="cnt-peptides">—</div></div>
+    <div class="section-body"><div class="loading"><div class="spinner"></div> Loading...</div></div>
   </div>
-
-  <!-- SUPPLEMENTS -->
   <div class="section" id="sec-supps">
-    <div class="section-header">
-      <div class="section-title">💊 Supplements</div>
-      <div class="section-count" id="cnt-supps">—</div>
-    </div>
-    <div class="section-body">
-      <div class="loading"><div class="spinner"></div> Loading...</div>
-    </div>
+    <div class="section-header"><div class="section-title">💊 Supplements</div><div class="section-count" id="cnt-supps">—</div></div>
+    <div class="section-body"><div class="loading"><div class="spinner"></div> Loading...</div></div>
   </div>
-
-  <!-- GOALS -->
   <div class="section" id="sec-goals">
-    <div class="section-header">
-      <div class="section-title">🎯 Goals</div>
-      <div class="section-count" id="cnt-goals">—</div>
-    </div>
-    <div class="section-body">
-      <div class="loading"><div class="spinner"></div> Loading...</div>
-    </div>
+    <div class="section-header"><div class="section-title">🎯 Goals</div><div class="section-count" id="cnt-goals">—</div></div>
+    <div class="section-body"><div class="loading"><div class="spinner"></div> Loading...</div></div>
   </div>
-
-  <!-- WORKOUTS -->
   <div class="section" id="sec-workouts">
-    <div class="section-header">
-      <div class="section-title">🏋️ Workout Split</div>
-      <div class="section-count">4-Day</div>
-    </div>
-    <div class="section-body">
-      <div class="loading"><div class="spinner"></div> Loading...</div>
-    </div>
+    <div class="section-header"><div class="section-title">🏋️ Workout Split</div><div class="section-count">4-Day</div></div>
+    <div class="section-body"><div class="loading"><div class="spinner"></div> Loading...</div></div>
   </div>
-
 </div>
 
 <script>
-const AT_TOKEN = "pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a";
+const AT = "pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a";
 const BASE = "appmHDG4TGT1xy6R6";
-const TABLES = {
-  peptides:    "tblMs6YRdP4wkndUp",
-  supplements: "tblSnkc0Gu2BzGACP",
-  goals:       "tblRuaROlyG93Bz4Y",
-  profile:     "tblPBJkYqlnzrBK3B"
-};
+const T = { peptides:"tblMs6YRdP4wkndUp", supplements:"tblSnkc0Gu2BzGACP", goals:"tblRuaROlyG93Bz4Y", profile:"tblPBJkYqlnzrBK3B" };
 
-const WORKOUT_DAYS = [
-  { day: "Monday — Push", exercises: ["Bench Press","Incline Press","Decline Press","Incline Fly","High Cable Fly","Lateral Raises","Seated Shoulder Press","Tricep Pushdowns","Overhead Tricep Ext","Cable Cross Overs","Wrist Twist"] },
-  { day: "Tuesday — Pull", exercises: ["Lat Pulldown","Bent Over Rows","Cable Rows","Face Pulls","Rear Delt Raises","Bicep Curls-Preacher","Hammer Curls","Cable Shrugs","Cable Curls","Barbell Shrugs"] },
-  { day: "Wednesday — Legs/Core", exercises: ["Leg Press","Leg Extensions","Leg Curls","Hip Thrust","Nordic Curl","Reverse Hyper","DB Calf Raises","Smith Mach Calf Raises","Back Extension","Forward Back Stretch"] },
-  { day: "Thursday — Arms/Chest", exercises: ["Cable Press","Low Cable Fly","Incline Curls","Overhead Tricep Press","Curls (Standing)","Tricep Ext Down","Tricep Ext Up","Forearm Raise - Cable"] }
+const WORKOUTS = [
+  {day:"Monday — Push", ex:["Bench Press","Incline Press","Decline Press","Incline Fly","High Cable Fly","Lateral Raises","Seated Shoulder Press","Tricep Pushdowns","Overhead Tricep Ext","Cable Cross Overs","Wrist Twist"]},
+  {day:"Tuesday — Pull", ex:["Lat Pulldown","Bent Over Rows","Cable Rows","Face Pulls","Rear Delt Raises","Bicep Curls-Preacher","Hammer Curls","Cable Shrugs","Cable Curls","Barbell Shrugs"]},
+  {day:"Wednesday — Legs/Core", ex:["Leg Press","Leg Extensions","Leg Curls","Hip Thrust","Nordic Curl","Reverse Hyper","DB Calf Raises","Smith Mach Calf Raises","Back Extension","Forward Back Stretch"]},
+  {day:"Thursday — Arms/Chest", ex:["Cable Press","Low Cable Fly","Incline Curls","Overhead Tricep Press","Curls (Standing)","Tricep Ext Down","Tricep Ext Up","Forearm Raise - Cable"]}
 ];
 
-// Stored data for copy
-let data = { profile: [], peptides: [], supplements: [], goals: [] };
+let DATA = { profile:[], peptides:[], supplements:[], goals:[] };
 
-async function atFetch(tableId, params = "") {
-  const r = await fetch(`https://api.airtable.com/v0/${BASE}/${tableId}?${params}`, {
-    headers: { "Authorization": "Bearer " + AT_TOKEN }
-  });
-  const d = await r.json();
-  let records = d.records || [];
-  // paginate
-  let offset = d.offset;
-  while (offset) {
-    const r2 = await fetch(`https://api.airtable.com/v0/${BASE}/${tableId}?${params}&offset=${offset}`, {
-      headers: { "Authorization": "Bearer " + AT_TOKEN }
-    });
-    const d2 = await r2.json();
-    records = records.concat(d2.records || []);
-    offset = d2.offset;
+async function atFetch(tableId, params="") {
+  let url = `https://api.airtable.com/v0/${BASE}/${tableId}?${params}`;
+  let recs = [];
+  while(url) {
+    const r = await fetch(url, {headers:{"Authorization":"Bearer "+AT}});
+    const d = await r.json();
+    recs = recs.concat(d.records||[]);
+    url = d.offset ? `https://api.airtable.com/v0/${BASE}/${tableId}?${params}&offset=${d.offset}` : null;
   }
-  return records;
+  return recs;
 }
 
-function f(record, field) {
-  return record.fields[field] || "";
-}
+function g(r,f){ return (r.fields||{})[f]||""; }
+function body(id){ return document.querySelector(`#${id} .section-body`); }
 
-// ── PROFILE ──
 async function loadProfile() {
-  try {
-    const recs = await atFetch(TABLES.profile, "sort[0][field]=Section&sort[0][direction]=asc");
-    data.profile = recs;
-    document.getElementById("cnt-profile").textContent = recs.length;
-
-    const sections = {};
-    recs.forEach(r => {
-      const sec = f(r, "Section") || "Other";
-      if (!sections[sec]) sections[sec] = [];
-      sections[sec].push(r);
-    });
-
-    let html = "";
-    Object.entries(sections).forEach(([sec, items]) => {
-      html += `<div style="margin-bottom:14px"><div class="supp-header">${sec}</div><div class="profile-grid">`;
-      items.forEach(r => {
-        html += `<div class="profile-item"><div class="profile-label">${f(r,"Label")}</div><div class="profile-value">${(f(r,"Value")||"").replace(/\n/g,"<br>")}</div></div>`;
-      });
-      html += `</div></div>`;
-    });
-    document.querySelector("#sec-profile .section-body").innerHTML = html;
-  } catch(e) {
-    document.querySelector("#sec-profile .section-body").innerHTML = `<div class="error">Error: ${e.message}</div>`;
-  }
+  const recs = await atFetch(T.profile, "sort[0][field]=Section&sort[0][direction]=asc");
+  DATA.profile = recs;
+  document.getElementById("cnt-profile").textContent = recs.length;
+  const secs = {};
+  recs.forEach(r=>{ const s=g(r,"Section")||"Other"; if(!secs[s])secs[s]=[]; secs[s].push(r); });
+  let html="";
+  Object.entries(secs).forEach(([s,items])=>{
+    html+=`<div class="sec-group"><div class="supp-header">${s}</div><div class="profile-grid">`;
+    items.forEach(r=>{ html+=`<div class="profile-item"><div class="profile-label">${g(r,"Label")}</div><div class="profile-value">${(g(r,"Value")||"").replace(/\n/g,"<br>")}</div></div>`; });
+    html+=`</div></div>`;
+  });
+  body("sec-profile").innerHTML=html;
 }
 
-// ── PEPTIDES ──
 async function loadPeptides() {
-  try {
-    const recs = await atFetch(TABLES.peptides, encodeURI('filterByFormula={Status}="Active"&sort[0][field]=Name'));
-    data.peptides = recs;
-    document.getElementById("cnt-peptides").textContent = recs.length + " active";
-
-    let html = "";
-    recs.forEach(r => {
-      const name = f(r,"Name") || f(r,"Peptide") || Object.values(r.fields)[0] || "Unknown";
-      const dose = f(r,"Dose") || f(r,"Amount") || "";
-      const timing = f(r,"Timing") || f(r,"Time") || f(r,"Frequency") || "";
-      html += `<div class="item-row">
-        <span class="item-name">${name}</span>
-        ${dose ? `<span class="item-dose">${dose}</span>` : ""}
-        ${timing ? `<span class="item-timing">${timing}</span>` : ""}
-        <span class="tag tag-active">Active</span>
-      </div>`;
-    });
-    document.querySelector("#sec-peptides .section-body").innerHTML = html || `<div class="error">No active peptides found. Check field names.</div>`;
-  } catch(e) {
-    document.querySelector("#sec-peptides .section-body").innerHTML = `<div class="error">Error: ${e.message}</div>`;
-  }
+  const recs = await atFetch(T.peptides, encodeURI('filterByFormula={Status}="Active"&sort[0][field]=Compound'));
+  DATA.peptides = recs;
+  document.getElementById("cnt-peptides").textContent = recs.length+" active";
+  let html="";
+  recs.forEach(r=>{
+    const name=g(r,"Compound"), dose=g(r,"Dose"), freq=g(r,"Frequency"), timing=g(r,"Timing");
+    const sub=[freq,timing].filter(Boolean).join(" · ");
+    html+=`<div class="item-row"><span class="item-name">${name}</span>${dose?`<span class="item-dose">${dose}</span>`:""}<span class="item-timing">${sub}</span><span class="tag tag-active">Active</span></div>`;
+  });
+  body("sec-peptides").innerHTML=html||`<div class="error">No active peptides found</div>`;
 }
 
-// ── SUPPLEMENTS ──
 async function loadSupps() {
-  try {
-    const recs = await atFetch(TABLES.supplements, "sort[0][field]=Name");
-    data.supplements = recs;
-    document.getElementById("cnt-supps").textContent = recs.length;
-
-    const am = recs.filter(r => {
-      const t = (f(r,"Timing")||f(r,"Time")||"").toLowerCase();
-      return t.includes("morning") || t.includes("am");
-    });
-    const pm = recs.filter(r => {
-      const t = (f(r,"Timing")||f(r,"Time")||"").toLowerCase();
-      return t.includes("night") || t.includes("pm") || t.includes("evening");
-    });
-    const other = recs.filter(r => !am.includes(r) && !pm.includes(r));
-
-    function suppRows(arr) {
-      return arr.map(r => {
-        const name = f(r,"Name")||f(r,"Supplement")||Object.values(r.fields)[0]||"Unknown";
-        const dose = f(r,"Dose")||f(r,"Amount")||"";
-        return `<div class="item-row"><span class="item-name">${name}</span>${dose?`<span class="item-dose">${dose}</span>`:""}</div>`;
-      }).join("");
-    }
-
-    let html = `<div class="supp-col">
-      <div><div class="supp-header">☀️ Morning (${am.length})</div>${suppRows(am)||"<div class='error'>No AM supps found</div>"}</div>
-      <div><div class="supp-header">🌙 Night (${pm.length})</div>${suppRows(pm)||"<div class='error'>No PM supps found</div>"}</div>
-    </div>`;
-    if (other.length) html += `<div style="margin-top:12px"><div class="supp-header">Other (${other.length})</div>${suppRows(other)}</div>`;
-
-    document.querySelector("#sec-supps .section-body").innerHTML = html;
-  } catch(e) {
-    document.querySelector("#sec-supps .section-body").innerHTML = `<div class="error">Error: ${e.message}</div>`;
-  }
+  const recs = await atFetch(T.supplements, "sort[0][field]=Supplement");
+  DATA.supplements = recs;
+  document.getElementById("cnt-supps").textContent = recs.length;
+  const active = recs.filter(r=>(g(r,"SuppStatus")||"").toLowerCase()==="active");
+  const am = active.filter(r=>(g(r,"SuppTiming")||"").toLowerCase().includes("morning"));
+  const pm = active.filter(r=>(g(r,"SuppTiming")||"").toLowerCase().includes("night")||(g(r,"SuppTiming")||"").toLowerCase().includes("evening"));
+  const other = active.filter(r=>!am.includes(r)&&!pm.includes(r));
+  const row=r=>`<div class="item-row"><span class="item-name">${g(r,"Supplement")}</span><span class="item-dose">${g(r,"SuppDose")}</span></div>`;
+  body("sec-supps").innerHTML=`<div class="supp-col">
+    <div><div class="supp-header">☀️ Morning (${am.length})</div>${am.map(row).join("")||"<div class='error'>None</div>"}</div>
+    <div><div class="supp-header">🌙 Night (${pm.length})</div>${pm.map(row).join("")||"<div class='error'>None</div>"}</div>
+  </div>${other.length?`<div style="margin-top:12px"><div class="supp-header">Other (${other.length})</div>${other.map(row).join("")}</div>`:""}`;
 }
 
-// ── GOALS ──
 async function loadGoals() {
-  try {
-    const recs = await atFetch(TABLES.goals, "sort[0][field]=Priority&sort[0][direction]=asc&sort[1][field]=Category");
-    data.goals = recs;
-    document.getElementById("cnt-goals").textContent = recs.length;
-
-    let html = "";
-    recs.forEach(r => {
-      const name = f(r,"Goal");
-      const cat = f(r,"Category");
-      const pri = f(r,"Priority");
-      const target = f(r,"TargetMetric");
-      const status = f(r,"CurrentStatus");
-      const priClass = pri==="High"?"tag-high":pri==="Medium"?"tag-med":"tag-low";
-      html += `<div class="goal-row">
-        <div class="goal-top">
-          <span class="goal-name">${name}</span>
-          <span class="tag ${priClass}">${pri}</span>
-          ${cat?`<span class="tag" style="background:rgba(124,58,237,0.1);color:#a78bfa;border:1px solid rgba(124,58,237,0.2)">${cat}</span>`:""}
-          ${status?`<span class="goal-meta">· ${status}</span>`:""}
-        </div>
-        ${target?`<div class="goal-target">→ ${target}</div>`:""}
-      </div>`;
-    });
-    document.querySelector("#sec-goals .section-body").innerHTML = html;
-  } catch(e) {
-    document.querySelector("#sec-goals .section-body").innerHTML = `<div class="error">Error: ${e.message}</div>`;
-  }
+  const recs = await atFetch(T.goals, "sort[0][field]=Priority&sort[0][direction]=asc");
+  DATA.goals = recs;
+  document.getElementById("cnt-goals").textContent = recs.length;
+  let html="";
+  recs.forEach(r=>{
+    const pri=g(r,"Priority"), cat=g(r,"Category"), target=g(r,"TargetMetric"), status=g(r,"CurrentStatus");
+    const pc=pri==="High"?"tag-high":pri==="Medium"?"tag-med":"tag-low";
+    html+=`<div class="goal-row"><div class="goal-top"><span class="goal-name">${g(r,"Goal")}</span><span class="tag ${pc}">${pri}</span>${cat?`<span class="tag" style="background:rgba(124,58,237,.1);color:#a78bfa;border:1px solid rgba(124,58,237,.2)">${cat}</span>`:""} ${status?`<span class="goal-meta">· ${status}</span>`:""}</div>${target?`<div class="goal-target">→ ${target}</div>`:""}</div>`;
+  });
+  body("sec-goals").innerHTML=html;
 }
 
-// ── WORKOUTS (hardcoded canonical) ──
 function loadWorkouts() {
-  const html = `<div class="workout-grid">${WORKOUT_DAYS.map(d=>`
-    <div class="workout-day">
-      <div class="workout-day-title">${d.day}</div>
-      ${d.exercises.map(e=>`<div class="workout-exercise">${e}</div>`).join("")}
-    </div>`).join("")}</div>`;
-  document.querySelector("#sec-workouts .section-body").innerHTML = html;
+  body("sec-workouts").innerHTML=`<div class="workout-grid">${WORKOUTS.map(d=>`<div class="workout-day"><div class="workout-day-title">${d.day}</div>${d.ex.map(e=>`<div class="workout-exercise">${e}</div>`).join("")}</div>`).join("")}</div>`;
 }
 
-// ── COPY FOR AI ──
 function copyForAI() {
-  const btn = document.getElementById("copyBtn");
-  const now = new Date().toLocaleDateString("en-US", {month:"long",day:"numeric",year:"numeric"});
-
-  // Profile sections
-  const profileSections = {};
-  data.profile.forEach(r => {
-    const sec = r.fields["Section"] || "Other";
-    if (!profileSections[sec]) profileSections[sec] = [];
-    profileSections[sec].push(`  ${r.fields["Label"] || ""}: ${r.fields["Value"] || ""}`);
-  });
-
-  // Peptides
-  const pepLines = data.peptides.map(r => {
-    const name = r.fields["Name"]||r.fields["Peptide"]||Object.values(r.fields)[0]||"Unknown";
-    const dose = r.fields["Dose"]||r.fields["Amount"]||"";
-    const timing = r.fields["Timing"]||r.fields["Time"]||r.fields["Frequency"]||"";
-    return `  - ${name}${dose?" | "+dose:""}${timing?" | "+timing:""}`;
-  });
-
-  // Supplements
-  const amSupps = data.supplements.filter(r=>{const t=(r.fields["Timing"]||r.fields["Time"]||"").toLowerCase();return t.includes("morning")||t.includes("am");});
-  const pmSupps = data.supplements.filter(r=>{const t=(r.fields["Timing"]||r.fields["Time"]||"").toLowerCase();return t.includes("night")||t.includes("pm")||t.includes("evening");});
-  const otherSupps = data.supplements.filter(r=>!amSupps.includes(r)&&!pmSupps.includes(r));
-
-  function suppLine(r) {
-    const name = r.fields["Name"]||r.fields["Supplement"]||Object.values(r.fields)[0]||"Unknown";
-    const dose = r.fields["Dose"]||r.fields["Amount"]||"";
-    return `  - ${name}${dose?" | "+dose:""}`;
-  }
-
-  // Goals
-  const goalLines = data.goals.map(r =>
-    `  [${r.fields["Priority"]||""}] ${r.fields["Goal"]||""} (${r.fields["Category"]||""})` +
-    (r.fields["TargetMetric"]?`\n    Target: ${r.fields["TargetMetric"]}`:"") +
-    (r.fields["CurrentStatus"]?`\n    Status: ${r.fields["CurrentStatus"]}`:"")
-  );
-
-  // Workouts
-  const workoutLines = WORKOUT_DAYS.map(d=>`  ${d.day}:\n${d.exercises.map(e=>"    - "+e).join("\n")}`);
-
-  let text = `=== MB HEALTH PROTOCOL — AI CONTEXT ===
-Generated: ${now}
-Source: Live from Airtable Health OS Base
----
-
-## PERSONAL PROFILE
-`;
-  Object.entries(profileSections).forEach(([sec, lines]) => {
-    text += `\n### ${sec}\n${lines.join("\n")}\n`;
-  });
-
-  text += `
----
-## ACTIVE PEPTIDES (${data.peptides.length} compounds)
-${pepLines.join("\n") || "  (none found)"}
-
----
-## SUPPLEMENTS
-
-### Morning Stack (${amSupps.length} items)
-${amSupps.map(suppLine).join("\n") || "  (none found)"}
-
-### Night Stack (${pmSupps.length} items)
-${pmSupps.map(suppLine).join("\n") || "  (none found)"}
-${otherSupps.length ? "\n### Other\n"+otherSupps.map(suppLine).join("\n") : ""}
-
----
-## GOALS (${data.goals.length} total)
-${goalLines.join("\n\n") || "  (none found)"}
-
----
-## WORKOUT SPLIT (4-Day)
-Note: Back surgery — NO squats. Substitutes used (leg press, hip thrust, reverse hyper, etc.)
-Equipment: USA G20 Pro (cables 2:1 ratio), Smith 35lb bar, Olympic 45lb bar.
-
-${workoutLines.join("\n\n")}
-
----
-END OF CONTEXT
-`;
-
-  navigator.clipboard.writeText(text).then(() => {
-    btn.textContent = "✓ Copied!";
-    btn.classList.add("copied");
-    setTimeout(() => {
-      btn.innerHTML = "<span>📋</span> Copy for AI";
-      btn.classList.remove("copied");
-    }, 2500);
+  const btn=document.getElementById("copyBtn");
+  const now=new Date().toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"});
+  const profSecs={};
+  DATA.profile.forEach(r=>{ const s=r.fields["Section"]||"Other"; if(!profSecs[s])profSecs[s]=[]; profSecs[s].push(`  ${r.fields["Label"]||""}: ${r.fields["Value"]||""}`); });
+  const pepLines=DATA.peptides.map(r=>`  - ${g(r,"Compound")}${g(r,"Dose")?" | "+g(r,"Dose"):""}${g(r,"Frequency")?" | "+g(r,"Frequency"):""}${g(r,"Timing")?" | "+g(r,"Timing"):""}`);
+  const active=DATA.supplements.filter(r=>(g(r,"SuppStatus")||"").toLowerCase()==="active");
+  const am=active.filter(r=>(g(r,"SuppTiming")||"").toLowerCase().includes("morning"));
+  const pm=active.filter(r=>(g(r,"SuppTiming")||"").toLowerCase().includes("night")||(g(r,"SuppTiming")||"").toLowerCase().includes("evening"));
+  const sl=r=>`  - ${g(r,"Supplement")}${g(r,"SuppDose")?" | "+g(r,"SuppDose"):""}`;
+  const goalLines=DATA.goals.map(r=>`  [${g(r,"Priority")}] ${g(r,"Goal")} (${g(r,"Category")})${g(r,"TargetMetric")?"\n    Target: "+g(r,"TargetMetric"):""}${g(r,"CurrentStatus")?"\n    Status: "+g(r,"CurrentStatus"):""}`);
+  const wLines=WORKOUTS.map(d=>`  ${d.day}:\n${d.ex.map(e=>"    - "+e).join("\n")}`);
+  let txt=`=== MB HEALTH PROTOCOL — AI CONTEXT ===\nGenerated: ${now}\nSource: Live from Airtable Health OS\n---\n\n## PERSONAL PROFILE\n`;
+  Object.entries(profSecs).forEach(([s,lines])=>{ txt+=`\n### ${s}\n${lines.join("\n")}\n`; });
+  txt+=`\n---\n## ACTIVE PEPTIDES (${DATA.peptides.length} compounds)\n${pepLines.join("\n")||"  (none)"}\n\n---\n## SUPPLEMENTS\n\n### Morning Stack (${am.length} items)\n${am.map(sl).join("\n")||"  (none)"}\n\n### Night Stack (${pm.length} items)\n${pm.map(sl).join("\n")||"  (none)"}\n\n---\n## GOALS (${DATA.goals.length} total)\n${goalLines.join("\n\n")||"  (none)"}\n\n---\n## WORKOUT SPLIT (4-Day)\nNote: Back surgery — NO squats. Substitutes: leg press, hip thrust, reverse hypers, etc.\nEquipment: USA G20 Pro cables (2:1 ratio), Smith 35lb bar, Olympic 45lb bar.\n\n${wLines.join("\n\n")}\n\n---\nEND OF CONTEXT\n`;
+  navigator.clipboard.writeText(txt).then(()=>{
+    btn.textContent="✓ Copied!"; btn.classList.add("copied");
+    setTimeout(()=>{ btn.innerHTML="<span>📋</span> Copy for AI"; btn.classList.remove("copied"); }, 2500);
   });
 }
 
-// ── INIT ──
 async function init() {
-  const start = Date.now();
-  await Promise.all([loadProfile(), loadPeptides(), loadSupps(), loadGoals(), loadWorkouts()]);
-  document.getElementById("loadTime").textContent = `⚡ Loaded in ${Date.now()-start}ms`;
+  const t=Date.now();
+  await Promise.all([loadProfile(),loadPeptides(),loadSupps(),loadGoals()]);
+  loadWorkouts();
+  document.getElementById("loadTime").textContent=`⚡ ${Date.now()-t}ms`;
 }
-
 init();
 </script>
 </body>
