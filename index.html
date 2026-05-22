@@ -2835,40 +2835,40 @@ function buildWeeklyHTML(monday) {
     if (_wsLoaded && !force) return;
     const el = document.getElementById('ws-content');
     if (!el) return;
-    el.innerHTML = '<div class="loading-msg">Fetching last 2 sessions for ' + _wsDay + '…</div>';
+    el.innerHTML = '<div class="loading-msg">Loading ' + _wsDay + ' suggestions…</div>';
 
-    // Rep target map by exercise — science-based per muscle group
+    // Rep targets by base exercise name
     const REP_TARGETS = {
-      // Calves — high rep
-      'DB Calf Raises':         {min:20, max:25},
-      'Smith Mach Calf Raises': {min:20, max:25},
-      // Legs — moderate/high rep
-      'Leg Press':              {min:15, max:20},
-      'Leg Extensions':         {min:15, max:20},
-      'Leg Curls':              {min:15, max:20},
-      'Hip Thrust':             {min:15, max:20},
-      'Reverse Hyper':          {min:15, max:20},
-      'Nordic Curl':            {min:12, max:15},
-      'Back Extension':         {min:15, max:20},
-      // Isolation / rear delt / core
-      'Lateral Raises':         {min:12, max:15},
-      'Face Pulls':             {min:15, max:20},
-      'Rear Delt Raises':       {min:15, max:20},
-      'Wrist Twist':            {min:15, max:20},
-      'Forearm Raise - Cable':  {min:15, max:20},
-      'Forward Back Stretch':   {min:15, max:20},
+      'DB Calf Raises':         {min:20,max:25},
+      'Smith Mach Calf Raises': {min:20,max:25},
+      'Leg Press':              {min:15,max:20},
+      'Leg Extensions':         {min:15,max:20},
+      'Leg Curls':              {min:15,max:20},
+      'Hip Thrust':             {min:15,max:20},
+      'Reverse Hyper':          {min:15,max:20},
+      'Nordic Curl':            {min:12,max:15},
+      'Back Extension':         {min:15,max:20},
+      'Lateral Raises':         {min:12,max:15},
+      'Face Pulls':             {min:15,max:20},
+      'Rear Delt Raises':       {min:15,max:20},
+      'Wrist Twist':            {min:15,max:20},
+      'Forearm Raise - Cable':  {min:15,max:20},
+      'Forward Back Stretch':   {min:15,max:20},
     };
-    function getTarget(ex) {
-      return REP_TARGETS[ex] || {min:8, max:12};
+
+    // Cable detection uses VARIATION string, not exercise name
+    function isCableVariation(variation) {
+      return /cable|cables|1\/2|lat machine|rope|v-bar|uclip|pulldown/i.test(variation);
     }
-    function isCable(ex) {
-      return /cable|pushdown|pulldown|fly|face pull|cross|lat machine|forearm raise/i.test(ex);
-    }
-    function increment(ex, weight) {
-      return isCable(ex) ? weight + 10 : weight + 5;
+    function weightIncrement(variation, exercise) {
+      // Cable: increment stack by 10 (= 5lbs actual per side)
+      // Smith/barbell: 5lbs
+      if (isCableVariation(variation)) return 10;
+      return 5;
     }
 
     try {
+      // Fetch all sets for this day, last 2 sessions
       let allRecs = [], cursor = null;
       do {
         const formula = encodeURIComponent("{Day}='" + _wsDay + "'");
@@ -2878,114 +2878,107 @@ function buildWeeklyHTML(monday) {
           + (cursor ? "&offset=" + cursor : "");
         const res = await fetch(url, {headers:{Authorization:"Bearer " + TOKEN}});
         const d = await res.json();
-        if (d.error) { el.innerHTML = '<div style="color:var(--red);padding:16px">AT Error: ' + JSON.stringify(d.error) + '</div>'; return; }
+        if (d.error) { el.innerHTML = '<div style="color:var(--red);padding:16px">Error: ' + d.error.message + '</div>'; return; }
         allRecs.push(...(d.records||[]));
         cursor = d.offset;
         if ([...new Set(allRecs.map(r => r.fields['Date']))].length >= 2) break;
-      } while (cursor && allRecs.length < 600);
+      } while (cursor && allRecs.length < 500);
 
-      const dates = [...new Set(allRecs.map(r => r.fields['Date']))].slice(0, 2);
-      if (!dates.length) { el.innerHTML = '<div style="color:var(--muted);padding:16px">No data found for ' + _wsDay + '.</div>'; return; }
+      const dates = [...new Set(allRecs.map(r => r.fields['Date']))].slice(0,2);
+      if (!dates.length) { el.innerHTML = '<div style="color:var(--muted);padding:16px">No sessions found for ' + _wsDay + '.</div>'; return; }
 
-      // Group sets by exercise + variation + date
-      const byExDate = {};
+      // Group by Exercise + Variation + Date
+      // Key: "ExerciseName|||VariationString"
+      const groups = {};
       allRecs.filter(r => dates.includes(r.fields['Date'])).forEach(r => {
         const f = r.fields;
-        const ex = f['Exercise'] || ''; const date = f['Date'] || '';
-        if (!ex || !date) return;
-        const varArr = f['Variation'];
-        const variation = varArr && varArr.length ? varArr.join(', ') : '';
-        const exKey = ex + (variation ? ' (' + variation + ')' : '');
-        const key = exKey + '||' + date;
-        if (!byExDate[key]) byExDate[key] = {ex: exKey, baseEx: ex, date, sets:[]};
-        byExDate[key].sets.push({reps: f['Reps']||0, weight: f['Weight (lbs)']||0});
+        const exercise = (f['Exercise'] || '').trim();
+        const date = f['Date'] || '';
+        if (!exercise || !date) return;
+        const varRaw = f['Variation'];
+        const variation = Array.isArray(varRaw) ? varRaw.join(', ') : (varRaw || '');
+        const groupKey = exercise + '|||' + variation;
+        if (!groups[groupKey]) groups[groupKey] = {exercise, variation, sessions:{}};
+        if (!groups[groupKey].sessions[date]) groups[groupKey].sessions[date] = [];
+        groups[groupKey].sessions[date].push({reps: f['Reps']||0, weight: f['Weight (lbs)']||0});
       });
 
-      // Build per-exercise+variation history (newest first)
-      const exHistory = {};
-      Object.values(byExDate).forEach(({ex, baseEx, date, sets}) => {
-        if (!exHistory[ex]) exHistory[ex] = {baseEx, sessions:[]};
-        const avgReps = sets.reduce((a,b) => a + b.reps, 0) / sets.length;
-        const topWeight = Math.max(...sets.map(s => s.weight));
-        exHistory[ex].sessions.push({date, topWeight, avgReps, sets});
-      });
-      Object.values(exHistory).forEach(e => e.sessions.sort((a,b) => b.date.localeCompare(a.date)));
+      // Build suggestions
+      const rows = Object.values(groups).map(g => {
+        const target = REP_TARGETS[g.exercise] || {min:8, max:12};
+        const sortedDates = Object.keys(g.sessions).sort((a,b) => b.localeCompare(a));
+        const lastDate = sortedDates[0], prevDate = sortedDates[1] || null;
+        const lastSets = g.sessions[lastDate];
+        const prevSets = prevDate ? g.sessions[prevDate] : null;
 
-      const suggestions = Object.entries(exHistory).map(([ex, {baseEx, sessions}]) => {
-        const last = sessions[0], prev = sessions[1];
-        const target = getTarget(baseEx);
-        const lastAvg = parseFloat(last.avgReps.toFixed(1));
-        const prevAvg = prev ? parseFloat(prev.avgReps.toFixed(1)) : null;
+        const avg = sets => sets.reduce((a,b) => a + b.reps, 0) / sets.length;
+        const topW = sets => Math.max(...sets.map(s => s.weight));
 
-        // Trend arrow for avg reps
-        let trend = '→';
+        const lastAvg = parseFloat(avg(lastSets).toFixed(1));
+        const lastTop = topW(lastSets);
+        const prevAvg = prevSets ? parseFloat(avg(prevSets).toFixed(1)) : null;
+        const prevTop = prevSets ? topW(prevSets) : null;
+
+        // Avg reps trend vs prev session
+        let trend = '—';
         if (prevAvg !== null) {
-          if (lastAvg > prevAvg + 0.5) trend = '↑';
-          else if (lastAvg < prevAvg - 0.5) trend = '↓';
+          trend = lastAvg > prevAvg + 0.4 ? '↑' : lastAvg < prevAvg - 0.4 ? '↓' : '→';
         }
 
-        // Weight suggestion
+        // Weight suggestion based on target rep range
         let suggestedWeight, note;
-        if (last.avgReps >= target.max) {
-          suggestedWeight = increment(ex, last.topWeight);
-          note = 'Hit top of range — increase weight';
-        } else if (last.avgReps >= target.min) {
-          suggestedWeight = last.topWeight;
-          note = 'In target range — hold, push reps';
+        if (lastAvg >= target.max) {
+          suggestedWeight = lastTop + weightIncrement(g.variation, g.exercise);
+          note = 'Hit top of range — up weight';
+        } else if (lastAvg >= target.min) {
+          suggestedWeight = lastTop;
+          note = 'In range — hold weight, push reps';
         } else {
-          suggestedWeight = last.topWeight;
+          suggestedWeight = lastTop;
           note = 'Build to ' + target.min + '+ reps first';
         }
 
-        // Parse variation out of ex key for clean display
-        const varMatch = ex.match(/^(.+?) \((.+)\)$/);
-        const displayEx = varMatch ? varMatch[1] : ex;
-        const displayVar = varMatch ? varMatch[2] : '';
-        return {ex, baseEx, displayEx, displayVar, last, prev, lastAvg, prevAvg, trend, target, suggestedWeight, note};
-      });
+        return {exercise: g.exercise, variation: g.variation, target,
+                lastAvg, lastTop, prevAvg, prevTop, trend, suggestedWeight, note};
+      }).sort((a,b) => (a.exercise+a.variation).localeCompare(b.exercise+b.variation));
 
-      suggestions.sort((a,b) => (a.baseEx + a.displayVar).localeCompare(b.baseEx + b.displayVar));
-
+      // Render
       const [lastDate, prevDate] = dates;
-      let html = '<div style="margin-bottom:12px;font-size:11px;color:var(--muted);font-family:\'DM Mono\',monospace">'
-        + 'Last: ' + lastDate + (prevDate ? ' &nbsp;·&nbsp; Prev: ' + prevDate : '') + ' &nbsp;·&nbsp; ' + suggestions.length + ' exercises</div>'
+      let html = '<div style="margin-bottom:10px;font-size:11px;color:var(--muted);font-family:\'DM Mono\',monospace">'
+        + 'Last: <b>' + lastDate + '</b>'
+        + (prevDate ? ' &nbsp;·&nbsp; Prev: ' + prevDate : '') + ' &nbsp;·&nbsp; ' + rows.length + ' exercises</div>'
         + '<div class="table-wrap"><table class="data-table"><thead><tr>'
         + '<th>Exercise</th>'
-        + '<th style="text-align:right">Prev<br><span style="font-weight:400;font-size:10px;color:var(--muted)">' + (prevDate||'—') + '</span></th>'
-        + '<th style="text-align:right">Last<br><span style="font-weight:400;font-size:10px;color:var(--muted)">' + lastDate + '</span></th>'
+        + '<th style="text-align:right">Prev<br><small style="font-weight:400;color:var(--muted)">' + (prevDate||'—') + '</small></th>'
+        + '<th style="text-align:right">Last<br><small style="font-weight:400;color:var(--muted)">' + lastDate + '</small></th>'
         + '<th style="text-align:center">Trend</th>'
         + '<th style="color:var(--accent);text-align:right">→ Weight</th>'
         + '<th style="color:var(--accent);text-align:center">→ Reps</th>'
-        + '<th>Note</th>'
-        + '</tr></thead><tbody>';
+        + '<th>Note</th></tr></thead><tbody>';
 
-      suggestions.forEach(s => {
-        const up = s.suggestedWeight > s.last.topWeight;
-        const same = s.suggestedWeight === s.last.topWeight;
-        const wArrow = up ? '↑' : '→';
+      rows.forEach(r => {
+        const up = r.suggestedWeight > r.lastTop;
         const wColor = up ? 'var(--green)' : 'var(--amber)';
-        const tColor = s.trend === '↑' ? 'var(--green)' : s.trend === '↓' ? 'var(--red)' : 'var(--muted)';
-        const prevCell = s.prev
-          ? '<span style="color:var(--muted);font-size:12px">' + s.prev.topWeight + 'lbs</span>'
-            + '<br><span style="color:var(--muted);font-size:11px">' + s.prevAvg + ' avg</span>'
-          : '<span style="color:var(--muted);font-size:12px">—</span>';
-        const lastCell = '<span style="font-size:13px;font-weight:500">' + s.last.topWeight + 'lbs</span>'
-          + '<br><span style="font-size:11px;color:var(--text-secondary)">' + s.lastAvg + ' avg</span>';
+        const wArrow = up ? '↑' : '→';
+        const tColor = r.trend==='↑' ? 'var(--green)' : r.trend==='↓' ? 'var(--red)' : 'var(--muted)';
+        const varLine = r.variation ? '<br><span style="font-size:10px;font-weight:400;color:var(--muted)">' + r.variation + '</span>' : '';
+        const prevCell = r.prevTop !== null
+          ? r.prevTop + 'lbs<br><small style="color:var(--muted)">' + r.prevAvg + ' avg</small>'
+          : '—';
+        const lastCell = '<b>' + r.lastTop + 'lbs</b><br><small>' + r.lastAvg + ' avg</small>';
 
-        const varLabel = s.displayVar ? '<br><span style="font-size:10px;color:var(--muted);font-weight:400">' + s.displayVar + '</span>' : '';
         html += '<tr>'
-          + '<td style="font-weight:500">' + s.displayEx + varLabel + '</td>'
-          + '<td style="text-align:right;font-family:\'DM Mono\',monospace">' + prevCell + '</td>'
-          + '<td style="text-align:right;font-family:\'DM Mono\',monospace">' + lastCell + '</td>'
-          + '<td style="text-align:center;font-size:16px;color:' + tColor + '">' + s.trend + '</td>'
-          + '<td style="text-align:right;font-family:\'DM Mono\',monospace;font-weight:600;color:' + wColor + '">' + wArrow + ' ' + s.suggestedWeight + 'lbs</td>'
-          + '<td style="text-align:center;font-family:\'DM Mono\',monospace;color:var(--accent)">' + s.target.min + '–' + s.target.max + '</td>'
-          + '<td style="font-size:11px;color:var(--muted)">' + s.note + '</td>'
+          + '<td style="font-weight:500">' + r.exercise + varLine + '</td>'
+          + '<td style="text-align:right;font-size:12px;font-family:\'DM Mono\',monospace;color:var(--muted)">' + prevCell + '</td>'
+          + '<td style="text-align:right;font-size:12px;font-family:\'DM Mono\',monospace">' + lastCell + '</td>'
+          + '<td style="text-align:center;font-size:15px;color:' + tColor + '">' + r.trend + '</td>'
+          + '<td style="text-align:right;font-family:\'DM Mono\',monospace;font-weight:600;color:' + wColor + '">' + wArrow + ' ' + r.suggestedWeight + '</td>'
+          + '<td style="text-align:center;font-family:\'DM Mono\',monospace;font-size:12px;color:var(--accent)">' + r.target.min + '–' + r.target.max + '</td>'
+          + '<td style="font-size:11px;color:var(--muted)">' + r.note + '</td>'
           + '</tr>';
       });
 
-      html += '</tbody></table></div>'
-        + '<div style="margin-top:12px;text-align:right">'
+      html += '</tbody></table></div><div style="margin-top:10px;text-align:right">'
         + '<button class="btn-secondary" onclick="loadWorkoutSuggestions(true)">↻ Refresh</button></div>';
       el.innerHTML = html;
       _wsLoaded = true;
