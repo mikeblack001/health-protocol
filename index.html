@@ -2838,19 +2838,37 @@ function buildWeeklyHTML(monday) {
     el.innerHTML = '<div class="loading-msg">Fetching last 2 sessions for ' + _wsDay + '…</div>';
 
     try {
-      // Server-side filter by Day — only fetch matching records, much more efficient
       let allRecs = [], cursor = null;
       do {
         const formula = encodeURIComponent("{Day}='" + _wsDay + "'");
         const url = "https://api.airtable.com/v0/" + BASE + "/" + TABLES.workoutSets + "?pageSize=100&filterByFormula=" + formula + "&sort[0][field]=Date&sort[0][direction]=desc" + (cursor ? "&offset=" + cursor : "");
-        const res = await fetch(url, {headers:{Authorization:"Bearer " + TOKEN}});
-        const d = await res.json();
-        if (d.error) { el.innerHTML = '<div style="color:var(--red);padding:16px">AT Error: ' + JSON.stringify(d.error) + '</div>'; return; }
+        let res, rawText, d;
+        try {
+          res = await fetch(url, {headers:{Authorization:"Bearer " + TOKEN}});
+          rawText = await res.text();
+          d = JSON.parse(rawText);
+        } catch(fetchErr) {
+          el.innerHTML = '<div style="color:var(--red);padding:16px;font-family:monospace;font-size:12px"><b>FETCH ERROR:</b> ' + fetchErr.message + '<br>URL: ' + url.slice(0,120) + '</div>';
+          return;
+        }
+        if (!res.ok || d.error) {
+          el.innerHTML = '<div style="color:var(--red);padding:16px;font-family:monospace;font-size:12px"><b>HTTP ' + res.status + '</b><br>' + rawText.slice(0,400) + '</div>';
+          return;
+        }
         allRecs.push(...(d.records||[]));
         cursor = d.offset;
         const dates = [...new Set(allRecs.map(r => r.fields['Date']))];
         if (dates.length >= 2) break;
       } while (cursor && allRecs.length < 600);
+      // If still no records after loop, show exactly what happened
+      if (!allRecs.length) {
+        const formula2 = encodeURIComponent("{Day}='" + _wsDay + "'");
+        const debugUrl = "https://api.airtable.com/v0/" + BASE + "/" + TABLES.workoutSets + "?pageSize=3&filterByFormula=" + formula2;
+        const dr = await fetch(debugUrl, {headers:{Authorization:"Bearer " + TOKEN}});
+        const dt = await dr.text();
+        el.innerHTML = '<div style="padding:16px;font-family:monospace;font-size:11px;background:var(--surface2);border-radius:8px"><b>0 records returned. Raw response:</b><br>' + dt.slice(0,600).replace(/</g,"&lt;") + '</div>';
+        return;
+      }
 
       // Get last 2 distinct session dates
       const dates = [...new Set(allRecs.map(r => r.fields['Date']))].slice(0, 2);
