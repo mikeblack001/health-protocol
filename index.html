@@ -2937,10 +2937,14 @@ function buildWeeklyHTML(monday) {
           note = 'Build to ' + target.min + '+ reps first';
         }
 
-        return {ex, baseEx, last, prev, lastAvg, prevAvg, trend, target, suggestedWeight, note};
+        // Parse variation out of ex key for clean display
+        const varMatch = ex.match(/^(.+?) \((.+)\)$/);
+        const displayEx = varMatch ? varMatch[1] : ex;
+        const displayVar = varMatch ? varMatch[2] : '';
+        return {ex, baseEx, displayEx, displayVar, last, prev, lastAvg, prevAvg, trend, target, suggestedWeight, note};
       });
 
-      suggestions.sort((a,b) => a.ex.localeCompare(b.ex));
+      suggestions.sort((a,b) => (a.baseEx + a.displayVar).localeCompare(b.baseEx + b.displayVar));
 
       const [lastDate, prevDate] = dates;
       let html = '<div style="margin-bottom:12px;font-size:11px;color:var(--muted);font-family:\'DM Mono\',monospace">'
@@ -2968,8 +2972,9 @@ function buildWeeklyHTML(monday) {
         const lastCell = '<span style="font-size:13px;font-weight:500">' + s.last.topWeight + 'lbs</span>'
           + '<br><span style="font-size:11px;color:var(--text-secondary)">' + s.lastAvg + ' avg</span>';
 
+        const varLabel = s.displayVar ? '<br><span style="font-size:10px;color:var(--muted);font-weight:400">' + s.displayVar + '</span>' : '';
         html += '<tr>'
-          + '<td style="font-weight:500">' + s.ex + '</td>'
+          + '<td style="font-weight:500">' + s.displayEx + varLabel + '</td>'
           + '<td style="text-align:right;font-family:\'DM Mono\',monospace">' + prevCell + '</td>'
           + '<td style="text-align:right;font-family:\'DM Mono\',monospace">' + lastCell + '</td>'
           + '<td style="text-align:center;font-size:16px;color:' + tColor + '">' + s.trend + '</td>'
