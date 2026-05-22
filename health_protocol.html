@@ -3380,12 +3380,26 @@ function buildWeeklyPrintHTML(monday) {
         <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:16px;font-size:12px;color:var(--muted)">
           Data loaded ${now} · ${activePeps.length} active peptides · ${amSupp.length+dinSupp.length+pmSupp.length} active supplements · ${window._aiGoalRecs.length} goals
         </div>`;
+      // Profile sections
+      const profSecs = {};
+      (window._aiProfileRecs||[]).forEach(r=>{
+        const s=r.fields['Section']||'Other';
+        if(!profSecs[s])profSecs[s]=[];
+        profSecs[s].push({label:r.fields['Label']||'',value:r.fields['Value']||'',notes:r.fields['Notes']||''});
+      });
+      const sectionOrder = ['Personal','Health Context','Bloodwork','Constraints','Nutrition'];
+      const orderedSecs = [...sectionOrder.filter(s=>profSecs[s]), ...Object.keys(profSecs).filter(s=>!sectionOrder.includes(s))];
+      orderedSecs.forEach(sec => {
+        html += `<div style="margin-bottom:16px"><div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;border-bottom:1px solid var(--accent);padding-bottom:4px">📋 ${sec}</div>`;
+        html += profSecs[sec].map(item=>`<div style="font-size:12px;padding:5px 0;border-bottom:1px solid var(--border);display:grid;grid-template-columns:180px 1fr;gap:8px"><span style="color:var(--muted);font-weight:500">${item.label}</span><span style="color:var(--text)">${item.value}${item.notes?` <span style="color:var(--muted);font-size:11px">(${item.notes})</span>`:''}</span></div>`).join('');
+        html += '</div>';
+      });
       const sections = [
-        {title:'Active Peptides', items: activePeps.map(r=>`${getField(r,'Compound')} | ${getField(r,'Dose')} | ${getField(r,'Frequency')}`)},
+        {title:'Active Peptides', items: activePeps.map(r=>`${getField(r,'Compound')} | ${getField(r,'Dose')} | ${getField(r,'Frequency')} | ${getField(r,'Timing')||'—'}`)},
         {title:'Morning Supplements', items: amSupp.map(r=>`${getField(r,'Supplement')} | ${getField(r,'SuppDose')}`)},
         ...(dinSupp.length?[{title:'Dinner Supplements', items: dinSupp.map(r=>`${getField(r,'Supplement')} | ${getField(r,'SuppDose')}`)}]:[]),
         {title:'Night Supplements', items: pmSupp.map(r=>`${getField(r,'Supplement')} | ${getField(r,'SuppDose')}`)},
-        {title:'Goals', items: window._aiGoalRecs.map(r=>`[${r.fields['Priority']}] ${r.fields['Goal']} (${r.fields['Category']||''})${r.fields['TargetMetric']?' → '+r.fields['TargetMetric']:''}`)},
+        {title:'Goals', items: window._aiGoalRecs.map(r=>`[${r.fields['Priority']}] ${r.fields['Goal']} (${r.fields['Category']||''})${r.fields['TargetMetric']?' → '+r.fields['TargetMetric']:''}${r.fields['CurrentStatus']?' | '+r.fields['CurrentStatus']:''}`)},
       ];
       sections.forEach(s => {
         html += `<div style="margin-bottom:14px"><div style="font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:8px">${s.title} (${s.items.length})</div>`;
@@ -3430,7 +3444,7 @@ function buildWeeklyPrintHTML(monday) {
     let txt = `=== MB HEALTH PROTOCOL — AI CONTEXT ===\nGenerated: ${now}\n---\n\n## PERSONAL PROFILE\n`;
     Object.entries(profSecs).forEach(([s,lines])=>{txt+=`\n### ${s}\n${lines.join('\n')}\n`});
     txt += `\n---\n## ACTIVE PEPTIDES (${activePeps.length})\n`;
-    txt += activePeps.map(r=>`  - ${getField(r,'Compound')} | ${getField(r,'Dose')} | ${getField(r,'Frequency')}`).join('\n');
+    txt += activePeps.map(r=>`  - ${getField(r,'Compound')} | ${getField(r,'Dose')} | ${getField(r,'Frequency')} | ${getField(r,'Timing')||'—'}`).join('\n');
     txt += `\n\n---\n## SUPPLEMENTS\n\n### Morning (${amSupp.length})\n`;
     txt += amSupp.map(r=>`  - ${getField(r,'Supplement')} | ${getField(r,'SuppDose')}`).join('\n');
     if (dinSupp.length) { txt += `\n\n### Dinner (${dinSupp.length})\n`; txt += dinSupp.map(r=>`  - ${getField(r,'Supplement')} | ${getField(r,'SuppDose')}`).join('\n'); }
