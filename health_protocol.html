@@ -3018,8 +3018,9 @@ function buildWeeklyPrintHTML(monday) {
         if (d.error) { el.innerHTML = '<div style="color:var(--red);padding:16px">Error: ' + d.error.message + '</div>'; return; }
         allRecs.push(...(d.records||[]));
         cursor = d.offset;
-        if ([...new Set(allRecs.map(r => r.fields['Date']))].length >= 2) break;
-      } while (cursor && allRecs.length < 500);
+        // Fetch until we have 6 distinct session dates — covers all exercises having 2 appearances
+        if ([...new Set(allRecs.map(r => r.fields['Date']))].length >= 6) break;
+      } while (cursor && allRecs.length < 800);
 
       const dates = [...new Set(allRecs.map(r => r.fields['Date']))].slice(0,2);
       if (!dates.length) { el.innerHTML = '<div style="color:var(--muted);padding:16px">No sessions found for ' + _wsDay + '.</div>'; return; }
