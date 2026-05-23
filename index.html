@@ -2986,7 +2986,7 @@ function buildWeeklyHTML(monday) {
         }
 
         return {exercise: g.exercise, variation: g.variation, target,
-                lastAvg, lastTop, prevAvg, prevTop, trend, suggestedWeight, note};
+                lastAvg, lastTop, lastDate, prevAvg, prevTop, prevDate, trend, suggestedWeight, note};
       }).filter(Boolean).sort((a,b) => (a.exercise+a.variation).localeCompare(b.exercise+b.variation));
 
       if (!rows.length) { el.innerHTML = '<div style="color:var(--muted);padding:16px">No valid set data found for ' + _wsDay + '.</div>'; return; }
@@ -2997,8 +2997,8 @@ function buildWeeklyHTML(monday) {
         + (prevDate ? ' &nbsp;·&nbsp; Prev: ' + prevDate : '') + ' &nbsp;·&nbsp; ' + rows.length + ' exercises</div>'
         + '<div class="table-wrap"><table class="data-table"><thead><tr>'
         + '<th>Exercise</th>'
-        + '<th style="text-align:right">Prev<br><small style="font-weight:400;color:var(--muted)">' + (prevDate||'—') + '</small></th>'
-        + '<th style="text-align:right">Last<br><small style="font-weight:400;color:var(--muted)">' + lastDate + '</small></th>'
+        + '<th style="text-align:right">Prev</th>'
+        + '<th style="text-align:right">Last</th>'
         + '<th style="text-align:center">Trend</th>'
         + '<th style="color:var(--accent);text-align:right">→ Weight</th>'
         + '<th style="color:var(--accent);text-align:center">→ Reps</th>'
@@ -3012,8 +3012,10 @@ function buildWeeklyHTML(monday) {
         const varLine = r.variation ? '<br><span style="font-size:10px;font-weight:400;color:var(--muted)">' + r.variation + '</span>' : '';
         const prevCell = r.prevTop !== null
           ? r.prevTop + 'lbs<br><small style="color:var(--muted)">' + r.prevAvg + ' avg</small>'
+            + '<br><small style="color:var(--muted);font-size:10px">' + (r.prevDate||'') + '</small>'
           : '—';
-        const lastCell = '<b>' + r.lastTop + 'lbs</b><br><small>' + r.lastAvg + ' avg</small>';
+        const lastCell = '<b>' + r.lastTop + 'lbs</b><br><small>' + r.lastAvg + ' avg</small>'
+          + '<br><small style="color:var(--muted);font-size:10px">' + r.lastDate + '</small>';
 
         html += '<tr>'
           + '<td style="font-weight:500">' + r.exercise + varLine + '</td>'
