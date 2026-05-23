@@ -2933,7 +2933,7 @@ function buildWeeklyPrintHTML(monday) {
     if (!el) return;
     el.innerHTML = '<div class="loading-msg">Loading ' + _wsDay + ' suggestions…</div>';
 
-    // Rep targets by base exercise name
+    // Rep targets by canonical exercise name
     const REP_TARGETS = {
       'DB Calf Raises':         {min:20,max:25},
       'Smith Mach Calf Raises': {min:20,max:25},
@@ -2952,19 +2952,51 @@ function buildWeeklyPrintHTML(monday) {
       'Forward Back Stretch':   {min:15,max:20},
     };
 
-    // Cable detection uses VARIATION string, not exercise name
-    function isCableVariation(variation) {
-      return /cable|cables|1\/2|lat machine|rope|v-bar|uclip|pulldown/i.test(variation);
+    // Normalize exercise names to canonical form
+    function normalizeExercise(ex) {
+      return ex
+        .replace(/ 1\/2 ea$/i, '')   // "High Cable Fly 1/2 ea" -> "High Cable Fly"
+        .replace(/ 1\/2$/i, '')       // "Forearm Raise - Cable 1/2" -> "Forearm Raise - Cable"
+        .replace(/Bicep Curls-Preacher/i, 'Bicep Curls - Preacher')
+        .replace(/Tricep Ext Down$/i, 'Tricep Ext Down')
+        .replace(/Tricep Pushdowns$/i, 'Tricep Pushdowns')
+        .trim();
     }
-    function weightIncrement(variation, exercise) {
-      // Cable: increment stack by 10 (= 5lbs actual per side)
-      // Smith/barbell: 5lbs
-      if (isCableVariation(variation)) return 10;
-      return 5;
+
+    // Normalize variation names to canonical form
+    function normalizeVariation(v) {
+      const map = {
+        'Cable 1/2': 'Cables (2:1)',
+        'Cables':    'Cables (2:1)',
+        'Cable':     'Cables (2:1)',
+        'EZ-Bar':    'EZ-Bar (15lbs)',
+        'Smith 35lb': '35lbs Smith Machine',
+        '35lbs':     '35lbs Smith Machine',
+      };
+      return map[v] || v;
+    }
+
+    // If exercise name contains "1/2" it is always a cable exercise
+    function isCableExercise(ex) {
+      return /1\/2/i.test(ex);
+    }
+    function isCableVariation(v) {
+      return /cable|cables|1\/2|lat machine|rope|v-bar|uclip|2-handle|pulldown/i.test(v);
+    }
+    function weightIncrement(exercise, variation) {
+      return (isCableExercise(exercise) || isCableVariation(variation)) ? 10 : 5;
+    }
+    function safeMax(sets) {
+      if (!sets || !sets.length) return 0;
+      const vals = sets.map(s => s.weight).filter(w => w > 0);
+      return vals.length ? Math.max(...vals) : 0;
+    }
+    function safeAvg(sets) {
+      if (!sets || !sets.length) return 0;
+      return sets.reduce((a,b) => a + b.reps, 0) / sets.length;
     }
 
     try {
-      // Fetch all sets for this day, last 2 sessions
       let allRecs = [], cursor = null;
       do {
         const formula = encodeURIComponent("{Day}='" + _wsDay + "'");
@@ -2983,23 +3015,35 @@ function buildWeeklyPrintHTML(monday) {
       const dates = [...new Set(allRecs.map(r => r.fields['Date']))].slice(0,2);
       if (!dates.length) { el.innerHTML = '<div style="color:var(--muted);padding:16px">No sessions found for ' + _wsDay + '.</div>'; return; }
 
-      // Group by Exercise + Variation + Date
-      // Key: "ExerciseName|||VariationString"
+      // Group by normalized Exercise + normalized Variation + Date
       const groups = {};
       allRecs.filter(r => dates.includes(r.fields['Date'])).forEach(r => {
         const f = r.fields;
-        const exercise = (f['Exercise'] || '').trim();
+        const rawEx = (f['Exercise'] || '').trim();
         const date = f['Date'] || '';
-        if (!exercise || !date) return;
+        if (!rawEx || !date) return;
+        const reps = f['Reps'] || 0;
+        const weight = f['Weight (lbs)'] || 0;
+        if (reps === 0) return; // skip zero-rep sets
+
         const varRaw = f['Variation'];
-        const variation = Array.isArray(varRaw) ? varRaw.join(', ') : (varRaw || '');
+        const rawVar = Array.isArray(varRaw) ? varRaw.join(', ') : (varRaw || '');
+
+        // Normalize exercise and variation
+        const exercise = normalizeExercise(rawEx);
+        let variation = normalizeVariation(rawVar);
+
+        // If exercise had "1/2" in name, it is cable — ensure variation reflects this
+        if (isCableExercise(rawEx) && !variation) variation = 'Cables (2:1)';
+        if (isCableExercise(rawEx) && variation === rawVar && !isCableVariation(variation)) variation = 'Cables (2:1)';
+
         const groupKey = exercise + '|||' + variation;
         if (!groups[groupKey]) groups[groupKey] = {exercise, variation, sessions:{}};
         if (!groups[groupKey].sessions[date]) groups[groupKey].sessions[date] = [];
-        groups[groupKey].sessions[date].push({reps: f['Reps']||0, weight: f['Weight (lbs)']||0});
+        groups[groupKey].sessions[date].push({reps, weight});
       });
 
-      // Build suggestions
+      // Build rows
       const rows = Object.values(groups).map(g => {
         const target = REP_TARGETS[g.exercise] || {min:8, max:12};
         const sortedDates = Object.keys(g.sessions).sort((a,b) => b.localeCompare(a));
@@ -3007,24 +3051,22 @@ function buildWeeklyPrintHTML(monday) {
         const lastSets = g.sessions[lastDate];
         const prevSets = prevDate ? g.sessions[prevDate] : null;
 
-        const avg = sets => sets.reduce((a,b) => a + b.reps, 0) / sets.length;
-        const topW = sets => Math.max(...sets.map(s => s.weight));
+        const lastAvg = parseFloat(safeAvg(lastSets).toFixed(1));
+        const lastTop = safeMax(lastSets);
+        const prevAvg = prevSets ? parseFloat(safeAvg(prevSets).toFixed(1)) : null;
+        const prevTop = prevSets ? safeMax(prevSets) : null;
 
-        const lastAvg = parseFloat(avg(lastSets).toFixed(1));
-        const lastTop = topW(lastSets);
-        const prevAvg = prevSets ? parseFloat(avg(prevSets).toFixed(1)) : null;
-        const prevTop = prevSets ? topW(prevSets) : null;
+        // Skip rows with no valid weight data
+        if (lastTop === 0 && lastAvg === 0) return null;
 
-        // Avg reps trend vs prev session
         let trend = '—';
         if (prevAvg !== null) {
           trend = lastAvg > prevAvg + 0.4 ? '↑' : lastAvg < prevAvg - 0.4 ? '↓' : '→';
         }
 
-        // Weight suggestion based on target rep range
         let suggestedWeight, note;
         if (lastAvg >= target.max) {
-          suggestedWeight = lastTop + weightIncrement(g.variation, g.exercise);
+          suggestedWeight = lastTop + weightIncrement(g.exercise, g.variation);
           note = 'Hit top of range — up weight';
         } else if (lastAvg >= target.min) {
           suggestedWeight = lastTop;
@@ -3036,9 +3078,10 @@ function buildWeeklyPrintHTML(monday) {
 
         return {exercise: g.exercise, variation: g.variation, target,
                 lastAvg, lastTop, prevAvg, prevTop, trend, suggestedWeight, note};
-      }).sort((a,b) => (a.exercise+a.variation).localeCompare(b.exercise+b.variation));
+      }).filter(Boolean).sort((a,b) => (a.exercise+a.variation).localeCompare(b.exercise+b.variation));
 
-      // Render
+      if (!rows.length) { el.innerHTML = '<div style="color:var(--muted);padding:16px">No valid set data found for ' + _wsDay + '.</div>'; return; }
+
       const [lastDate, prevDate] = dates;
       let html = '<div style="margin-bottom:10px;font-size:11px;color:var(--muted);font-family:\'DM Mono\',monospace">'
         + 'Last: <b>' + lastDate + '</b>'
@@ -3380,26 +3423,12 @@ function buildWeeklyPrintHTML(monday) {
         <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:16px;font-size:12px;color:var(--muted)">
           Data loaded ${now} · ${activePeps.length} active peptides · ${amSupp.length+dinSupp.length+pmSupp.length} active supplements · ${window._aiGoalRecs.length} goals
         </div>`;
-      // Profile sections
-      const profSecs = {};
-      (window._aiProfileRecs||[]).forEach(r=>{
-        const s=r.fields['Section']||'Other';
-        if(!profSecs[s])profSecs[s]=[];
-        profSecs[s].push({label:r.fields['Label']||'',value:r.fields['Value']||'',notes:r.fields['Notes']||''});
-      });
-      const sectionOrder = ['Personal','Health Context','Bloodwork','Constraints','Nutrition'];
-      const orderedSecs = [...sectionOrder.filter(s=>profSecs[s]), ...Object.keys(profSecs).filter(s=>!sectionOrder.includes(s))];
-      orderedSecs.forEach(sec => {
-        html += `<div style="margin-bottom:16px"><div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;border-bottom:1px solid var(--accent);padding-bottom:4px">📋 ${sec}</div>`;
-        html += profSecs[sec].map(item=>`<div style="font-size:12px;padding:5px 0;border-bottom:1px solid var(--border);display:grid;grid-template-columns:180px 1fr;gap:8px"><span style="color:var(--muted);font-weight:500">${item.label}</span><span style="color:var(--text)">${item.value}${item.notes?` <span style="color:var(--muted);font-size:11px">(${item.notes})</span>`:''}</span></div>`).join('');
-        html += '</div>';
-      });
       const sections = [
-        {title:'Active Peptides', items: activePeps.map(r=>`${getField(r,'Compound')} | ${getField(r,'Dose')} | ${getField(r,'Frequency')} | ${getField(r,'Timing')||'—'}`)},
+        {title:'Active Peptides', items: activePeps.map(r=>`${getField(r,'Compound')} | ${getField(r,'Dose')} | ${getField(r,'Frequency')}`)},
         {title:'Morning Supplements', items: amSupp.map(r=>`${getField(r,'Supplement')} | ${getField(r,'SuppDose')}`)},
         ...(dinSupp.length?[{title:'Dinner Supplements', items: dinSupp.map(r=>`${getField(r,'Supplement')} | ${getField(r,'SuppDose')}`)}]:[]),
         {title:'Night Supplements', items: pmSupp.map(r=>`${getField(r,'Supplement')} | ${getField(r,'SuppDose')}`)},
-        {title:'Goals', items: window._aiGoalRecs.map(r=>`[${r.fields['Priority']}] ${r.fields['Goal']} (${r.fields['Category']||''})${r.fields['TargetMetric']?' → '+r.fields['TargetMetric']:''}${r.fields['CurrentStatus']?' | '+r.fields['CurrentStatus']:''}`)},
+        {title:'Goals', items: window._aiGoalRecs.map(r=>`[${r.fields['Priority']}] ${r.fields['Goal']} (${r.fields['Category']||''})${r.fields['TargetMetric']?' → '+r.fields['TargetMetric']:''}`)},
       ];
       sections.forEach(s => {
         html += `<div style="margin-bottom:14px"><div style="font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:8px">${s.title} (${s.items.length})</div>`;
@@ -3444,7 +3473,7 @@ function buildWeeklyPrintHTML(monday) {
     let txt = `=== MB HEALTH PROTOCOL — AI CONTEXT ===\nGenerated: ${now}\n---\n\n## PERSONAL PROFILE\n`;
     Object.entries(profSecs).forEach(([s,lines])=>{txt+=`\n### ${s}\n${lines.join('\n')}\n`});
     txt += `\n---\n## ACTIVE PEPTIDES (${activePeps.length})\n`;
-    txt += activePeps.map(r=>`  - ${getField(r,'Compound')} | ${getField(r,'Dose')} | ${getField(r,'Frequency')} | ${getField(r,'Timing')||'—'}`).join('\n');
+    txt += activePeps.map(r=>`  - ${getField(r,'Compound')} | ${getField(r,'Dose')} | ${getField(r,'Frequency')}`).join('\n');
     txt += `\n\n---\n## SUPPLEMENTS\n\n### Morning (${amSupp.length})\n`;
     txt += amSupp.map(r=>`  - ${getField(r,'Supplement')} | ${getField(r,'SuppDose')}`).join('\n');
     if (dinSupp.length) { txt += `\n\n### Dinner (${dinSupp.length})\n`; txt += dinSupp.map(r=>`  - ${getField(r,'Supplement')} | ${getField(r,'SuppDose')}`).join('\n'); }
