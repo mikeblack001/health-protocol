@@ -2966,25 +2966,34 @@ function buildWeeklyPrintHTML(monday) {
     // Normalize variation names to canonical form
     function normalizeVariation(v) {
       const map = {
-        'Cable 1/2': 'Cables (2:1)',
-        'Cables':    'Cables (2:1)',
-        'Cable':     'Cables (2:1)',
-        'EZ-Bar':    'EZ-Bar (15lbs)',
+        'Cable 1/2':  'Cables (2:1)',
+        'Cables':     'Cables (2:1)',
+        'Cable':      'Cables (2:1)',
+        'Rope 1/2':   'Rope',
+        'EZ-Bar':     'EZ-Bar (15lbs)',
         'Smith 35lb': '35lbs Smith Machine',
-        '35lbs':     '35lbs Smith Machine',
+        '35lbs':      '35lbs Smith Machine',
       };
       return map[v] || v;
     }
 
-    // If exercise name contains "1/2" it is always a cable exercise
+    // If exercise name contains "1/2" or starts with "Cable" it is always cable
     function isCableExercise(ex) {
-      return /1\/2/i.test(ex);
+      return /1\/2/i.test(ex) || /^cable /i.test(ex);
     }
     function isCableVariation(v) {
       return /cable|cables|1\/2|lat machine|rope|v-bar|uclip|2-handle|pulldown/i.test(v);
     }
     function weightIncrement(exercise, variation) {
       return (isCableExercise(exercise) || isCableVariation(variation)) ? 10 : 5;
+    }
+    // Default variation for exercises where name implies implement
+    function defaultVariation(exercise, variation) {
+      if (variation) return variation;
+      if (isCableExercise(exercise)) return 'Cables (2:1)';
+      if (/^DB |dumbbell/i.test(exercise)) return 'DBs';
+      if (/barbell|^BB /i.test(exercise)) return '45lbs';
+      return '';
     }
     function safeMax(sets) {
       if (!sets || !sets.length) return 0;
@@ -3031,11 +3040,7 @@ function buildWeeklyPrintHTML(monday) {
 
         // Normalize exercise and variation
         const exercise = normalizeExercise(rawEx);
-        let variation = normalizeVariation(rawVar);
-
-        // If exercise had "1/2" in name, it is cable — ensure variation reflects this
-        if (isCableExercise(rawEx) && !variation) variation = 'Cables (2:1)';
-        if (isCableExercise(rawEx) && variation === rawVar && !isCableVariation(variation)) variation = 'Cables (2:1)';
+        let variation = defaultVariation(exercise, normalizeVariation(rawVar));
 
         const groupKey = exercise + '|||' + variation;
         if (!groups[groupKey]) groups[groupKey] = {exercise, variation, sessions:{}};
