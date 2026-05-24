@@ -2627,13 +2627,14 @@ function renderLabsTrend() {
 
   const search = getLabsSearch();
   const allMarkers = Object.keys(lookup);
+  const HIGH_MARKERS = new Set(['Testosterone','Estradiol','PSA','Hematocrit','BUN','eGFR','Alkaline Phosphatase','AST','ALT']);
+  const WATCH_MARKERS = new Set(['Free Testosterone','SHBG','Prolactin','DHEA-S','AM Cortisol','IGF-1','Hemoglobin','Glucose','HbA1c','Insulin','Total Cholesterol','LDL','HDL','Triglycerides','CRP','Homocysteine','Vitamin D','Ferritin','TSH','Free T3','Free T4','Reverse T3','ACTH','Calcium','Creatinine','WBC','Neutrophils Absolute']);
+
   const visibleMarkers = allMarkers.filter(b => {
     if (search && !(b.toLowerCase().includes(search))) return false;
-    if (labsPriority) {
-      const rec = Object.values(lookup[b]).find(r => r && r.Priority);
-      const p = rec?.Priority || '';
-      if (p !== labsPriority) return false;
-    }
+    if (labsPriority === 'High' && !HIGH_MARKERS.has(b)) return false;
+    if (labsPriority === 'Watch' && !WATCH_MARKERS.has(b)) return false;
+    if (labsPriority === 'Standard' && (HIGH_MARKERS.has(b) || WATCH_MARKERS.has(b))) return false;
     return true;
   });
   const watchlistPresent = new Set(LAB_WATCHLIST.filter(b=>visibleMarkers.includes(b)));
