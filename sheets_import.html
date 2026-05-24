@@ -164,7 +164,9 @@ async function sheetsReq(method, path, body) {
     headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
     body: body ? JSON.stringify(body) : undefined
   });
-  return res.json();
+  const json = await res.json();
+  if (json.error) throw new Error(json.error.message + ' (code ' + json.error.code + ')');
+  return json;
 }
 
 async function getExistingSheets() {
@@ -186,13 +188,13 @@ async function ensureTab(title, existingSheets) {
 }
 
 async function writeToSheet(title, rows) {
-  const CHUNK = 2000;
+  const CHUNK = 1000;
   for (let i = 0; i < rows.length; i += CHUNK) {
     const chunk = rows.slice(i, i + CHUNK);
-    const range = encodeURIComponent(title + '!A' + (i + 1));
-    await sheetsReq('PUT',
-      `/${SHEET_ID}/values/${range}?valueInputOption=RAW`,
-      { range: `${title}!A${i+1}`, majorDimension: 'ROWS', values: chunk }
+    const range = encodeURIComponent(title + '!A1');
+    await sheetsReq('POST',
+      `/${SHEET_ID}/values/${range}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,
+      { majorDimension: 'ROWS', values: chunk }
     );
   }
 }
