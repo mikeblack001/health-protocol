@@ -1280,17 +1280,17 @@ function renderTracker(weekNum) {
   </tr></thead><tbody>`;
 
   if (morning.length) {
-    html += `<tr><td colspan="11" style="background:#E8A838;color:#fff;font-weight:bold;padding:5px 10px;font-size:13px;border-left:3px solid #000;border-right:3px solid #000">☀ Morning</td></tr>`;
+    html += `<tr><td colspan="11" style="background:#E8A838;color:#fff;font-weight:bold;padding:5px 10px;font-size:13px">☀ Morning</td></tr>`;
     morning.forEach(r => {
       const name = getField(r,'Compound');
       html += `<tr>
-        <td style="padding:5px 10px;border:1px solid #ccc;background:${MORN_BG};border-left:3px solid #000">
+        <td style="padding:5px 10px;border:1px solid #ccc;background:${MORN_BG}">
           <div style="font-weight:600;font-size:12px">${name}</div>
           <div style="font-size:11px;color:var(--muted)">${getField(r,'Dose')}</div>
         </td>
         ${days.map((_,i) => dayCell(name, i, MORN_BG)).join('')}
         ${vialBtns(name)}
-        <td style="border:1px solid #ccc;background:${MORN_BG};border-right:3px solid #000;padding:2px 4px">
+        <td style="border:1px solid #ccc;background:${MORN_BG};padding:2px 4px">
           <input type="text" placeholder="Notes..." data-compound="${name}" data-type="notes"
             style="width:100%;border:none;background:transparent;font-size:11px;font-family:'DM Sans',sans-serif;outline:none;color:var(--text)">
         </td>
@@ -1299,18 +1299,18 @@ function renderTracker(weekNum) {
   }
 
   if (night.length) {
-    html += `<tr><td colspan="11" style="height:24px;background:var(--surface2);border-top:1px solid #ccc;border-left:3px solid #000;border-right:3px solid #000"></td></tr>`;
-    html += `<tr><td colspan="11" style="background:#4A6FA5;color:#fff;font-weight:bold;padding:5px 10px;font-size:13px;border-left:3px solid #000;border-right:3px solid #000">🌙 Night</td></tr>`;
+    html += `<tr><td colspan="11" style="height:24px;background:var(--surface2);border-top:1px solid #ccc"></td></tr>`;
+    html += `<tr><td colspan="11" style="background:#4A6FA5;color:#fff;font-weight:bold;padding:5px 10px;font-size:13px">🌙 Night</td></tr>`;
     night.forEach(r => {
       const name = getField(r,'Compound');
       html += `<tr>
-        <td style="padding:5px 10px;border:1px solid #ccc;background:${NIGHT_BG};border-left:3px solid #000">
+        <td style="padding:5px 10px;border:1px solid #ccc;background:${NIGHT_BG}">
           <div style="font-weight:600;font-size:12px">${name}</div>
           <div style="font-size:11px;color:var(--muted)">${getField(r,'Dose')}</div>
         </td>
         ${days.map((_,i) => dayCell(name, i, NIGHT_BG)).join('')}
         ${vialBtns(name)}
-        <td style="border:1px solid #ccc;background:${NIGHT_BG};border-right:3px solid #000;padding:2px 4px">
+        <td style="border:1px solid #ccc;background:${NIGHT_BG};padding:2px 4px">
           <input type="text" placeholder="Notes..." data-compound="${name}" data-type="notes"
             style="width:100%;border:none;background:transparent;font-size:11px;font-family:'DM Sans',sans-serif;outline:none;color:var(--text)">
         </td>
