@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lab Data Import</title>
+<style>
+  body { font-family: 'DM Sans', system-ui, sans-serif; background: #f0f4f8; color: #1e293b; padding: 24px; max-width: 800px; margin: 0 auto; }
+  h1 { font-size: 20px; font-weight: 600; margin-bottom: 4px; }
+  .sub { color: #64748b; font-size: 13px; margin-bottom: 24px; }
+  .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px; margin-bottom: 16px; }
+  .card h2 { font-size: 14px; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+  .badge { font-size: 11px; padding: 2px 8px; border-radius: 20px; font-weight: 500; }
+  .badge-blue { background: #dbeafe; color: #1e40af; }
+  .badge-green { background: #dcfce7; color: #166534; }
+  .badge-amber { background: #fef3c7; color: #92400e; }
+  button { padding: 10px 20px; border: none; border-radius: 7px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; }
+  .btn-primary { background: #1a56db; color: #fff; }
+  .btn-primary:hover { background: #1e40af; }
+  .btn-primary:disabled { opacity: 0.5; cursor: default; }
+  .log { font-family: 'DM Mono', monospace; font-size: 12px; background: #0f172a; color: #94a3b8; border-radius: 8px; padding: 14px; max-height: 300px; overflow-y: auto; margin-top: 12px; white-space: pre-wrap; }
+  .log .ok { color: #4ade80; }
+  .log .err { color: #f87171; }
+  .log .info { color: #60a5fa; }
+  .progress { height: 6px; background: #e2e8f0; border-radius: 3px; margin-top: 10px; overflow: hidden; }
+  .progress-bar { height: 100%; background: #1a56db; border-radius: 3px; transition: width 0.3s; width: 0; }
+  .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { text-align: left; padding: 6px 8px; background: #f8fafc; color: #64748b; font-weight: 600; border-bottom: 1px solid #e2e8f0; }
+  td { padding: 5px 8px; border-bottom: 1px solid #f1f5f9; }
+</style>
+</head>
+<body>
+
+<h1>🧬 Lab Data Import Tool</h1>
+<p class="sub">Updates LabCorp source tags + pushes new Quest 08/12/2025 records to Airtable</p>
+
+<div class="card">
+  <h2>Step 1 — Tag Existing LabCorp Records <span class="badge badge-amber">Update Source Field</span></h2>
+  <p style="font-size:13px;color:#64748b;margin-bottom:12px">Sets Source = "LabCorp" on all records for dates: 07/07/2025, 07/08/2025, 11/14/2025, 11/18/2025</p>
+  <div class="actions">
+    <button class="btn-primary" onclick="runStep1()">Run Step 1</button>
+  </div>
+  <div class="progress"><div class="progress-bar" id="p1"></div></div>
+  <div class="log" id="log1">Ready...</div>
+</div>
+
+<div class="card">
+  <h2>Step 2 — Push Quest 08/12/2025 Draw <span class="badge badge-blue">32 New Records</span></h2>
+  <p style="font-size:13px;color:#64748b;margin-bottom:4px">Quest Diagnostics comprehensive panel — Hormones, CBC, Thyroid, Lipids</p>
+  <table style="margin-bottom:12px">
+    <thead><tr><th>Biomarker</th><th>Value</th><th>Units</th><th>Status</th><th>Type</th></tr></thead>
+    <tbody id="preview-tbody"></tbody>
+  </table>
+  <div class="actions">
+    <button class="btn-primary" onclick="runStep2()">Run Step 2</button>
+  </div>
+  <div class="progress"><div class="progress-bar" id="p2"></div></div>
+  <div class="log" id="log2">Ready...</div>
+</div>
+
+<div class="card">
+  <h2>Step 3 — Run Both <span class="badge badge-green">Full Import</span></h2>
+  <div class="actions">
+    <button class="btn-primary" onclick="runAll()">Run All Steps</button>
+  </div>
+  <div class="log" id="log3">Ready...</div>
+</div>
+
+<script>
+const TOKEN = 'pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
+const BASE = 'appmHDG4TGT1xy6R6';
+const TABLE = 'tbl3200yJid6fXaOp';
+
+const LABCORP_DATES = ['2025-07-07','2025-07-08','2025-11-14','2025-11-18'];
+
+const QUEST_RECORDS = [
+  { Biomarker:'Estradiol', Value:21, Units:'pg/mL', Status:'In Range', 'Lab Type':'Hormones' },
+  { Biomarker:'AM Cortisol', Value:13.0, Units:'mcg/dL', Status:'In Range', 'Lab Type':'Hormones' },
+  { Biomarker:'Testosterone', Value:410, Units:'ng/dL', Status:'In Range', 'Lab Type':'Hormones' },
+  { Biomarker:'Free Testosterone', Value:134.5, Units:'pg/mL', Status:'In Range', 'Lab Type':'Hormones' },
+  { Biomarker:'Bioavailable Testosterone', Value:299.9, Units:'ng/dL', Status:'In Range', 'Lab Type':'Hormones' },
+  { Biomarker:'SHBG', Value:6, Units:'nmol/L', Status:'Out of Range', 'Lab Type':'Hormones' },
+  { Biomarker:'TSH', Value:0.85, Units:'mIU/L', Status:'In Range', 'Lab Type':'Thyroid' },
+  { Biomarker:'Free T3', Value:3.9, Units:'pg/mL', Status:'In Range', 'Lab Type':'Thyroid' },
+  { Biomarker:'Free T4', Value:2.1, Units:'ng/dL', Status:'Out of Range', 'Lab Type':'Thyroid' },
+  { Biomarker:'PSA', Value:1.29, Units:'ng/mL', Status:'In Range', 'Lab Type':'Other' },
+  { Biomarker:'Vitamin D', Value:68, Units:'ng/mL', Status:'In Range', 'Lab Type':'Other' },
+  { Biomarker:'Vitamin B-12', Value:952, Units:'pg/mL', Status:'In Range', 'Lab Type':'Other' },
+  { Biomarker:'Iron', Value:117, Units:'mcg/dL', Status:'In Range', 'Lab Type':'Other' },
+  { Biomarker:'TIBC', Value:391, Units:'mcg/dL', Status:'In Range', 'Lab Type':'Other' },
+  { Biomarker:'Ferritin', Value:144, Units:'ng/mL', Status:'In Range', 'Lab Type':'Other' },
+  { Biomarker:'Albumin', Value:4.9, Units:'g/dL', Status:'In Range', 'Lab Type':'Liver' },
+  { Biomarker:'WBC', Value:6.4, Units:'x10E3/uL', Status:'In Range', 'Lab Type':'CBC' },
+  { Biomarker:'RBC', Value:5.35, Units:'x10E6/uL', Status:'In Range', 'Lab Type':'CBC' },
+  { Biomarker:'Hemoglobin', Value:17.1, Units:'g/dL', Status:'In Range', 'Lab Type':'CBC' },
+  { Biomarker:'Hematocrit', Value:52.1, Units:'%', Status:'Out of Range', 'Lab Type':'CBC' },
+  { Biomarker:'MCV', Value:97.4, Units:'fL', Status:'In Range', 'Lab Type':'CBC' },
+  { Biomarker:'MCH', Value:32, Units:'pg', Status:'In Range', 'Lab Type':'CBC' },
+  { Biomarker:'MCHC', Value:32.8, Units:'g/dL', Status:'In Range', 'Lab Type':'CBC' },
+  { Biomarker:'RDW', Value:12.9, Units:'%', Status:'In Range', 'Lab Type':'CBC' },
+  { Biomarker:'Platelets', Value:277, Units:'x10E3/uL', Status:'In Range', 'Lab Type':'CBC' },
+  { Biomarker:'MPV', Value:9.2, Units:'fL', Status:'In Range', 'Lab Type':'CBC' },
+  { Biomarker:'Neutrophils Absolute', Value:4.646, Units:'x10E3/uL', Status:'In Range', 'Lab Type':'CBC' },
+  { Biomarker:'Lymphocytes Absolute', Value:1.146, Units:'x10E3/uL', Status:'In Range', 'Lab Type':'CBC' },
+  { Biomarker:'Monocytes Absolute', Value:0.538, Units:'x10E3/uL', Status:'In Range', 'Lab Type':'CBC' },
+  { Biomarker:'Eosinophils Absolute', Value:0.038, Units:'x10E3/uL', Status:'In Range', 'Lab Type':'CBC' },
+  { Biomarker:'Basophils Absolute', Value:0.032, Units:'x10E3/uL', Status:'In Range', 'Lab Type':'CBC' },
+];
+
+// Populate preview table
+document.getElementById('preview-tbody').innerHTML = QUEST_RECORDS.map(r =>
+  `<tr><td><strong>${r.Biomarker}</strong></td><td style="font-family:monospace">${r.Value}</td><td style="color:#64748b">${r.Units}</td><td style="color:${r.Status==='Out of Range'?'#dc2626':'#16a34a'}">${r.Status}</td><td style="color:#64748b">${r['Lab Type']}</td></tr>`
+).join('');
+
+function log(id, msg, type='') {
+  const el = document.getElementById(id);
+  el.innerHTML += `<span class="${type}">${msg}</span>\n`;
+  el.scrollTop = el.scrollHeight;
+}
+
+function setProgress(id, pct) {
+  document.getElementById(id).style.width = pct + '%';
+}
+
+async function atFetch(url, opts={}) {
+  const r = await fetch(`https://api.airtable.com/v0/${BASE}/${TABLE}${url}`, {
+    headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+    ...opts
+  });
+  return r.json();
+}
+
+async function runStep1() {
+  const logId = 'log1';
+  document.getElementById(logId).innerHTML = '';
+  log(logId, 'Fetching all bloodwork records...', 'info');
+  
+  let all = [], offset = null;
+  do {
+    const d = await atFetch(`?pageSize=100${offset?'&offset='+offset:''}`);
+    if (d.error) { log(logId, 'Error: ' + d.error.message, 'err'); return; }
+    all.push(...(d.records||[]));
+    offset = d.offset;
+    log(logId, `  Fetched ${all.length} records so far...`);
+  } while(offset);
+
+  const toUpdate = all.filter(r => LABCORP_DATES.includes(r.fields.Date) && r.fields.Source !== 'LabCorp');
+  log(logId, `Found ${toUpdate.length} records needing Source = LabCorp`, 'info');
+
+  if (!toUpdate.length) { log(logId, '✓ Nothing to update — all already tagged', 'ok'); return; }
+
+  // Update in batches of 10
+  let done = 0;
+  for (let i = 0; i < toUpdate.length; i += 10) {
+    const batch = toUpdate.slice(i, i+10).map(r => ({ id: r.id, fields: { Source: 'LabCorp' } }));
+    const res = await atFetch('', { method: 'PATCH', body: JSON.stringify({ records: batch }) });
+    if (res.error) { log(logId, 'Error: ' + res.error.message, 'err'); return; }
+    done += batch.length;
+    setProgress('p1', Math.round(done / toUpdate.length * 100));
+    log(logId, `  Updated ${done}/${toUpdate.length}`, 'ok');
+  }
+
+  setProgress('p1', 100);
+  log(logId, `✅ Done — ${toUpdate.length} records tagged as LabCorp`, 'ok');
+}
+
+async function runStep2() {
+  const logId = 'log2';
+  document.getElementById(logId).innerHTML = '';
+  log(logId, 'Pushing 08/12/2025 Quest records...', 'info');
+
+  const records = QUEST_RECORDS.map(r => ({ fields: { ...r, Date: '2025-08-12', Source: 'Quest' } }));
+  let done = 0;
+
+  for (let i = 0; i < records.length; i += 10) {
+    const batch = records.slice(i, i+10);
+    const res = await atFetch('', { method: 'POST', body: JSON.stringify({ records: batch, typecast: true }) });
+    if (res.error) { log(logId, 'Error: ' + res.error.message, 'err'); return; }
+    done += batch.length;
+    setProgress('p2', Math.round(done / records.length * 100));
+    log(logId, `  Pushed ${done}/${records.length} records`, 'ok');
+  }
+
+  setProgress('p2', 100);
+  log(logId, `✅ Done — ${records.length} Quest records added for 08/12/2025`, 'ok');
+}
+
+async function runAll() {
+  const logId = 'log3';
+  document.getElementById(logId).innerHTML = '';
+  log(logId, '▶ Running Step 1...', 'info');
+  await runStep1();
+  log(logId, '▶ Running Step 2...', 'info');
+  await runStep2();
+  log(logId, '✅ All done', 'ok');
+}
+</script>
+</body>
+</html>
