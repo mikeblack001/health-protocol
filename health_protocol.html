@@ -363,7 +363,6 @@
       <div class="drop-menu" id="drop-supp">
         <button class="drop-item" onclick="navDrop('supplements','nav-supp')">Supplements</button>
         <button class="drop-item" onclick="navDrop('suppchanges','nav-supp')">Supplement Changes</button>
-        <button class="drop-item" onclick="navDrop('suppvendors','nav-supp')">Supp Vendors</button>
       </div>
     </div>
 
@@ -429,7 +428,6 @@
     <div class="mobile-section-label">Supplements</div>
     <button class="mobile-item" onclick="mobileNav('supplements')">Supplements</button>
     <button class="mobile-item" onclick="mobileNav('suppchanges')">Supplement Changes</button>
-    <button class="mobile-item" onclick="mobileNav('suppvendors')">Supp Vendors</button>
   </div>
 
   <div class="mobile-section">
@@ -774,19 +772,6 @@
     </div>
     <div id="suppchanges-content"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
   </div>
-
-  <!-- SUPP VENDORS VIEW -->
-  <div id="view-suppvendors" class="view">
-    <div class="filter-bar">
-      <span style="font-size:13px;font-weight:500;color:var(--text)">Supplement Vendors</span>
-      <button class="filter-btn active" onclick="filterSuppVendors('all',this)">All</button>
-      <button class="filter-btn" onclick="filterSuppVendors('Primary',this)">Primary</button>
-      <button class="filter-btn" onclick="filterSuppVendors('Secondary',this)">Secondary</button>
-      <button class="filter-btn" onclick="filterSuppVendors('Evaluating',this)">Evaluating</button>
-      <button class="filter-btn" onclick="showAddSuppVendorModal()" style="margin-left:auto;background:var(--accent);color:#fff;border-color:var(--accent)">+ Add Vendor</button>
-    </div>
-    <div id="suppvendors-content"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
-  </div>
 </main>
 
 
@@ -874,60 +859,6 @@
 
 <!-- ADD VENDOR MODAL -->
 <div class="modal-overlay" id="add-vendor-modal" onclick="if(event.target===this)hideAddVendorModal()">
-  <div class="modal-box">
-    <div class="modal-title">Add Vendor</div>
-    <div class="modal-field"><label>Vendor Name</label><input type="text" id="av-name" placeholder="e.g. Peptide Sciences"></div>
-    <div class="modal-field"><label>Website</label><input type="text" id="av-website" placeholder="peptidesciences.com"></div>
-    <div class="modal-field"><label>Tier</label>
-      <select id="av-tier"><option value="Primary">Primary</option><option value="Secondary" selected>Secondary</option><option value="Evaluating">Evaluating</option></select>
-    </div>
-    <div class="modal-actions">
-      <button class="modal-btn" onclick="hideAddVendorModal()">Cancel</button>
-      <button class="modal-btn primary" id="av-save-btn" onclick="saveAddVendor()">Save</button>
-    </div>
-  </div>
-</div>
-
-<!-- ADD SUPP VENDOR MODAL -->
-<div class="modal-overlay" id="add-suppvendor-modal" onclick="if(event.target===this)hideAddSuppVendorModal()" style="display:none">
-  <div class="modal-box">
-    <div class="modal-header"><h3>Add Supp Vendor</h3><button class="modal-close" onclick="hideAddSuppVendorModal()">✕</button></div>
-    <div class="modal-field"><label>Vendor Name</label><input type="text" id="asv-name" placeholder="e.g. Life Extension"></div>
-    <div class="modal-field"><label>Website</label><input type="text" id="asv-website" placeholder="lifeextension.com"></div>
-    <div class="modal-field"><label>Priority</label>
-      <select id="asv-priority"><option value="">— Select —</option><option value="Primary">Primary</option><option value="Secondary">Secondary</option><option value="Evaluating">Evaluating</option></select>
-    </div>
-    <div class="modal-field"><label>Status</label>
-      <select id="asv-status"><option value="">— Select —</option><option value="Active">Active</option><option value="Inactive">Inactive</option></select>
-    </div>
-    <div class="modal-field"><label>Notes</label><textarea id="asv-notes" rows="2" style="width:100%;resize:vertical;padding:6px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--text)"></textarea></div>
-    <div class="modal-actions">
-      <button class="modal-btn" onclick="hideAddSuppVendorModal()">Cancel</button>
-      <button class="modal-btn primary" id="asv-save-btn" onclick="saveAddSuppVendor()">Save</button>
-    </div>
-  </div>
-</div>
-
-<!-- EDIT SUPP VENDOR MODAL -->
-<div class="modal-overlay" id="edit-suppvendor-modal" onclick="if(event.target===this)hideEditSuppVendorModal()" style="display:none">
-  <div class="modal-box">
-    <input type="hidden" id="esv-id">
-    <div class="modal-header"><h3>Edit Supp Vendor</h3><button class="modal-close" onclick="hideEditSuppVendorModal()">✕</button></div>
-    <div class="modal-field"><label>Vendor Name</label><input type="text" id="esv-name"></div>
-    <div class="modal-field"><label>Website</label><input type="text" id="esv-website"></div>
-    <div class="modal-field"><label>Priority</label>
-      <select id="esv-priority"><option value="">— Select —</option><option value="Primary">Primary</option><option value="Secondary">Secondary</option><option value="Evaluating">Evaluating</option></select>
-    </div>
-    <div class="modal-field"><label>Status</label>
-      <select id="esv-status"><option value="">— Select —</option><option value="Active">Active</option><option value="Inactive">Inactive</option></select>
-    </div>
-    <div class="modal-field"><label>Notes</label><textarea id="esv-notes" rows="2" style="width:100%;resize:vertical;padding:6px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--text)"></textarea></div>
-    <div class="modal-actions">
-      <button class="modal-btn" onclick="hideEditSuppVendorModal()">Cancel</button>
-      <button class="modal-btn primary" id="esv-save-btn" onclick="saveEditSuppVendor()">Save</button>
-    </div>
-  </div>
-</div>
 
 <script>
 const TOKEN = 'pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
@@ -1929,135 +1860,6 @@ function vendorSortIcon(col) {
   return vendorSortDir === 1 ? ' ↑' : ' ↓';
 }
 
-// ===== SUPP VENDORS =====
-let suppVendorsData = [];
-let suppVendorFilter = 'all';
-
-async function loadSuppVendors() {
-  const el = document.getElementById('suppvendors-content');
-  if (el) el.innerHTML = '<div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div>';
-  try {
-    let records = [], offset = null;
-    do {
-      const url = `https://api.airtable.com/v0/${BASE}/${TABLES.suppVendors}?pageSize=100${offset ? '&offset=' + offset : ''}`;
-      const res = await fetch(url, { headers: { Authorization: `Bearer ${TOKEN}` } });
-      const json = await res.json();
-      records = records.concat(json.records || []);
-      offset = json.offset;
-    } while (offset);
-    suppVendorsData = records;
-    renderSuppVendors();
-  } catch(e) {
-    if (el) el.innerHTML = '<p style="color:var(--red);padding:16px">Failed to load supp vendors.</p>';
-  }
-}
-
-function filterSuppVendors(f, btn) {
-  suppVendorFilter = f;
-  document.querySelectorAll('#view-suppvendors .filter-btn').forEach(b => b.classList.remove('active'));
-  if (btn) btn.classList.add('active');
-  renderSuppVendors();
-}
-
-function renderSuppVendors() {
-  const el = document.getElementById('suppvendors-content');
-  if (!el) return;
-  let rows = suppVendorsData.map(r => ({ id: r.id, ...r.fields || {} })).filter(r => r['Vendor']);
-  if (suppVendorFilter !== 'all') {
-    rows = rows.filter(r => (r['Priority'] || '').trim().toLowerCase() === suppVendorFilter.toLowerCase());
-  }
-  rows.sort((a,b) => (a['Vendor']||'').localeCompare(b['Vendor']||''));
-  if (!rows.length) { el.innerHTML = '<p style="color:var(--muted);padding:16px">No vendors found.</p>'; return; }
-  el.innerHTML = `<div class="table-wrap"><table class="data-table"><thead><tr>
-    <th>Vendor</th><th>Website</th><th>Priority</th><th>Status</th><th>Notes</th>
-    <th style="width:60px"></th>
-  </tr></thead><tbody>
-  ${rows.map(r => `<tr>
-    <td><div class="compound-name">${r['Vendor']||'—'}</div></td>
-    <td>${r['Website'] ? `<a href="${r['Website']}" target="_blank" style="color:var(--accent);font-size:12px">${r['Website'].replace(/^https?:\/\/(www\.)?/,'')}</a>` : '—'}</td>
-    <td>${badge(r['Priority'])}</td>
-    <td>${badge(r['Status'])}</td>
-    <td style="font-size:12px;color:var(--muted)">${r['Notes']||'—'}</td>
-    <td><button class="row-edit-btn" onclick="editSuppVendor('${r.id}')">✏️</button></td>
-  </tr>`).join('')}
-  </tbody></table></div>`;
-}
-
-function showAddSuppVendorModal() {
-  document.getElementById('asv-name').value = '';
-  document.getElementById('asv-website').value = '';
-  document.getElementById('asv-priority').value = '';
-  document.getElementById('asv-status').value = '';
-  document.getElementById('asv-notes').value = '';
-  document.getElementById('add-suppvendor-modal').style.display = 'flex';
-}
-function hideAddSuppVendorModal() { document.getElementById('add-suppvendor-modal').style.display = 'none'; }
-
-async function saveAddSuppVendor() {
-  const name = document.getElementById('asv-name').value.trim();
-  if (!name) { alert('Vendor name required'); return; }
-  const btn = document.getElementById('asv-save-btn');
-  btn.disabled = true; btn.textContent = 'Saving...';
-  const fields = { 'Vendor': name };
-  const website = document.getElementById('asv-website').value.trim();
-  const priority = document.getElementById('asv-priority').value;
-  const status = document.getElementById('asv-status').value;
-  const notes = document.getElementById('asv-notes').value.trim();
-  if (website) fields['Website'] = website;
-  if (priority) fields['Priority'] = priority;
-  if (status) fields['Status'] = status;
-  if (notes) fields['Notes'] = notes;
-  try {
-    const res = await fetch(`https://api.airtable.com/v0/${BASE}/${TABLES.suppVendors}`, {
-      method: 'POST', headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ records: [{ fields }] })
-    });
-    const d = await res.json();
-    if (d.records) { hideAddSuppVendorModal(); loadSuppVendors(); }
-    else alert('Error: ' + JSON.stringify(d));
-  } catch(e) { alert('Save failed'); }
-  btn.disabled = false; btn.textContent = 'Save';
-}
-
-function editSuppVendor(id) {
-  const r = suppVendorsData.find(r => r.id === id);
-  if (!r) return;
-  const f = r.fields || {};
-  document.getElementById('esv-id').value = id;
-  document.getElementById('esv-name').value = f['Vendor'] || '';
-  document.getElementById('esv-website').value = f['Website'] || '';
-  document.getElementById('esv-priority').value = f['Priority'] || '';
-  document.getElementById('esv-status').value = f['Status'] || '';
-  document.getElementById('esv-notes').value = f['Notes'] || '';
-  document.getElementById('edit-suppvendor-modal').style.display = 'flex';
-}
-function hideEditSuppVendorModal() { document.getElementById('edit-suppvendor-modal').style.display = 'none'; }
-
-async function saveEditSuppVendor() {
-  const id = document.getElementById('esv-id').value;
-  const name = document.getElementById('esv-name').value.trim();
-  if (!name) { alert('Vendor name required'); return; }
-  const btn = document.getElementById('esv-save-btn');
-  btn.disabled = true; btn.textContent = 'Saving...';
-  const fields = {
-    'Vendor': name,
-    'Website': document.getElementById('esv-website').value.trim(),
-    'Priority': document.getElementById('esv-priority').value,
-    'Status': document.getElementById('esv-status').value,
-    'Notes': document.getElementById('esv-notes').value.trim()
-  };
-  try {
-    const res = await fetch(`https://api.airtable.com/v0/${BASE}/${TABLES.suppVendors}/${id}`, {
-      method: 'PATCH', headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fields })
-    });
-    const d = await res.json();
-    if (d.id) { hideEditSuppVendorModal(); loadSuppVendors(); }
-    else alert('Error: ' + JSON.stringify(d));
-  } catch(e) { alert('Save failed'); }
-  btn.disabled = false; btn.textContent = 'Save';
-}
-
 // ===== WORKOUT DATA =====
 const WORKOUT_DAYS = {
   'Monday - Push': [
@@ -2352,7 +2154,6 @@ function mobileNav(viewId) {
   if (view) view.classList.add('active');
   if (viewId === 'pricing') loadPricing();
   if (viewId === 'vendors') loadVendors();
-  if (viewId === 'suppvendors') loadSuppVendors();
   if (viewId === 'purchases') loadPurchases();
   if (viewId === 'labs') loadLabs();
   if (viewId === 'changes') loadChanges();
@@ -2372,7 +2173,6 @@ function showView(name, e) {
   if (e && e.target) e.target.classList.add('active');
   if (name === 'pricing') loadPricing();
   if (name === 'vendors') loadVendors();
-  if (name === 'suppvendors') loadSuppVendors();
   if (name === 'purchases') loadPurchases();
   if (name === 'labs') loadLabs();
   if (name === 'changes') loadChanges();
@@ -3165,7 +2965,6 @@ function buildWeeklyPrintHTML(monday) {
     if (trigger) trigger.classList.add('active');
     if (viewId === 'pricing') loadPricing();
     if (viewId === 'vendors') loadVendors();
-    if (viewId === 'suppvendors') loadSuppVendors();
     if (viewId === 'purchases') loadPurchases();
     if (viewId === 'labs') loadLabs();
     if (viewId === 'changes') loadChanges();
