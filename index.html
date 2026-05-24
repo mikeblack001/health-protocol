@@ -2627,15 +2627,11 @@ function renderLabsTrend() {
 
   const search = getLabsSearch();
   const allMarkers = Object.keys(lookup);
-  const PRIORITY_MAP = {};
-  LAB_WATCHLIST_GROUPS.forEach(g => g.markers.forEach(m => { PRIORITY_MAP[m] = 'High'; }));
-  const WATCH_MARKERS = ['Free Testosterone','SHBG','Prolactin','DHEA-S','AM Cortisol','IGF-1','Hemoglobin','ALT','AST','GGT','Glucose','HbA1c','Insulin','Total Cholesterol','LDL','HDL','Triglycerides','CRP','Homocysteine','Vitamin D','Ferritin','Cortisol','Uric Acid','Leptin','TSH','Free T3','Free T4','Reverse T3','ACTH','hs-CRP','ApoB','Lipoprotein(a)','Magnesium RBC','Vitamin B12','Zinc','Iron Saturation'];
-  WATCH_MARKERS.forEach(m => { if (!PRIORITY_MAP[m]) PRIORITY_MAP[m] = 'Watch'; });
-
   const visibleMarkers = allMarkers.filter(b => {
     if (search && !(b.toLowerCase().includes(search))) return false;
     if (labsPriority) {
-      const p = PRIORITY_MAP[b] || 'Standard';
+      const rec = Object.values(lookup[b]).find(r => r && r.Priority);
+      const p = rec?.Priority || '';
       if (p !== labsPriority) return false;
     }
     return true;
