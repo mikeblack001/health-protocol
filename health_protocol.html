@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="pragma" content="no-cache">
-<title>Health Protocol v2.1</title>
+<title>Health Protocol</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -341,9 +341,10 @@
 </style>
 </head>
 <body>
+<div id="debug-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#1a1a2e;color:#00ff88;font-family:monospace;font-size:11px;padding:6px 12px;z-index:9999;white-space:pre-wrap;max-height:80px;overflow:auto"></div>
 
 <nav>
-  <div class="nav-logo">Health Protocol <span style="font-size:9px;opacity:0.6;letter-spacing:0">v2.1</span></div>
+  <div class="nav-logo">Health Protocol</div>
   <div class="nav-tabs" id="mainNav">
     <button class="nav-tab active" id="nav-dashboard" onclick="showView('dashboard', event)">Dashboard</button>
 
@@ -356,7 +357,7 @@
         <div class="drop-divider"></div>
         <button class="drop-item" onclick="navDrop('pricing','nav-pep')">Pricing</button>
         <button class="drop-item" onclick="navDrop('purchases','nav-pep')">Purchases</button>
-        <button class="drop-item" onclick="navDrop('vendors','nav-pep')">Peptide Vendors</button>
+        <button class="drop-item" onclick="navDrop('vendors','nav-pep')">Vendors</button>
       </div>
     </div>
 
@@ -423,7 +424,7 @@
     <button class="mobile-item" onclick="mobileNav('changes')">Peptide Changes</button>
     <button class="mobile-item" onclick="mobileNav('pricing')">Pricing</button>
     <button class="mobile-item" onclick="mobileNav('purchases')">Purchases</button>
-    <button class="mobile-item" onclick="mobileNav('vendors')">Peptide Vendors</button>
+    <button class="mobile-item" onclick="mobileNav('vendors')">Vendors</button>
   </div>
 
   <div class="mobile-section">
@@ -541,7 +542,7 @@
       <div class="filter-chip" onclick="filterSuppSource('Amazon', this)" style="margin-left:8px">Amazon</div>
       <div class="filter-chip" onclick="filterSuppSource('Pharmacy', this)">Pharmacy</div>
       <div class="filter-chip" onclick="filterSuppSource('Way to Wellness', this)">Way to Wellness</div>
-      <div class="filter-chip" onclick="filterSuppSource('', this)">All Vendors</div>
+      <div class="filter-chip" onclick="filterSuppSource('', this)">All Sources</div>
     </div>
     <div id="supps-content"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
   </div>
@@ -953,7 +954,11 @@ function renderPrintList() {
 
 async function loadAll() {
   document.getElementById('statusDot').className = 'status-dot';
-  const _dbg = (msg) => console.log('[loadAll]', msg);
+  const _dbg = (msg) => {
+    console.log('[loadAll]', msg);
+    const b = document.getElementById('debug-banner');
+    if (b) { b.style.display='block'; b.textContent += '[' + msg + '] '; }
+  };
   try {
     _dbg('fetching peptides + supplements...');
     const [p, s] = await Promise.all([fetchTable(TABLES.peptides), fetchTable(TABLES.supplements)]);
@@ -1144,7 +1149,7 @@ function renderSupplements(filter) {
         <th>Purpose</th>
         <th style="cursor:pointer" onclick="sortSupp('Brand')">Brand${suppSortIcon('Brand')}</th>
         <th style="cursor:pointer" onclick="sortSupp('Status')">Status${suppSortIcon('Status')}</th>
-        <th>Vendor</th>
+        <th>Source</th>
       </tr></thead><tbody>
       ${group.map(r => `<tr>
         <td><div class="compound-name">${getField(r,'Supplement')}</div><div class="compound-sub">${getField(r,'Product')}</div></td>
@@ -1167,7 +1172,7 @@ function renderSupplements(filter) {
         <th>Purpose</th>
         <th style="cursor:pointer" onclick="sortSupp('Brand')">Brand${suppSortIcon('Brand')}</th>
         <th style="cursor:pointer" onclick="sortSupp('Status')">Status${suppSortIcon('Status')}</th>
-        <th>Vendor</th>
+        <th>Source</th>
       </tr></thead><tbody>
       ${other.map(r => `<tr>
         <td><div class="compound-name">${getField(r,'Supplement')}</div><div class="compound-sub">${getField(r,'Product')}</div></td>
@@ -2599,11 +2604,11 @@ function renderChanges() {
 
 function showAddChangeModal() {
   document.getElementById('ac-date').value = new Date().toISOString().split('T')[0];
-  // Populate compound select from ALL non-Deferred/TBD peptides
+  // Populate compound select from active peptides
   const sel = document.getElementById('ac-compound');
   sel.innerHTML = '<option value="">— Select —</option>';
   const names = (data.peptides || [])
-    .filter(r => !['Deferred','TBD'].includes((r.fields||{})['Status']))
+    .filter(r => (r.fields||{})['Status'] === 'Active')
     .map(r => (r.fields||{})['Compound'] || '')
     .filter(Boolean)
     .sort();
@@ -2648,49 +2653,9 @@ async function saveAddChange() {
       changesData.unshift(newRec);
       hideAddChangeModal();
       renderChanges();
-      await updatePeptideFromChange(compound, type, date);
     } else { alert('Save failed'); }
   } catch(e) { alert('Error: ' + e.message); }
   btn.disabled = false; btn.textContent = 'Save';
-}
-
-async function updatePeptideFromChange(compound, changeType, date) {
-  const pepRecord = data.peptides.find(r => ((r.fields||{})['Compound']||'').trim().toLowerCase() === compound.trim().toLowerCase());
-  if (!pepRecord) { console.warn('No peptide record found for:', compound); return; }
-  const pepFields = {};
-  if (changeType === 'Started' || changeType === 'Resumed') {
-    pepFields['fldO3s24TR8o1qfSY'] = date;
-    pepFields['fldeCBOtYYp6BtAfh'] = 'Active';
-    if (changeType === 'Resumed') pepFields['fldbS91GtXsxjZU4q'] = null;
-  } else if (changeType === 'Paused' || changeType === 'Stopped') {
-    pepFields['fldbS91GtXsxjZU4q'] = date;
-    pepFields['fldeCBOtYYp6BtAfh'] = 'Paused';
-  }
-  if (!Object.keys(pepFields).length) return;
-  try {
-    const res = await fetch(`https://api.airtable.com/v0/${BASE}/${TABLES.peptides}/${pepRecord.id}`, {
-      method: 'PATCH',
-      headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fields: pepFields, typecast: true })
-    });
-    if (res.ok) {
-      const updated = await res.json();
-      const idx = data.peptides.findIndex(r => r.id === pepRecord.id);
-      if (idx !== -1) data.peptides[idx] = updated;
-      renderPeptides(currentPepFilter);
-      showToast('✅ ' + compound + ' — ' + (changeType === 'Started' || changeType === 'Resumed' ? 'Start' : 'End') + ' Date updated');
-    } else {
-      const err = await res.json(); console.error('Peptide update failed:', err);
-      showToast('⚠️ Change logged but peptide date update failed');
-    }
-  } catch(e) { console.error(e); showToast('⚠️ Change logged but peptide date update failed'); }
-}
-
-function showToast(msg) {
-  let t = document.getElementById('toast-msg');
-  if (!t) { t = document.createElement('div'); t.id = 'toast-msg'; t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--border);color:var(--text);padding:10px 18px;border-radius:8px;font-size:13px;font-family:DM Sans,sans-serif;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,0.15);transition:opacity 0.3s'; document.body.appendChild(t); }
-  t.textContent = msg; t.style.opacity = '1';
-  clearTimeout(t._timer); t._timer = setTimeout(() => { t.style.opacity = '0'; }, 3500);
 }
 
 
