@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Rec ID Lookup — Wrong-Date Pairs</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, system-ui, sans-serif; background: #0a0f1a; color: #e2e8f0; padding: 20px; font-size: 13px; }
+h1 { font-size: 15px; font-weight: 700; color: #f8fafc; }
+.sub { font-size: 11px; color: #475569; font-family: monospace; margin-top: 2px; margin-bottom: 18px; }
+#runBtn { background: #2563eb; color: #fff; border: none; border-radius: 7px; padding: 10px 22px; font-size: 13px; font-weight: 700; cursor: pointer; margin-bottom: 20px; }
+#runBtn:disabled { background: #1e293b; color: #475569; cursor: not-allowed; }
+#msg { font-size: 11px; color: #64748b; margin-left: 12px; vertical-align: middle; }
+.tbl-wrap { background: #111827; border: 1px solid #1e293b; border-radius: 8px; overflow: hidden; margin-bottom: 20px; }
+table { width: 100%; border-collapse: collapse; }
+th { padding: 6px 11px; text-align: left; font-size: 10px; font-weight: 600; color: #475569; text-transform: uppercase; letter-spacing: 0.05em; background: #0f172a; border-bottom: 1px solid #1e293b; }
+td { padding: 8px 11px; border-bottom: 1px solid #1a2234; vertical-align: top; font-size: 12px; }
+tr:last-child td { border-bottom: none; }
+.mono { font-family: monospace; font-size: 11px; color: #94a3b8; }
+.loading { color: #475569; font-style: italic; }
+.ok    { color: #34d399; }
+.err   { color: #f87171; }
+.warn  { color: #fbbf24; }
+.dim   { color: #475569; }
+.day-tag { display: inline-block; padding: 1px 7px; border-radius: 4px; font-size: 10px; font-weight: 600; }
+.tag-push { background: #1e3a5f; color: #93c5fd; }
+.tag-pull { background: #064e3b; color: #6ee7b7; }
+.tag-legs { background: #3b1f5e; color: #c4b5fd; }
+.tag-arms { background: #451a03; color: #fcd34d; }
+.field-grid { display: grid; grid-template-columns: 120px 1fr; gap: 3px 10px; font-size: 11px; }
+.field-key { color: #64748b; }
+.field-val { color: #e2e8f0; font-family: monospace; }
+.field-val.missing { color: #ef4444; font-style: italic; }
+.diag { font-size: 11px; line-height: 1.7; margin-top: 6px; padding-top: 6px; border-top: 1px solid #1e293b; }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 10px; font-weight: 700; }
+.b-exists  { background: #064e3b; color: #6ee7b7; }
+.b-missing { background: #450a0a; color: #fca5a5; }
+.b-blank   { background: #451a03; color: #fcd34d; }
+</style>
+</head>
+<body>
+<h1>Rec ID Direct Lookup — Wrong-Date Pairs</h1>
+<div class="sub">Sessions table: tblk9tTYIcIY4tWjF</div>
+<button id="runBtn" onclick="run()">▶ Look Up All 5 Records</button>
+<span id="msg"></span>
+<div class="tbl-wrap">
+  <table>
+    <thead>
+      <tr><th>Rec ID</th><th>Expected</th><th>Record Status</th><th>Actual Field Values</th><th>Diagnosis</th></tr>
+    </thead>
+    <tbody id="body">
+      <tr><td colspan="5" class="loading">Click to load…</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<script>
+const TOKEN = "pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a";
+const BASE  = "appmHDG4TGT1xy6R6";
+const TBL   = "tblk9tTYIcIY4tWjF";
+const SF = { session:"fldtyX5g2302mdKRM", date:"fld0NOLsoRvUklsUx", day:"fldCOlVjVlkvg7xQ6", sleep:"flduCm2fVfbj9fhIE", deep:"fldhIwgdnwSN3qSCk", duration:"flddFOAaEqasewACu", notes:"fldHoMvfrVusyffXP" };
+
+const PAIRS = [
+  { id:"rec6QHFvlEGyhMeFO", uncertain:true,  wrongDate:"2026-02-02", correctDate:"2026-02-03", day:"Push" },
+  { id:"recl9xhzVdwiPf35f", uncertain:false, wrongDate:"2026-02-03", correctDate:"2026-02-04", day:"Pull" },
+  { id:"recGvmFz3Vx1V0TDO", uncertain:false, wrongDate:"2026-02-04", correctDate:"2026-02-05", day:"Legs/Core" },
+  { id:"recQT9vO6K1qDNG9X", uncertain:false, wrongDate:"2026-02-05", correctDate:"2026-02-06", day:"Arms/Chest" },
+  { id:"rec2DEWZrVc2iWjEK", uncertain:false, wrongDate:"2026-04-09", correctDate:"2026-04-08", day:"Arms/Chest" },
+];
+
+function dayTag(day) {
+  const cls = day==="Push"?"tag-push":day==="Pull"?"tag-pull":day.startsWith("Legs")?"tag-legs":"tag-arms";
+  return `<span class="day-tag ${cls}">${day}</span>`;
+}
+
+function fval(v, label) {
+  if (v === undefined || v === null || v === "") return `<span class="field-val missing">(blank)</span>`;
+  return `<span class="field-val">${v}</span>`;
+}
+
+function diagnose(pair, fields, found) {
+  if (!found) return `<span class="err">Record does not exist — rec ID invalid or already deleted</span>`;
+  const actualDate = (fields[SF.date]||"").slice(0,10);
+  const actualDay  = fields[SF.day] || "";
+  const actualSess = fields[SF.session] || "";
+  const lines = [];
+
+  if (!actualDate) {
+    lines.push(`<span class="warn">⚠ Date field is BLANK — explains why date-filter query returned nothing</span>`);
+  } else if (actualDate === pair.wrongDate) {
+    lines.push(`<span class="warn">Date is on WRONG date (${actualDate}) → needs update to ${pair.correctDate}</span>`);
+  } else if (actualDate === pair.correctDate) {
+    lines.push(`<span class="ok">Date already on correct date (${actualDate}) — may already be fixed</span>`);
+  } else {
+    lines.push(`<span class="err">Date is ${actualDate} — matches NEITHER wrong (${pair.wrongDate}) nor correct (${pair.correctDate})</span>`);
+  }
+
+  if (!actualDay) lines.push(`<span class="warn">Day field blank</span>`);
+  if (!actualSess) lines.push(`<span class="warn">Session name field blank</span>`);
+  if (pair.uncertain) lines.push(`<span class="dim">Note: rec ID had ? in audit — confirmed valid</span>`);
+
+  return lines.join("<br>");
+}
+
+async function run() {
+  const btn = document.getElementById("runBtn");
+  const msg = document.getElementById("msg");
+  const body = document.getElementById("body");
+  btn.disabled = true;
+  body.innerHTML = "";
+
+  for (const pair of PAIRS) {
+    msg.textContent = `Fetching ${pair.id}…`;
+    const row = document.createElement("tr");
+    let found = false, fields = {};
+
+    try {
+      const res = await fetch(`https://api.airtable.com/v0/${BASE}/${TBL}/${pair.id}`, {
+        headers: { "Authorization": `Bearer ${TOKEN}` }
+      });
+      const json = await res.json();
+      if (res.ok && json.fields) {
+        found = true;
+        fields = json.fields;
+      }
+    } catch(e) {}
+
+    const statusBadge = found
+      ? `<span class="badge b-exists">EXISTS</span>`
+      : `<span class="badge b-missing">NOT FOUND</span>`;
+
+    const fieldGrid = found ? `
+      <div class="field-grid">
+        <span class="field-key">Session name</span>${fval(fields[SF.session])}
+        <span class="field-key">Date</span>${fval(fields[SF.date])}
+        <span class="field-key">Day</span>${fval(fields[SF.day])}
+        <span class="field-key">Sleep (hrs)</span>${fval(fields[SF.sleep])}
+        <span class="field-key">Deep (min)</span>${fval(fields[SF.deep])}
+        <span class="field-key">Duration (min)</span>${fval(fields[SF.duration])}
+        <span class="field-key">Notes</span>${fval(fields[SF.notes])}
+      </div>` : `<span class="err">Could not retrieve</span>`;
+
+    row.innerHTML = `
+      <td class="mono">${pair.id}${pair.uncertain ? '<span class="warn"> ?</span>' : ""}</td>
+      <td>${dayTag(pair.day)}<div style="font-size:10px;color:#64748b;margin-top:3px">Wrong: ${pair.wrongDate}<br>Correct: ${pair.correctDate}</div></td>
+      <td>${statusBadge}</td>
+      <td>${fieldGrid}</td>
+      <td class="diag">${diagnose(pair, fields, found)}</td>
+    `;
+    body.appendChild(row);
+    await new Promise(r => setTimeout(r, 200));
+  }
+
+  msg.textContent = "Done.";
+  btn.disabled = false;
+}
+</script>
+</body>
+</html>
