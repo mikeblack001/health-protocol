@@ -2619,7 +2619,7 @@ function renderLabsTrend() {
     return `<th style="text-align:center;font-family:'DM Mono',monospace;font-size:11px;white-space:nowrap;min-width:72px">${m}/${day}/${y.slice(2)}</th>`;
   }).join('');
 
-  const renderRow = b => {
+  const renderRow = (b, isWatch=false) => {
     const recs = lookup[b];
     const units = Object.values(recs).find(Boolean)?.Units || '';
     const datesWithVal = dates.filter(d=>recs[d]?.Value!=null);
@@ -2630,6 +2630,7 @@ function renderLabsTrend() {
       const diff = last - prev;
       trend = diff > 0 ? '<span style="color:var(--red)">↑</span>' : diff < 0 ? '<span style="color:var(--green)">↓</span>' : '<span style="color:var(--muted)">→</span>';
     }
+    const rowBg = isWatch ? 'background:rgba(59,130,246,0.04);border-left:3px solid var(--accent)' : '';
     const cells = dates.map(d => {
       const r = recs[d];
       if (!r) return `<td style="text-align:center;color:var(--border)">—</td>`;
@@ -2639,8 +2640,8 @@ function renderLabsTrend() {
         <span style="${out?'color:var(--red);font-weight:700':''}">${displayVal}</span>
       </td>`;
     }).join('');
-    return `<tr>
-      <td style="font-weight:500;font-size:13px;white-space:nowrap">${BIOMARKER_SHORT[b] || b}</td>
+    return `<tr style="${rowBg}">
+      <td style="font-weight:600;font-size:13px;white-space:nowrap;${isWatch?'color:var(--text)':''}">${BIOMARKER_SHORT[b] || b}</td>
       <td style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace">${units}</td>
       ${cells}
       <td style="text-align:center;font-size:14px">${trend}</td>
@@ -2663,8 +2664,8 @@ function renderLabsTrend() {
         html += sectionHeader('Priority Watch List','⭐', true);
         watchlistRendered = true;
       }
-      html += `<tr><td colspan="${dates.length+3}" style="background:var(--surface2);color:var(--muted);font-size:10px;font-weight:700;letter-spacing:1px;padding:4px 16px;text-transform:uppercase;border-top:1px solid var(--border)">${group.label}</td></tr>`;
-      html += inGroup.map(renderRow).join('');
+      html += `<tr><td colspan="${dates.length+3}" style="background:var(--accent-light);color:var(--accent);font-size:10px;font-weight:700;letter-spacing:1.2px;padding:4px 16px;text-transform:uppercase;border-top:1px solid var(--accent-border);border-left:3px solid var(--accent)">${group.label}</td></tr>`;
+      html += inGroup.map(b => renderRow(b, true)).join('');
     });
   }
   Object.keys(byType).sort().forEach(type => {
