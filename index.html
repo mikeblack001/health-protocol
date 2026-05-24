@@ -867,11 +867,9 @@
     </div>
     <div class="filter-bar" id="labs-priority-bar" style="padding:6px 16px;border-bottom:1px solid var(--border);gap:6px">
       <span style="font-size:11px;color:var(--muted);font-weight:600;letter-spacing:0.5px;text-transform:uppercase">Priority</span>
-      <button class="filter-btn active" id="labs-pri-all" onclick="setLabsPriority('',this)">All</button>
-      <button class="filter-btn" id="labs-pri-high" onclick="setLabsPriority('High',this)">🔴 High</button>
+      <button class="filter-btn" id="labs-pri-all" onclick="setLabsPriority('',this)">All</button>
       <button class="filter-btn" id="labs-pri-aiwatch" onclick="setLabsPriority('AIWatch',this)">🤖 AI Watch</button>
-      <button class="filter-btn" id="labs-pri-pinned" onclick="setLabsPriority('Pinned',this)">⭐ Pinned</button>
-      <button class="filter-btn" id="labs-pri-standard" onclick="setLabsPriority('Standard',this)">Standard</button>
+      <button class="filter-btn active" id="labs-pri-pinned" onclick="setLabsPriority('Pinned',this)">⭐ Pinned</button>
       <input id="labs-search" type="text" placeholder="Search marker..." oninput="renderLabsTrend()" style="margin-left:8px;padding:4px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface);width:160px">
     </div>
     <div id="labs-flag-bar" style="display:none;padding:8px 16px;background:var(--red-bg);border-bottom:1px solid #fecaca;font-size:12px;color:var(--red);font-weight:500"></div>
@@ -2507,7 +2505,7 @@ async function saveAddPurchase() {
 // ===== LABS =====
 let labsData = [];
 let labsView = 'trend';
-let labsPriority = '';
+let labsPriority = 'Pinned';
 
 const LAB_WATCHLIST = ['Estradiol','BUN','Creatinine','eGFR','Alkaline Phosphatase','PSA','Calcium','Testosterone','Neutrophils Absolute','Hematocrit','WBC'];
 
@@ -2564,7 +2562,7 @@ async function loadLabs() {
 
 function setLabsPriority(val, btn) {
   labsPriority = val;
-  ['labs-pri-all','labs-pri-high','labs-pri-aiwatch','labs-pri-pinned','labs-pri-standard'].forEach(id => {
+  ['labs-pri-all','labs-pri-aiwatch','labs-pri-pinned'].forEach(id => {
     document.getElementById(id)?.classList.remove('active');
   });
   btn.classList.add('active');
@@ -2658,12 +2656,12 @@ function renderLabsTrend() {
   const ALL_PRIORITY = new Set([...HIGH_MARKERS, ...AI_WATCH_SET]);
   const pinnedMarkers = getPinnedMarkers();
 
+  const ALL_AI = new Set([...HIGH_MARKERS, ...AI_WATCH_SET]);
+
   const visibleMarkers = allMarkers.filter(b => {
     if (search && !(b.toLowerCase().includes(search))) return false;
-    if (labsPriority === 'High' && !HIGH_MARKERS.has(b)) return false;
-    if (labsPriority === 'AIWatch' && !AI_WATCH_SET.has(b)) return false;
+    if (labsPriority === 'AIWatch' && !ALL_AI.has(b)) return false;
     if (labsPriority === 'Pinned' && !pinnedMarkers.has(b)) return false;
-    if (labsPriority === 'Standard' && ALL_PRIORITY.has(b)) return false;
     return true;
   });
   const watchlistPresent = new Set(LAB_WATCHLIST.filter(b=>visibleMarkers.includes(b)));
@@ -2736,12 +2734,14 @@ function renderLabsTrend() {
         <span style="${out?'color:var(--red);font-weight:700':''}">${displayVal}</span>
       </td>`;
     }).join('');
-    const why = AI_WATCH[b] || '';
+    const why = AI_WATCH[b] || (HIGH_MARKERS.has(b) ? 'Critical marker — monitored every draw' : '');
+    const isCritical = HIGH_MARKERS.has(b);
     const isPinned = pinnedMarkers.has(b);
+    const critBadge = isCritical ? `<span style="font-size:10px;margin-left:4px" title="Critical">🔴</span>` : '';
     const pinIcon = `<span onclick="event.stopPropagation();togglePin('${b.replace(/'/g,"\'")}')" style="cursor:pointer;opacity:${isPinned?'1':'0.25'};font-size:11px;margin-left:4px" title="${isPinned?'Unpin':'Pin'}">⭐</span>`;
     const whyTip = why ? `<span style="font-size:10px;color:var(--accent);margin-left:5px;cursor:help;font-weight:600" title="${why}">?</span>` : '';
     return `<tr>
-      <td style="font-size:12px;white-space:nowrap;max-width:140px;overflow:hidden;text-overflow:ellipsis">${BIOMARKER_SHORT[b]||b}${whyTip}${pinIcon}</td>
+      <td style="font-size:12px;white-space:nowrap;max-width:140px;overflow:hidden;text-overflow:ellipsis">${BIOMARKER_SHORT[b]||b}${critBadge}${whyTip}${pinIcon}</td>
       <td style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace">${units}</td>
       ${cells}
       <td style="text-align:center;font-size:13px">${trend}</td>
