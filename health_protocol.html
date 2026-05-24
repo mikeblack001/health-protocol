@@ -354,7 +354,7 @@
         <div class="drop-divider"></div>
         <button class="drop-item" onclick="navDrop('pricing','nav-pep')">Pricing</button>
         <button class="drop-item" onclick="navDrop('purchases','nav-pep')">Purchases</button>
-        <button class="drop-item" onclick="navDrop('vendors','nav-pep')">Vendors</button>
+        <button class="drop-item" onclick="navDrop('vendors','nav-pep')">Peptide Vendors</button>
       </div>
     </div>
 
@@ -421,7 +421,7 @@
     <button class="mobile-item" onclick="mobileNav('changes')">Peptide Changes</button>
     <button class="mobile-item" onclick="mobileNav('pricing')">Pricing</button>
     <button class="mobile-item" onclick="mobileNav('purchases')">Purchases</button>
-    <button class="mobile-item" onclick="mobileNav('vendors')">Vendors</button>
+    <button class="mobile-item" onclick="mobileNav('vendors')">Peptide Vendors</button>
   </div>
 
   <div class="mobile-section">
@@ -539,7 +539,7 @@
       <div class="filter-chip" onclick="filterSuppSource('Amazon', this)" style="margin-left:8px">Amazon</div>
       <div class="filter-chip" onclick="filterSuppSource('Pharmacy', this)">Pharmacy</div>
       <div class="filter-chip" onclick="filterSuppSource('Way to Wellness', this)">Way to Wellness</div>
-      <div class="filter-chip" onclick="filterSuppSource('', this)">All Sources</div>
+      <div class="filter-chip" onclick="filterSuppSource('', this)">All Vendors</div>
     </div>
     <div id="supps-content"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
   </div>
@@ -1135,7 +1135,7 @@ function renderSupplements(filter) {
         <th>Purpose</th>
         <th style="cursor:pointer" onclick="sortSupp('Brand')">Brand${suppSortIcon('Brand')}</th>
         <th style="cursor:pointer" onclick="sortSupp('Status')">Status${suppSortIcon('Status')}</th>
-        <th>Source</th>
+        <th>Vendor</th>
       </tr></thead><tbody>
       ${group.map(r => `<tr>
         <td><div class="compound-name">${getField(r,'Supplement')}</div><div class="compound-sub">${getField(r,'Product')}</div></td>
@@ -1158,7 +1158,7 @@ function renderSupplements(filter) {
         <th>Purpose</th>
         <th style="cursor:pointer" onclick="sortSupp('Brand')">Brand${suppSortIcon('Brand')}</th>
         <th style="cursor:pointer" onclick="sortSupp('Status')">Status${suppSortIcon('Status')}</th>
-        <th>Source</th>
+        <th>Vendor</th>
       </tr></thead><tbody>
       ${other.map(r => `<tr>
         <td><div class="compound-name">${getField(r,'Supplement')}</div><div class="compound-sub">${getField(r,'Product')}</div></td>
@@ -2796,7 +2796,7 @@ function printProtocolList() {
       <th style="border:1px solid #999;padding:4px 8px;text-align:left">Supplement</th>
       <th style="border:1px solid #999;padding:4px 8px;text-align:left">Dose</th>
       <th style="border:1px solid #999;padding:4px 8px;text-align:left">Brand</th>
-      <th style="border:1px solid #999;padding:4px 8px;text-align:left">Source</th>
+      <th style="border:1px solid #999;padding:4px 8px;text-align:left">Vendor</th>
     </tr></thead><tbody>
     ${rows.map(r => `<tr>
       <td style="border:1px solid #ddd;padding:4px 8px;font-weight:600">${getField(r,'Supplement')}</td>
