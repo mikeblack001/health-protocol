@@ -3,332 +3,195 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sheets Formatter — Health Protocol</title>
+<title>Sheets Formatter</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'DM Sans', sans-serif; background: #111; color: #e0e0e0; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 40px 20px; }
-  h1 { font-size: 20px; font-weight: 600; color: #fff; margin-bottom: 6px; }
-  p.sub { font-size: 13px; color: #888; margin-bottom: 30px; }
-  .card { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 10px; padding: 24px; width: 100%; max-width: 600px; margin-bottom: 16px; }
-  .card h2 { font-size: 12px; font-weight: 600; color: #666; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 14px; }
-  label { display: block; font-size: 13px; color: #aaa; margin-bottom: 6px; }
-  input[type=text] { width: 100%; background: #111; border: 1px solid #333; border-radius: 6px; padding: 10px 12px; color: #fff; font-size: 13px; font-family: monospace; outline: none; }
-  input[type=text]:focus { border-color: #555; }
-  .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: 7px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; font-family: 'DM Sans', sans-serif; transition: opacity .15s; }
-  .btn:hover:not(:disabled) { opacity: .8; }
-  .btn-primary { background: #2563eb; color: #fff; }
-  .btn-secondary { background: #222; color: #ccc; border: 1px solid #333; }
-  .btn-danger { background: #dc2626; color: #fff; }
-  .btn:disabled { opacity: .35; cursor: not-allowed; }
-  .row { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
-  .tab-list { display: flex; flex-direction: column; gap: 8px; }
-  .tab-item { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: #111; border-radius: 6px; border: 1px solid #2a2a2a; font-size: 13px; cursor: pointer; }
-  .tab-item input[type=checkbox] { width:15px; height:15px; cursor:pointer; accent-color:#2563eb; }
-  .tab-item span { color: #ccc; }
-  .tab-badge { margin-left: auto; font-size: 11px; padding: 2px 8px; border-radius: 99px; background: #222; color: #666; }
-  #log { font-size: 12px; font-family: monospace; line-height: 1.9; max-height: 320px; overflow-y: auto; }
-  .log-ok   { color: #4ade80; }
-  .log-err  { color: #f87171; }
-  .log-info { color: #93c5fd; }
-  .tag { display: inline-block; padding: 2px 9px; border-radius: 99px; font-size: 11px; font-weight: 600; margin: 2px; }
-  .tag-preview { margin-top: 8px; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:'DM Sans',sans-serif; background:#111; color:#e0e0e0; min-height:100vh; display:flex; flex-direction:column; align-items:center; padding:40px 20px; }
+  h1 { font-size:20px; font-weight:600; color:#fff; margin-bottom:6px; }
+  p.sub { font-size:13px; color:#888; margin-bottom:30px; }
+  .card { background:#1a1a1a; border:1px solid #2a2a2a; border-radius:10px; padding:24px; width:100%; max-width:560px; margin-bottom:16px; }
+  .btn { display:inline-flex; align-items:center; gap:8px; padding:12px 24px; border-radius:7px; font-size:14px; font-weight:500; cursor:pointer; border:none; font-family:'DM Sans',sans-serif; }
+  .btn-primary { background:#2563eb; color:#fff; }
+  .btn:disabled { opacity:.35; cursor:not-allowed; }
+  #log { font-size:12px; font-family:monospace; line-height:2; }
+  .ok   { color:#4ade80; } .err { color:#f87171; } .info { color:#93c5fd; }
+  .center { text-align:center; }
 </style>
 </head>
 <body>
-
 <h1>Sheets Formatter</h1>
-<p class="sub">Airtable-style formatting for Health Protocol Google Sheet</p>
-
-<div class="card">
-  <h2>Connection</h2>
-  <label>Spreadsheet ID</label>
-  <input type="text" id="sheetId" value="1rQ9KTvnO8-iEihjP2cTcDVbkoNdr153pFUcLjwZwm_E" />
-  <div class="row">
-    <button class="btn btn-secondary" onclick="signIn()" id="btnSign">Sign in with Google</button>
-    <button class="btn btn-secondary" onclick="loadTabs()" id="btnLoad" disabled>Load Tabs</button>
-  </div>
+<p class="sub">Clears bad formatting → applies Airtable-style in one step</p>
+<div class="card center">
+  <button class="btn btn-primary" onclick="signIn()" id="btnSign">Sign in with Google → Auto-Format</button>
 </div>
-
-<div class="card" id="tabCard" style="display:none">
-  <h2>Select Tabs to Format</h2>
-  <div class="tab-list" id="tabList"></div>
-  <div class="row">
-    <button class="btn btn-danger" onclick="clearFormatting()" id="btnClear">Clear All Formatting First</button>
-    <button class="btn btn-primary" onclick="runFormat()" id="btnFmt">Apply Formatting</button>
-  </div>
-</div>
-
-<div class="card" id="previewCard">
-  <h2>Tag Colors</h2>
-  <div style="font-size:11px;color:#555;margin-bottom:4px">VARIATION</div>
-  <div class="tag-preview" id="prevVar"></div>
-  <div style="font-size:11px;color:#555;margin:10px 0 4px">DAY</div>
-  <div class="tag-preview" id="prevDay"></div>
-</div>
-
-<div class="card">
-  <h2>Log</h2>
-  <div id="log"><span class="log-info">Waiting…</span></div>
-</div>
+<div class="card"><div id="log"><span class="info">Waiting for sign-in…</span></div></div>
 
 <script>
 const CLIENT_ID = '478191426516-94rflpalsl5ev56ptck62k5imes6jk8l.apps.googleusercontent.com';
 const SCOPES    = 'https://www.googleapis.com/auth/spreadsheets';
-let tokenClient, accessToken, allSheets = [];
+const SHEET_ID  = '1rQ9KTvnO8-iEihjP2cTcDVbkoNdr153pFUcLjwZwm_E';
+let tokenClient, accessToken;
 
-// Color maps
 const VAR_COLORS = {
-  'Cable 1/2':       { bg:{r:1,   g:.82, b:.27}, fg:{r:.25,g:.15,b:0}  },
-  'Cables (2:1)':    { bg:{r:.22, g:.48, b:.96}, fg:{r:1,  g:1,  b:1}  },
-  'Cable - 2 Hand':  { bg:{r:.22, g:.48, b:.96}, fg:{r:1,  g:1,  b:1}  },
-  'DBs':             { bg:{r:.18, g:.72, b:.42}, fg:{r:1,  g:1,  b:1}  },
-  'Rope 1/2':        { bg:{r:.95, g:.35, b:.35}, fg:{r:1,  g:1,  b:1}  },
-  'Smith 35lb':      { bg:{r:1,   g:.55, b:.1 }, fg:{r:1,  g:1,  b:1}  },
-  'EZ-Bar (15lbs)':  { bg:{r:.42, g:.32, b:.85}, fg:{r:1,  g:1,  b:1}  },
-  '45lbs':           { bg:{r:.18, g:.72, b:.42}, fg:{r:1,  g:1,  b:1}  },
-  'V-Bar':           { bg:{r:.5,  g:.5,  b:.55}, fg:{r:1,  g:1,  b:1}  },
-  'UClip':           { bg:{r:.45, g:.8,  b:.95}, fg:{r:.1, g:.2, b:.4} },
-  'Bar':             { bg:{r:.22, g:.22, b:.25}, fg:{r:1,  g:1,  b:1}  },
-  'Lat Machine':     { bg:{r:.58, g:.32, b:.88}, fg:{r:1,  g:1,  b:1}  },
+  'Cable 1/2':      {bg:{r:1,   g:.82,b:.27},fg:{r:.25,g:.15,b:0}},
+  'Cables (2:1)':   {bg:{r:.22, g:.48,b:.96},fg:{r:1,  g:1,  b:1}},
+  'Cable - 2 Hand': {bg:{r:.22, g:.48,b:.96},fg:{r:1,  g:1,  b:1}},
+  'DBs':            {bg:{r:.18, g:.72,b:.42},fg:{r:1,  g:1,  b:1}},
+  'Rope 1/2':       {bg:{r:.95, g:.35,b:.35},fg:{r:1,  g:1,  b:1}},
+  'Smith 35lb':     {bg:{r:1,   g:.55,b:.1 },fg:{r:1,  g:1,  b:1}},
+  'EZ-Bar (15lbs)': {bg:{r:.42, g:.32,b:.85},fg:{r:1,  g:1,  b:1}},
+  '45lbs':          {bg:{r:.18, g:.72,b:.42},fg:{r:1,  g:1,  b:1}},
+  'V-Bar':          {bg:{r:.5,  g:.5, b:.55},fg:{r:1,  g:1,  b:1}},
+  'UClip':          {bg:{r:.45, g:.8, b:.95},fg:{r:.1, g:.2, b:.4}},
+  'Bar':            {bg:{r:.22, g:.22,b:.25},fg:{r:1,  g:1,  b:1}},
+  'Lat Machine':    {bg:{r:.58, g:.32,b:.88},fg:{r:1,  g:1,  b:1}},
 };
 const DAY_COLORS = {
-  'Push':       { bg:{r:.18,g:.4, b:.86}, fg:{r:1, g:1, b:1} },
-  'Pull':       { bg:{r:.5, g:.2, b:.85}, fg:{r:1, g:1, b:1} },
-  'Legs/Core':  { bg:{r:.1, g:.6, b:.42}, fg:{r:1, g:1, b:1} },
-  'Arms/Chest': { bg:{r:.88,g:.32,b:.22}, fg:{r:1, g:1, b:1} },
-  'Shoulders':  { bg:{r:.88,g:.68,b:.08}, fg:{r:.2,g:.1,b:0} },
-  'Cardio':     { bg:{r:.1, g:.7, b:.7 }, fg:{r:1, g:1, b:1} },
+  'Push':      {bg:{r:.18,g:.4, b:.86},fg:{r:1,g:1,b:1}},
+  'Pull':      {bg:{r:.5, g:.2, b:.85},fg:{r:1,g:1,b:1}},
+  'Legs/Core': {bg:{r:.1, g:.6, b:.42},fg:{r:1,g:1,b:1}},
+  'Arms/Chest':{bg:{r:.88,g:.32,b:.22},fg:{r:1,g:1,b:1}},
+  'Shoulders': {bg:{r:.88,g:.68,b:.08},fg:{r:.2,g:.1,b:0}},
+  'Cardio':    {bg:{r:.1, g:.7, b:.7 },fg:{r:1,g:1,b:1}},
 };
 
-function toHex(c) { return '#'+[c.r,c.g,c.b].map(v=>Math.round(v*255).toString(16).padStart(2,'0')).join(''); }
-
-// Render previews
-(function(){
-  const pv = document.getElementById('prevVar');
-  const pd = document.getElementById('prevDay');
-  for(const [l,{bg,fg}] of Object.entries(VAR_COLORS)){
-    const e=document.createElement('span'); e.className='tag'; e.textContent=l;
-    e.style.background=toHex(bg); e.style.color=toHex(fg); pv.appendChild(e);
-  }
-  for(const [l,{bg,fg}] of Object.entries(DAY_COLORS)){
-    const e=document.createElement('span'); e.className='tag'; e.textContent=l;
-    e.style.background=toHex(bg); e.style.color=toHex(fg); pd.appendChild(e);
-  }
-})();
-
-// Auth
 function initClient(){
   tokenClient = google.accounts.oauth2.initTokenClient({
-    client_id: CLIENT_ID, scope: SCOPES,
-    callback: resp => {
+    client_id:CLIENT_ID, scope:SCOPES,
+    callback: async resp => {
       if(resp.error) return log('Auth error: '+resp.error,'err');
       accessToken = resp.access_token;
-      document.getElementById('btnLoad').disabled = false;
-      log('Signed in ✓','ok');
+      document.getElementById('btnSign').disabled = true;
+      log('Signed in ✓ — starting…','ok');
+      await run();
     }
   });
 }
 function signIn(){ tokenClient.requestAccessToken(); }
 
-async function sheetsReq(method, path, body){
-  const sid = document.getElementById('sheetId').value.trim();
-  const opts = { method, headers:{ Authorization:'Bearer '+accessToken, 'Content-Type':'application/json' }};
-  if(body) opts.body = JSON.stringify(body);
-  const r = await fetch('https://sheets.googleapis.com/v4/spreadsheets'+path, opts);
-  const data = await r.json();
-  if(data.error) throw new Error(data.error.message);
-  return data;
+async function api(method, path, body){
+  const opts={method,headers:{Authorization:'Bearer '+accessToken,'Content-Type':'application/json'}};
+  if(body) opts.body=JSON.stringify(body);
+  const r=await fetch('https://sheets.googleapis.com/v4/spreadsheets'+path,opts);
+  const d=await r.json(); if(d.error) throw new Error(d.error.message); return d;
+}
+async function getHeaders(title){
+  const r=await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(title+'!1:1')}`,
+    {headers:{Authorization:'Bearer '+accessToken}});
+  const d=await r.json();
+  return ((d.values||[[]])[0]||[]).map(h=>h.toLowerCase());
 }
 
-function log(msg, type='info'){
-  const d = document.getElementById('log');
-  if(d.innerHTML.includes('Waiting')) d.innerHTML = '';
-  d.innerHTML += `<div class="log-${type}">${msg}</div>`;
-  d.scrollTop = d.scrollHeight;
+function log(msg,type='info'){
+  const d=document.getElementById('log');
+  if(d.innerHTML.includes('Waiting')) d.innerHTML='';
+  d.innerHTML+=`<div class="${type}">${msg}</div>`;
+  d.scrollTop=d.scrollHeight;
 }
 
-async function loadTabs(){
-  const sid = document.getElementById('sheetId').value.trim();
-  log('Loading tabs…');
-  try {
-    const info = await sheetsReq('GET', `/${sid}?fields=sheets.properties`);
-    allSheets = info.sheets || [];
-    const list = document.getElementById('tabList');
-    list.innerHTML = '';
-    allSheets.forEach(s => {
-      const title = s.properties.title;
-      const div = document.createElement('div');
-      div.className = 'tab-item';
-      div.innerHTML = `<input type="checkbox" id="tab_${s.properties.sheetId}" value="${s.properties.sheetId}" checked>
-        <span>${title}</span>
-        <span class="tab-badge">${s.properties.sheetId}</span>`;
-      list.appendChild(div);
-    });
-    document.getElementById('tabCard').style.display = 'block';
-    log(`Found ${allSheets.length} tabs: ${allSheets.map(s=>s.properties.title).join(', ')}`, 'ok');
-  } catch(e){ log('Error: '+e.message,'err'); }
-}
+async function run(){
+  // 1. Get all sheets
+  const info = await api('GET',`/${SHEET_ID}?fields=sheets(properties,conditionalFormats)`);
+  const sheets = info.sheets||[];
+  log(`Found tabs: ${sheets.map(s=>s.properties.title).join(', ')}`,'info');
 
-function getCheckedSheets(){
-  return allSheets.filter(s => {
-    const cb = document.getElementById('tab_'+s.properties.sheetId);
-    return cb && cb.checked;
-  });
-}
-
-// Detect column index by header name
-async function getColIndex(sheetId_num, tabTitle, headerName){
-  const sid = document.getElementById('sheetId').value.trim();
-  const r = await fetch(
-    `https://sheets.googleapis.com/v4/spreadsheets/${sid}/values/${encodeURIComponent(tabTitle+'!1:1')}`,
-    { headers:{ Authorization:'Bearer '+accessToken }}
-  );
-  const data = await r.json();
-  const headers = (data.values||[[]])[0] || [];
-  return headers.findIndex(h => h.toLowerCase() === headerName.toLowerCase());
-}
-
-async function clearFormatting(){
-  const sid = document.getElementById('sheetId').value.trim();
-  const sheets = getCheckedSheets();
-  log('Clearing existing formatting…');
   for(const sheet of sheets){
-    const sheetId = sheet.properties.sheetId;
+    const sid   = sheet.properties.sheetId;
     const title = sheet.properties.title;
-    // Remove all conditional format rules by getting current count and deleting
-    const info = await sheetsReq('GET', `/${sid}?fields=sheets(properties.sheetId,conditionalFormats)`);
-    const sheetInfo = (info.sheets||[]).find(s=>s.properties.sheetId===sheetId);
-    const cfCount = (sheetInfo?.conditionalFormats||[]).length;
-    const requests = [];
-    // Delete CFs in reverse order
-    for(let i=cfCount-1;i>=0;i--){
-      requests.push({ deleteConditionalFormatRule:{ sheetId, index:i }});
-    }
-    // Reset all cell formatting
-    requests.push({ repeatCell:{
-      range:{ sheetId },
-      cell:{ userEnteredFormat:{} },
-      fields:'userEnteredFormat'
-    }});
-    if(requests.length) await sheetsReq('POST',`/${sid}:batchUpdate`,{ requests });
-    log(`${title}: cleared ${cfCount} CF rules + all formatting`, 'info');
-  }
-  log('Clear done. Now applying fresh formatting…','ok');
-}
-
-async function runFormat(){
-  const sid = document.getElementById('sheetId').value.trim();
-  document.getElementById('btnFmt').disabled = true;
-  document.getElementById('btnClear').disabled = true;
-
-  const sheets = getCheckedSheets();
-  log(`Formatting ${sheets.length} tab(s)…`);
-
-  for(const sheet of sheets){
-    const sheetId = sheet.properties.sheetId;
-    const title   = sheet.properties.title;
     log(`→ ${title}`);
-
-    // Detect column positions from headers
-    const varCol = await getColIndex(sheetId, title, 'variation');
-    const dayCol = await getColIndex(sheetId, title, 'day');
-    log(`  Variation col: ${varCol>=0?varCol:'not found'}, Day col: ${dayCol>=0?dayCol:'not found'}`, 'info');
-
     const requests = [];
 
-    // Freeze row 1
-    requests.push({ updateSheetProperties:{
-      properties:{ sheetId, gridProperties:{ frozenRowCount:1 }},
+    // A. Clear all existing conditional format rules
+    const cfCount = (sheet.conditionalFormats||[]).length;
+    for(let i=cfCount-1;i>=0;i--)
+      requests.push({deleteConditionalFormatRule:{sheetId:sid,index:i}});
+
+    // B. Reset all cell formatting to plain
+    requests.push({repeatCell:{
+      range:{sheetId:sid},
+      cell:{userEnteredFormat:{
+        backgroundColor:{r:1,g:1,b:1},
+        textFormat:{bold:false,fontSize:11,foregroundColor:{r:.15,g:.15,b:.18}},
+        verticalAlignment:'MIDDLE', horizontalAlignment:'LEFT', wrapStrategy:'CLIP'
+      }},
+      fields:'userEnteredFormat(backgroundColor,textFormat,verticalAlignment,horizontalAlignment,wrapStrategy)'
+    }});
+
+    // C. Header row
+    requests.push({repeatCell:{
+      range:{sheetId:sid,startRowIndex:0,endRowIndex:1},
+      cell:{userEnteredFormat:{
+        backgroundColor:{r:.1,g:.1,b:.12},
+        textFormat:{bold:true,fontSize:11,foregroundColor:{r:.85,g:.85,b:.88}},
+        verticalAlignment:'MIDDLE', horizontalAlignment:'LEFT', wrapStrategy:'CLIP'
+      }},
+      fields:'userEnteredFormat(backgroundColor,textFormat,verticalAlignment,horizontalAlignment,wrapStrategy)'
+    }});
+
+    // D. Freeze row 1
+    requests.push({updateSheetProperties:{
+      properties:{sheetId:sid,gridProperties:{frozenRowCount:1}},
       fields:'gridProperties.frozenRowCount'
     }});
 
-    // Header row formatting
-    requests.push({ repeatCell:{
-      range:{ sheetId, startRowIndex:0, endRowIndex:1 },
-      cell:{ userEnteredFormat:{
-        backgroundColor:{ r:.1, g:.1, b:.12 },
-        textFormat:{ bold:true, foregroundColor:{ r:.85,g:.85,b:.88 }, fontSize:11 },
-        verticalAlignment:'MIDDLE',
-        horizontalAlignment:'LEFT',
-        wrapStrategy:'CLIP'
-      }},
-      fields:'userEnteredFormat(backgroundColor,textFormat,verticalAlignment,horizontalAlignment,wrapStrategy)'
+    // E. Row heights
+    requests.push({updateDimensionProperties:{range:{sheetId:sid,dimension:'ROWS',startIndex:0,endIndex:1},properties:{pixelSize:36},fields:'pixelSize'}});
+    requests.push({updateDimensionProperties:{range:{sheetId:sid,dimension:'ROWS',startIndex:1,endIndex:20000},properties:{pixelSize:32},fields:'pixelSize'}});
+
+    // F. Header border
+    requests.push({updateBorders:{
+      range:{sheetId:sid,startRowIndex:0,endRowIndex:1},
+      bottom:{style:'SOLID_MEDIUM',color:{r:.25,g:.25,b:.3}}
     }});
 
-    // Data rows: white bg, clean text
-    requests.push({ repeatCell:{
-      range:{ sheetId, startRowIndex:1, endRowIndex:20000 },
-      cell:{ userEnteredFormat:{
-        backgroundColor:{ r:1, g:1, b:1 },
-        textFormat:{ bold:false, foregroundColor:{ r:.15,g:.15,b:.18 }, fontSize:11 },
-        verticalAlignment:'MIDDLE',
-        horizontalAlignment:'LEFT',
-        wrapStrategy:'CLIP'
-      }},
-      fields:'userEnteredFormat(backgroundColor,textFormat,verticalAlignment,horizontalAlignment,wrapStrategy)'
-    }});
+    // Apply base requests first
+    await api('POST',`/${SHEET_ID}:batchUpdate`,{requests});
 
-    // Row heights
-    requests.push({ updateDimensionProperties:{
-      range:{ sheetId, dimension:'ROWS', startIndex:0, endIndex:1 },
-      properties:{ pixelSize:36 }, fields:'pixelSize'
-    }});
-    requests.push({ updateDimensionProperties:{
-      range:{ sheetId, dimension:'ROWS', startIndex:1, endIndex:20000 },
-      properties:{ pixelSize:32 }, fields:'pixelSize'
-    }});
+    // G. Conditional formatting — detect columns from headers
+    const headers = await getHeaders(title);
+    const varCol  = headers.indexOf('variation');
+    const dayCol  = headers.indexOf('day');
+    log(`  Variation→col ${varCol}, Day→col ${dayCol}`,'info');
 
-    // Header bottom border
-    requests.push({ updateBorders:{
-      range:{ sheetId, startRowIndex:0, endRowIndex:1 },
-      bottom:{ style:'SOLID_MEDIUM', color:{ r:.25,g:.25,b:.3 }}
-    }});
+    const cfRequests = [];
+    let idx = 0;
 
-    // Conditional formatting — Variation column
-    if(varCol >= 0){
-      let idx = 0;
+    if(varCol>=0){
       for(const [val,{bg,fg}] of Object.entries(VAR_COLORS)){
-        requests.push({ addConditionalFormatRule:{
+        cfRequests.push({addConditionalFormatRule:{
           rule:{
-            ranges:[{ sheetId, startRowIndex:1, endRowIndex:20000,
-                      startColumnIndex:varCol, endColumnIndex:varCol+1 }],
+            ranges:[{sheetId:sid,startRowIndex:1,endRowIndex:20000,startColumnIndex:varCol,endColumnIndex:varCol+1}],
             booleanRule:{
-              condition:{ type:'TEXT_EQ', values:[{ userEnteredValue:val }]},
-              format:{ backgroundColor:bg, textFormat:{ foregroundColor:fg, bold:true }}
+              condition:{type:'TEXT_EQ',values:[{userEnteredValue:val}]},
+              format:{backgroundColor:bg,textFormat:{foregroundColor:fg,bold:true}}
             }
-          },
-          index: idx++
+          },index:idx++
         }});
       }
     }
-
-    // Conditional formatting — Day column
-    if(dayCol >= 0){
-      let idx = varCol >= 0 ? Object.keys(VAR_COLORS).length : 0;
+    if(dayCol>=0){
       for(const [val,{bg,fg}] of Object.entries(DAY_COLORS)){
-        requests.push({ addConditionalFormatRule:{
+        cfRequests.push({addConditionalFormatRule:{
           rule:{
-            ranges:[{ sheetId, startRowIndex:1, endRowIndex:20000,
-                      startColumnIndex:dayCol, endColumnIndex:dayCol+1 }],
+            ranges:[{sheetId:sid,startRowIndex:1,endRowIndex:20000,startColumnIndex:dayCol,endColumnIndex:dayCol+1}],
             booleanRule:{
-              condition:{ type:'TEXT_EQ', values:[{ userEnteredValue:val }]},
-              format:{ backgroundColor:bg, textFormat:{ foregroundColor:fg, bold:true }}
+              condition:{type:'TEXT_EQ',values:[{userEnteredValue:val}]},
+              format:{backgroundColor:bg,textFormat:{foregroundColor:fg,bold:true}}
             }
-          },
-          index: idx++
+          },index:idx++
         }});
       }
     }
 
-    await sheetsReq('POST', `/${sid}:batchUpdate`, { requests });
-    log(`${title} ✓`, 'ok');
+    if(cfRequests.length) await api('POST',`/${SHEET_ID}:batchUpdate`,{requests:cfRequests});
+    log(`${title} ✓`,'ok');
   }
 
-  log('Done! Open your sheet and hard-refresh.', 'ok');
-  log(`https://docs.google.com/spreadsheets/d/${document.getElementById('sheetId').value.trim()}`, 'info');
-  document.getElementById('btnFmt').disabled = false;
-  document.getElementById('btnClear').disabled = false;
+  log('All done! Hard-refresh your sheet (Cmd+Shift+R).','ok');
+  log(`https://docs.google.com/spreadsheets/d/${SHEET_ID}`,'info');
+  document.getElementById('btnSign').disabled = false;
+  document.getElementById('btnSign').textContent = 'Re-run';
 }
 </script>
 <script src="https://accounts.google.com/gsi/client" onload="initClient()"></script>
