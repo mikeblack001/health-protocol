@@ -853,9 +853,13 @@
   <!-- LABS VIEW -->
   <div id="view-labs" class="view">
     <div class="filter-bar">
-      <span style="font-size:13px;font-weight:500;color:var(--text)">Bloodwork / Labs</span>
-      <button class="filter-btn" onclick="showAddLabModal()" style="margin-left:auto;background:var(--accent);color:#fff;border-color:var(--accent)">+ Add Result</button>
+      <span style="font-size:13px;font-weight:500;color:var(--text)">Labs & Bloodwork</span>
+      <button class="filter-btn active" id="labs-tab-trend" onclick="setLabsView('trend')">Trend</button>
+      <button class="filter-btn" id="labs-tab-draw" onclick="setLabsView('draw')">By Draw</button>
+      <select id="labs-draw-select" onchange="renderLabsDraw()" style="display:none;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface)"></select>
+      <button class="filter-btn" onclick="showAddLabModal()" style="margin-left:auto;background:var(--accent);color:#fff;border-color:var(--accent)">+ Log Result</button>
     </div>
+    <div id="labs-flag-bar" style="display:none;padding:8px 16px;background:var(--red-bg);border-bottom:1px solid #fecaca;font-size:12px;color:var(--red);font-weight:500"></div>
     <div id="labs-content"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
   </div>
 
@@ -2487,17 +2491,21 @@ async function saveAddPurchase() {
 
 // ===== LABS =====
 let labsData = [];
+let labsView = 'trend';
+
+const LAB_WATCHLIST = ['Testosterone','Estradiol','BUN','Creatinine','eGFR','Alkaline Phosphatase','Neutrophils Absolute','PSA','Calcium','Hematocrit','WBC'];
 
 const LAB_MARKERS = [
-  'Total Testosterone', 'Free Testosterone', 'Estradiol (E2 Sensitive)', 'SHBG',
-  'IGF-1', 'LH', 'FSH', 'Prolactin',
-  'ALT', 'AST', 'GGT', 'Bilirubin', 'Albumin',
-  'AM Cortisol', 'DHEA-S', 'Progesterone', 'TSH', 'Free T3', 'Free T4', 'Reverse T3',
-  'Hematocrit', 'Hemoglobin', 'RBC', 'WBC', 'Platelets', 'Neutrophils',
-  'Glucose', 'HbA1c', 'Insulin', 'BUN', 'Creatinine', 'eGFR',
-  'Total Cholesterol', 'LDL', 'HDL', 'Triglycerides',
-  'Vitamin D', 'Ferritin', 'Iron', 'PSA', 'CRP', 'Homocysteine'
+  'Testosterone','Free Testosterone','Estradiol','SHBG','LH','FSH','Prolactin','DHEA-S','AM Cortisol','IGF-1','Progesterone',
+  'TSH','Free T3','Free T4','Reverse T3','ACTH',
+  'Hematocrit','Hemoglobin','RBC','WBC','Platelets','Neutrophils Absolute','Neutrophils %',
+  'Glucose','HbA1c','Insulin','BUN','Creatinine','eGFR','BUN/Creatinine Ratio','Calcium','Sodium','Potassium','Phosphorus',
+  'ALT','AST','GGT','Alkaline Phosphatase','Bilirubin','Albumin',
+  'Total Cholesterol','LDL','HDL','Triglycerides',
+  'PSA','CRP','Homocysteine','Vitamin D','Ferritin','Iron','TIBC'
 ];
+
+const LAB_TYPES = ['CBC','Hormones','Kidney','Liver','Lipids','Metabolic','Thyroid','Other'];
 
 async function loadLabs() {
   const el = document.getElementById('labs-content');
@@ -2505,87 +2513,181 @@ async function loadLabs() {
   try {
     let records = [], offset = null;
     do {
-      const url = `https://api.airtable.com/v0/${BASE}/${TABLES.bloodwork}?pageSize=100&sort[0][field]=Date&sort[0][direction]=desc${offset ? '&offset=' + offset : ''}`;
-      const res = await fetch(url, { headers: { Authorization: `Bearer ${TOKEN}` } });
-      const d = await res.json();
-      records.push(...(d.records || []));
+      const url = `https://api.airtable.com/v0/${BASE}/${TABLES.bloodwork}?pageSize=100${offset?'&offset='+offset:''}`;
+      const d = await (await fetch(url, { headers: { Authorization: `Bearer ${TOKEN}` }})).json();
+      records.push(...(d.records||[]).map(r=>r.fields));
       offset = d.offset;
-    } while (offset);
+    } while(offset);
     labsData = records;
-    renderLabs();
-  } catch(e) { el.innerHTML = `<p style="color:var(--red);padding:16px">Error loading labs: ${e.message}</p>`; }
+    renderLabsFlagBar();
+    if (labsView === 'trend') renderLabsTrend();
+    else renderLabsDraw();
+  } catch(e) { el.innerHTML = `<p style="color:var(--red);padding:16px">Error: ${e.message}</p>`; }
 }
 
-function renderLabs() {
-  const el = document.getElementById('labs-content');
-  if (!labsData.length) {
-    el.innerHTML = '<p style="color:var(--muted);padding:16px">No lab results yet. Click + Add Result to log bloodwork.</p>';
-    return;
-  }
+function setLabsView(view) {
+  labsView = view;
+  document.getElementById('labs-tab-trend').classList.toggle('active', view==='trend');
+  document.getElementById('labs-tab-draw').classList.toggle('active', view==='draw');
+  document.getElementById('labs-draw-select').style.display = view==='draw' ? 'block' : 'none';
+  if (!labsData.length) return;
+  if (view==='trend') renderLabsTrend();
+  else renderLabsDraw();
+}
 
-  // Group by date
-  const byDate = {};
+function renderLabsFlagBar() {
+  const bar = document.getElementById('labs-flag-bar');
+  const dates = [...new Set(labsData.map(r=>r.Date))].sort((a,b)=>b.localeCompare(a));
+  if (!dates.length) { bar.style.display='none'; return; }
+  const latest = dates[0];
+  const out = labsData.filter(r=>r.Date===latest && r.Status==='Out of Range');
+  if (!out.length) { bar.style.display='none'; return; }
+  bar.style.display = 'block';
+  bar.innerHTML = `⚠️ <strong>${latest}:</strong> ${out.length} out of range — ${out.map(r=>r.Biomarker).join(', ')}`;
+}
+
+function renderLabsTrend() {
+  const el = document.getElementById('labs-content');
+  if (!labsData.length) { el.innerHTML = '<p style="color:var(--muted);padding:16px">No lab results yet.</p>'; return; }
+
+  const dates = [...new Set(labsData.map(r=>r.Date))].sort();
+
+  // Build lookup: biomarker -> date -> record
+  const lookup = {};
   labsData.forEach(r => {
-    const d = r.fields['Date'] || 'Unknown';
-    if (!byDate[d]) byDate[d] = [];
-    byDate[d].push(r.fields);
+    if (!lookup[r.Biomarker]) lookup[r.Biomarker] = {};
+    lookup[r.Biomarker][r.Date] = r;
   });
 
-  let html = '';
-  Object.keys(byDate).sort((a,b) => b.localeCompare(a)).forEach(date => {
-    const results = byDate[date];
+  const watchlistPresent = LAB_WATCHLIST.filter(b=>lookup[b]);
+  const rest = Object.keys(lookup).filter(b=>!LAB_WATCHLIST.includes(b));
+  const byType = {};
+  rest.forEach(b => {
+    const type = labsData.find(r=>r.Biomarker===b)?.['Lab Type'] || 'Other';
+    if (!byType[type]) byType[type] = [];
+    byType[type].push(b);
+  });
+
+  const colHeaders = dates.map(d => {
+    const [y,m,day] = d.split('-');
+    return `<th style="text-align:center;font-family:'DM Mono',monospace;font-size:11px;white-space:nowrap;min-width:72px">${m}/${day}/${y.slice(2)}</th>`;
+  }).join('');
+
+  const renderRow = b => {
+    const recs = lookup[b];
+    const units = Object.values(recs).find(Boolean)?.Units || '';
+    const datesWithVal = dates.filter(d=>recs[d]?.Value!=null);
+    let trend = '';
+    if (datesWithVal.length >= 2) {
+      const last = recs[datesWithVal[datesWithVal.length-1]].Value;
+      const prev = recs[datesWithVal[datesWithVal.length-2]].Value;
+      const diff = last - prev;
+      trend = diff > 0 ? '<span style="color:var(--red)">↑</span>' : diff < 0 ? '<span style="color:var(--green)">↓</span>' : '<span style="color:var(--muted)">→</span>';
+    }
+    const cells = dates.map(d => {
+      const r = recs[d];
+      if (!r) return `<td style="text-align:center;color:var(--border)">—</td>`;
+      const out = r.Status === 'Out of Range';
+      return `<td style="text-align:center;font-family:'DM Mono',monospace;font-size:13px;${out?'background:rgba(239,68,68,0.07)':''}">
+        <span style="${out?'color:var(--red);font-weight:700':''}">${r.Value??'—'}</span>
+      </td>`;
+    }).join('');
+    return `<tr>
+      <td style="font-weight:500;font-size:13px;white-space:nowrap">${b}</td>
+      <td style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace">${units}</td>
+      ${cells}
+      <td style="text-align:center;font-size:14px">${trend}</td>
+    </tr>`;
+  };
+
+  const sectionHeader = (label, icon='') => `<tr><td colspan="${dates.length+3}" style="background:var(--surface2);color:var(--muted);font-size:11px;font-weight:600;letter-spacing:0.8px;padding:6px 12px;text-transform:uppercase">${icon} ${label}</td></tr>`;
+
+  let html = `<div class="table-wrap"><table class="data-table"><thead><tr>
+    <th>Biomarker</th><th style="font-size:11px;color:var(--muted)">Unit</th>${colHeaders}<th style="text-align:center">Trend</th>
+  </tr></thead><tbody>`;
+
+  if (watchlistPresent.length) {
+    html += sectionHeader('Watch List','⭐');
+    html += watchlistPresent.map(renderRow).join('');
+  }
+  Object.keys(byType).sort().forEach(type => {
+    html += sectionHeader(type);
+    html += byType[type].sort().map(renderRow).join('');
+  });
+
+  html += '</tbody></table></div>';
+  el.innerHTML = html;
+}
+
+function renderLabsDraw() {
+  const el = document.getElementById('labs-content');
+  if (!labsData.length) { el.innerHTML = '<p style="color:var(--muted);padding:16px">No lab results yet.</p>'; return; }
+
+  const dates = [...new Set(labsData.map(r=>r.Date))].sort((a,b)=>b.localeCompare(a));
+  const sel = document.getElementById('labs-draw-select');
+  if (!sel.options.length) sel.innerHTML = dates.map(d=>`<option value="${d}">${d}</option>`).join('');
+  const date = sel.value || dates[0];
+
+  const records = labsData.filter(r=>r.Date===date);
+  const byType = {};
+  records.forEach(r => {
+    const type = r['Lab Type'] || 'Other';
+    if (!byType[type]) byType[type] = [];
+    byType[type].push(r);
+  });
+
+  const out = records.filter(r=>r.Status==='Out of Range');
+
+  let html = out.length ? `<div style="padding:8px 16px;background:var(--red-bg);border-bottom:1px solid #fecaca;font-size:12px;color:var(--red);font-weight:500">⚠️ ${out.length} out of range: ${out.map(r=>r.Biomarker).join(', ')}</div>` : '';
+
+  Object.keys(byType).sort().forEach(type => {
     html += `<div class="table-wrap" style="margin-bottom:16px">
-      <div class="timing-header">📋 ${date}</div>
-      <table class="data-table"><thead><tr><th>Marker</th><th>Value</th><th>Unit</th><th>Range</th><th>Flag</th><th>Notes</th></tr></thead><tbody>
-      ${results.map(f => {
-        const flag = f['Flag'] || '';
-        const flagColor = flag === 'High' || flag === 'Critical High' ? 'var(--red)' : flag === 'Low' || flag === 'Critical Low' ? 'var(--amber)' : 'var(--green)';
+      <div class="timing-header">${type}</div>
+      <table class="data-table"><thead><tr><th>Biomarker</th><th>Value</th><th>Units</th><th>Status</th></tr></thead><tbody>
+      ${byType[type].map(r => {
+        const isOut = r.Status === 'Out of Range';
         return `<tr>
-          <td style="font-weight:500">${f['Marker'] || '—'}</td>
-          <td style="font-family:'DM Mono',monospace;font-weight:600">${f['Value'] || '—'}</td>
-          <td style="font-size:12px;color:var(--muted)">${f['Unit'] || '—'}</td>
-          <td style="font-size:12px;color:var(--muted)">${f['Reference Range'] || '—'}</td>
-          <td>${flag ? `<span style="color:${flagColor};font-size:12px;font-weight:600">${flag}</span>` : '—'}</td>
-          <td style="font-size:12px;color:var(--muted)">${f['Notes'] || ''}</td>
+          <td style="font-weight:500">${r.Biomarker||'—'}</td>
+          <td style="font-family:'DM Mono',monospace;font-weight:600;${isOut?'color:var(--red)':''}">${r.Value??'—'}</td>
+          <td style="font-size:12px;color:var(--muted)">${r.Units||'—'}</td>
+          <td>${isOut?`<span style="color:var(--red);font-size:12px;font-weight:600">⚠ Out of Range</span>`:`<span style="color:var(--green);font-size:12px">✓ In Range</span>`}</td>
         </tr>`;
       }).join('')}
       </tbody></table></div>`;
   });
-  el.innerHTML = html;
+
+  el.innerHTML = html || '<p style="color:var(--muted);padding:16px">No data for this draw.</p>';
 }
 
 function showAddLabModal() {
   document.getElementById('al-date').value = new Date().toISOString().split('T')[0];
-  document.getElementById('al-marker').innerHTML = LAB_MARKERS.map(m => `<option>${m}</option>`).join('');
+  document.getElementById('al-biomarker').innerHTML = LAB_MARKERS.map(m=>`<option>${m}</option>`).join('');
   document.getElementById('add-lab-modal').style.display = 'flex';
 }
 function hideAddLabModal() { document.getElementById('add-lab-modal').style.display = 'none'; }
 
 async function saveAddLab() {
-  const marker = document.getElementById('al-marker').value;
+  const biomarker = document.getElementById('al-biomarker').value;
   const date = document.getElementById('al-date').value;
   const value = document.getElementById('al-value').value.trim();
-  const unit = document.getElementById('al-unit').value.trim();
-  const range = document.getElementById('al-range').value.trim();
-  const flag = document.getElementById('al-flag').value;
-  const notes = document.getElementById('al-notes').value.trim();
-  if (!marker || !value || !date) { alert('Marker, date and value required'); return; }
+  const units = document.getElementById('al-units').value.trim();
+  const status = document.getElementById('al-status').value;
+  const labType = document.getElementById('al-labtype').value;
+  const source = document.getElementById('al-source').value.trim() || 'REM Health';
+  if (!biomarker || !value || !date) { alert('Biomarker, date, and value required'); return; }
   const btn = document.getElementById('al-save-btn');
   btn.disabled = true; btn.textContent = 'Saving...';
   try {
-    const fields = { 'Marker': marker, 'Date': date, 'Value': parseFloat(value) || value };
-    if (unit) fields['Unit'] = unit;
-    if (range) fields['Reference Range'] = range;
-    if (flag) fields['Flag'] = flag;
-    if (notes) fields['Notes'] = notes;
+    const fields = { 'Biomarker': biomarker, 'Date': date, 'Value': parseFloat(value)||value, 'Status': status, 'Source': source };
+    if (units) fields['Units'] = units;
+    if (labType) fields['Lab Type'] = labType;
     await fetch(`https://api.airtable.com/v0/${BASE}/${TABLES.bloodwork}`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fields })
+      method:'POST', headers:{Authorization:`Bearer ${TOKEN}`,'Content-Type':'application/json'},
+      body: JSON.stringify({records:[{fields}]})
     });
     hideAddLabModal();
     loadLabs();
-  } catch(e) { alert('Save failed'); }
+  } catch(e) { alert('Save failed: ' + e.message); }
   btn.disabled = false; btn.textContent = 'Save';
 }
 
@@ -3970,28 +4072,32 @@ function renderSuppVendors() {
 <!-- ADD LAB MODAL -->
 <div class="modal-overlay" id="add-lab-modal" onclick="if(event.target===this)hideAddLabModal()">
   <div class="modal-box">
-    <div class="modal-title">Add Lab Result</div>
+    <div class="modal-title">Log Lab Result</div>
     <div style="display:flex;gap:8px">
-      <div class="modal-field" style="flex:2"><label>Marker</label><select id="al-marker" style="width:100%"></select></div>
+      <div class="modal-field" style="flex:2"><label>Biomarker</label><select id="al-biomarker" style="width:100%"></select></div>
       <div class="modal-field" style="flex:1"><label>Date</label><input type="date" id="al-date"></div>
     </div>
     <div style="display:flex;gap:8px">
       <div class="modal-field" style="flex:1"><label>Value</label><input type="text" id="al-value" placeholder="e.g. 850"></div>
-      <div class="modal-field" style="flex:1"><label>Unit</label><input type="text" id="al-unit" placeholder="e.g. ng/dL"></div>
+      <div class="modal-field" style="flex:1"><label>Units</label><input type="text" id="al-units" placeholder="e.g. ng/dL"></div>
     </div>
     <div style="display:flex;gap:8px">
-      <div class="modal-field" style="flex:2"><label>Reference Range</label><input type="text" id="al-range" placeholder="e.g. 300-1000"></div>
-      <div class="modal-field" style="flex:1"><label>Flag</label>
-        <select id="al-flag">
-          <option value="">Normal</option>
-          <option value="Low">Low</option>
-          <option value="High">High</option>
-          <option value="Critical Low">Critical Low</option>
-          <option value="Critical High">Critical High</option>
+      <div class="modal-field" style="flex:1"><label>Status</label>
+        <select id="al-status">
+          <option value="In Range">In Range</option>
+          <option value="Out of Range">Out of Range</option>
+        </select>
+      </div>
+      <div class="modal-field" style="flex:1"><label>Lab Type</label>
+        <select id="al-labtype">
+          <option value="">— select —</option>
+          <option>CBC</option><option>Hormones</option><option>Kidney</option>
+          <option>Liver</option><option>Lipids</option><option>Metabolic</option>
+          <option>Thyroid</option><option>Other</option>
         </select>
       </div>
     </div>
-    <div class="modal-field"><label>Notes</label><input type="text" id="al-notes" placeholder="Optional context..."></div>
+    <div class="modal-field"><label>Source</label><input type="text" id="al-source" placeholder="REM Health"></div>
     <div class="modal-actions">
       <button class="modal-btn" onclick="hideAddLabModal()">Cancel</button>
       <button class="modal-btn primary" id="al-save-btn" onclick="saveAddLab()">Save</button>
