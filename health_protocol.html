@@ -341,7 +341,6 @@
 </style>
 </head>
 <body>
-<div id="debug-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#1a1a2e;color:#00ff88;font-family:monospace;font-size:11px;padding:6px 12px;z-index:9999;white-space:pre-wrap;max-height:80px;overflow:auto"></div>
 
 <nav>
   <div class="nav-logo">Health Protocol</div>
@@ -954,30 +953,20 @@ function renderPrintList() {
 
 async function loadAll() {
   document.getElementById('statusDot').className = 'status-dot';
-  const _dbg = (msg) => {
-    console.log('[loadAll]', msg);
-    const b = document.getElementById('debug-banner');
-    if (b) { b.style.display='block'; b.textContent += '[' + msg + '] '; }
-  };
+
   try {
-    _dbg('fetching peptides + supplements...');
-    const [p, s] = await Promise.all([fetchTable(TABLES.peptides), fetchTable(TABLES.supplements)]);
-    _dbg(`peptides: ${p.length}, supplements: ${s.length}`);
+      const [p, s] = await Promise.all([fetchTable(TABLES.peptides), fetchTable(TABLES.supplements)]);
+
     data.peptides = p;
     data.supplements = s;
     document.getElementById('statusDot').className = 'status-dot online';
-    _dbg('renderDashboard...');
-    try { renderDashboard(); } catch(e2) { console.error('[loadAll] renderDashboard failed:', e2); }
-    _dbg('renderPeptides...');
-    try { renderPeptides('Active'); } catch(e2) { console.error('[loadAll] renderPeptides failed:', e2); }
+      try { renderDashboard(); } catch(e2) { console.error('[loadAll] renderDashboard failed:', e2); }
+      try { renderPeptides('Active'); } catch(e2) { console.error('[loadAll] renderPeptides failed:', e2); }
     loadVendors();
-    _dbg('renderSupplements...');
-    try { renderSupplements('Active'); } catch(e2) { console.error('[loadAll] renderSupplements failed:', e2); }
-    _dbg('renderTracker...');
-    try { renderTracker(); } catch(e2) { console.error('[loadAll] renderTracker failed:', e2); }
+      try { renderSupplements('Active'); } catch(e2) { console.error('[loadAll] renderSupplements failed:', e2); }
+      try { renderTracker(); } catch(e2) { console.error('[loadAll] renderTracker failed:', e2); }
     renderPrintList();
-    _dbg('done.');
-  } catch(e) {
+    } catch(e) {
     document.getElementById('statusDot').className = 'status-dot';
     console.error('[loadAll] FAILED:', e);
     const errMsg = `<div style="padding:24px;color:var(--red,#e53e3e);font-size:13px">⚠ Failed to load data — ${e.message || e}.<br><br><button onclick="loadAll()" style="margin-top:8px;padding:6px 14px;border-radius:6px;border:none;background:var(--accent);color:#fff;cursor:pointer;font-size:13px">↻ Retry</button></div>`;
