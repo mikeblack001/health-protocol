@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MB Health Protocol — Sheets Import</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', system-ui, sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; padding: 32px 20px; }
+  h1 { font-size: 20px; font-weight: 600; color: #f1f5f9; margin-bottom: 4px; }
+  .sub { font-size: 13px; color: #64748b; margin-bottom: 28px; }
+  .card { background: #1e293b; border: 1px solid #334155; border-radius: 10px; padding: 20px; margin-bottom: 16px; }
+  .card h3 { font-size: 13px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
+  .sign-in-btn { display: flex; align-items: center; gap: 10px; padding: 11px 20px; background: #1a56db; color: #fff; border: none; border-radius: 7px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; }
+  .sign-in-btn:hover { background: #1d4ed8; }
+  .sign-in-btn:disabled { background: #334155; color: #64748b; cursor: default; }
+  .user-info { font-size: 13px; color: #4ade80; display: none; }
+  .table-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+  .table-item { background: #0f172a; border: 1px solid #334155; border-radius: 7px; padding: 12px; }
+  .table-item label { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; }
+  .table-item input[type=checkbox] { width: 15px; height: 15px; accent-color: #1a56db; }
+  .table-name { font-weight: 500; color: #e2e8f0; }
+  .table-src { font-size: 11px; color: #64748b; margin-top: 2px; margin-left: 23px; }
+  .file-drop { border: 2px dashed #334155; border-radius: 8px; padding: 20px; text-align: center; cursor: pointer; transition: border-color 0.2s; }
+  .file-drop:hover, .file-drop.drag { border-color: #1a56db; background: #1e3a5f22; }
+  .file-drop input { display: none; }
+  .file-drop p { font-size: 13px; color: #64748b; }
+  .file-drop p span { color: #1a56db; font-weight: 500; }
+  .file-list { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+  .file-row { display: flex; align-items: center; justify-content: space-between; background: #0f172a; border-radius: 6px; padding: 8px 12px; font-size: 12px; }
+  .file-row .fname { color: #94a3b8; font-family: monospace; }
+  .file-row .frows { color: #4ade80; }
+  .file-row .fmatch { font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: 600; }
+  .fmatch.matched { background: #166534; color: #4ade80; }
+  .fmatch.unmatched { background: #7f1d1d; color: #f87171; }
+  .btn-primary { padding: 12px 28px; background: #1a56db; color: #fff; border: none; border-radius: 7px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; display: flex; align-items: center; gap: 8px; }
+  .btn-primary:hover { background: #1d4ed8; }
+  .btn-primary:disabled { background: #334155; color: #64748b; cursor: default; }
+  .log { background: #0f172a; border-radius: 8px; padding: 14px; font-family: monospace; font-size: 12px; max-height: 360px; overflow-y: auto; display: flex; flex-direction: column; gap: 3px; }
+  .log-line { padding: 2px 0; border-bottom: 1px solid #1e293b; }
+  .log-line.ok { color: #4ade80; }
+  .log-line.err { color: #f87171; }
+  .log-line.info { color: #94a3b8; }
+  .log-line.head { color: #60a5fa; font-weight: 600; }
+  .progress-bar { height: 6px; background: #1e293b; border-radius: 3px; overflow: hidden; margin-top: 8px; }
+  .progress-fill { height: 100%; background: #1a56db; border-radius: 3px; transition: width 0.3s; width: 0%; }
+  .sheet-id { font-family: monospace; font-size: 12px; color: #4ade80; background: #0f172a; padding: 8px 12px; border-radius: 6px; }
+</style>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<h1>MB Health Protocol — Google Sheets Import</h1>
+<p class="sub">Imports all CSV exports from Airtable into MB Health Protocol Google Sheet</p>
+
+<!-- AUTH -->
+<div class="card">
+  <h3>Step 1 — Sign In</h3>
+  <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+    <button class="sign-in-btn" id="signInBtn" onclick="signIn()">
+      <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#fff" d="M9 3.48c1.69 0 2.83.73 3.48 1.34l2.54-2.48C13.46.89 11.43 0 9 0 5.48 0 2.44 2.02.96 4.96l2.91 2.26C4.6 5.05 6.62 3.48 9 3.48z"/><path fill="#fff" d="M17.64 9.2c0-.74-.06-1.28-.19-1.84H9v3.34h4.96c-.1.83-.64 2.08-1.84 2.92l2.84 2.2c1.7-1.57 2.68-3.88 2.68-6.62z"/><path fill="#fff" d="M3.88 10.78A5.54 5.54 0 0 1 3.58 9c0-.62.11-1.22.29-1.78L.96 4.96A9 9 0 0 0 0 9c0 1.45.35 2.82.96 4.04l2.92-2.26z"/><path fill="#fff" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.84-2.2c-.76.52-1.78.88-3.12.88-2.38 0-4.4-1.57-5.12-3.74L.88 13.04C2.36 15.98 5.48 18 9 18z"/></svg>
+      Sign in with Google
+    </button>
+    <div class="user-info" id="userInfo"></div>
+  </div>
+</div>
+
+<!-- SHEET -->
+<div class="card">
+  <h3>Target Sheet</h3>
+  <div class="sheet-id">MB Health Protocol — 1rQ9KTvnO8-iEihjP2cTcDVbkoNdr153pFUcLjwZwm_E</div>
+</div>
+
+<!-- UPLOAD CSVs -->
+<div class="card">
+  <h3>Step 2 — Upload CSV Files</h3>
+  <div class="file-drop" id="dropZone" onclick="document.getElementById('csvInput').click()" ondragover="ev(event,'drag')" ondragleave="ev(event,'')" ondrop="onDrop(event)">
+    <input type="file" id="csvInput" multiple accept=".csv" onchange="onFiles(this.files)">
+    <p>Drop all Airtable CSV exports here, or <span>click to browse</span></p>
+    <p style="margin-top:4px;font-size:11px">Select all at once — any table, any order</p>
+  </div>
+  <div class="file-list" id="fileList"></div>
+</div>
+
+<!-- IMPORT -->
+<div class="card">
+  <h3>Step 3 — Import</h3>
+  <button class="btn-primary" id="importBtn" onclick="runImport()" disabled>▶ Start Import</button>
+  <div class="progress-bar" style="margin-top:12px"><div class="progress-fill" id="progressFill"></div></div>
+</div>
+
+<!-- LOG -->
+<div class="card">
+  <h3>Log</h3>
+  <div class="log" id="log"><div class="log-line info">Waiting…</div></div>
+</div>
+
+<script>
+const CLIENT_ID = '478191426516-94rflpalsl5ev56ptck62k5imes6jk8l.apps.googleusercontent.com';
+const SHEET_ID  = '1rQ9KTvnO8-iEihjP2cTcDVbkoNdr153pFUcLjwZwm_E';
+const SCOPES    = 'https://www.googleapis.com/auth/spreadsheets';
+
+// Tab name mapping: filename keyword → sheet tab name
+const TAB_MAP = {
+  'sets':             'Sets',
+  'workout sets':     'Sets',
+  'workoutsets':      'Sets',
+  'sessions':         'Sessions',
+  'workout sessions': 'Sessions',
+  'workoutsessions':  'Sessions',
+  'supplements':      'Supplements',
+  'supplement changes':'Supplement Changes',
+  'suppchanges':      'Supplement Changes',
+  'supplement vendors':'Supplement Vendors',
+  'suppvendors':      'Supplement Vendors',
+  'peptides':         'Peptides',
+  'peptide changes':  'Peptide Changes',
+  'protocolchanges':  'Peptide Changes',
+  'protocol changes': 'Peptide Changes',
+  'vendors':          'Peptide Vendors',
+  'peptide vendors':  'Peptide Vendors',
+  'pricing':          'Pricing',
+  'purchases':        'Purchases',
+  'bloodwork':        'Bloodwork',
+  'labs':             'Bloodwork',
+  'daily log':        'Daily Log',
+  'dailylog':         'Daily Log',
+  'goals':            'Goals',
+  'profile':          'Profile',
+};
+
+let tokenClient, accessToken;
+let parsedFiles = []; // [{tabName, headers, rows, fileName}]
+
+// ── Auth ───────────────────────────────────────────────────────
+function initClient() {
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: SCOPES,
+    callback: (resp) => {
+      if (resp.error) { log('Auth error: ' + resp.error, 'err'); return; }
+      accessToken = resp.access_token;
+      document.getElementById('signInBtn').disabled = true;
+      document.getElementById('signInBtn').textContent = '✓ Signed in';
+      document.getElementById('userInfo').style.display = 'block';
+      document.getElementById('userInfo').textContent = 'mikeblack01@gmail.com — authenticated';
+      checkReady();
+      log('Authenticated with Google Sheets API', 'ok');
+    }
+  });
+}
+function signIn() { tokenClient.requestAccessToken(); }
+
+// ── CSV parsing ────────────────────────────────────────────────
+function matchTab(filename) {
+  const lower = filename.toLowerCase().replace(/[_\-\.]/g,' ').replace(/\.csv$/,'').trim();
+  for (const [key, tab] of Object.entries(TAB_MAP)) {
+    if (lower.includes(key)) return tab;
+  }
+  // Fallback: title-case the filename
+  return filename.replace(/\.csv$/i,'').replace(/[_\-]/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+}
+
+function parseCSV(text) {
+  const lines = text.split(/\r?\n/);
+  const result = [];
+  for (const line of lines) {
+    if (!line.trim()) continue;
+    const row = [];
+    let inQ = false, cell = '';
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') {
+        if (inQ && line[i+1] === '"') { cell += '"'; i++; }
+        else inQ = !inQ;
+      } else if (ch === ',' && !inQ) { row.push(cell); cell = ''; }
+      else cell += ch;
+    }
+    row.push(cell);
+    result.push(row);
+  }
+  return result;
+}
+
+function onFiles(files) { processFiles(Array.from(files)); }
+function onDrop(e) { e.preventDefault(); ev(e,''); processFiles(Array.from(e.dataTransfer.files)); }
+function ev(e,cls) { e.preventDefault(); document.getElementById('dropZone').className='file-drop '+cls; }
+
+function processFiles(files) {
+  parsedFiles = [];
+  const listEl = document.getElementById('fileList');
+  listEl.innerHTML = '';
+  let done = 0;
+  if (!files.length) return;
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const rows = parseCSV(e.target.result);
+      const headers = rows[0] || [];
+      const data = rows.slice(1).filter(r => r.some(c => c.trim()));
+      const tabName = matchTab(file.name);
+      parsedFiles.push({ tabName, headers, rows: data, fileName: file.name });
+      const matched = Object.values(TAB_MAP).includes(tabName);
+      listEl.innerHTML += `<div class="file-row">
+        <span class="fname">${file.name}</span>
+        <span class="frows">${data.length.toLocaleString()} rows</span>
+        <span class="fmatch ${matched?'matched':'unmatched'}">→ ${tabName}</span>
+      </div>`;
+      done++;
+      if (done === files.length) checkReady();
+    };
+    reader.readAsText(file);
+  });
+}
+
+function checkReady() {
+  document.getElementById('importBtn').disabled = !(accessToken && parsedFiles.length > 0);
+}
+
+// ── Sheets API helpers ─────────────────────────────────────────
+async function sheetsReq(method, path, body) {
+  const res = await fetch('https://sheets.googleapis.com/v4/spreadsheets' + path, {
+    method,
+    headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
+    body: body ? JSON.stringify(body) : undefined
+  });
+  return res.json();
+}
+
+async function getSheetInfo() {
+  return sheetsReq('GET', '/' + SHEET_ID + '?fields=sheets.properties');
+}
+
+async function addSheet(title) {
+  return sheetsReq('POST', '/' + SHEET_ID + ':batchUpdate', {
+    requests: [{ addSheet: { properties: { title } } }]
+  });
+}
+
+async function clearSheet(title) {
+  return sheetsReq('POST', '/' + SHEET_ID + '/values/' + encodeURIComponent(title) + ':clear', {});
+}
+
+async function writeRows(title, rows) {
+  // Batch write in chunks of 5000 rows to avoid API limits
+  const CHUNK = 5000;
+  for (let i = 0; i < rows.length; i += CHUNK) {
+    const chunk = rows.slice(i, i + CHUNK);
+    await sheetsReq('PUT',
+      '/' + SHEET_ID + '/values/' + encodeURIComponent(title + '!A' + (i+1)),
+      { range: title + '!A' + (i+1), majorDimension: 'ROWS', values: chunk }
+    );
+  }
+}
+
+async function formatHeader(sheetId) {
+  return sheetsReq('POST', '/' + SHEET_ID + ':batchUpdate', {
+    requests: [{
+      repeatCell: {
+        range: { sheetId, startRowIndex: 0, endRowIndex: 1 },
+        cell: { userEnteredFormat: {
+          backgroundColor: { red: 0.102, green: 0.337, blue: 0.855 },
+          textFormat: { foregroundColor: { red: 1, green: 1, blue: 1 }, bold: true, fontSize: 10 },
+          verticalAlignment: 'MIDDLE'
+        }},
+        fields: 'userEnteredFormat(backgroundColor,textFormat,verticalAlignment)'
+      }
+    }, {
+      updateSheetProperties: {
+        properties: { sheetId, gridProperties: { frozenRowCount: 1 } },
+        fields: 'gridProperties.frozenRowCount'
+      }
+    }]
+  });
+}
+
+// ── Main import ────────────────────────────────────────────────
+async function runImport() {
+  const btn = document.getElementById('importBtn');
+  btn.disabled = true; btn.textContent = 'Importing…';
+  clearLog();
+  log('Starting import of ' + parsedFiles.length + ' table(s)', 'head');
+
+  try {
+    const info = await getSheetInfo();
+    const existingSheets = {};
+    (info.sheets || []).forEach(s => {
+      existingSheets[s.properties.title] = s.properties.sheetId;
+    });
+    log('Sheet connected. Existing tabs: ' + Object.keys(existingSheets).join(', '), 'info');
+
+    let done = 0;
+    for (const pf of parsedFiles) {
+      log('━━━ ' + pf.tabName + ' (' + pf.rows.length.toLocaleString() + ' rows) ━━━', 'head');
+
+      // Create tab if missing
+      if (!(pf.tabName in existingSheets)) {
+        log('Creating tab: ' + pf.tabName, 'info');
+        const res = await addSheet(pf.tabName);
+        existingSheets[pf.tabName] = res.replies?.[0]?.addSheet?.properties?.sheetId;
+      } else {
+        log('Clearing existing tab: ' + pf.tabName, 'info');
+        await clearSheet(pf.tabName);
+      }
+
+      // Write header + data
+      const allRows = [pf.headers, ...pf.rows];
+      log('Writing ' + allRows.length.toLocaleString() + ' rows…', 'info');
+      await writeRows(pf.tabName, allRows);
+
+      // Format header row
+      const sheetId = existingSheets[pf.tabName];
+      if (sheetId !== undefined) await formatHeader(sheetId);
+
+      done++;
+      const pct = Math.round((done / parsedFiles.length) * 100);
+      document.getElementById('progressFill').style.width = pct + '%';
+      log('✓ ' + pf.tabName + ' — done (' + pf.rows.length.toLocaleString() + ' rows written)', 'ok');
+    }
+
+    log('', 'info');
+    log('✅ ALL DONE — ' + parsedFiles.length + ' tables imported to Google Sheets', 'ok');
+    log('Open: https://docs.google.com/spreadsheets/d/' + SHEET_ID, 'ok');
+    btn.textContent = '✓ Complete';
+
+  } catch(e) {
+    log('ERROR: ' + e.message, 'err');
+    btn.disabled = false; btn.textContent = '▶ Retry';
+  }
+}
+
+// ── Log helpers ────────────────────────────────────────────────
+function log(msg, type='info') {
+  const el = document.getElementById('log');
+  if (el.children[0]?.textContent === 'Waiting…') el.innerHTML = '';
+  const div = document.createElement('div');
+  div.className = 'log-line ' + type;
+  div.textContent = msg;
+  el.appendChild(div);
+  el.scrollTop = el.scrollHeight;
+}
+function clearLog() { document.getElementById('log').innerHTML = ''; }
+</script>
+
+<!-- Google Identity Services -->
+<script src="https://accounts.google.com/gsi/client" onload="initClient()"></script>
+
+</body>
+</html>
