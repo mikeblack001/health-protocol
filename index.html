@@ -7,6 +7,32 @@
 <meta http-equiv="pragma" content="no-cache">
 <title>Health Protocol</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<!-- Firebase SDK -->
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+  import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
+    from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+  import { getFirestore, collection, query, where, orderBy, getDocs, addDoc, writeBatch, doc, serverTimestamp }
+    from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyD4qdnRn9LVzC8Nm55GYpsL3rjYe82MCCs",
+    authDomain: "mb-health-protocol.firebaseapp.com",
+    projectId: "mb-health-protocol",
+    storageBucket: "mb-health-protocol.firebasestorage.app",
+    messagingSenderId: "478191426516",
+    appId: "1:478191426516:web:577fa85abca2c50b979441"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+  const provider = new GoogleAuthProvider();
+
+  // Expose to global scope for use by non-module scripts
+  window._fb = { auth, db, provider, signInWithPopup, signOut, onAuthStateChanged,
+    collection, query, where, orderBy, getDocs, addDoc, writeBatch, doc, serverTimestamp };
+</script>
 <style>
   :root {
     --bg: #f0f4f8;
@@ -342,6 +368,20 @@
 </head>
 <body>
 
+<!-- AUTH GATE -->
+<div id="auth-gate" style="display:none;position:fixed;inset:0;background:#0f172a;z-index:9999;flex-direction:column;align-items:center;justify-content:center;gap:20px">
+  <div style="font-family:'DM Sans',sans-serif;color:#e2e8f0;font-size:22px;font-weight:600;letter-spacing:-0.3px">Health Protocol</div>
+  <div style="color:#64748b;font-size:14px">Sign in to continue</div>
+  <button onclick="fbSignIn()" style="padding:12px 28px;background:#1a56db;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:10px">
+    <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#fff" d="M9 3.48c1.69 0 2.83.73 3.48 1.34l2.54-2.48C13.46.89 11.43 0 9 0 5.48 0 2.44 2.02.96 4.96l2.91 2.26C4.6 5.05 6.62 3.48 9 3.48z"/><path fill="#fff" d="M17.64 9.2c0-.74-.06-1.28-.19-1.84H9v3.34h4.96c-.1.83-.64 2.08-1.84 2.92l2.84 2.2c1.7-1.57 2.68-3.88 2.68-6.62z"/><path fill="#fff" d="M3.88 10.78A5.54 5.54 0 0 1 3.58 9c0-.62.11-1.22.29-1.78L.96 4.96A9 9 0 0 0 0 9c0 1.45.35 2.82.96 4.04l2.92-2.26z"/><path fill="#fff" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.84-2.2c-.76.52-1.78.88-3.12.88-2.38 0-4.4-1.57-5.12-3.74L.88 13.04C2.36 15.98 5.48 18 9 18z"/></svg>
+    Sign in with Google
+  </button>
+  <div id="auth-error" style="color:#f87171;font-size:12px;display:none"></div>
+</div>
+
+<!-- APP SHELL (hidden until auth) -->
+<div id="app-shell" style="display:none">
+
 <nav>
   <div class="nav-logo">Health Protocol</div>
   <div class="nav-tabs" id="mainNav">
@@ -397,6 +437,7 @@
   </div>
   <div class="nav-right">
     <button onclick="openWeeklyPrint()" style="padding:5px 12px;background:var(--accent);color:#000;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;letter-spacing:0.3px;display:flex;align-items:center;gap:5px">🖨 Weekly Print</button>
+    <button onclick="fbSignOut()" title="Sign out" style="padding:5px 10px;background:transparent;border:1px solid var(--border);border-radius:6px;font-size:11px;color:var(--muted);cursor:pointer;font-family:'DM Sans',sans-serif">Sign out</button>
     <div class="status-dot" id="statusDot"></div>
     <button class="sync-btn" onclick="loadAll()">↻ Sync</button>
     <button class="hamburger" onclick="toggleMobileMenu()" aria-label="Menu">
@@ -890,9 +931,60 @@
 </div>
 
 <script>
+// ── FIREBASE AUTH ──────────────────────────────────────────────────────────────
+const ALLOWED_EMAIL = 'mikeblack01@gmail.com';
+
+function waitForFb(cb, attempts = 0) {
+  if (window._fb) { cb(window._fb); return; }
+  if (attempts > 40) { console.error('Firebase SDK never loaded'); return; }
+  setTimeout(() => waitForFb(cb, attempts + 1), 150);
+}
+
+function fbSignIn() {
+  waitForFb(({ auth, provider, signInWithPopup }) => {
+    const errEl = document.getElementById('auth-error');
+    signInWithPopup(auth, provider).then(result => {
+      if (result.user.email !== ALLOWED_EMAIL) {
+        auth.signOut();
+        errEl.textContent = 'Access denied.';
+        errEl.style.display = 'block';
+      }
+    }).catch(e => {
+      errEl.textContent = e.message;
+      errEl.style.display = 'block';
+    });
+  });
+}
+
+function fbSignOut() {
+  waitForFb(({ auth, signOut }) => signOut(auth).catch(() => {}));
+}
+
+// Boot — wait for Firebase SDK, then set up auth listener
+waitForFb(({ auth, onAuthStateChanged }) => {
+  onAuthStateChanged(auth, user => {
+    const gate = document.getElementById('auth-gate');
+    const shell = document.getElementById('app-shell');
+    if (user && user.email === ALLOWED_EMAIL) {
+      gate.style.display = 'none';
+      shell.style.display = 'block';
+      // Set greeting/date and load all Airtable data
+      const h = new Date().getHours();
+      document.getElementById('greeting').textContent = h < 12 ? 'morning' : h < 17 ? 'afternoon' : 'evening';
+      document.getElementById('todayDate').textContent = new Date().toLocaleDateString('en-US', {weekday:'long',year:'numeric',month:'long',day:'numeric'});
+      document.getElementById('log-date').textContent = new Date().toLocaleDateString('en-US', {month:'long',day:'numeric',year:'numeric'});
+      loadAll();
+    } else {
+      gate.style.display = 'flex';
+      shell.style.display = 'none';
+    }
+  });
+});
+
+// ── AIRTABLE CONFIG ───────────────────────────────────────────────────────────
 const TOKEN = 'pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
 const BASE = 'appmHDG4TGT1xy6R6';
-const TABLES = { peptides: 'tblMs6YRdP4wkndUp', supplements: 'tblSnkc0Gu2BzGACP', dailyLog: 'tblaYuZjl4Pu4nKxS', pricing: 'tblnW21TLSqgVerwQ', vendors: 'tblI0nfBBuHXjp3KT', suppVendors: 'tblxI3G63a7WvK0Ya', workoutSessions: 'tblk9tTYIcIY4tWjF', workoutSets: 'tblKDqjy5RzqaJvjr', purchases: 'tblWmflohL6d6HC9p', bloodwork: 'tbl3200yJid6fXaOp', protocolChanges: 'tblolVx7YwO5cJhsE', goals: 'tblRuaROlyG93Bz4Y', profile: 'tblPBJkYqlnzrBK3B', suppChanges: 'tblcwqEVCMfSwNSMu' };
+const TABLES = { peptides: 'tblMs6YRdP4wkndUp', supplements: 'tblSnkc0Gu2BzGACP', dailyLog: 'tblaYuZjl4Pu4nKxS', pricing: 'tblnW21TLSqgVerwQ', vendors: 'tblI0nfBBuHXjp3KT', suppVendors: 'tblxI3G63a7WvK0Ya', purchases: 'tblWmflohL6d6HC9p', bloodwork: 'tbl3200yJid6fXaOp', protocolChanges: 'tblolVx7YwO5cJhsE', goals: 'tblRuaROlyG93Bz4Y', profile: 'tblPBJkYqlnzrBK3B', suppChanges: 'tblcwqEVCMfSwNSMu' };
 
 let data = { peptides: [], supplements: [] };
 let currentPepFilter = 'Active';
@@ -1981,18 +2073,19 @@ function showWorkoutPanel(panel, btn) {
 
 async function loadPrevWeights(day) {
   try {
-    const enc = encodeURIComponent(`{Day}='${day}'`);
-    const url = `https://api.airtable.com/v0/${BASE}/${TABLES.workoutSets}?filterByFormula=${enc}&sort[0][field]=Date&sort[0][direction]=desc&pageSize=100`;
-    const res = await fetch(url, { headers: { Authorization: `Bearer ${TOKEN}` } });
-    const json = await res.json();
+    const { db, collection, query, where, orderBy, getDocs } = window._fb;
+    const q = query(collection(db, 'sets'),
+      where('Day', '==', day),
+      orderBy('Date', 'desc'));
+    const snap = await getDocs(q);
     const prev = {};
-    (json.records || []).forEach(r => {
-      const f = r.fields;
-      const key = f['Exercise'] + '|' + (f['Set #'] || 1);
-      if (!prev[key]) prev[key] = { reps: f['Reps'], weight: f['Weight (lbs)'], date: f['Date'] };
+    snap.forEach(doc => {
+      const f = doc.data();
+      const key = f['Exercise'] + '|' + (f['Set#'] || 1);
+      if (!prev[key]) prev[key] = { reps: f['Reps'], weight: f['Weight'], date: f['Date'] };
     });
     return prev;
-  } catch(e) { return {}; }
+  } catch(e) { console.warn('loadPrevWeights:', e); return {}; }
 }
 
 async function loadWorkoutDay(day) {
@@ -2076,48 +2169,44 @@ async function saveWorkout() {
   const notes = document.getElementById('workout-notes').value;
 
   try {
+    const { db, collection, addDoc, writeBatch, doc, serverTimestamp } = window._fb;
+
     // Save session
-    await fetch(`https://api.airtable.com/v0/${BASE}/${TABLES.workoutSessions}`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fields: {
-        'Session': sessionId, 'Date': date, 'Day': day,
-        ...(sleep && {'Sleep (hrs)': sleep}), ...(deep && {'Deep Sleep (min)': deep}),
-        ...(duration && {'Duration (min)': duration}), ...(notes && {'Notes': notes})
-      }})
+    await addDoc(collection(db, 'sessions'), {
+      Session: sessionId, Date: date, Day: day,
+      ...(sleep && {'Sleep': sleep}), ...(deep && {'DeepSleep': deep}),
+      ...(duration && {'Duration': duration}), ...(notes && {'Notes': notes}),
+      createdAt: serverTimestamp()
     });
 
-    // Save sets
+    // Build set records
     const exercises = WORKOUT_DAYS[day] || [];
-    const setRecords = [];
+    const setDocs = [];
     exercises.forEach((ex, i) => {
       const variation = document.getElementById('var-' + i)?.value || ex.variations[0] || '';
       for (let s = 1; s <= 3; s++) {
         const reps = parseInt(document.getElementById(`reps-${i}-${s}`)?.value);
         const weight = parseFloat(document.getElementById(`wt-${i}-${s}`)?.value);
         if (reps || weight) {
-          setRecords.push({ fields: {
-            'Set ID': `${sessionId}-${ex.name}-S${s}`,
-            'Session': sessionId, 'Exercise': ex.name,
-            'Variation': variation, 'Set #': s,
-            ...(reps && {'Reps': reps}), ...(weight && {'Weight (lbs)': weight}),
-            'Date': date, 'Day': day
-          }});
+          setDocs.push({
+            SetID: `${sessionId}-${ex.name}-S${s}`,
+            Session: sessionId, Exercise: ex.name,
+            Variation: variation, 'Set#': s,
+            ...(reps && {Reps: reps}), ...(weight && {Weight: weight}),
+            Date: date, Day: day,
+            createdAt: serverTimestamp()
+          });
         }
       }
     });
 
-    // Batch save sets (max 10 per request)
-    for (let i = 0; i < setRecords.length; i += 10) {
-      await fetch(`https://api.airtable.com/v0/${BASE}/${TABLES.workoutSets}`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ records: setRecords.slice(i, i + 10) })
-      });
-    }
+    // Batch write sets (Firestore max 500/batch)
+    const batch = writeBatch(db);
+    setDocs.forEach(s => batch.set(doc(collection(db, 'sets')), s));
+    await batch.commit();
 
     status.style.display = 'block';
-    status.textContent = `✅ Workout saved — ${setRecords.length} sets logged`;
+    status.textContent = `✅ Workout saved — ${setDocs.length} sets logged`;
     btn.textContent = 'Saved!';
     setTimeout(() => { btn.disabled = false; btn.textContent = 'Save Workout'; }, 2000);
 
@@ -2135,23 +2224,24 @@ async function loadWorkoutHistory() {
   const el = document.getElementById('workout-history-content');
   el.innerHTML = '<div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div>';
   try {
-    const url = `https://api.airtable.com/v0/${BASE}/${TABLES.workoutSessions}?sort[0][field]=Date&sort[0][direction]=desc&pageSize=20`;
-    const res = await fetch(url, { headers: { Authorization: `Bearer ${TOKEN}` } });
-    const json = await res.json();
-    const records = json.records || [];
+    const { db, collection, query, orderBy, getDocs } = window._fb;
+    const q = query(collection(db, 'sessions'), orderBy('Date', 'desc'));
+    const snap = await getDocs(q);
+    const records = [];
+    snap.forEach(d => records.push(d.data()));
     if (!records.length) { el.innerHTML = '<p style="color:var(--muted);padding:16px">No workouts logged yet.</p>'; return; }
     el.innerHTML = `<div class="table-wrap"><table class="data-table">
       <thead><tr><th>Date</th><th>Day</th><th>Duration</th><th>Sleep</th><th>Deep Sleep</th><th>Notes</th></tr></thead>
-      <tbody>${records.map(r => `<tr>
-        <td style="font-family:'DM Mono',monospace;font-size:12px">${r.fields['Date'] || '—'}</td>
-        <td style="font-weight:500">${r.fields['Day'] || '—'}</td>
-        <td style="font-family:'DM Mono',monospace;font-size:12px">${r.fields['Duration (min)'] ? r.fields['Duration (min)'] + 'min' : '—'}</td>
-        <td style="font-family:'DM Mono',monospace;font-size:12px">${r.fields['Sleep (hrs)'] ? r.fields['Sleep (hrs)'] + 'h' : '—'}</td>
-        <td style="font-family:'DM Mono',monospace;font-size:12px">${r.fields['Deep Sleep (min)'] ? r.fields['Deep Sleep (min)'] + 'min' : '—'}</td>
-        <td style="font-size:12px;color:var(--muted)">${r.fields['Notes'] || ''}</td>
+      <tbody>${records.slice(0,20).map(r => `<tr>
+        <td style="font-family:'DM Mono',monospace;font-size:12px">${r.Date || '—'}</td>
+        <td style="font-weight:500">${r.Day || '—'}</td>
+        <td style="font-family:'DM Mono',monospace;font-size:12px">${r.Duration ? r.Duration + 'min' : '—'}</td>
+        <td style="font-family:'DM Mono',monospace;font-size:12px">${r.Sleep ? r.Sleep + 'h' : '—'}</td>
+        <td style="font-family:'DM Mono',monospace;font-size:12px">${r.DeepSleep ? r.DeepSleep + 'min' : '—'}</td>
+        <td style="font-size:12px;color:var(--muted)">${r.Notes || ''}</td>
       </tr>`).join('')}</tbody>
     </table></div>`;
-  } catch(e) { el.innerHTML = '<p style="color:var(--red);padding:16px">Failed to load history.</p>'; }
+  } catch(e) { el.innerHTML = '<p style="color:var(--red);padding:16px">Failed to load history: ' + e.message + '</p>'; }
 }
 
 async function loadProgressExerciseList() {
@@ -2166,33 +2256,26 @@ async function loadExerciseProgress(exercise) {
   const el = document.getElementById('workout-progress-content');
   el.innerHTML = '<div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div>';
   try {
-    const enc = encodeURIComponent(`{Exercise}='${exercise}'`);
-    const url = `https://api.airtable.com/v0/${BASE}/${TABLES.workoutSets}?filterByFormula=${enc}&sort[0][field]=Date&sort[0][direction]=asc&pageSize=100`;
-    const res = await fetch(url, { headers: { Authorization: `Bearer ${TOKEN}` } });
-    const json = await res.json();
-    const records = json.records || [];
+    const { db, collection, query, where, orderBy, getDocs } = window._fb;
+    const q = query(collection(db, 'sets'),
+      where('Exercise', '==', exercise),
+      orderBy('Date', 'asc'));
+    const snap = await getDocs(q);
+    const records = [];
+    snap.forEach(d => records.push(d.data()));
     if (!records.length) { el.innerHTML = '<p style="color:var(--muted);padding:16px">No data yet for this exercise.</p>'; return; }
-    
-    // Group by date, show max weight per session
-    const byDate = {};
-    records.forEach(r => {
-      const d = r.fields['Date'];
-      if (!byDate[d]) byDate[d] = { maxWeight: 0, sets: [] };
-      if (r.fields['Weight (lbs)'] > byDate[d].maxWeight) byDate[d].maxWeight = r.fields['Weight (lbs)'];
-      byDate[d].sets.push(r.fields);
-    });
 
     el.innerHTML = `<div class="table-wrap"><table class="data-table">
       <thead><tr><th>Date</th><th>Set</th><th>Reps</th><th>Weight</th><th>Variation</th></tr></thead>
       <tbody>${records.map(r => `<tr>
-        <td style="font-family:'DM Mono',monospace;font-size:12px">${r.fields['Date'] || '—'}</td>
-        <td style="text-align:center">${r.fields['Set #'] || '—'}</td>
-        <td style="text-align:center;font-family:'DM Mono',monospace">${r.fields['Reps'] || '—'}</td>
-        <td style="text-align:center;font-family:'DM Mono',monospace;font-weight:500">${r.fields['Weight (lbs)'] ? r.fields['Weight (lbs)'] + 'lbs' : '—'}</td>
-        <td style="font-size:12px;color:var(--muted)">${r.fields['Variation'] || '—'}</td>
+        <td style="font-family:'DM Mono',monospace;font-size:12px">${r.Date || '—'}</td>
+        <td style="text-align:center">${r['Set#'] || '—'}</td>
+        <td style="text-align:center;font-family:'DM Mono',monospace">${r.Reps || '—'}</td>
+        <td style="text-align:center;font-family:'DM Mono',monospace;font-weight:500">${r.Weight ? r.Weight + 'lbs' : '—'}</td>
+        <td style="font-size:12px;color:var(--muted)">${r.Variation || '—'}</td>
       </tr>`).join('')}</tbody>
     </table></div>`;
-  } catch(e) { el.innerHTML = '<p style="color:var(--red)">Failed to load progress.</p>'; }
+  } catch(e) { el.innerHTML = '<p style="color:var(--red)">Failed to load progress: ' + e.message + '</p>'; }
 }
 
 function toggleMobileMenu() {
@@ -2893,12 +2976,7 @@ function snoozeBackup() {
   document.getElementById('backup-reminder').style.display = 'none';
 }
 
-// Init
-const hr = new Date().getHours();
-document.getElementById('greeting').textContent = hr < 12 ? 'morning' : hr < 17 ? 'afternoon' : 'evening';
-document.getElementById('todayDate').textContent = new Date().toLocaleDateString('en-US', {weekday:'long',year:'numeric',month:'long',day:'numeric'});
-document.getElementById('log-date').textContent = new Date().toLocaleDateString('en-US', {month:'long',day:'numeric',year:'numeric'});
-loadAll();
+// Init — handled by onAuthStateChanged in Firebase auth block above
 
 // ── PRINT SHEET ──────────────────────────────────────────
 function renderPrintSheet() {
@@ -3129,23 +3207,26 @@ function buildWeeklyPrintHTML(monday) {
     }
 
     try {
-      let allRecs = [], cursor = null;
-      do {
-        const formula = encodeURIComponent("{Day}='" + _wsDay + "'");
-        const url = "https://api.airtable.com/v0/" + BASE + "/" + TABLES.workoutSets
-          + "?pageSize=100&filterByFormula=" + formula
-          + "&sort[0][field]=Date&sort[0][direction]=desc"
-          + (cursor ? "&offset=" + cursor : "");
-        const res = await fetch(url, {headers:{Authorization:"Bearer " + TOKEN}});
-        const d = await res.json();
-        if (d.error) { el.innerHTML = '<div style="color:var(--red);padding:16px">Error: ' + d.error.message + '</div>'; return; }
-        allRecs.push(...(d.records||[]));
-        cursor = d.offset;
-        // Fetch until we have 6 distinct session dates — covers all exercises having 2 appearances
-        if ([...new Set(allRecs.map(r => r.fields['Date']))].length >= 6) break;
-      } while (cursor && allRecs.length < 800);
+      const { db, collection, query, where, orderBy, getDocs } = window._fb;
+      const q = query(collection(db, 'sets'),
+        where('Day', '==', _wsDay),
+        orderBy('Date', 'desc'));
+      const snap = await getDocs(q);
 
-      const dates = [...new Set(allRecs.map(r => r.fields['Date']))].slice(0,2);
+      // Normalize Firestore docs to r.fields shape so processing code below is unchanged
+      const allRecs = [];
+      snap.forEach(d => {
+        const f = d.data();
+        allRecs.push({ fields: {
+          'Exercise':    f.Exercise || '',
+          'Date':        f.Date || '',
+          'Reps':        f.Reps || 0,
+          'Weight (lbs)': f.Weight || 0,
+          'Variation':   f.Variation || ''
+        }});
+      });
+
+      const dates = [...new Set(allRecs.map(r => r.fields['Date']))].slice(0,6);
       if (!dates.length) { el.innerHTML = '<div style="color:var(--muted);padding:16px">No sessions found for ' + _wsDay + '.</div>'; return; }
 
       // Group by normalized Exercise + normalized Variation + Date
@@ -3956,7 +4037,8 @@ function renderSuppVendors() {
     </div>
   </div>
 </div>
+</div><!-- /app-shell -->
 </body>
 </html>
-<!-- cache bust Wed May 20 21:43:30 UTC 2026 -->
+<!-- cache bust Sun May 24 2026 -->
 
