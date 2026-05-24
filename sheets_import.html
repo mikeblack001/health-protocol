@@ -189,8 +189,9 @@ async function writeToSheet(title, rows) {
   const CHUNK = 2000;
   for (let i = 0; i < rows.length; i += CHUNK) {
     const chunk = rows.slice(i, i + CHUNK);
+    const range = encodeURIComponent(title + '!A' + (i + 1));
     await sheetsReq('PUT',
-      `/${SHEET_ID}/values/${encodeURIComponent(title + '!A' + (i + 1))}`,
+      `/${SHEET_ID}/values/${range}?valueInputOption=RAW`,
       { range: `${title}!A${i+1}`, majorDimension: 'ROWS', values: chunk }
     );
   }
