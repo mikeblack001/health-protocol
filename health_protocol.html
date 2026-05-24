@@ -858,12 +858,25 @@
 </div>
 
 <!-- ADD VENDOR MODAL -->
-<div class="modal-overlay" id="add-vendor-modal" onclick="if(event.target===this)hideAddVendorModal()">
+<div class="modal-overlay" id="add-vendor-modal" onclick="if(event.target===this)hideAddVendorModal()" style="display:none">
+  <div class="modal-box">
+    <div class="modal-header"><h3>Add Vendor</h3><button class="modal-close" onclick="hideAddVendorModal()">✕</button></div>
+    <div class="modal-field"><label>Vendor Name</label><input type="text" id="av-name" placeholder="e.g. Peptide Sciences"></div>
+    <div class="modal-field"><label>Website</label><input type="text" id="av-website" placeholder="peptidesciences.com"></div>
+    <div class="modal-field"><label>Tier</label>
+      <select id="av-tier"><option value="Primary">Primary</option><option value="Secondary" selected>Secondary</option><option value="Evaluating">Evaluating</option></select>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn" onclick="hideAddVendorModal()">Cancel</button>
+      <button class="modal-btn primary" id="av-save-btn" onclick="saveAddVendor()">Save</button>
+    </div>
+  </div>
+</div>
 
 <script>
 const TOKEN = 'pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
 const BASE = 'appmHDG4TGT1xy6R6';
-const TABLES = { peptides: 'tblMs6YRdP4wkndUp', supplements: 'tblSnkc0Gu2BzGACP', dailyLog: 'tblaYuZjl4Pu4nKxS', pricing: 'tblnW21TLSqgVerwQ', vendors: 'tblI0nfBBuHXjp3KT', suppVendors: 'tblxI3G63a7WvK0Ya', workoutSessions: 'tblk9tTYIcIY4tWjF', workoutSets: 'tblKDqjy5RzqaJvjr', purchases: 'tblWmflohL6d6HC9p', bloodwork: 'tbl3200yJid6fXaOp', protocolChanges: 'tblolVx7YwO5cJhsE', goals: 'tblRuaROlyG93Bz4Y', profile: 'tblPBJkYqlnzrBK3B', suppChanges: 'tblcwqEVCMfSwNSMu' };
+const TABLES = { peptides: 'tblMs6YRdP4wkndUp', supplements: 'tblSnkc0Gu2BzGACP', dailyLog: 'tblaYuZjl4Pu4nKxS', pricing: 'tblnW21TLSqgVerwQ', vendors: 'tblI0nfBBuHXjp3KT', workoutSessions: 'tblk9tTYIcIY4tWjF', workoutSets: 'tblKDqjy5RzqaJvjr', purchases: 'tblWmflohL6d6HC9p', bloodwork: 'tbl3200yJid6fXaOp', protocolChanges: 'tblolVx7YwO5cJhsE', goals: 'tblRuaROlyG93Bz4Y', profile: 'tblPBJkYqlnzrBK3B', suppChanges: 'tblcwqEVCMfSwNSMu' };
 
 let data = { peptides: [], supplements: [] };
 let currentPepFilter = 'Active';
