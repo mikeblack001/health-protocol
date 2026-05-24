@@ -3686,10 +3686,45 @@ function buildWeeklyPrintHTML(monday) {
         body: JSON.stringify({ records: [{ fields }] })
       });
       const d = await r.json();
-      if (d.records) { hideAddSuppChangeModal(); loadSuppChanges(); }
-      else alert('Error: ' + JSON.stringify(d.error || d));
+      if (d.records) {
+        hideAddSuppChangeModal(); loadSuppChanges();
+        await updateSuppFromChange(supp, type, date);
+      } else alert('Error: ' + JSON.stringify(d.error || d));
     } catch(e) { alert('Error: ' + e.message); }
     btn.disabled = false; btn.textContent = 'Save';
+  }
+
+  async function updateSuppFromChange(suppName, changeType, date) {
+    if (!suppName || !date) return;
+    const suppRecord = data.supplements.find(r => ((r.fields||{})['Supplement']||'').trim().toLowerCase() === suppName.trim().toLowerCase());
+    if (!suppRecord) { console.warn('No supplement record found for:', suppName); return; }
+    const suppFields = {};
+    if (['Started','Added','Resumed'].includes(changeType)) {
+      suppFields['fldUgv5f6NUYkHTKA'] = date;
+      suppFields['fld1c0IdKsrBWCBkc'] = 'Active';
+      if (changeType === 'Resumed') suppFields['fld3sB32jIXA0HLmi'] = null;
+    } else if (['Paused','Stopped','Removed'].includes(changeType)) {
+      suppFields['fld3sB32jIXA0HLmi'] = date;
+      suppFields['fld1c0IdKsrBWCBkc'] = 'Paused';
+    }
+    if (!Object.keys(suppFields).length) return;
+    try {
+      const res = await fetch(`https://api.airtable.com/v0/${BASE}/${TABLES.supplements}/${suppRecord.id}`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fields: suppFields, typecast: true })
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        const idx = data.supplements.findIndex(r => r.id === suppRecord.id);
+        if (idx !== -1) data.supplements[idx] = updated;
+        renderSupplements(currentSuppFilter);
+        showToast('✅ ' + suppName + ' — ' + (['Started','Added','Resumed'].includes(changeType) ? 'Start' : 'End') + ' Date updated');
+      } else {
+        const err = await res.json(); console.error('Supplement update failed:', err);
+        showToast('⚠️ Change logged but supplement date update failed');
+      }
+    } catch(e) { console.error(e); showToast('⚠️ Change logged but supplement date update failed'); }
   }
 </script>
 
