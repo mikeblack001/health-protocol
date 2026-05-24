@@ -869,7 +869,8 @@
       <span style="font-size:11px;color:var(--muted);font-weight:600;letter-spacing:0.5px;text-transform:uppercase">Priority</span>
       <button class="filter-btn active" id="labs-pri-all" onclick="setLabsPriority('',this)">All</button>
       <button class="filter-btn" id="labs-pri-high" onclick="setLabsPriority('High',this)">🔴 High</button>
-      <button class="filter-btn" id="labs-pri-watch" onclick="setLabsPriority('Watch',this)">🟠 Watch</button>
+      <button class="filter-btn" id="labs-pri-aiwatch" onclick="setLabsPriority('AIWatch',this)">🤖 AI Watch</button>
+      <button class="filter-btn" id="labs-pri-pinned" onclick="setLabsPriority('Pinned',this)">⭐ Pinned</button>
       <button class="filter-btn" id="labs-pri-standard" onclick="setLabsPriority('Standard',this)">Standard</button>
       <input id="labs-search" type="text" placeholder="Search marker..." oninput="renderLabsTrend()" style="margin-left:8px;padding:4px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface);width:160px">
     </div>
@@ -2563,11 +2564,21 @@ async function loadLabs() {
 
 function setLabsPriority(val, btn) {
   labsPriority = val;
-  ['labs-pri-all','labs-pri-high','labs-pri-watch','labs-pri-standard'].forEach(id => {
+  ['labs-pri-all','labs-pri-high','labs-pri-aiwatch','labs-pri-pinned','labs-pri-standard'].forEach(id => {
     document.getElementById(id)?.classList.remove('active');
   });
   btn.classList.add('active');
   if (labsView === 'trend') renderLabsTrend();
+}
+
+function getPinnedMarkers() {
+  try { return new Set(JSON.parse(localStorage.getItem('labs_pinned') || '[]')); } catch { return new Set(); }
+}
+function togglePin(marker) {
+  const pins = getPinnedMarkers();
+  pins.has(marker) ? pins.delete(marker) : pins.add(marker);
+  localStorage.setItem('labs_pinned', JSON.stringify([...pins]));
+  renderLabsTrend();
 }
 
 function getLabsSearch() {
@@ -2628,13 +2639,31 @@ function renderLabsTrend() {
   const search = getLabsSearch();
   const allMarkers = Object.keys(lookup);
   const HIGH_MARKERS = new Set(['Testosterone','Estradiol','PSA','Hematocrit','BUN','eGFR','Alkaline Phosphatase','AST','ALT']);
-  const WATCH_MARKERS = new Set(['Free Testosterone','SHBG','Prolactin','DHEA-S','AM Cortisol','IGF-1','Hemoglobin','Glucose','HbA1c','Insulin','Total Cholesterol','LDL','HDL','Triglycerides','CRP','Homocysteine','Vitamin D','Ferritin','TSH','Free T3','Free T4','Reverse T3','ACTH','Calcium','Creatinine','WBC','Neutrophils Absolute']);
+
+  const AI_WATCH = {
+    'Creatinine':        'Deca — kidney stress, tracks alongside BUN/eGFR',
+    'Calcium':           'New elevation in last draw — unexplained, monitor closely',
+    'Prolactin':         'Deca raises prolactin — gyno and libido risk',
+    'WBC':               'Elevated multiple draws — immune response, monitor trend',
+    'Neutrophils Absolute': 'Consistently HIGH — immune/inflammatory signal',
+    'Hemoglobin':        'TRT — secondary polycythemia indicator with Hematocrit',
+    'LDL':               'Anavar tanks HDL and raises LDL — lipid risk',
+    'HDL':               'Anavar significantly reduces HDL — cardiovascular risk',
+    'Triglycerides':     'Lipid panel context — Anavar + high protein diet',
+    'Glucose':           'Retatrutide + Tesamorelin both affect insulin sensitivity',
+    'IGF-1':             'Tesamorelin marker — confirm GH axis is responding',
+    'Vitamin D':         'Deficiency blunts testosterone response and recovery',
+  };
+  const AI_WATCH_SET = new Set(Object.keys(AI_WATCH));
+  const ALL_PRIORITY = new Set([...HIGH_MARKERS, ...AI_WATCH_SET]);
+  const pinnedMarkers = getPinnedMarkers();
 
   const visibleMarkers = allMarkers.filter(b => {
     if (search && !(b.toLowerCase().includes(search))) return false;
     if (labsPriority === 'High' && !HIGH_MARKERS.has(b)) return false;
-    if (labsPriority === 'Watch' && !WATCH_MARKERS.has(b)) return false;
-    if (labsPriority === 'Standard' && (HIGH_MARKERS.has(b) || WATCH_MARKERS.has(b))) return false;
+    if (labsPriority === 'AIWatch' && !AI_WATCH_SET.has(b)) return false;
+    if (labsPriority === 'Pinned' && !pinnedMarkers.has(b)) return false;
+    if (labsPriority === 'Standard' && ALL_PRIORITY.has(b)) return false;
     return true;
   });
   const watchlistPresent = new Set(LAB_WATCHLIST.filter(b=>visibleMarkers.includes(b)));
@@ -2707,8 +2736,12 @@ function renderLabsTrend() {
         <span style="${out?'color:var(--red);font-weight:700':''}">${displayVal}</span>
       </td>`;
     }).join('');
+    const why = AI_WATCH[b] || '';
+    const isPinned = pinnedMarkers.has(b);
+    const pinIcon = `<span onclick="event.stopPropagation();togglePin('${b.replace(/'/g,"\'")}')" style="cursor:pointer;opacity:${isPinned?'1':'0.25'};font-size:11px;margin-left:4px" title="${isPinned?'Unpin':'Pin'}">⭐</span>`;
+    const whyTip = why ? `<span style="font-size:10px;color:var(--accent);margin-left:5px;cursor:help;font-weight:600" title="${why}">?</span>` : '';
     return `<tr>
-      <td style="font-size:12px;white-space:nowrap;max-width:120px;overflow:hidden;text-overflow:ellipsis">${BIOMARKER_SHORT[b]||b}</td>
+      <td style="font-size:12px;white-space:nowrap;max-width:140px;overflow:hidden;text-overflow:ellipsis">${BIOMARKER_SHORT[b]||b}${whyTip}${pinIcon}</td>
       <td style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace">${units}</td>
       ${cells}
       <td style="text-align:center;font-size:13px">${trend}</td>
