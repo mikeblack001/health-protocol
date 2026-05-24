@@ -994,7 +994,8 @@ function getField(record, name) {
     'SuppStatus': 'Status', 'SuppTiming': 'Timing', 'SuppDose': 'Dose',
     'SuppPurpose': 'Purpose', 'Supplement': 'Supplement', 'Brand': 'Brand', 'Product': 'Product'
   };
-  const val = f[map[name]] || f[suppNameMap[name]] || f[name];
+  const spacedName = name.replace(/([A-Z])/g, ' $1').trim();
+  const val = f[map[name]] || f[suppNameMap[name]] || f[name] || f[spacedName];
   if (!val) return '';
   if (typeof val === 'object' && val.name) return val.name;
   if (Array.isArray(val)) return val.map(v => typeof v === 'object' ? v.name : v).join(', ');
