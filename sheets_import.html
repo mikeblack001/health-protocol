@@ -188,14 +188,19 @@ async function ensureTab(title, existingSheets) {
 }
 
 async function writeToSheet(title, rows) {
-  const CHUNK = 1000;
+  // Write all rows in one shot via batchUpdate values
+  const CHUNK = 2000;
+  // Clear first
+  await sheetsReq('POST', `/${SHEET_ID}/values/${encodeURIComponent(title)}:clear`, {});
+  // Write in chunks using append
   for (let i = 0; i < rows.length; i += CHUNK) {
     const chunk = rows.slice(i, i + CHUNK);
     const range = encodeURIComponent(title + '!A1');
-    await sheetsReq('POST',
+    const resp = await sheetsReq('POST',
       `/${SHEET_ID}/values/${range}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,
       { majorDimension: 'ROWS', values: chunk }
     );
+    log('  chunk ' + (i/CHUNK+1) + ': wrote ' + chunk.length + ' rows', 'info');
   }
 }
 
