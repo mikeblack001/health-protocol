@@ -861,6 +861,7 @@
         <option value="">All Sources</option>
         <option value="REM Health">REM Health</option>
         <option value="Function Health">Function Health</option>
+        <option value="LabCorp">LabCorp</option>
       </select>
       <button class="filter-btn" onclick="showAddLabModal()" style="margin-left:auto;background:var(--accent);color:#fff;border-color:var(--accent)">+ Log Result</button>
     </div>
@@ -2513,7 +2514,18 @@ const LAB_MARKERS = [
   'PSA','CRP','Homocysteine','Vitamin D','Ferritin','Iron','TIBC'
 ];
 
-const LAB_TYPES = ['CBC','Hormones','Kidney','Liver','Lipids','Metabolic','Thyroid','Other'];
+// Short display names for long biomarker labels
+const BIOMARKER_SHORT = {
+  'Neutrophils Absolute': 'Neutrophils',
+  'Alkaline Phosphatase': 'Alk Phos',
+  'Total Cholesterol': 'Cholesterol',
+  'BUN/Creatinine Ratio': 'BUN/Cr',
+  'Lymphocytes Absolute': 'Lymphocytes',
+  'Eosinophils Absolute': 'Eosinophils',
+  'Monocytes Absolute': 'Monocytes',
+};
+
+
 
 async function loadLabs() {
   const el = document.getElementById('labs-content');
@@ -2621,25 +2633,25 @@ function renderLabsTrend() {
       </td>`;
     }).join('');
     return `<tr>
-      <td style="font-weight:500;font-size:13px;white-space:nowrap">${b}</td>
+      <td style="font-weight:500;font-size:13px;white-space:nowrap">${BIOMARKER_SHORT[b] || b}</td>
       <td style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace">${units}</td>
       ${cells}
       <td style="text-align:center;font-size:14px">${trend}</td>
     </tr>`;
   };
 
-  const sectionHeader = (label, icon='') => `<tr><td colspan="${dates.length+3}" style="background:var(--surface2);color:var(--muted);font-size:11px;font-weight:600;letter-spacing:0.8px;padding:6px 12px;text-transform:uppercase">${icon} ${label}</td></tr>`;
+  const sectionHeader = (label, icon='', isWatchlist=false) => `<tr><td colspan="${dates.length+3}" style="background:${isWatchlist?'var(--accent-light)':'var(--surface2)'};color:${isWatchlist?'var(--accent)':'var(--muted)'};font-size:11px;font-weight:700;letter-spacing:0.8px;padding:7px 12px;text-transform:uppercase;border-top:${isWatchlist?'2px solid var(--accent-border)':'1px solid var(--border)'}">${icon} ${label}</td></tr>`;
 
   let html = `<div class="table-wrap"><table class="data-table"><thead><tr>
-    <th>Biomarker</th><th style="font-size:11px;color:var(--muted)">Unit</th>${colHeaders}<th style="text-align:center">Trend</th>
+    <th style="min-width:110px">Marker</th><th style="font-size:11px;color:var(--muted)">Unit</th>${colHeaders}<th style="text-align:center">Trend</th>
   </tr></thead><tbody>`;
 
   if (watchlistPresent.length) {
-    html += sectionHeader('Watch List','⭐');
+    html += sectionHeader('Priority Watch List','⭐', true);
     html += watchlistPresent.map(renderRow).join('');
   }
   Object.keys(byType).sort().forEach(type => {
-    html += sectionHeader(type);
+    html += sectionHeader(type, '', false);
     html += byType[type].sort().map(renderRow).join('');
   });
 
