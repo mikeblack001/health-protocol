@@ -991,7 +991,7 @@ function getField(record, name) {
   // Supp fields may return by name instead of ID
   const suppNameMap = {
     'SuppStatus': 'Status', 'SuppTiming': 'Timing', 'SuppDose': 'Dose',
-    'SuppPurpose': 'Purpose', 'Supplement': 'Supplement', 'Brand': 'Brand', 'Product': 'Product'
+    'SuppPurpose': 'Purpose', 'SuppSource': 'Source', 'Supplement': 'Supplement', 'Brand': 'Brand', 'Product': 'Product'
   };
   const spacedName = name.replace(/([A-Z])/g, ' $1').trim();
   const val = f[map[name]] || f[suppNameMap[name]] || f[name] || f[spacedName];
