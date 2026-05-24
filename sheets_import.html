@@ -178,7 +178,6 @@ async function getExistingSheets() {
 
 async function ensureTab(title, existingSheets) {
   if (title in existingSheets) {
-    await sheetsReq('POST', `/${SHEET_ID}/values/${encodeURIComponent(title)}:clear`, {});
     return existingSheets[title];
   }
   const res = await sheetsReq('POST', `/${SHEET_ID}:batchUpdate`, {
@@ -188,19 +187,17 @@ async function ensureTab(title, existingSheets) {
 }
 
 async function writeToSheet(title, rows) {
-  // Write all rows in one shot via batchUpdate values
   const CHUNK = 2000;
-  // Clear first
+  // Clear the sheet once before writing
   await sheetsReq('POST', `/${SHEET_ID}/values/${encodeURIComponent(title)}:clear`, {});
-  // Write in chunks using append
+  // Write all chunks - append adds after last row each time
   for (let i = 0; i < rows.length; i += CHUNK) {
     const chunk = rows.slice(i, i + CHUNK);
-    const range = encodeURIComponent(title + '!A1');
-    const resp = await sheetsReq('POST',
-      `/${SHEET_ID}/values/${range}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,
+    await sheetsReq('POST',
+      `/${SHEET_ID}/values/${encodeURIComponent(title + '!A1')}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,
       { majorDimension: 'ROWS', values: chunk }
     );
-    log('  chunk ' + (i/CHUNK+1) + ': wrote ' + chunk.length + ' rows', 'info');
+    log('  wrote rows ' + (i+1) + '–' + Math.min(i+CHUNK, rows.length) + ' of ' + rows.length, 'info');
   }
 }
 
