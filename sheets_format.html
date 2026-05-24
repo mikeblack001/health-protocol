@@ -2,36 +2,88 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Sheets Formatter</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   * { box-sizing:border-box; margin:0; padding:0; }
   body { font-family:'DM Sans',sans-serif; background:#111; color:#e0e0e0; min-height:100vh; display:flex; flex-direction:column; align-items:center; padding:40px 20px; }
   h1 { font-size:20px; font-weight:600; color:#fff; margin-bottom:6px; }
-  p.sub { font-size:13px; color:#888; margin-bottom:30px; }
-  .card { background:#1a1a1a; border:1px solid #2a2a2a; border-radius:10px; padding:24px; width:100%; max-width:560px; margin-bottom:16px; }
-  .btn { display:inline-flex; align-items:center; gap:8px; padding:12px 24px; border-radius:7px; font-size:14px; font-weight:500; cursor:pointer; border:none; font-family:'DM Sans',sans-serif; }
-  .btn-primary { background:#2563eb; color:#fff; }
+  p.sub { font-size:13px; color:#888; margin-bottom:24px; }
+  .card { background:#1a1a1a; border:1px solid #2a2a2a; border-radius:10px; padding:24px; width:100%; max-width:620px; margin-bottom:16px; }
+  .btn { padding:12px 24px; border-radius:7px; font-size:14px; font-weight:500; cursor:pointer; border:none; font-family:'DM Sans',sans-serif; background:#2563eb; color:#fff; }
   .btn:disabled { opacity:.35; cursor:not-allowed; }
-  #log { font-size:12px; font-family:monospace; line-height:2; }
-  .ok   { color:#4ade80; } .err { color:#f87171; } .info { color:#93c5fd; }
-  .center { text-align:center; }
+  #log { font-size:12px; font-family:monospace; line-height:2; max-height:500px; overflow-y:auto; white-space:pre-wrap; word-break:break-all; }
+  .ok{color:#4ade80} .err{color:#f87171} .info{color:#93c5fd} .warn{color:#fbbf24}
 </style>
 </head>
 <body>
 <h1>Sheets Formatter</h1>
-<p class="sub">Clears bad formatting → applies Airtable-style in one step</p>
-<div class="card center">
-  <button class="btn btn-primary" onclick="signIn()" id="btnSign">Sign in with Google → Auto-Format</button>
+<p class="sub">Verbose mode — shows every API response</p>
+<div class="card" style="text-align:center">
+  <button class="btn" onclick="signIn()" id="btnSign">Sign in → Run</button>
 </div>
-<div class="card"><div id="log"><span class="info">Waiting for sign-in…</span></div></div>
+<div class="card"><div id="log"><span class="info">Waiting…</span></div></div>
 
 <script>
 const CLIENT_ID = '478191426516-94rflpalsl5ev56ptck62k5imes6jk8l.apps.googleusercontent.com';
 const SCOPES    = 'https://www.googleapis.com/auth/spreadsheets';
 const SHEET_ID  = '1rQ9KTvnO8-iEihjP2cTcDVbkoNdr153pFUcLjwZwm_E';
 let tokenClient, accessToken;
+
+function initClient(){
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id:CLIENT_ID, scope:SCOPES,
+    callback: async resp => {
+      if(resp.error) return log('Auth error: '+resp.error,'err');
+      accessToken = resp.access_token;
+      document.getElementById('btnSign').disabled = true;
+      log('Signed in ✓','ok');
+      await run();
+      document.getElementById('btnSign').disabled = false;
+      document.getElementById('btnSign').textContent = 'Re-run';
+    }
+  });
+}
+function signIn(){ tokenClient.requestAccessToken(); }
+
+function log(msg, type='info'){
+  const d = document.getElementById('log');
+  if(d.innerHTML.includes('Waiting')) d.innerHTML='';
+  d.innerHTML += `<div class="${type}">${msg}</div>`;
+  d.scrollTop = d.scrollHeight;
+}
+
+async function api(method, path, body){
+  const url = 'https://sheets.googleapis.com/v4/spreadsheets' + path;
+  log(`${method} ${path}`, 'info');
+  const opts = { method, headers:{ Authorization:'Bearer '+accessToken, 'Content-Type':'application/json' }};
+  if(body) opts.body = JSON.stringify(body);
+  const r = await fetch(url, opts);
+  const d = await r.json();
+  if(d.error){
+    log(`ERROR ${d.error.code}: ${d.error.message}`, 'err');
+    if(d.error.details) log(JSON.stringify(d.error.details), 'err');
+    throw new Error(d.error.message);
+  }
+  // Log any per-request errors in batchUpdate responses
+  if(d.replies){
+    d.replies.forEach((reply, i) => {
+      if(reply && Object.keys(reply).length > 0 && reply.addConditionalFormatRule === undefined){
+        // non-empty reply that isn't a CF rule response
+      }
+    });
+  }
+  log(`  → HTTP ${r.status} OK`, 'ok');
+  return d;
+}
+
+async function getHeaders(title){
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(title+'!1:1')}`;
+  const r = await fetch(url, {headers:{Authorization:'Bearer '+accessToken}});
+  const d = await r.json();
+  if(d.error){ log('Header fetch error: '+d.error.message,'err'); return []; }
+  return ((d.values||[[]])[0]||[]).map(h=>h.toLowerCase());
+}
 
 const VAR_COLORS = {
   'Cable 1/2':      {bg:{r:1,   g:.82,b:.27},fg:{r:.25,g:.15,b:0}},
@@ -56,142 +108,97 @@ const DAY_COLORS = {
   'Cardio':    {bg:{r:.1, g:.7, b:.7 },fg:{r:1,g:1,b:1}},
 };
 
-function initClient(){
-  tokenClient = google.accounts.oauth2.initTokenClient({
-    client_id:CLIENT_ID, scope:SCOPES,
-    callback: async resp => {
-      if(resp.error) return log('Auth error: '+resp.error,'err');
-      accessToken = resp.access_token;
-      document.getElementById('btnSign').disabled = true;
-      log('Signed in ✓ — starting…','ok');
-      await run();
-    }
-  });
-}
-function signIn(){ tokenClient.requestAccessToken(); }
-
-async function api(method, path, body){
-  const opts={method,headers:{Authorization:'Bearer '+accessToken,'Content-Type':'application/json'}};
-  if(body) opts.body=JSON.stringify(body);
-  const r=await fetch('https://sheets.googleapis.com/v4/spreadsheets'+path,opts);
-  const d=await r.json(); if(d.error) throw new Error(d.error.message); return d;
-}
-async function getHeaders(title){
-  const r=await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(title+'!1:1')}`,
-    {headers:{Authorization:'Bearer '+accessToken}});
-  const d=await r.json();
-  return ((d.values||[[]])[0]||[]).map(h=>h.toLowerCase());
-}
-
-function log(msg,type='info'){
-  const d=document.getElementById('log');
-  if(d.innerHTML.includes('Waiting')) d.innerHTML='';
-  d.innerHTML+=`<div class="${type}">${msg}</div>`;
-  d.scrollTop=d.scrollHeight;
-}
-
 async function run(){
-  // 1. Get all sheets
-  const info = await api('GET',`/${SHEET_ID}?fields=sheets(properties,conditionalFormats)`);
-  const sheets = info.sheets||[];
-  log(`Found tabs: ${sheets.map(s=>s.properties.title).join(', ')}`,'info');
+  try {
+    // Step 1: get sheet list
+    const info = await api('GET', `/${SHEET_ID}?fields=sheets(properties,conditionalFormats)`);
+    const sheets = info.sheets || [];
+    log(`Tabs: ${sheets.map(s=>s.properties.title).join(', ')}`, 'info');
 
-  for(const sheet of sheets){
-    const sid   = sheet.properties.sheetId;
-    const title = sheet.properties.title;
-    log(`→ ${title}`);
-    const requests = [];
+    for(const sheet of sheets){
+      const sid   = sheet.properties.sheetId;
+      const title = sheet.properties.title;
+      log(`\n── ${title} (sheetId: ${sid}) ──`, 'warn');
 
-    // A. Clear all existing conditional format rules
-    const cfCount = (sheet.conditionalFormats||[]).length;
-    for(let i=cfCount-1;i>=0;i--)
-      requests.push({deleteConditionalFormatRule:{sheetId:sid,index:i}});
-
-    // B. Reset all cell formatting to plain
-    requests.push({repeatCell:{
-      range:{sheetId:sid},
-      cell:{userEnteredFormat:{
-        backgroundColor:{r:1,g:1,b:1},
-        textFormat:{bold:false,fontSize:11,foregroundColor:{r:.15,g:.15,b:.18}},
-        verticalAlignment:'MIDDLE', horizontalAlignment:'LEFT', wrapStrategy:'CLIP'
-      }},
-      fields:'userEnteredFormat(backgroundColor,textFormat,verticalAlignment,horizontalAlignment,wrapStrategy)'
-    }});
-
-    // C. Header row
-    requests.push({repeatCell:{
-      range:{sheetId:sid,startRowIndex:0,endRowIndex:1},
-      cell:{userEnteredFormat:{
-        backgroundColor:{r:.1,g:.1,b:.12},
-        textFormat:{bold:true,fontSize:11,foregroundColor:{r:.85,g:.85,b:.88}},
-        verticalAlignment:'MIDDLE', horizontalAlignment:'LEFT', wrapStrategy:'CLIP'
-      }},
-      fields:'userEnteredFormat(backgroundColor,textFormat,verticalAlignment,horizontalAlignment,wrapStrategy)'
-    }});
-
-    // D. Freeze row 1
-    requests.push({updateSheetProperties:{
-      properties:{sheetId:sid,gridProperties:{frozenRowCount:1}},
-      fields:'gridProperties.frozenRowCount'
-    }});
-
-    // E. Row heights
-    requests.push({updateDimensionProperties:{range:{sheetId:sid,dimension:'ROWS',startIndex:0,endIndex:1},properties:{pixelSize:36},fields:'pixelSize'}});
-    requests.push({updateDimensionProperties:{range:{sheetId:sid,dimension:'ROWS',startIndex:1,endIndex:20000},properties:{pixelSize:32},fields:'pixelSize'}});
-
-    // F. Header border
-    requests.push({updateBorders:{
-      range:{sheetId:sid,startRowIndex:0,endRowIndex:1},
-      bottom:{style:'SOLID_MEDIUM',color:{r:.25,g:.25,b:.3}}
-    }});
-
-    // Apply base requests first
-    await api('POST',`/${SHEET_ID}:batchUpdate`,{requests});
-
-    // G. Conditional formatting — detect columns from headers
-    const headers = await getHeaders(title);
-    const varCol  = headers.indexOf('variation');
-    const dayCol  = headers.indexOf('day');
-    log(`  Variation→col ${varCol}, Day→col ${dayCol}`,'info');
-
-    const cfRequests = [];
-    let idx = 0;
-
-    if(varCol>=0){
-      for(const [val,{bg,fg}] of Object.entries(VAR_COLORS)){
-        cfRequests.push({addConditionalFormatRule:{
-          rule:{
-            ranges:[{sheetId:sid,startRowIndex:1,endRowIndex:20000,startColumnIndex:varCol,endColumnIndex:varCol+1}],
-            booleanRule:{
-              condition:{type:'TEXT_EQ',values:[{userEnteredValue:val}]},
-              format:{backgroundColor:bg,textFormat:{foregroundColor:fg,bold:true}}
-            }
-          },index:idx++
-        }});
+      // Step 2: clear conditional formats
+      const cfCount = (sheet.conditionalFormats||[]).length;
+      log(`  CF rules to clear: ${cfCount}`);
+      if(cfCount > 0){
+        const delReqs = [];
+        for(let i=cfCount-1;i>=0;i--) delReqs.push({deleteConditionalFormatRule:{sheetId:sid,index:i}});
+        await api('POST', `/${SHEET_ID}:batchUpdate`, {requests:delReqs});
       }
-    }
-    if(dayCol>=0){
-      for(const [val,{bg,fg}] of Object.entries(DAY_COLORS)){
-        cfRequests.push({addConditionalFormatRule:{
-          rule:{
-            ranges:[{sheetId:sid,startRowIndex:1,endRowIndex:20000,startColumnIndex:dayCol,endColumnIndex:dayCol+1}],
-            booleanRule:{
-              condition:{type:'TEXT_EQ',values:[{userEnteredValue:val}]},
-              format:{backgroundColor:bg,textFormat:{foregroundColor:fg,bold:true}}
-            }
-          },index:idx++
-        }});
-      }
-    }
 
-    if(cfRequests.length) await api('POST',`/${SHEET_ID}:batchUpdate`,{requests:cfRequests});
-    log(`${title} ✓`,'ok');
+      // Step 3: base formatting
+      const baseReqs = [
+        // Reset data rows to white
+        {repeatCell:{
+          range:{sheetId:sid, startRowIndex:1, endRowIndex:50000, startColumnIndex:0, endColumnIndex:50},
+          cell:{userEnteredFormat:{
+            backgroundColor:{r:1,g:1,b:1},
+            textFormat:{bold:false,fontSize:11,foregroundColor:{r:.13,g:.13,b:.16}},
+            verticalAlignment:'MIDDLE', horizontalAlignment:'LEFT'
+          }},
+          fields:'userEnteredFormat(backgroundColor,textFormat,verticalAlignment,horizontalAlignment)'
+        }},
+        // Header row
+        {repeatCell:{
+          range:{sheetId:sid, startRowIndex:0, endRowIndex:1, startColumnIndex:0, endColumnIndex:50},
+          cell:{userEnteredFormat:{
+            backgroundColor:{r:.1,g:.1,b:.12},
+            textFormat:{bold:true,fontSize:11,foregroundColor:{r:.85,g:.85,b:.88}},
+            verticalAlignment:'MIDDLE', horizontalAlignment:'LEFT'
+          }},
+          fields:'userEnteredFormat(backgroundColor,textFormat,verticalAlignment,horizontalAlignment)'
+        }},
+        // Freeze row 1
+        {updateSheetProperties:{properties:{sheetId:sid,gridProperties:{frozenRowCount:1}},fields:'gridProperties.frozenRowCount'}},
+        // Header height
+        {updateDimensionProperties:{range:{sheetId:sid,dimension:'ROWS',startIndex:0,endIndex:1},properties:{pixelSize:36},fields:'pixelSize'}},
+        // Data row height
+        {updateDimensionProperties:{range:{sheetId:sid,dimension:'ROWS',startIndex:1,endIndex:50000},properties:{pixelSize:32},fields:'pixelSize'}},
+        // Header bottom border
+        {updateBorders:{range:{sheetId:sid,startRowIndex:0,endRowIndex:1,startColumnIndex:0,endColumnIndex:50},bottom:{style:'SOLID_MEDIUM',color:{r:.25,g:.25,b:.3}}}}
+      ];
+      await api('POST', `/${SHEET_ID}:batchUpdate`, {requests:baseReqs});
+
+      // Step 4: conditional formatting
+      const headers = await getHeaders(title);
+      log(`  Headers: ${headers.join(', ')}`, 'info');
+      const varCol = headers.indexOf('variation');
+      const dayCol = headers.indexOf('day');
+      log(`  varCol=${varCol} dayCol=${dayCol}`, 'info');
+
+      const cfReqs = [];
+      let idx = 0;
+      if(varCol>=0){
+        for(const [val,{bg,fg}] of Object.entries(VAR_COLORS)){
+          cfReqs.push({addConditionalFormatRule:{
+            rule:{
+              ranges:[{sheetId:sid,startRowIndex:1,endRowIndex:50000,startColumnIndex:varCol,endColumnIndex:varCol+1}],
+              booleanRule:{condition:{type:'TEXT_EQ',values:[{userEnteredValue:val}]},format:{backgroundColor:bg,textFormat:{foregroundColor:fg,bold:true}}}
+            },index:idx++
+          }});
+        }
+      }
+      if(dayCol>=0){
+        for(const [val,{bg,fg}] of Object.entries(DAY_COLORS)){
+          cfReqs.push({addConditionalFormatRule:{
+            rule:{
+              ranges:[{sheetId:sid,startRowIndex:1,endRowIndex:50000,startColumnIndex:dayCol,endColumnIndex:dayCol+1}],
+              booleanRule:{condition:{type:'TEXT_EQ',values:[{userEnteredValue:val}]},format:{backgroundColor:bg,textFormat:{foregroundColor:fg,bold:true}}}
+            },index:idx++
+          }});
+        }
+      }
+      if(cfReqs.length) await api('POST', `/${SHEET_ID}:batchUpdate`, {requests:cfReqs});
+
+      log(`${title} done ✓`, 'ok');
+    }
+    log('\nAll tabs complete. Hard-refresh your sheet (Cmd+Shift+R)', 'ok');
+  } catch(e){
+    log('Fatal: '+e.message, 'err');
   }
-
-  log('All done! Hard-refresh your sheet (Cmd+Shift+R).','ok');
-  log(`https://docs.google.com/spreadsheets/d/${SHEET_ID}`,'info');
-  document.getElementById('btnSign').disabled = false;
-  document.getElementById('btnSign').textContent = 'Re-run';
 }
 </script>
 <script src="https://accounts.google.com/gsi/client" onload="initClient()"></script>
