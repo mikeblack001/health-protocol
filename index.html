@@ -857,6 +857,11 @@
       <button class="filter-btn active" id="labs-tab-trend" onclick="setLabsView('trend')">Trend</button>
       <button class="filter-btn" id="labs-tab-draw" onclick="setLabsView('draw')">By Draw</button>
       <select id="labs-draw-select" onchange="renderLabsDraw()" style="display:none;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface)"></select>
+      <select id="labs-source-filter" onchange="onLabsSourceChange()" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface)">
+        <option value="REM Health">REM Health</option>
+        <option value="Function Health">Function Health</option>
+        <option value="">All Sources</option>
+      </select>
       <button class="filter-btn" onclick="showAddLabModal()" style="margin-left:auto;background:var(--accent);color:#fff;border-color:var(--accent)">+ Log Result</button>
     </div>
     <div id="labs-flag-bar" style="display:none;padding:8px 16px;background:var(--red-bg);border-bottom:1px solid #fecaca;font-size:12px;color:var(--red);font-weight:500"></div>
@@ -2525,7 +2530,20 @@ async function loadLabs() {
   } catch(e) { el.innerHTML = `<p style="color:var(--red);padding:16px">Error: ${e.message}</p>`; }
 }
 
-function setLabsView(view) {
+function getLabsSource() {
+  return document.getElementById('labs-source-filter')?.value ?? 'REM Health';
+}
+
+function onLabsSourceChange() {
+  renderLabsFlagBar();
+  if (labsView === 'trend') renderLabsTrend();
+  else renderLabsDraw();
+}
+
+function getFilteredLabsData() {
+  const src = getLabsSource();
+  return src ? labsData.filter(r => r.Source === src) : labsData;
+}
   labsView = view;
   document.getElementById('labs-tab-trend').classList.toggle('active', view==='trend');
   document.getElementById('labs-tab-draw').classList.toggle('active', view==='draw');
@@ -2537,10 +2555,11 @@ function setLabsView(view) {
 
 function renderLabsFlagBar() {
   const bar = document.getElementById('labs-flag-bar');
-  const dates = [...new Set(labsData.map(r=>r.Date).filter(Boolean))].sort((a,b)=>b.localeCompare(a));
+  const filtered = getFilteredLabsData();
+  const dates = [...new Set(filtered.map(r=>r.Date).filter(Boolean))].sort((a,b)=>b.localeCompare(a));
   if (!dates.length) { bar.style.display='none'; return; }
   const latest = dates[0];
-  const out = labsData.filter(r=>r.Date===latest && r.Status==='Out of Range');
+  const out = filtered.filter(r=>r.Date===latest && r.Status==='Out of Range');
   if (!out.length) { bar.style.display='none'; return; }
   bar.style.display = 'block';
   bar.innerHTML = `⚠️ <strong>${latest}:</strong> ${out.length} out of range — ${out.map(r=>r.Biomarker).join(', ')}`;
@@ -2548,13 +2567,16 @@ function renderLabsFlagBar() {
 
 function renderLabsTrend() {
   const el = document.getElementById('labs-content');
-  if (!labsData.length) { el.innerHTML = '<p style="color:var(--muted);padding:16px">No lab results yet.</p>'; return; }
+  const filtered = getFilteredLabsData();
+  if (!filtered.length) { el.innerHTML = '<p style="color:var(--muted);padding:16px">No lab results for this source.</p>'; return; }
 
-  const dates = [...new Set(labsData.map(r=>r.Date).filter(Boolean))].sort();
+  // Cap at last 6 draws
+  const allDates = [...new Set(filtered.map(r=>r.Date).filter(Boolean))].sort();
+  const dates = allDates.slice(-6);
 
   // Build lookup: biomarker -> date -> record
   const lookup = {};
-  labsData.forEach(r => {
+  filtered.forEach(r => {
     if (!lookup[r.Biomarker]) lookup[r.Biomarker] = {};
     lookup[r.Biomarker][r.Date] = r;
   });
@@ -2563,7 +2585,7 @@ function renderLabsTrend() {
   const rest = Object.keys(lookup).filter(b=>!LAB_WATCHLIST.includes(b));
   const byType = {};
   rest.forEach(b => {
-    const type = labsData.find(r=>r.Biomarker===b)?.['Lab Type'] || 'Other';
+    const type = filtered.find(r=>r.Biomarker===b)?.['Lab Type'] || 'Other';
     if (!byType[type]) byType[type] = [];
     byType[type].push(b);
   });
@@ -2621,14 +2643,15 @@ function renderLabsTrend() {
 
 function renderLabsDraw() {
   const el = document.getElementById('labs-content');
-  if (!labsData.length) { el.innerHTML = '<p style="color:var(--muted);padding:16px">No lab results yet.</p>'; return; }
+  const filtered = getFilteredLabsData();
+  if (!filtered.length) { el.innerHTML = '<p style="color:var(--muted);padding:16px">No lab results for this source.</p>'; return; }
 
-  const dates = [...new Set(labsData.map(r=>r.Date).filter(Boolean))].sort((a,b)=>b.localeCompare(a));
+  const dates = [...new Set(filtered.map(r=>r.Date).filter(Boolean))].sort((a,b)=>b.localeCompare(a));
   const sel = document.getElementById('labs-draw-select');
-  if (!sel.options.length) sel.innerHTML = dates.map(d=>`<option value="${d}">${d}</option>`).join('');
+  sel.innerHTML = dates.map(d=>`<option value="${d}">${d}</option>`).join('');
   const date = sel.value || dates[0];
 
-  const records = labsData.filter(r=>r.Date===date);
+  const records = filtered.filter(r=>r.Date===date);
   const byType = {};
   records.forEach(r => {
     const type = r['Lab Type'] || 'Other';
