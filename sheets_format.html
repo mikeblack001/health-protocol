@@ -86,26 +86,26 @@ async function getHeaders(title){
 }
 
 const VAR_COLORS = {
-  'Cable 1/2':      {bg:{r:1,   g:.82,b:.27},fg:{r:.25,g:.15,b:0}},
-  'Cables (2:1)':   {bg:{r:.22, g:.48,b:.96},fg:{r:1,  g:1,  b:1}},
-  'Cable - 2 Hand': {bg:{r:.22, g:.48,b:.96},fg:{r:1,  g:1,  b:1}},
-  'DBs':            {bg:{r:.18, g:.72,b:.42},fg:{r:1,  g:1,  b:1}},
-  'Rope 1/2':       {bg:{r:.95, g:.35,b:.35},fg:{r:1,  g:1,  b:1}},
-  'Smith 35lb':     {bg:{r:1,   g:.55,b:.1 },fg:{r:1,  g:1,  b:1}},
-  'EZ-Bar (15lbs)': {bg:{r:.42, g:.32,b:.85},fg:{r:1,  g:1,  b:1}},
-  '45lbs':          {bg:{r:.18, g:.72,b:.42},fg:{r:1,  g:1,  b:1}},
-  'V-Bar':          {bg:{r:.5,  g:.5, b:.55},fg:{r:1,  g:1,  b:1}},
-  'UClip':          {bg:{r:.45, g:.8, b:.95},fg:{r:.1, g:.2, b:.4}},
-  'Bar':            {bg:{r:.22, g:.22,b:.25},fg:{r:1,  g:1,  b:1}},
-  'Lat Machine':    {bg:{r:.58, g:.32,b:.88},fg:{r:1,  g:1,  b:1}},
+  'Cable 1/2':      {bg:{red:1,   g:.82, blue:.27},fg:{red:.25, green:.15, blue:0}},
+  'Cables (2:1)':   {bg:{red:.22, g:.48, blue:.96},fg:{red:1,  g:1,  b:1}},
+  'Cable - 2 Hand': {bg:{red:.22, g:.48, blue:.96},fg:{red:1,  g:1,  b:1}},
+  'DBs':            {bg:{red:.18, g:.72, blue:.42},fg:{red:1,  g:1,  b:1}},
+  'Rope 1/2':       {bg:{red:.95, g:.35, blue:.35},fg:{red:1,  g:1,  b:1}},
+  'Smith 35lb':     {bg:{red:1,   g:.55, blue:.1 },fg:{red:1,  g:1,  b:1}},
+  'EZ-Bar (15lbs)': {bg:{red:.42, g:.32, blue:.85},fg:{red:1,  g:1,  b:1}},
+  '45lbs':          {bg:{red:.18, g:.72, blue:.42},fg:{red:1,  g:1,  b:1}},
+  'V-Bar':          {bg:{red:.5,  g:.5, b:.55},fg:{red:1,  g:1,  b:1}},
+  'UClip':          {bg:{red:.45, g:.8, b:.95},fg:{red:.1, g:.2, b:.4}},
+  'Bar':            {bg:{red:.22, g:.22, blue:.25},fg:{red:1,  g:1,  b:1}},
+  'Lat Machine':    {bg:{red:.58, g:.32, blue:.88},fg:{red:1,  g:1,  b:1}},
 };
 const DAY_COLORS = {
-  'Push':      {bg:{r:.18,g:.4, b:.86},fg:{r:1,g:1,b:1}},
-  'Pull':      {bg:{r:.5, g:.2, b:.85},fg:{r:1,g:1,b:1}},
-  'Legs/Core': {bg:{r:.1, g:.6, b:.42},fg:{r:1,g:1,b:1}},
-  'Arms/Chest':{bg:{r:.88,g:.32,b:.22},fg:{r:1,g:1,b:1}},
-  'Shoulders': {bg:{r:.88,g:.68,b:.08},fg:{r:.2,g:.1,b:0}},
-  'Cardio':    {bg:{r:.1, g:.7, b:.7 },fg:{r:1,g:1,b:1}},
+  'Push':      {bg:{red:.18, green:.4, b:.86},fg:{red:1, green:1, blue:1}},
+  'Pull':      {bg:{red:.5, g:.2, b:.85},fg:{red:1, green:1, blue:1}},
+  'Legs/Core': {bg:{red:.1, g:.6, b:.42},fg:{red:1, green:1, blue:1}},
+  'Arms/Chest':{bg:{red:.88, green:.32, blue:.22},fg:{red:1, green:1, blue:1}},
+  'Shoulders': {bg:{red:.88, green:.68, blue:.08},fg:{red:.2, green:.1, blue:0}},
+  'Cardio':    {bg:{red:.1, g:.7, b:.7 },fg:{red:1, green:1, blue:1}},
 };
 
 async function run(){
@@ -135,8 +135,8 @@ async function run(){
         {repeatCell:{
           range:{sheetId:sid, startRowIndex:1, endRowIndex:50000, startColumnIndex:0, endColumnIndex:50},
           cell:{userEnteredFormat:{
-            backgroundColor:{r:1,g:1,b:1},
-            textFormat:{bold:false,fontSize:11,foregroundColor:{r:.13,g:.13,b:.16}},
+            backgroundColor:{red:1, green:1, blue:1},
+            textFormat:{bold:false,fontSize:11,foregroundColor:{red:.13, green:.13, blue:.16}},
             verticalAlignment:'MIDDLE', horizontalAlignment:'LEFT'
           }},
           fields:'userEnteredFormat(backgroundColor,textFormat,verticalAlignment,horizontalAlignment)'
@@ -145,8 +145,8 @@ async function run(){
         {repeatCell:{
           range:{sheetId:sid, startRowIndex:0, endRowIndex:1, startColumnIndex:0, endColumnIndex:50},
           cell:{userEnteredFormat:{
-            backgroundColor:{r:.1,g:.1,b:.12},
-            textFormat:{bold:true,fontSize:11,foregroundColor:{r:.85,g:.85,b:.88}},
+            backgroundColor:{red:.1, green:.1, blue:.12},
+            textFormat:{bold:true,fontSize:11,foregroundColor:{red:.85, green:.85, blue:.88}},
             verticalAlignment:'MIDDLE', horizontalAlignment:'LEFT'
           }},
           fields:'userEnteredFormat(backgroundColor,textFormat,verticalAlignment,horizontalAlignment)'
@@ -158,7 +158,7 @@ async function run(){
         // Data row height
         {updateDimensionProperties:{range:{sheetId:sid,dimension:'ROWS',startIndex:1,endIndex:50000},properties:{pixelSize:32},fields:'pixelSize'}},
         // Header bottom border
-        {updateBorders:{range:{sheetId:sid,startRowIndex:0,endRowIndex:1,startColumnIndex:0,endColumnIndex:50},bottom:{style:'SOLID_MEDIUM',color:{r:.25,g:.25,b:.3}}}}
+        {updateBorders:{range:{sheetId:sid,startRowIndex:0,endRowIndex:1,startColumnIndex:0,endColumnIndex:50},bottom:{style:'SOLID_MEDIUM',color:{red:.25, green:.25, blue:.3}}}}
       ];
       await api('POST', `/${SHEET_ID}:batchUpdate`, {requests:baseReqs});
 
