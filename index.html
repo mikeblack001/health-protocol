@@ -586,7 +586,7 @@
       <div class="filter-chip" onclick="filterSuppSource('Amazon', this)" style="margin-left:8px">Amazon</div>
       <div class="filter-chip" onclick="filterSuppSource('Pharmacy', this)">Pharmacy</div>
       <div class="filter-chip" onclick="filterSuppSource('Way to Wellness', this)">Way to Wellness</div>
-      <div class="filter-chip" onclick="filterSuppSource('', this)">All Sources</div>
+      <div class="filter-chip" onclick="filterSuppSource('', this)">All Vendors</div>
     </div>
     <div id="supps-content"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
   </div>
@@ -1087,7 +1087,7 @@ function renderPrintList() {
       <table class="data-table"><thead><tr><th>Supplement</th><th>Dose</th><th>Brand</th></tr></thead><tbody>
       ${group.map(r => `<tr>
         <td><div class="compound-name">${getField(r,'Supplement')}</div></td>
-        <td style="font-family:'DM Mono',monospace;font-size:12px">${getField(r,'SuppDose')}</td>
+        <td style="font-size:13px;font-weight:500;white-space:nowrap">${getField(r,'SuppDose')}</td>
         <td style="font-size:12px;color:var(--muted)">${getField(r,'Brand')}</td>
       </tr>`).join('')}</tbody></table></div>`;
   });
@@ -1293,11 +1293,13 @@ function renderSupplements(filter) {
       </tr></thead><tbody>
       ${group.map(r => `<tr>
         <td><div class="compound-name">${getField(r,'Supplement')}</div><div class="compound-sub">${getField(r,'Product')}</div></td>
-        <td style="font-family:'DM Mono',monospace;font-size:12px">${getField(r,'SuppDose')}</td>
+        <td style="font-size:13px;font-weight:500;white-space:nowrap">${getField(r,'SuppDose')}</td>
         <td style="font-size:12px;color:var(--muted)">${getField(r,'SuppPurpose')}</td>
         <td style="font-size:12px;color:var(--muted)">${getField(r,'Brand')}</td>
         <td>${badge(getField(r,'SuppStatus'))}</td>
-        <td style="font-size:11px;color:var(--muted)">${getField(r,'SuppSource')||'—'}</td>
+        <td style="font-size:12px;color:var(--muted)">${getField(r,'SuppSource')||'—'}</td>
+        <td style="font-size:12px;color:var(--muted);white-space:nowrap">${fmtDate(getField(r,'SuppStartDate'))}</td>
+        <td style="font-size:12px;color:var(--muted);white-space:nowrap">${fmtDate(getField(r,'SuppEndDate'))}</td>
       </tr>`).join('')}
       </tbody></table></div>`;
   });
@@ -1316,11 +1318,13 @@ function renderSupplements(filter) {
       </tr></thead><tbody>
       ${other.map(r => `<tr>
         <td><div class="compound-name">${getField(r,'Supplement')}</div><div class="compound-sub">${getField(r,'Product')}</div></td>
-        <td style="font-family:'DM Mono',monospace;font-size:12px">${getField(r,'SuppDose')}</td>
+        <td style="font-size:13px;font-weight:500;white-space:nowrap">${getField(r,'SuppDose')}</td>
         <td style="font-size:12px;color:var(--muted)">${getField(r,'SuppPurpose')}</td>
         <td style="font-size:12px;color:var(--muted)">${getField(r,'Brand')}</td>
         <td>${badge(getField(r,'SuppStatus'))}</td>
-        <td style="font-size:11px;color:var(--muted)">${getField(r,'SuppSource')||'—'}</td>
+        <td style="font-size:12px;color:var(--muted)">${getField(r,'SuppSource')||'—'}</td>
+        <td style="font-size:12px;color:var(--muted);white-space:nowrap">${fmtDate(getField(r,'SuppStartDate'))}</td>
+        <td style="font-size:12px;color:var(--muted);white-space:nowrap">${fmtDate(getField(r,'SuppEndDate'))}</td>
       </tr>`).join('')}
       </tbody></table></div>`;
   }
