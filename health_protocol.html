@@ -2537,7 +2537,7 @@ function setLabsView(view) {
 
 function renderLabsFlagBar() {
   const bar = document.getElementById('labs-flag-bar');
-  const dates = [...new Set(labsData.map(r=>r.Date))].sort((a,b)=>b.localeCompare(a));
+  const dates = [...new Set(labsData.map(r=>r.Date).filter(Boolean))].sort((a,b)=>b.localeCompare(a));
   if (!dates.length) { bar.style.display='none'; return; }
   const latest = dates[0];
   const out = labsData.filter(r=>r.Date===latest && r.Status==='Out of Range');
@@ -2550,7 +2550,7 @@ function renderLabsTrend() {
   const el = document.getElementById('labs-content');
   if (!labsData.length) { el.innerHTML = '<p style="color:var(--muted);padding:16px">No lab results yet.</p>'; return; }
 
-  const dates = [...new Set(labsData.map(r=>r.Date))].sort();
+  const dates = [...new Set(labsData.map(r=>r.Date).filter(Boolean))].sort();
 
   // Build lookup: biomarker -> date -> record
   const lookup = {};
@@ -2623,7 +2623,7 @@ function renderLabsDraw() {
   const el = document.getElementById('labs-content');
   if (!labsData.length) { el.innerHTML = '<p style="color:var(--muted);padding:16px">No lab results yet.</p>'; return; }
 
-  const dates = [...new Set(labsData.map(r=>r.Date))].sort((a,b)=>b.localeCompare(a));
+  const dates = [...new Set(labsData.map(r=>r.Date).filter(Boolean))].sort((a,b)=>b.localeCompare(a));
   const sel = document.getElementById('labs-draw-select');
   if (!sel.options.length) sel.innerHTML = dates.map(d=>`<option value="${d}">${d}</option>`).join('');
   const date = sel.value || dates[0];
