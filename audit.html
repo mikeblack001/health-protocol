@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Workout Audit Tool</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 * { box-sizing:border-box; margin:0; padding:0; }
@@ -144,19 +145,60 @@ function handleFiles(fileList){
   document.getElementById('runBtn').disabled = files.length === 0;
 }
 
-async function pdfToImages(file){
-  const buf = await file.arrayBuffer();
-  const pdf = await pdfjsLib.getDocument({data:buf}).promise;
+// Detect if ArrayBuffer is a ZIP (PK magic bytes 50 4B 03 04)
+function isZip(buf) {
+  const bytes = new Uint8Array(buf.slice(0, 4));
+  return bytes[0] === 0x50 && bytes[1] === 0x4B && bytes[2] === 0x03 && bytes[3] === 0x04;
+}
+
+// Extract images from ZIP file, sorted numerically by filename
+async function zipToImages(buf) {
+  const zip = await JSZip.loadAsync(buf);
+  const imageFiles = [];
+  zip.forEach((relativePath, file) => {
+    if (/\.(jpe?g|png|gif|webp)$/i.test(relativePath)) {
+      imageFiles.push({ name: relativePath, file });
+    }
+  });
+  // Sort numerically (1.jpeg, 2.jpeg, ... 10.jpeg, not lexicographic)
+  imageFiles.sort((a, b) => {
+    const numA = parseInt(a.name.match(/(\d+)/)?.[1] || '0');
+    const numB = parseInt(b.name.match(/(\d+)/)?.[1] || '0');
+    return numA - numB;
+  });
   const images = [];
-  for(let i=1; i<=pdf.numPages; i++){
+  for (const { file } of imageFiles) {
+    const b64 = await file.async('base64');
+    images.push(b64);
+  }
+  return images;
+}
+
+// Extract images from real PDF via pdf.js
+async function pdfToImages(buf) {
+  const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+  const images = [];
+  for (let i = 1; i <= pdf.numPages; i++) {
     const page = await pdf.getPage(i);
-    const vp = page.getViewport({scale:1.5});
+    const vp = page.getViewport({ scale: 1.5 });
     const canvas = document.createElement('canvas');
     canvas.width = vp.width; canvas.height = vp.height;
-    await page.render({canvasContext:canvas.getContext('2d'), viewport:vp}).promise;
+    await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
     images.push(canvas.toDataURL('image/jpeg', 0.85).split(',')[1]);
   }
   return images;
+}
+
+// Route to correct extractor
+async function fileToImages(file) {
+  const buf = await file.arrayBuffer();
+  if (isZip(buf)) {
+    log(`  📦 Detected ZIP-wrapped format — extracting images directly`);
+    return await zipToImages(buf);
+  } else {
+    log(`  📄 Detected real PDF — rendering via pdf.js`);
+    return await pdfToImages(buf);
+  }
 }
 
 async function extractPageData(b64Image){
@@ -173,7 +215,9 @@ async function extractPageData(b64Image){
 CRITICAL RULES:
 - Weight is ALWAYS the FIRST number, Reps is ALWAYS the SECOND number (e.g. "30x20" = weight:30, reps:20)
 - Each session has a day label (Mon/Tues/Wed/Thurs/Fri) and sometimes a date
+- If a number is crossed out, use the replacement value written nearby
 - Extract exercise name EXACTLY as written (do not correct or standardize)
+- A page may contain 1 or 2 sessions (e.g. Mon + Thurs on same page)
 
 Return ONLY valid JSON in this exact format, no other text:
 {
@@ -195,7 +239,7 @@ Return ONLY valid JSON in this exact format, no other text:
   ]
 }
 
-If date is not visible, infer from context. If a number is crossed out, use the replacement value written nearby.`}
+If date is not on this page, leave "date" as empty string "". Do not guess dates.`}
       ]}
     })
   });
@@ -221,7 +265,7 @@ async function fetchATSets(date){
     variation: (rec.fields['Variation']||[{name:''}])[0]?.name || '',
     setNum: rec.fields['Set#'] || 0,
     reps: rec.fields['Reps'] || 0,
-    weight: rec.fields['Weight (lbs)'] || 0,
+    weight: rec.fields['Weight'] || 0,
     day: rec.fields['Day']?.name || ''
   }));
 }
@@ -232,7 +276,6 @@ function compareSession(pdfSession, atRecords){
   
   for(const ex of pdfSession.exercises){
     for(const s of ex.sets){
-      // Find matching AT record
       const match = atRecords.find(r => 
         r.setNum === s.set && 
         r.exercise.toLowerCase().includes(ex.name.toLowerCase().split(' ')[0])
@@ -259,7 +302,6 @@ function compareSession(pdfSession, atRecords){
     }
   }
 
-  // Check for extra AT records not in PDF
   const pdfExercises = pdfSession.exercises.map(e=>e.name.toLowerCase());
   const extraAT = atRecords.filter(r => 
     !pdfExercises.some(n => r.exercise.toLowerCase().includes(n.split(' ')[0]))
@@ -318,15 +360,15 @@ async function runAudit(){
   document.getElementById('issueList').innerHTML = '<div class="empty"><p>Running audit...</p></div>';
   document.getElementById('statusBar').innerHTML = 'Starting audit...';
 
-  let totalPages=0, totalMatch=0, totalMismatch=0, totalMissing=0;
+  let totalPages=0, totalMismatch=0, totalMissing=0;
 
   for(const file of files){
     log(`\n📄 Processing: ${file.name}`);
     document.getElementById(`fi${files.indexOf(file)}`).className = 'file-item processing';
     
     try {
-      const images = await pdfToImages(file);
-      log(`  ${images.length} pages extracted`);
+      const images = await fileToImages(file);
+      log(`  ${images.length} pages/images extracted`);
       
       for(let i=0; i<images.length; i++){
         log(`  Page ${i+1}/${images.length}: extracting workout data...`);
@@ -335,7 +377,10 @@ async function runAudit(){
         const data = await extractPageData(images[i]);
         
         for(const session of (data.sessions||[])){
-          if(!session.date) continue;
+          if(!session.date) {
+            log(`  ⚠ No date found — skipping session (${session.day})`);
+            continue;
+          }
           log(`  ${session.day} ${session.date}: ${session.exercises?.length||0} exercises`);
           
           const atRecords = await fetchATSets(session.date);
@@ -344,17 +389,14 @@ async function runAudit(){
           const issues = compareSession(session, atRecords);
           allIssues.push(...issues);
           
-          const sessionMismatches = issues.filter(i=>i.type==='mismatch').length;
-          const sessionMissing = issues.filter(i=>i.type!=='mismatch').length;
-          totalMismatch += sessionMismatches;
-          totalMissing += sessionMissing;
+          totalMismatch += issues.filter(i=>i.type==='mismatch').length;
+          totalMissing  += issues.filter(i=>i.type!=='mismatch').length;
           
           if(issues.length) log(`  ⚠ ${issues.length} issues found`);
           else log(`  ✓ Clean`);
         }
         
-        // Rate limit: small delay between pages
-        await new Promise(r=>setTimeout(r,500));
+        await new Promise(r=>setTimeout(r,300));
       }
       
       document.getElementById(`fi${files.indexOf(file)}`).className = 'file-item done';
@@ -364,7 +406,6 @@ async function runAudit(){
     }
   }
 
-  // Update summary
   document.getElementById('statPages').textContent = totalPages;
   document.getElementById('statMatch').textContent = '—';
   document.getElementById('statMismatch').textContent = totalMismatch;
