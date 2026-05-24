@@ -865,6 +865,14 @@
       </select>
       <button class="filter-btn" onclick="showAddLabModal()" style="margin-left:auto;background:var(--accent);color:#fff;border-color:var(--accent)">+ Log Result</button>
     </div>
+    <div class="filter-bar" id="labs-priority-bar" style="padding:6px 16px;border-bottom:1px solid var(--border);gap:6px">
+      <span style="font-size:11px;color:var(--muted);font-weight:600;letter-spacing:0.5px;text-transform:uppercase">Priority</span>
+      <button class="filter-btn active" id="labs-pri-all" onclick="setLabsPriority('',this)">All</button>
+      <button class="filter-btn" id="labs-pri-high" onclick="setLabsPriority('High',this)">🔴 High</button>
+      <button class="filter-btn" id="labs-pri-watch" onclick="setLabsPriority('Watch',this)">🟠 Watch</button>
+      <button class="filter-btn" id="labs-pri-standard" onclick="setLabsPriority('Standard',this)">Standard</button>
+      <input id="labs-search" type="text" placeholder="Search marker..." oninput="renderLabsTrend()" style="margin-left:8px;padding:4px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface);width:160px">
+    </div>
     <div id="labs-flag-bar" style="display:none;padding:8px 16px;background:var(--red-bg);border-bottom:1px solid #fecaca;font-size:12px;color:var(--red);font-weight:500"></div>
     <div id="labs-content"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
   </div>
@@ -2498,6 +2506,7 @@ async function saveAddPurchase() {
 // ===== LABS =====
 let labsData = [];
 let labsView = 'trend';
+let labsPriority = '';
 
 const LAB_WATCHLIST = ['Estradiol','BUN','Creatinine','eGFR','Alkaline Phosphatase','PSA','Calcium','Testosterone','Neutrophils Absolute','Hematocrit','WBC'];
 
@@ -2552,6 +2561,19 @@ async function loadLabs() {
   } catch(e) { el.innerHTML = `<p style="color:var(--red);padding:16px">Error: ${e.message}</p>`; }
 }
 
+function setLabsPriority(val, btn) {
+  labsPriority = val;
+  ['labs-pri-all','labs-pri-high','labs-pri-watch','labs-pri-standard'].forEach(id => {
+    document.getElementById(id)?.classList.remove('active');
+  });
+  btn.classList.add('active');
+  if (labsView === 'trend') renderLabsTrend();
+}
+
+function getLabsSearch() {
+  return (document.getElementById('labs-search')?.value || '').toLowerCase().trim();
+}
+
 function getLabsSource() {
   return document.getElementById('labs-source-filter')?.value ?? '';
 }
@@ -2603,8 +2625,18 @@ function renderLabsTrend() {
     lookup[r.Biomarker][r.Date] = r;
   });
 
-  const watchlistPresent = new Set(LAB_WATCHLIST.filter(b=>lookup[b]));
-  const rest = Object.keys(lookup).filter(b=>!watchlistPresent.has(b));
+  const search = getLabsSearch();
+  const allMarkers = Object.keys(lookup);
+  const visibleMarkers = allMarkers.filter(b => {
+    if (search && !(b.toLowerCase().includes(search))) return false;
+    if (labsPriority) {
+      const rec = Object.values(lookup[b]).find(Boolean);
+      if ((rec?.Priority || '') !== labsPriority) return false;
+    }
+    return true;
+  });
+  const watchlistPresent = new Set(LAB_WATCHLIST.filter(b=>visibleMarkers.includes(b)));
+  const rest = visibleMarkers.filter(b=>!watchlistPresent.has(b));
   const byType = {};
   rest.forEach(b => {
     const type = filtered.find(r=>r.Biomarker===b)?.['Lab Type'] || 'Other';
