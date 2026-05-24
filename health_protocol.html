@@ -2501,6 +2501,13 @@ let labsView = 'trend';
 
 const LAB_WATCHLIST = ['Estradiol','BUN','Creatinine','eGFR','Alkaline Phosphatase','PSA','Calcium','Testosterone','Neutrophils Absolute','Hematocrit','WBC'];
 
+const LAB_WATCHLIST_GROUPS = [
+  { label: 'Hormones',       markers: ['Testosterone','Estradiol','PSA'] },
+  { label: 'Kidney',         markers: ['BUN','Creatinine','eGFR','Calcium'] },
+  { label: 'Liver',          markers: ['Alkaline Phosphatase'] },
+  { label: 'Blood / Immune', markers: ['Hematocrit','WBC','Neutrophils Absolute'] },
+];
+
 // Known assay upper limits — display as ">value" when hit
 const ASSAY_MAX = { 'Testosterone': 1500 };
 
@@ -2546,7 +2553,7 @@ async function loadLabs() {
 }
 
 function getLabsSource() {
-  return document.getElementById('labs-source-filter')?.value ?? 'REM Health';
+  return document.getElementById('labs-source-filter')?.value ?? '';
 }
 
 function onLabsSourceChange() {
@@ -2647,8 +2654,18 @@ function renderLabsTrend() {
   </tr></thead><tbody>`;
 
   if (watchlistPresent.length) {
-    html += sectionHeader('Priority Watch List','⭐', true);
-    html += watchlistPresent.map(renderRow).join('');
+    const watchlistSet = new Set(watchlistPresent);
+    let watchlistRendered = false;
+    LAB_WATCHLIST_GROUPS.forEach(group => {
+      const inGroup = group.markers.filter(m => watchlistSet.has(m) && lookup[m]);
+      if (!inGroup.length) return;
+      if (!watchlistRendered) {
+        html += sectionHeader('Priority Watch List','⭐', true);
+        watchlistRendered = true;
+      }
+      html += `<tr><td colspan="${dates.length+3}" style="background:var(--surface2);color:var(--muted);font-size:10px;font-weight:700;letter-spacing:1px;padding:4px 16px;text-transform:uppercase;border-top:1px solid var(--border)">${group.label}</td></tr>`;
+      html += inGroup.map(renderRow).join('');
+    });
   }
   Object.keys(byType).sort().forEach(type => {
     html += sectionHeader(type, '', false);
@@ -4262,4 +4279,5 @@ function renderSuppVendors() {
 </body>
 </html>
 <!-- cache bust Sun May 24 2026 -->
+
 
