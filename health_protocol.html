@@ -883,11 +883,21 @@ let currentPepFilter = 'Active';
 let currentSuppFilter = 'Active';
 
 async function fetchTable(tableId) {
-  const res = await fetch(`https://api.airtable.com/v0/${BASE}/${tableId}?pageSize=100`, {
-    headers: { Authorization: `Bearer ${TOKEN}` }
-  });
-  const json = await res.json();
-  return json.records || [];
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 12000);
+  try {
+    const res = await fetch(`https://api.airtable.com/v0/${BASE}/${tableId}?pageSize=100`, {
+      headers: { Authorization: `Bearer ${TOKEN}` },
+      signal: controller.signal
+    });
+    clearTimeout(timeout);
+    const json = await res.json();
+    if (!res.ok) throw new Error(`Airtable error ${res.status}: ${json.error?.message || 'Unknown'}`);
+    return json.records || [];
+  } catch(e) {
+    clearTimeout(timeout);
+    throw e;
+  }
 }
 
 function renderPrintList() {
@@ -955,7 +965,10 @@ async function loadAll() {
     renderPrintList();
   } catch(e) {
     document.getElementById('statusDot').className = 'status-dot';
-    console.error(e);
+    console.error('loadAll failed:', e);
+    const errMsg = `<div style="padding:24px;color:var(--red,#e53e3e);font-size:13px">⚠ Failed to load data — ${e.message || e}.<br><br><button onclick="loadAll()" style="margin-top:8px;padding:6px 14px;border-radius:6px;border:none;background:var(--accent);color:#fff;cursor:pointer;font-size:13px">↻ Retry</button></div>`;
+    const pc = document.getElementById('peptides-content');
+    if (pc && pc.querySelector('.loading')) pc.innerHTML = errMsg;
   }
 }
 
@@ -1083,6 +1096,7 @@ function renderPeptides(filter) {
   if (amPeps.length) html += `<div class="table-wrap"><div class="timing-header">☀ Morning</div>${pepTableHTML(amPeps)}</div>`;
   if (pmPeps.length) html += `<div class="table-wrap"><div class="timing-header">🌙 Night</div>${pepTableHTML(pmPeps)}</div>`;
   if (otherPeps.length) html += `<div class="table-wrap"><div class="timing-header">○ Other</div>${pepTableHTML(otherPeps)}</div>`;
+  if (!html) html = `<div style="padding:24px;color:var(--muted);font-size:13px">No peptides found for filter: <strong>${filter}</strong>.</div>`;
   document.getElementById('peptides-content').innerHTML = html;
 }
 
@@ -3843,3 +3857,4 @@ function buildWeeklyPrintHTML(monday) {
 </body>
 </html>
 <!-- cache bust Wed May 20 21:43:30 UTC 2026 -->
+
