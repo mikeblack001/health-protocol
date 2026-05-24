@@ -3738,44 +3738,40 @@ function firstSource(src) {
 }
 
 // ===== SUPPLEMENT VENDORS =====
-let suppVendorsData = [];
-
-async function loadSuppVendors() {
-  const el = document.getElementById('suppvendors-content');
-  if (el) el.innerHTML = '<div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div>';
-  try {
-    let records = [], offset = null;
-    do {
-      const url = `https://api.airtable.com/v0/${BASE}/tblxI3G63a7WvK0Ya?pageSize=100${offset ? '&offset=' + offset : ''}`;
-      const res = await fetch(url, { headers: { Authorization: `Bearer ${TOKEN}` } });
-      const json = await res.json();
-      records = records.concat(json.records || []);
-      offset = json.offset;
-    } while (offset);
-    suppVendorsData = records;
-    renderSuppVendors();
-  } catch(e) {
-    if (el) el.innerHTML = '<p style="color:var(--red);padding:16px">Failed to load supplement vendors.</p>';
-  }
+function loadSuppVendors() {
+  renderSuppVendors();
 }
 
 function renderSuppVendors() {
   const el = document.getElementById('suppvendors-content');
   if (!el) return;
-  let rows = suppVendorsData.map(r => ({ id: r.id, ...r.fields || {} })).filter(r => r['Vendor']);
-  rows.sort((a,b) => (a['Vendor']||'').localeCompare(b['Vendor']||''));
-  if (!rows.length) { el.innerHTML = '<p style="color:var(--muted);padding:16px">No supplement vendors found.</p>'; return; }
-  el.innerHTML = `<div class="table-wrap"><table class="data-table"><thead><tr>
-    <th>Vendor</th><th>Website</th><th>Priority</th><th>Status</th><th>Notes</th>
-  </tr></thead><tbody>
-  ${rows.map(r => `<tr>
-    <td><div class="compound-name">${r['Vendor']||'—'}</div></td>
-    <td>${r['Website'] ? `<a href="${r['Website']}" target="_blank" style="color:var(--accent);font-size:12px">${r['Website'].replace(/^https?:\/\/(www\.)?/,'')}</a>` : '—'}</td>
-    <td>${badge(r['Priority']||'')}</td>
-    <td>${badge(r['Status']||'')}</td>
-    <td style="font-size:12px;color:var(--muted)">${r['Notes']||'—'}</td>
-  </tr>`).join('')}
-  </tbody></table></div>`;
+  const supps = data.supplements || [];
+  // Group by Source (vendor)
+  const vendorMap = {};
+  supps.forEach(r => {
+    const src = getField(r,'SuppSource') || 'Unknown';
+    const name = getField(r,'Supplement');
+    const status = getField(r,'SuppStatus');
+    const brand = getField(r,'Brand');
+    if (!name) return;
+    if (!vendorMap[src]) vendorMap[src] = [];
+    vendorMap[src].push({ name, status, brand });
+  });
+  const vendors = Object.keys(vendorMap).sort();
+  if (!vendors.length) { el.innerHTML = '<p style="color:var(--muted);padding:16px">No vendor data found.</p>'; return; }
+  el.innerHTML = vendors.map(vendor => `
+    <div class="table-wrap" style="margin-bottom:16px">
+      <div class="timing-header">${vendor}</div>
+      <table class="data-table"><thead><tr>
+        <th>Supplement</th><th>Brand</th><th>Status</th>
+      </tr></thead><tbody>
+      ${vendorMap[vendor].sort((a,b)=>a.name.localeCompare(b.name)).map(s => `<tr>
+        <td><div class="compound-name">${s.name}</div></td>
+        <td style="font-size:12px;color:var(--muted)">${s.brand||'—'}</td>
+        <td>${badge(s.status)}</td>
+      </tr>`).join('')}
+      </tbody></table>
+    </div>`).join('');
 }
 
 </script>
