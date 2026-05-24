@@ -2544,6 +2544,8 @@ function getFilteredLabsData() {
   const src = getLabsSource();
   return src ? labsData.filter(r => r.Source === src) : labsData;
 }
+
+function setLabsView(view) {
   labsView = view;
   document.getElementById('labs-tab-trend').classList.toggle('active', view==='trend');
   document.getElementById('labs-tab-draw').classList.toggle('active', view==='draw');
