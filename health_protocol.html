@@ -1280,7 +1280,7 @@ function renderTracker(weekNum) {
   </tr></thead><tbody>`;
 
   if (morning.length) {
-    html += `<tr><td colspan="11" style="background:#E8A838;color:#fff;font-weight:bold;padding:5px 10px;font-size:13px">☀ Morning</td></tr>`;
+    html += `<tr><td colspan="11" style="background:#E8A838;color:#fff;font-weight:bold;padding:5px 10px;font-size:13px;border-left:3px solid #000;border-right:3px solid #000">☀ Morning</td></tr>`;
     morning.forEach(r => {
       const name = getField(r,'Compound');
       html += `<tr>
@@ -1300,7 +1300,7 @@ function renderTracker(weekNum) {
 
   if (night.length) {
     html += `<tr><td colspan="11" style="height:24px;background:var(--surface2);border-top:1px solid #ccc;border-left:3px solid #000;border-right:3px solid #000"></td></tr>`;
-    html += `<tr><td colspan="11" style="background:#4A6FA5;color:#fff;font-weight:bold;padding:5px 10px;font-size:13px">🌙 Night</td></tr>`;
+    html += `<tr><td colspan="11" style="background:#4A6FA5;color:#fff;font-weight:bold;padding:5px 10px;font-size:13px;border-left:3px solid #000;border-right:3px solid #000">🌙 Night</td></tr>`;
     night.forEach(r => {
       const name = getField(r,'Compound');
       html += `<tr>
