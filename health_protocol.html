@@ -2498,7 +2498,10 @@ async function saveAddPurchase() {
 let labsData = [];
 let labsView = 'trend';
 
-const LAB_WATCHLIST = ['Testosterone','Estradiol','BUN','Creatinine','eGFR','Alkaline Phosphatase','Neutrophils Absolute','PSA','Calcium','Hematocrit','WBC'];
+const LAB_WATCHLIST = ['Estradiol','BUN','Creatinine','eGFR','Alkaline Phosphatase','PSA','Calcium','Testosterone','Neutrophils Absolute','Hematocrit','WBC'];
+
+// Known assay upper limits — display as ">value" when hit
+const ASSAY_MAX = { 'Testosterone': 1500 };
 
 const LAB_MARKERS = [
   'Testosterone','Free Testosterone','Estradiol','SHBG','LH','FSH','Prolactin','DHEA-S','AM Cortisol','IGF-1','Progesterone',
@@ -2612,8 +2615,9 @@ function renderLabsTrend() {
       const r = recs[d];
       if (!r) return `<td style="text-align:center;color:var(--border)">—</td>`;
       const out = r.Status === 'Out of Range';
+      const displayVal = (ASSAY_MAX[b] && r.Value >= ASSAY_MAX[b]) ? `>${r.Value}` : (r.Value ?? '—');
       return `<td style="text-align:center;font-family:'DM Mono',monospace;font-size:13px;${out?'background:rgba(239,68,68,0.07)':''}">
-        <span style="${out?'color:var(--red);font-weight:700':''}">${r.Value??'—'}</span>
+        <span style="${out?'color:var(--red);font-weight:700':''}">${displayVal}</span>
       </td>`;
     }).join('');
     return `<tr>
