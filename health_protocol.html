@@ -2639,9 +2639,48 @@ async function saveAddChange() {
       changesData.unshift(newRec);
       hideAddChangeModal();
       renderChanges();
+      // Cross-table: update peptide Start/End Date + Status based on change type
+      await updatePeptideFromChange(compound, type, date);
     } else { alert('Save failed'); }
   } catch(e) { alert('Error: ' + e.message); }
   btn.disabled = false; btn.textContent = 'Save';
+}
+
+async function updatePeptideFromChange(compound, changeType, date) {
+  // Find the matching peptide record
+  const pepRecord = data.peptides.find(r => (getField(r,'Compound')||'').trim().toLowerCase() === compound.trim().toLowerCase());
+  if (!pepRecord) return; // no match, nothing to do
+
+  const pepFields = {};
+
+  if (changeType === 'Started' || changeType === 'Resumed') {
+    pepFields['fldO3s24TR8o1qfSY'] = date;       // Start Date
+    pepFields['fldeCBOtYYp6BtAfh'] = 'Active';   // Status
+    if (changeType === 'Resumed') pepFields['fldbS91GtXsxjZU4q'] = null; // Clear End Date
+  } else if (changeType === 'Paused' || changeType === 'Stopped') {
+    pepFields['fldbS91GtXsxjZU4q'] = date;       // End Date
+    pepFields['fldeCBOtYYp6BtAfh'] = 'Paused';   // Status
+  }
+  // Dose Change / New Vial — no date/status update needed
+
+  if (!Object.keys(pepFields).length) return;
+
+  try {
+    const res = await fetch(`https://api.airtable.com/v0/${BASE}/${TABLES.peptides}/${pepRecord.id}`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fields: pepFields, typecast: true })
+    });
+    if (res.ok) {
+      // Update local data so UI reflects change without full reload
+      const updated = await res.json();
+      const idx = data.peptides.findIndex(r => r.id === pepRecord.id);
+      if (idx !== -1) data.peptides[idx] = updated;
+      renderPeptides(currentPepFilter);
+    }
+  } catch(e) {
+    console.warn('Peptide date update failed:', e.message);
+  }
 }
 
 
