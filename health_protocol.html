@@ -213,12 +213,28 @@
     .section-header { margin-bottom: 8px; }
   }
 
+  /* HAMBURGER */
+  .hamburger { display: none; flex-direction: column; gap: 5px; background: none; border: none; cursor: pointer; padding: 6px; }
+  .hamburger span { display: block; width: 22px; height: 2px; background: var(--text); border-radius: 2px; transition: all 0.2s; }
+  .mobile-menu { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--surface); z-index: 9999; overflow-y: auto; padding: 20px 16px 40px; }
+  .mobile-menu.open { display: block; }
+  .mobile-menu-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+  .mobile-menu-logo { font-family: 'DM Mono', monospace; font-size: 12px; font-weight: 500; color: var(--accent); letter-spacing: 2px; text-transform: uppercase; }
+  .mobile-close { background: none; border: none; font-size: 24px; cursor: pointer; color: var(--muted); padding: 4px; }
+  .mobile-section { margin-bottom: 20px; }
+  .mobile-section-label { font-size: 10px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); padding: 0 4px; margin-bottom: 6px; }
+  .mobile-item { display: block; width: 100%; text-align: left; background: none; border: none; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 16px; padding: 12px 8px; border-radius: 8px; cursor: pointer; border-bottom: 1px solid var(--border); }
+  .mobile-item:last-child { border-bottom: none; }
+  .mobile-item:active { background: var(--accent-light); color: var(--accent); }
+
   @media (max-width: 768px) {
     .stats-grid { grid-template-columns: repeat(2, 1fr); }
     .dash-grid { grid-template-columns: 1fr; }
     .form-grid { grid-template-columns: 1fr 1fr; }
-    nav { flex-wrap: wrap; gap: 8px; height: auto; padding: 12px 16px; }
-    .nav-tabs { order: 3; width: 100%; overflow-x: auto; }
+    nav { padding: 0 16px; height: 52px; }
+    .nav-tabs { display: none; }
+    .hamburger { display: flex; }
+    .nav-right .sync-btn { display: none; }
   }
 
 /* ── PRINT STYLES ── */
@@ -380,8 +396,59 @@
     <button onclick="openWeeklyPrint()" style="padding:5px 12px;background:var(--accent);color:#000;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;letter-spacing:0.3px;display:flex;align-items:center;gap:5px">🖨 Weekly Print</button>
     <div class="status-dot" id="statusDot"></div>
     <button class="sync-btn" onclick="loadAll()">↻ Sync</button>
+    <button class="hamburger" onclick="toggleMobileMenu()" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
   </div>
 </nav>
+
+<!-- MOBILE MENU -->
+<div class="mobile-menu" id="mobileMenu">
+  <div class="mobile-menu-header">
+    <div class="mobile-menu-logo">Health Protocol</div>
+    <button class="mobile-close" onclick="toggleMobileMenu()">✕</button>
+  </div>
+
+  <div class="mobile-section">
+    <div class="mobile-section-label">Main</div>
+    <button class="mobile-item" onclick="mobileNav('dashboard')">Dashboard</button>
+  </div>
+
+  <div class="mobile-section">
+    <div class="mobile-section-label">Peptides</div>
+    <button class="mobile-item" onclick="mobileNav('peptides')">Peptides</button>
+    <button class="mobile-item" onclick="mobileNav('tracker')">Peptide Tracker</button>
+    <button class="mobile-item" onclick="mobileNav('changes')">Peptide Changes</button>
+    <button class="mobile-item" onclick="mobileNav('pricing')">Pricing</button>
+    <button class="mobile-item" onclick="mobileNav('purchases')">Purchases</button>
+    <button class="mobile-item" onclick="mobileNav('vendors')">Vendors</button>
+  </div>
+
+  <div class="mobile-section">
+    <div class="mobile-section-label">Supplements</div>
+    <button class="mobile-item" onclick="mobileNav('supplements')">Supplements</button>
+    <button class="mobile-item" onclick="mobileNav('suppchanges')">Supplement Changes</button>
+  </div>
+
+  <div class="mobile-section">
+    <div class="mobile-section-label">Exercise</div>
+    <button class="mobile-item" onclick="mobileNav('workouts')">Workouts</button>
+    <button class="mobile-item" onclick="mobileNav('workout-suggestions')">Workout Suggestions</button>
+  </div>
+
+  <div class="mobile-section">
+    <div class="mobile-section-label">Personal</div>
+    <button class="mobile-item" onclick="mobileNav('log')">Daily Log</button>
+    <button class="mobile-item" onclick="mobileNav('labs')">Labs</button>
+    <button class="mobile-item" onclick="mobileNav('goals')">Goals</button>
+    <button class="mobile-item" onclick="mobileNav('profile')">Profile</button>
+  </div>
+
+  <div class="mobile-section">
+    <div class="mobile-section-label">Tools</div>
+    <button class="mobile-item" onclick="mobileNav('aicontext')">AI Context</button>
+  </div>
+</div>
 
 <main>
   <!-- DASHBOARD -->
@@ -2098,6 +2165,28 @@ async function loadExerciseProgress(exercise) {
       </tr>`).join('')}</tbody>
     </table></div>`;
   } catch(e) { el.innerHTML = '<p style="color:var(--red)">Failed to load progress.</p>'; }
+}
+
+function toggleMobileMenu() {
+  document.getElementById('mobileMenu').classList.toggle('open');
+}
+
+function mobileNav(viewId) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  const view = document.getElementById('view-' + viewId);
+  if (view) view.classList.add('active');
+  if (viewId === 'pricing') loadPricing();
+  if (viewId === 'vendors') loadVendors();
+  if (viewId === 'purchases') loadPurchases();
+  if (viewId === 'labs') loadLabs();
+  if (viewId === 'changes') loadChanges();
+  if (viewId === 'goals') loadGoals();
+  if (viewId === 'profile') loadProfileView();
+  if (viewId === 'aicontext') loadAIContext();
+  if (viewId === 'suppchanges') loadSuppChanges();
+  if (viewId === 'workout-suggestions') loadWorkoutSuggestions();
+  if (viewId === 'workouts') document.getElementById('workout-date').value = new Date().toISOString().split('T')[0];
+  toggleMobileMenu();
 }
 
 function showView(name, e) {

@@ -188,8 +188,6 @@
     body { background: #fff; margin: 0; }
     nav, .filter-bar, .nav-right, .warning-bar,
     .filter-chip, .print-btn, button { display: none !important; }
-    #greeting, #todayDate, h1 { display: none !important; }
-    .section-header h2 { font-size: 14px !important; margin-bottom: 6px; }
     * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
     .view { display: none !important; }
     .view.active { display: block !important; }
@@ -200,9 +198,7 @@
     .table-wrap { border: 1px solid #ccc !important; break-inside: avoid; margin-bottom: 12px; border-radius: 0; }
     .timing-header { background: #ebf2ff !important; color: #1a56db !important; font-weight: 600; padding: 5px 10px; font-size: 10px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .tracker-section td { background: #ebf2ff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    td, th { font-size: 11px !important; padding: 8px 10px !important; color: #000 !important; }
-    .tracker-day-block { margin-bottom: 20px !important; }
-    .tracker-section { margin-bottom: 16px !important; }
+    td, th { font-size: 10px !important; padding: 5px 8px !important; color: #000 !important; }
     .compound-name { font-size: 10px !important; font-weight: 600; }
     .compound-sub { font-size: 9px !important; color: #555 !important; }
     .quick-item { padding: 5px 0 !important; }
@@ -215,154 +211,130 @@
     .check-box { border: 1px solid #ccc !important; width: 16px !important; height: 16px !important; font-size: 8px !important; }
     h2 { font-size: 13px !important; margin-bottom: 8px; }
     .section-header { margin-bottom: 8px; }
-    #view-printlist .section-header { display: none !important; }
-    .printlist-pep-section { page-break-after: always; }
-    .printlist-supp-section { page-break-before: always; }
   }
+
+  /* HAMBURGER */
+  .hamburger { display: none; flex-direction: column; gap: 5px; background: none; border: none; cursor: pointer; padding: 6px; }
+  .hamburger span { display: block; width: 22px; height: 2px; background: var(--text); border-radius: 2px; transition: all 0.2s; }
+  .mobile-menu { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--surface); z-index: 9999; overflow-y: auto; padding: 20px 16px 40px; }
+  .mobile-menu.open { display: block; }
+  .mobile-menu-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+  .mobile-menu-logo { font-family: 'DM Mono', monospace; font-size: 12px; font-weight: 500; color: var(--accent); letter-spacing: 2px; text-transform: uppercase; }
+  .mobile-close { background: none; border: none; font-size: 24px; cursor: pointer; color: var(--muted); padding: 4px; }
+  .mobile-section { margin-bottom: 20px; }
+  .mobile-section-label { font-size: 10px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); padding: 0 4px; margin-bottom: 6px; }
+  .mobile-item { display: block; width: 100%; text-align: left; background: none; border: none; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 16px; padding: 12px 8px; border-radius: 8px; cursor: pointer; border-bottom: 1px solid var(--border); }
+  .mobile-item:last-child { border-bottom: none; }
+  .mobile-item:active { background: var(--accent-light); color: var(--accent); }
 
   @media (max-width: 768px) {
     .stats-grid { grid-template-columns: repeat(2, 1fr); }
     .dash-grid { grid-template-columns: 1fr; }
     .form-grid { grid-template-columns: 1fr 1fr; }
-    nav { flex-wrap: wrap; gap: 8px; height: auto; padding: 12px 16px; }
-    .nav-tabs { order: 3; width: 100%; overflow-x: auto; }
+    nav { padding: 0 16px; height: 52px; }
+    .nav-tabs { display: none; }
+    .hamburger { display: flex; }
+    .nav-right .sync-btn { display: none; }
   }
 
-/* ── WEEKLY PRINT STYLES ── */
-
-/* Day color themes — blue/grey palette */
-.pday-push    { --day-hdr: #3D6B9E; --day-hdr-text: #fff; --day-col-bg: #D8E7F5; --day-row-alt: #EDF4FB; }
-.pday-pull    { --day-hdr: #3D6B9E; --day-hdr-text: #fff; --day-col-bg: #D8E7F5; --day-row-alt: #EDF4FB; }
-.pday-legs    { --day-hdr: #3D6B9E; --day-hdr-text: #fff; --day-col-bg: #D8E7F5; --day-row-alt: #EDF4FB; }
-.pday-arms    { --day-hdr: #3D6B9E; --day-hdr-text: #fff; --day-col-bg: #D8E7F5; --day-row-alt: #EDF4FB; }
-
+/* ── PRINT STYLES ── */
+.print-page {
+  width: 100%;
+  margin-bottom: 24px;
+  background: white;
+}
 .ptable {
   width: 100%;
   border-collapse: collapse;
   font-family: Arial, sans-serif;
-  font-size: 12px;
-  margin-bottom: 0;
+  font-size: 10px;
+  margin-bottom: 14px;
   table-layout: fixed;
 }
 .pday-hdr {
-  color: var(--day-hdr-text);
-  background: var(--day-hdr);
+  background: #222;
+  color: #fff;
   font-size: 12px;
   font-weight: bold;
-  padding: 0;
+  padding: 5px 8px;
+  text-align: left;
+  letter-spacing: 0.3px;
 }
-.pday-hdr-inner {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 10px 14px;
-  flex-wrap: nowrap;
+.pmeta td, .pmeta-cell {
+  background: #f2f2f2;
+  padding: 3px 6px;
+  font-size: 9px;
+  border: 1px solid #ccc;
+  vertical-align: middle;
 }
-.pday-title {
-  font-size: 14px;
-  font-weight: 700;
-  white-space: nowrap;
-  color: #fff;
-  min-width: 180px;
-}
-.pday-meta {
-  display: flex;
-  gap: 20px;
-  align-items: center;
-  font-size: 11px;
-  font-weight: normal;
-  color: rgba(255,255,255,0.95);
-  flex: 1;
-}
-.pday-meta-field {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  white-space: nowrap;
-}
-.pday-meta-line {
-  display: inline-block;
-  width: 88px;
-  border-bottom: 1px solid rgba(255,255,255,0.6);
-  height: 16px;
-  vertical-align: bottom;
-}
-.pday-dur-line {
-  width: 110px;
-}
+.pmeta-val { font-weight: 600; }
 .pcol-hdr th {
-  background: var(--day-col-bg);
-  color: #222;
-  padding: 6px 4px;
-  font-size: 10px;
+  background: #e0e0e0;
+  padding: 3px 4px;
+  font-size: 8px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.3px;
-  border-bottom: 1px solid rgba(0,0,0,0.15);
-  border-right: 1px solid rgba(0,0,0,0.08);
+  border: 1px solid #bbb;
   text-align: center;
 }
-.pcol-hdr th.pex-name { text-align: left; padding-left: 8px; }
-.pcol-hdr th.pex-var  { text-align: left; padding-left: 8px; }
-.pex td {
-  padding: 7px 4px;
-  border-bottom: 1px solid #e0e0e0;
-  border-right: 1px solid #ececec;
-  vertical-align: middle;
-  height: 28px;
-  background: white;
-}
-.pex:nth-child(even) td { background: var(--day-row-alt); }
-.pex-name { font-weight: 600; font-size: 12px; padding-left: 8px !important; color: #111; }
-.pex-var  { font-size: 10px; color: #555; padding-left: 8px !important; }
-.pset     { text-align: center; color: #999; font-size: 9px; width: 3%; }
-.preps    { text-align: center; width: 7%; }
-.pwt      { text-align: center; width: 10%; }
-.pnotes td {
-  border-top: 2px solid var(--day-hdr);
-  padding: 8px 8px;
-  background: var(--day-row-alt);
-  height: 80px;
-  vertical-align: top;
-}
-.pnotes-label {
-  font-weight: 700;
-  font-size: 10px;
-  white-space: nowrap;
-  color: #333;
-  width: 6%;
-}
-.pnotes-val { font-size: 10px; color: #aaa; }
-.pspacer { height: 20px; }
+.pcol-hdr th.pex-name, .pcol-hdr th.pex-var { text-align: left; }
+.pex td { border: 1px solid #ccc; padding: 4px 5px; vertical-align: middle; }
+.pex-name { font-weight: 600; font-size: 10px; word-break: break-word; }
+.pex-var  { font-size: 8px; color: #555; word-break: break-word; }
+.pset     { text-align: center; color: #999; font-size: 8px; background: #fafafa; }
+.preps, .pwt { text-align: center; }
+.pnotes td { border: 1px solid #ccc; padding: 3px 6px; background: #fafafa; }
+.pnotes-label { font-weight: 700; font-size: 9px; white-space: nowrap; }
+.pnotes-val   { font-size: 8px; color: #555; font-style: italic; }
 
 @media screen {
-  #weekly-print-preview { background: #f0f0f0; padding: 16px; border-radius: 8px; }
-  .print-page { background: white; padding: 20px; border-radius: 6px; border: 1px solid #ddd; margin-bottom: 16px; }
+  .print-page { border: 1px solid #ddd; padding: 16px; border-radius: 6px; background: white; }
+  #print-sheet-preview { background: #f0f0f0; padding: 16px; border-radius: 8px; }
 }
 
 @media print {
-  /* When weekly print modal is open - hide everything except modal */
-  body.printing-weekly > *:not(#weekly-print-modal) { display: none !important; }
-  body.printing-weekly #weekly-print-modal {
-    display: block !important; position: static !important;
-    background: white !important; padding: 0 !important;
-    z-index: auto !important; overflow: visible !important;
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  body, html { background: white !important; margin: 0; padding: 0; }
+
+  /* Hide entire app chrome */
+  body > * { display: none !important; }
+  #app-container, .nav-sidebar, header, .tab-bar { display: none !important; }
+
+  /* Show only the print view */
+  #view-workouts { display: block !important; position: static !important; }
+  #view-workouts .filter-bar { display: none !important; }
+  #workout-log-panel,
+  #workout-history-panel,
+  #workout-progress-panel { display: none !important; }
+  #workout-print-panel { display: block !important; }
+  /* Modal print - show modal content only */
+  #weekly-print-modal { display: block !important; position: static !important; background: white !important; padding: 0 !important; z-index: auto !important; overflow: visible !important; }
+  #weekly-print-modal > div { background: white !important; border-radius: 0 !important; padding: 0 !important; max-width: 100% !important; box-shadow: none !important; }
+  #weekly-print-modal > div > div:first-child { display: none !important; }
+  #modal-print-preview { padding: 0 !important; }
+  #print-week-date, button { display: none !important; }
+  .print-page-controls { display: none !important; }
+
+  .print-page {
+    page-break-after: always;
+    margin: 0;
+    padding: 0;
+    width: 100%;
   }
-  body.printing-weekly #weekly-print-modal > div {
-    background: white !important; border-radius: 0 !important;
-    padding: 0 !important; max-width: 100% !important; box-shadow: none !important;
-  }
-  body.printing-weekly #weekly-print-modal > div > div:first-child { display: none !important; }
-  body.printing-weekly #weekly-print-preview {
-    padding: 0 !important; background: white !important; border-radius: 0 !important;
-  }
-  .print-page { page-break-after: always; margin: 0; padding: 0; }
   .print-page:last-child { page-break-after: auto; }
-  .ptable { font-size: 11.5px; }
-  .pex td { height: 30px; padding: 8px 4px; }
-  .pnotes td { height: 80px; }
-  .pspacer { height: 24px; }
-  @page { size: letter portrait; margin: 0.65in 0.45in 0.4in 0.45in; }
+
+  .ptable {
+    width: 100%;
+    font-size: 9.5px;
+    margin-bottom: 10px;
+  }
+  .pday-hdr { font-size: 11px; }
+
+  @page {
+    size: letter portrait;
+    margin: 0.45in 0.45in 0.45in 0.45in;
+  }
 }
 </style>
 </head>
@@ -421,10 +393,62 @@
     </div>
   </div>
   <div class="nav-right">
+    <button onclick="openWeeklyPrint()" style="padding:5px 12px;background:var(--accent);color:#000;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;letter-spacing:0.3px;display:flex;align-items:center;gap:5px">🖨 Weekly Print</button>
     <div class="status-dot" id="statusDot"></div>
     <button class="sync-btn" onclick="loadAll()">↻ Sync</button>
+    <button class="hamburger" onclick="toggleMobileMenu()" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
   </div>
 </nav>
+
+<!-- MOBILE MENU -->
+<div class="mobile-menu" id="mobileMenu">
+  <div class="mobile-menu-header">
+    <div class="mobile-menu-logo">Health Protocol</div>
+    <button class="mobile-close" onclick="toggleMobileMenu()">✕</button>
+  </div>
+
+  <div class="mobile-section">
+    <div class="mobile-section-label">Main</div>
+    <button class="mobile-item" onclick="mobileNav('dashboard')">Dashboard</button>
+  </div>
+
+  <div class="mobile-section">
+    <div class="mobile-section-label">Peptides</div>
+    <button class="mobile-item" onclick="mobileNav('peptides')">Peptides</button>
+    <button class="mobile-item" onclick="mobileNav('tracker')">Peptide Tracker</button>
+    <button class="mobile-item" onclick="mobileNav('changes')">Peptide Changes</button>
+    <button class="mobile-item" onclick="mobileNav('pricing')">Pricing</button>
+    <button class="mobile-item" onclick="mobileNav('purchases')">Purchases</button>
+    <button class="mobile-item" onclick="mobileNav('vendors')">Vendors</button>
+  </div>
+
+  <div class="mobile-section">
+    <div class="mobile-section-label">Supplements</div>
+    <button class="mobile-item" onclick="mobileNav('supplements')">Supplements</button>
+    <button class="mobile-item" onclick="mobileNav('suppchanges')">Supplement Changes</button>
+  </div>
+
+  <div class="mobile-section">
+    <div class="mobile-section-label">Exercise</div>
+    <button class="mobile-item" onclick="mobileNav('workouts')">Workouts</button>
+    <button class="mobile-item" onclick="mobileNav('workout-suggestions')">Workout Suggestions</button>
+  </div>
+
+  <div class="mobile-section">
+    <div class="mobile-section-label">Personal</div>
+    <button class="mobile-item" onclick="mobileNav('log')">Daily Log</button>
+    <button class="mobile-item" onclick="mobileNav('labs')">Labs</button>
+    <button class="mobile-item" onclick="mobileNav('goals')">Goals</button>
+    <button class="mobile-item" onclick="mobileNav('profile')">Profile</button>
+  </div>
+
+  <div class="mobile-section">
+    <div class="mobile-section-label">Tools</div>
+    <button class="mobile-item" onclick="mobileNav('aicontext')">AI Context</button>
+  </div>
+</div>
 
 <main>
   <!-- DASHBOARD -->
@@ -512,8 +536,10 @@
       <div class="filter-chip active" onclick="filterSupps('Active', this)">Active</div>
       <div class="filter-chip" onclick="filterSupps('Paused', this)">Paused</div>
       <div class="filter-chip" onclick="filterSupps('TBD', this)">TBD</div>
-      <div class="filter-chip" onclick="filterSupps('amazon', this)" style="margin-left:8px">Amazon</div>
-      <div class="filter-chip" onclick="filterSupps('pharmacy', this)">Pharmacy</div>
+      <div class="filter-chip" onclick="filterSuppSource('Amazon', this)" style="margin-left:8px">Amazon</div>
+      <div class="filter-chip" onclick="filterSuppSource('Pharmacy', this)">Pharmacy</div>
+      <div class="filter-chip" onclick="filterSuppSource('Way to Wellness', this)">Way to Wellness</div>
+      <div class="filter-chip" onclick="filterSuppSource('', this)">All Sources</div>
     </div>
     <div id="supps-content"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
   </div>
@@ -623,6 +649,19 @@
         </select>
       </div>
       <div id="workout-progress-content"><p style="color:var(--muted);font-size:13px">Select an exercise to view progress</p></div>
+
+    <!-- PRINT PANEL -->
+    <div id="workout-print-panel" style="display:none">
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap">
+        <div>
+          <label style="font-size:11px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:0.6px;display:block;margin-bottom:4px">Week Starting</label>
+          <input type="date" id="print-week-date" style="padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface)" onchange="renderPrintSheet()">
+        </div>
+        <button onclick="window.print()" style="padding:8px 16px;background:var(--accent);color:#000;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;margin-top:18px">Print</button>
+        <span style="font-size:11px;color:var(--muted);margin-top:18px">Or use Cmd+P / Ctrl+P</span>
+      </div>
+      <div id="print-sheet-preview"></div>
+    </div>
     </div>
   </div>
 
@@ -867,12 +906,11 @@ function renderPrintList() {
   const pmPep = activePep.filter(r => getField(r,'Timing').toLowerCase().includes('night'));
   const activeSupp = data.supplements.filter(r => getField(r,'SuppStatus') === 'Active');
 
-  let pepHtml = '';
-  let suppHtml = '';
+  let html = '';
 
   // Morning Peptides
   if (amPep.length) {
-    pepHtml += `<div class="table-wrap"><div class="timing-header">☀ Morning Peptides</div>
+    html += `<div class="table-wrap"><div class="timing-header">☀ Morning Peptides</div>
       <table class="data-table"><thead><tr><th>Compound</th><th>Dose</th><th>Frequency</th><th>Source</th></tr></thead><tbody>
       ${amPep.map(r => `<tr>
         <td><div class="compound-name">${getField(r,'Compound')}</div></td>
@@ -884,7 +922,7 @@ function renderPrintList() {
 
   // Night Peptides
   if (pmPep.length) {
-    pepHtml += `<div class="table-wrap"><div class="timing-header">🌙 Night Peptides</div>
+    html += `<div class="table-wrap"><div class="timing-header">🌙 Night Peptides</div>
       <table class="data-table"><thead><tr><th>Compound</th><th>Dose</th><th>Frequency</th><th>Source</th></tr></thead><tbody>
       ${pmPep.map(r => `<tr>
         <td><div class="compound-name">${getField(r,'Compound')}</div></td>
@@ -899,7 +937,7 @@ function renderPrintList() {
     const icon = t === 'Morning' ? '☀' : t === 'Dinner' ? '🍽' : '🌙';
     const group = activeSupp.filter(r => getField(r,'SuppTiming') === t);
     if (!group.length) return;
-    suppHtml += `<div class="table-wrap"><div class="timing-header">${icon} ${t} Supplements</div>
+    html += `<div class="table-wrap"><div class="timing-header">${icon} ${t} Supplements</div>
       <table class="data-table"><thead><tr><th>Supplement</th><th>Dose</th><th>Brand</th></tr></thead><tbody>
       ${group.map(r => `<tr>
         <td><div class="compound-name">${getField(r,'Supplement')}</div></td>
@@ -907,10 +945,6 @@ function renderPrintList() {
         <td style="font-size:12px;color:var(--muted)">${getField(r,'Brand')}</td>
       </tr>`).join('')}</tbody></table></div>`;
   });
-
-  const html = pepHtml
-    ? `<div class="printlist-pep-section">${pepHtml}</div><div class="printlist-supp-section">${suppHtml}</div>`
-    : suppHtml;
 
   document.getElementById('printlist-content').innerHTML = html || '<p style="color:var(--muted)">No data loaded yet.</p>';
 }
@@ -1075,13 +1109,8 @@ function suppSortIcon(col) {
 function renderSupplements(filter) {
   currentSuppFilter = filter;
   let records = data.supplements;
-  if (filter === 'amazon') {
-    records = records.filter(r => (getField(r,'SuppSource')||'').toLowerCase().includes('amazon'));
-  } else if (filter === 'pharmacy') {
-    records = records.filter(r => (getField(r,'SuppSource')||'').toLowerCase().includes('pharmacy'));
-  } else if (filter && filter !== 'all') {
-    records = records.filter(r => (getField(r,'SuppStatus')||'').toLowerCase() === filter.toLowerCase());
-  }
+  if (filter !== 'all') records = records.filter(r => (getField(r,'SuppStatus')||'').toLowerCase() === filter.toLowerCase());
+  if (currentSuppSource) records = records.filter(r => (getField(r,'SuppSource')||'') === currentSuppSource);
   records = [...records].sort((a,b) => {
     const av = getField(a, suppSort.col === 'Supplement' ? 'Supplement' : suppSort.col === 'Status' ? 'SuppStatus' : suppSort.col === 'Timing' ? 'SuppTiming' : suppSort.col === 'Dose' ? 'SuppDose' : suppSort.col === 'Brand' ? 'Brand' : 'Supplement') || '';
     const bv = getField(b, suppSort.col === 'Supplement' ? 'Supplement' : suppSort.col === 'Status' ? 'SuppStatus' : suppSort.col === 'Timing' ? 'SuppTiming' : suppSort.col === 'Dose' ? 'SuppDose' : suppSort.col === 'Brand' ? 'Brand' : 'Supplement') || '';
@@ -1344,9 +1373,17 @@ function filterPeptides(f, el) {
 }
 
 function filterSupps(f, el) {
-  document.querySelectorAll('#view-supplements .filter-chip').forEach(c => c.classList.remove('active'));
+  el.closest('.filter-bar').querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
   el.classList.add('active');
   renderSupplements(f);
+}
+
+let currentSuppSource = '';
+function filterSuppSource(source, el) {
+  currentSuppSource = source;
+  el.closest('.filter-bar').querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  renderSupplements(currentSuppFilter || 'all');
 }
 
 let pricingData = [];
@@ -1897,12 +1934,21 @@ let workoutPrevData = {}; // cache previous weights
 
 function showWorkoutPanel(panel, btn) {
   ['log','history','progress'].forEach(p => {
-    document.getElementById('workout-' + p + '-panel').style.display = p === panel ? 'block' : 'none';
+    const el = document.getElementById('workout-' + p + '-panel');
+    if (el) el.style.display = p === panel ? 'block' : 'none';
   });
   document.querySelectorAll('#view-workouts .filter-bar .filter-btn').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
   if (panel === 'history') loadWorkoutHistory();
   if (panel === 'progress') loadProgressExerciseList();
+  if (panel === 'print') {
+    // default to current week's Monday
+    const today = new Date();
+    const monday = new Date(today);
+    monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+    document.getElementById('print-week-date').value = monday.toISOString().split('T')[0];
+    renderPrintSheet();
+  }
 }
 
 async function loadPrevWeights(day) {
@@ -2119,6 +2165,28 @@ async function loadExerciseProgress(exercise) {
       </tr>`).join('')}</tbody>
     </table></div>`;
   } catch(e) { el.innerHTML = '<p style="color:var(--red)">Failed to load progress.</p>'; }
+}
+
+function toggleMobileMenu() {
+  document.getElementById('mobileMenu').classList.toggle('open');
+}
+
+function mobileNav(viewId) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  const view = document.getElementById('view-' + viewId);
+  if (view) view.classList.add('active');
+  if (viewId === 'pricing') loadPricing();
+  if (viewId === 'vendors') loadVendors();
+  if (viewId === 'purchases') loadPurchases();
+  if (viewId === 'labs') loadLabs();
+  if (viewId === 'changes') loadChanges();
+  if (viewId === 'goals') loadGoals();
+  if (viewId === 'profile') loadProfileView();
+  if (viewId === 'aicontext') loadAIContext();
+  if (viewId === 'suppchanges') loadSuppChanges();
+  if (viewId === 'workout-suggestions') loadWorkoutSuggestions();
+  if (viewId === 'workouts') document.getElementById('workout-date').value = new Date().toISOString().split('T')[0];
+  toggleMobileMenu();
 }
 
 function showView(name, e) {
@@ -2597,11 +2665,11 @@ function printTracker() {
       const dose = getField(r,'Dose');
       const label = dose ? `${name} - ${dose}` : name;
       const active = TRACKER_SCHEDULE[name] || [0,1,2,3,4,5,6];
-      let tr = `<tr><td style="background-color:${bg}!important;border:1px solid #ccc;border-left:2px solid #000;padding:2px 6px;font-size:8pt">${label}</td>`;
+      let tr = `<tr><td style="background-color:${bg}!important;border:1px solid #ccc;border-left:2px solid #000;padding:3px 5px">${label}</td>`;
       for (let d=0; d<7; d++) {
         tr += active.includes(d)
-          ? `<td style="background-color:${bg}!important;border:1px solid #ccc;height:22px"></td>`
-          : `<td style="background-color:${INACTIVE}!important;border:1px solid #ccc;height:22px"></td>`;
+          ? `<td style="background-color:${bg}!important;border:1px solid #ccc;"></td>`
+          : `<td style="background-color:${INACTIVE}!important;border:1px solid #ccc;"></td>`;
       }
       tr += `<td style="background-color:${bg}!important;border:1px solid #ccc;"></td></tr>`;
       return tr;
@@ -2610,36 +2678,51 @@ function printTracker() {
 
   function weekTable(weekNum) {
     return `
-    <div style="background-color:#3D6B9E!important;color:#fff!important;font-weight:bold;font-size:9pt;padding:4px 8px;margin-top:0">
-      Week ${weekNum} &nbsp;&nbsp;&nbsp; Monday Date: _________________________________
+    <div style="background-color:#1B4332!important;color:#fff!important;font-weight:bold;font-size:8pt;padding:3px 5px;margin-top:${weekNum>1?'8px':'0'}">
+      Week ${weekNum} &nbsp;&nbsp; Monday Date: _____________________
     </div>
-    <table style="width:100%;border-collapse:collapse;font-size:9pt;table-layout:fixed">
+    <table style="width:100%;border-collapse:collapse;font-size:8pt;table-layout:fixed">
     <colgroup><col style="width:35%">${DAYS.map(()=>'<col style="width:6%">').join('')}<col style="width:23%"></colgroup>
     <thead><tr style="background-color:#D9D9D9!important">
-      <th style="border:1px solid #999;padding:3px 4px;text-align:left">Medication</th>
-      ${DAYS.map(d=>`<th style="border:1px solid #999;padding:3px 2px;text-align:center">${d}</th>`).join('')}
-      <th style="border:1px solid #999;padding:3px 4px;text-align:left">Notes</th>
+      <th style="border:1px solid #999;padding:2px 4px;text-align:left">Medication</th>
+      ${DAYS.map(d=>`<th style="border:1px solid #999;padding:2px;text-align:center">${d}</th>`).join('')}
+      <th style="border:1px solid #999;padding:2px;text-align:left">Notes</th>
+      <th style="border:1px solid #999;padding:2px;text-align:left">Notes</th>
     </tr></thead><tbody>
-    <tr><td colspan="9" style="background-color:#E8A838!important;color:#fff!important;font-weight:bold;padding:3px 8px;font-size:8pt">☀ Morning</td></tr>
+    <tr><td colspan="9" style="background-color:#E8A838!important;color:#fff!important;font-weight:bold;padding:3px 5px;font-size:8pt">☀ Morning</td></tr>
     ${rows(MORNING_ORDER, MORN_BG)}
-    <tr><td colspan="9" style="background-color:#3D6B9E!important;color:#fff!important;font-weight:bold;padding:3px 8px;font-size:8pt">🌙 Night</td></tr>
+    <tr><td colspan="9" style="background-color:#4A6FA5!important;color:#fff!important;font-weight:bold;padding:3px 5px;font-size:8pt">🌙 Night</td></tr>
     ${rows(NIGHT_ORDER, NIGHT_BG)}
     </tbody></table>`;
   }
 
   const html = `<!DOCTYPE html><html><head><title></title>
   <style>
-    @page { size: portrait letter; margin: 0.55in 0.35in 0.35in 0.35in; }
-    body { font-family: Arial, sans-serif; margin: 0; font-size: 8pt; -webkit-print-color-adjust: exact; print-color-adjust: exact; color-adjust: exact; }
+    @page { size: portrait letter; margin: 0.25in; }
+    body { font-family: Calibri, Arial, sans-serif; margin: 0; font-size: 8pt; -webkit-print-color-adjust: exact; print-color-adjust: exact; color-adjust: exact; }
     * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
-    table { width: 100%; border-collapse: collapse; margin-bottom: 0; table-layout: fixed; }
-    td, th { padding: 4px 4px !important; line-height: 1.2; overflow: hidden; }
-    .page-break { page-break-after: always; padding-bottom: 0; }
-    .week-spacer { height: 18px; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 4px; table-layout: fixed; }
+    td, th { padding: 2px 3px !important; line-height: 1.2; overflow: hidden; }
+    .page-break { page-break-after: always; }
   </style></head><body>
-  <div class="page-break">${weekTable(1)}<div class="week-spacer"></div>${weekTable(2)}</div>
-  <div>${weekTable(3)}<div class="week-spacer"></div>${weekTable(4)}</div>
-
+  <div class="page-break">${weekTable(1)}${weekTable(2)}</div>
+  <div>${weekTable(3)}${weekTable(4)}</div>
+  
+<!-- WEEKLY PRINT MODAL -->
+<div id="weekly-print-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;overflow-y:auto;padding:24px">
+  <div style="max-width:860px;margin:0 auto;background:var(--surface);border-radius:12px;padding:24px;position:relative">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div style="font-family:'DM Mono',monospace;font-size:13px;font-weight:600;color:var(--accent);letter-spacing:1px">WEEKLY PRINT</div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <label style="font-size:11px;color:var(--muted)">Week of Monday:</label>
+        <input type="date" id="modal-print-date" style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:'DM Mono',monospace;color:var(--text);background:var(--surface2)" onchange="renderModalPrintSheet()">
+        <button onclick="window.print()" style="padding:6px 14px;background:var(--accent);color:#000;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer">Print</button>
+        <button onclick="document.getElementById('weekly-print-modal').style.display='none'" style="padding:6px 12px;background:var(--surface2);color:var(--muted);border:1px solid var(--border);border-radius:6px;font-size:12px;cursor:pointer">✕ Close</button>
+      </div>
+    </div>
+    <div id="modal-print-preview" style="background:white;border-radius:8px;padding:16px"></div>
+  </div>
+</div>
 
 <!-- ADD SUPP CHANGE MODAL -->
 <div class="modal-overlay" id="add-supp-change-modal" onclick="if(event.target===this)hideAddSuppChangeModal()" style="display:none">
@@ -2677,8 +2760,96 @@ function printTracker() {
 
 
 function printProtocolList() {
-  window.print();
+  const activePep = data.peptides.filter(r => getField(r,'Status') === 'Active');
+  const amPep = activePep.filter(r => !getField(r,'Timing').toLowerCase().includes('night'));
+  const pmPep = activePep.filter(r => getField(r,'Timing').toLowerCase().includes('night'));
+  const activeSupp = data.supplements.filter(r => getField(r,'SuppStatus') === 'Active');
+
+  function pepTable(title, rows) {
+    if (!rows.length) return '';
+    return `<h3 style="margin:12px 0 4px;font-size:13px;border-bottom:2px solid #333;padding-bottom:3px">${title}</h3>
+    <table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:10px">
+    <thead><tr style="background:#D9D9D9">
+      <th style="border:1px solid #999;padding:4px 8px;text-align:left">Compound</th>
+      <th style="border:1px solid #999;padding:4px 8px;text-align:left">Dose</th>
+      <th style="border:1px solid #999;padding:4px 8px;text-align:left">Frequency</th>
+      <th style="border:1px solid #999;padding:4px 8px;text-align:left">Source</th>
+    </tr></thead><tbody>
+    ${rows.map(r => `<tr>
+      <td style="border:1px solid #ddd;padding:4px 8px;font-weight:600">${getField(r,'Compound')}</td>
+      <td style="border:1px solid #ddd;padding:4px 8px;font-family:monospace">${getField(r,'Dose')}</td>
+      <td style="border:1px solid #ddd;padding:4px 8px">${getField(r,'Frequency')}</td>
+      <td style="border:1px solid #ddd;padding:4px 8px;color:#666">${[].concat(getField(r,'Source')||[]).map(s=>s.name||s).join(', ')}</td>
+    </tr>`).join('')}
+    </tbody></table>`;
+  }
+
+  function suppTable(title, rows) {
+    if (!rows.length) return '';
+    return `<h3 style="margin:12px 0 4px;font-size:13px;border-bottom:2px solid #333;padding-bottom:3px">${title}</h3>
+    <table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:10px">
+    <thead><tr style="background:#D9D9D9">
+      <th style="border:1px solid #999;padding:4px 8px;text-align:left">Supplement</th>
+      <th style="border:1px solid #999;padding:4px 8px;text-align:left">Dose</th>
+      <th style="border:1px solid #999;padding:4px 8px;text-align:left">Brand</th>
+      <th style="border:1px solid #999;padding:4px 8px;text-align:left">Source</th>
+    </tr></thead><tbody>
+    ${rows.map(r => `<tr>
+      <td style="border:1px solid #ddd;padding:4px 8px;font-weight:600">${getField(r,'Supplement')}</td>
+      <td style="border:1px solid #ddd;padding:4px 8px;font-family:monospace">${getField(r,'SuppDose')}</td>
+      <td style="border:1px solid #ddd;padding:4px 8px;color:#666">${getField(r,'Brand')}</td>
+      <td style="border:1px solid #ddd;padding:4px 8px;color:#666">${getField(r,'SuppSource')||'—'}</td>
+    </tr>`).join('')}
+    </tbody></table>`;
+  }
+
+  const mornSupp = activeSupp.filter(r => getField(r,'SuppTiming') === 'Morning');
+  const dinSupp  = activeSupp.filter(r => getField(r,'SuppTiming') === 'Dinner');
+  const nightSupp= activeSupp.filter(r => getField(r,'SuppTiming') === 'Night');
+
+  const dateStr = new Date().toLocaleDateString('en-US', {month:'long',day:'numeric',year:'numeric'});
+
+  const html = `<!DOCTYPE html><html><head><title>Active Protocol</title>
+  <style>
+    @page { size: letter portrait; margin: 0.5in; }
+    body { font-family: Arial, sans-serif; margin: 0; font-size: 11px; color: #000; background: #fff; }
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    .page-title { font-size: 16px; font-weight: bold; margin-bottom: 4px; }
+    .page-sub { font-size: 11px; color: #666; margin-bottom: 12px; }
+    .page-break { page-break-after: always; margin-bottom: 24px; }
+  </style></head><body>
+  <div class="page-break">
+    <div class="page-title">Active Peptide Protocol</div>
+    <div class="page-sub">Generated ${dateStr}</div>
+    ${pepTable('☀ Morning', amPep)}
+    ${pepTable('🌙 Night', pmPep)}
+  </div>
+  <div>
+    <div class="page-title">Active Supplement Protocol</div>
+    <div class="page-sub">Generated ${dateStr}</div>
+    ${suppTable('☀ Morning', mornSupp)}
+    ${suppTable('🍽 Dinner', dinSupp)}
+    ${suppTable('🌙 Night', nightSupp)}
+  </div>
+  </body></html>`;
+
+  // Use hidden iframe to avoid popup blocking
+  let iframe = document.getElementById('_print_iframe');
+  if (iframe) iframe.remove();
+  iframe = document.createElement('iframe');
+  iframe.id = '_print_iframe';
+  iframe.style.cssText = 'position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;border:none;';
+  document.body.appendChild(iframe);
+  iframe.contentDocument.open();
+  iframe.contentDocument.write(html);
+  iframe.contentDocument.close();
+  setTimeout(() => {
+    iframe.contentWindow.focus();
+    iframe.contentWindow.print();
+    setTimeout(() => iframe.remove(), 2000);
+  }, 600);
 }
+
 // Backup reminder
 const lastBackup = localStorage.getItem('lastBackupDismiss');
 const oneMonthAgo = new Date(); oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
@@ -2697,70 +2868,84 @@ document.getElementById('todayDate').textContent = new Date().toLocaleDateString
 document.getElementById('log-date').textContent = new Date().toLocaleDateString('en-US', {month:'long',day:'numeric',year:'numeric'});
 loadAll();
 
-// ── WEEKLY PRINT ────────────────────────────────────────
+// ── PRINT SHEET ──────────────────────────────────────────
+function renderPrintSheet() {
+  const dateVal = document.getElementById('print-week-date') ? document.getElementById('print-week-date').value : '';
+  const monday = dateVal ? new Date(dateVal + 'T00:00:00') : new Date();
+  const html = buildWeeklyPrintHTML(monday);
+  if (document.getElementById('print-sheet-preview')) document.getElementById('print-sheet-preview').innerHTML = html;
+}
+
+// ── WEEKLY PRINT MODAL ──────────────────────────────────
 function openWeeklyPrint() {
-  document.getElementById('weekly-print-modal').style.display = 'block';
-  document.body.classList.add('printing-weekly');
+  const modal = document.getElementById('weekly-print-modal');
+  modal.style.display = 'block';
+  // Default to current week Monday
   const today = new Date();
   const monday = new Date(today);
   monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
   document.getElementById('modal-print-date').value = monday.toISOString().split('T')[0];
-  renderWeeklyPrint();
+  renderModalPrintSheet();
 }
 
-function renderWeeklyPrint() {
+function renderModalPrintSheet() {
   const dateVal = document.getElementById('modal-print-date').value;
   const monday = dateVal ? new Date(dateVal + 'T00:00:00') : new Date();
-  document.getElementById('weekly-print-preview').innerHTML = buildWeeklyHTML(monday);
+  const html = buildWeeklyPrintHTML(monday);
+  document.getElementById('modal-print-preview').innerHTML = html;
+  // Also update the inline print panel if visible
+  const inlinePreview = document.getElementById('print-sheet-preview');
+  if (inlinePreview) inlinePreview.innerHTML = html;
 }
 
-function buildWeeklyHTML(monday) {
+function buildWeeklyPrintHTML(monday) {
   const days = [
-    { label:'Monday - Push',           key:'Monday - Push',           offset:0, cls:'pday-push' },
-    { label:'Tuesday - Pull',          key:'Tuesday - Pull',          offset:1, cls:'pday-pull' },
-    { label:'Wednesday - Legs / Core', key:'Wednesday - Legs / Core', offset:2, cls:'pday-legs' },
-    { label:'Thursday - Arms / Chest', key:'Thursday - Arms / Chest', offset:3, cls:'pday-arms' },
+    { label: 'Monday - Push',           key: 'Monday - Push',           offset: 0 },
+    { label: 'Tuesday - Pull',          key: 'Tuesday - Pull',          offset: 1 },
+    { label: 'Wednesday - Legs / Core', key: 'Wednesday - Legs / Core', offset: 2 },
+    { label: 'Thursday - Arms / Chest', key: 'Thursday - Arms / Chest', offset: 3 },
   ];
 
-  function dayTable(day) {
+  const dayNotes = {
+    'Monday - Push':           'Variations - 45lb Olym -- 35lb Smith -- DBs -- Cables          V - Bar -- Straight bar -- Rope',
+    'Tuesday - Pull':          'Variation: Lat Machine -- High Cable -- 2 Hand Cables',
+    'Wednesday - Legs / Core': 'Nordic Curl / Reverse Hyper - optional when back allows',
+    'Thursday - Arms / Chest': 'Chest first (Cable Press > HCF > LCF > Cross Overs) then: TED[TRI] > Incline Curls[BI] > TEU[TRI] > Preacher[BI] > Forearm Raise',
+  };
+
+  function makeDayTable(day) {
     const d = new Date(monday);
     d.setDate(monday.getDate() + day.offset);
-    const ds = d.toLocaleDateString('en-US', { month:'numeric', day:'numeric', year:'numeric' });
-    const exs = WORKOUT_DAYS[day.key] || [];
+    const dateStr = d.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' });
+    const exercises = (typeof WORKOUT_DAYS !== 'undefined' ? WORKOUT_DAYS[day.key] : null) || [];
+    const notes = dayNotes[day.key] || '';
 
-    let rows = '';
-    exs.forEach(ex => {
-      const v = ex.variations && ex.variations.length ? ex.variations.join(' -- ') : '';
-      const n = ex.note ? ex.name + ' ' + ex.note : ex.name;
-      rows += `<tr class="pex">
-        <td class="pex-name">${n}</td>
-        <td class="pex-var">${v}</td>
+    let exRows = '';
+    exercises.forEach(ex => {
+      const varStr = ex.variations && ex.variations.length ? ex.variations.join(' -- ') : '';
+      const nameStr = ex.note ? ex.name + ' ' + ex.note : ex.name;
+      exRows += `<tr class="pex">
+        <td class="pex-name">${nameStr}</td>
+        <td class="pex-var">${varStr}</td>
         <td class="pset">1</td><td class="preps"></td><td class="pwt"></td>
         <td class="pset">2</td><td class="preps"></td><td class="pwt"></td>
         <td class="pset">3</td><td class="preps"></td><td class="pwt"></td>
       </tr>`;
     });
 
-    return `<table class="ptable ${day.cls}">
+    return `<table class="ptable">
       <colgroup>
-        <col style="width:24%"><col style="width:18%">
-        <col style="width:3%"><col style="width:7%"><col style="width:10%">
-        <col style="width:3%"><col style="width:7%"><col style="width:10%">
-        <col style="width:3%"><col style="width:7%"><col style="width:8%">
+        <col style="width:22%"><col style="width:20%">
+        <col style="width:3%"><col style="width:6%"><col style="width:9%">
+        <col style="width:3%"><col style="width:6%"><col style="width:9%">
+        <col style="width:3%"><col style="width:6%"><col style="width:9%">
       </colgroup>
       <thead>
-        <tr>
-          <th colspan="11" class="pday-hdr" style="padding:0">
-            <div class="pday-hdr-inner">
-              <div class="pday-title">${day.label}</div>
-              <div class="pday-meta">
-                <div class="pday-meta-field">Date: <span class="pday-meta-line"></span></div>
-                <div class="pday-meta-field">Sleep: <span class="pday-meta-line"></span></div>
-                <div class="pday-meta-field">Deep: <span class="pday-meta-line"></span></div>
-                <div class="pday-meta-field">Duration: <span class="pday-meta-line pday-dur-line"></span></div>
-              </div>
-            </div>
-          </th>
+        <tr><th colspan="11" class="pday-hdr">${day.label}</th></tr>
+        <tr class="pmeta">
+          <td colspan="2" class="pmeta-cell">Date: <span class="pmeta-val">${dateStr}</span></td>
+          <td colspan="3" class="pmeta-cell">Sleep: _______________ &nbsp;&nbsp; Deep: _______________</td>
+          <td colspan="6" class="pmeta-cell" style="text-align:right">Workout Duration: _______________</td>
         </tr>
         <tr class="pcol-hdr">
           <th class="pex-name">Exercise</th>
@@ -2771,17 +2956,17 @@ function buildWeeklyHTML(monday) {
         </tr>
       </thead>
       <tbody>
-        ${rows}
+        ${exRows}
         <tr class="pnotes">
           <td class="pnotes-label">Notes:</td>
-          <td colspan="10" class="pnotes-val"></td>
+          <td colspan="10" class="pnotes-val">${notes}</td>
         </tr>
       </tbody>
     </table>`;
   }
 
-  return `<div class="print-page">${dayTable(days[0])}<div class="pspacer"></div>${dayTable(days[1])}</div>` +
-         `<div class="print-page">${dayTable(days[2])}<div class="pspacer"></div>${dayTable(days[3])}</div>`;
+  return `<div class="print-page">${makeDayTable(days[0])}${makeDayTable(days[1])}</div>` +
+         `<div class="print-page">${makeDayTable(days[2])}${makeDayTable(days[3])}</div>`;
 }
 
   function toggleDrop(id, e) {
@@ -3074,16 +3259,23 @@ function buildWeeklyHTML(monday) {
     const el = document.getElementById('goals-content');
     const fb = document.getElementById('goals-filter-bar');
     const recs = _goalRecs;
+
+    // Build category filter chips
     const cats = ['All', ...new Set(recs.map(r => r.fields['Category']||'Other'))];
     fb.innerHTML = cats.map(c => `<button class="filter-chip${c===_goalsActiveCat?' active':''}" onclick="_setGoalsCat('${c}')">${c} ${c==='All'?recs.length:recs.filter(r=>(r.fields['Category']||'Other')===c).length}</button>`).join('');
+
     const visible = _goalsActiveCat === 'All' ? recs : recs.filter(r => (r.fields['Category']||'Other') === _goalsActiveCat);
+
     if (!visible.length) { el.innerHTML = '<div style="color:var(--muted);padding:24px">No goals found.</div>'; return; }
+
+    // Group by category for display
     const grouped = {};
     visible.forEach(r => {
       const cat = r.fields['Category'] || 'Other';
       if (!grouped[cat]) grouped[cat] = [];
       grouped[cat].push(r);
     });
+
     let html = '<div style="padding:0">';
     Object.entries(grouped).forEach(([cat, items]) => {
       if (_goalsActiveCat === 'All') {
@@ -3095,9 +3287,9 @@ function buildWeeklyHTML(monday) {
         const pri = f['Priority'] || '';
         const m = priMeta(pri);
         const updated = f['LastUpdated'] ? new Date(f['LastUpdated']).toLocaleDateString('en-US',{month:'short',day:'numeric'}) : '';
-        html += `<div class="card" style="border-left:3px solid ${m.color};cursor:pointer;transition:box-shadow .15s"
-          onmouseover="this.style.boxShadow='0 2px 12px rgba(0,0,0,0.1)'"
-          onmouseout="this.style.boxShadow=''"
+        html += `<div class="card" style="border-left:3px solid ${m.color};cursor:pointer;transition:box-shadow .15s" 
+          onmouseover="this.style.boxShadow='0 2px 12px rgba(0,0,0,0.1)'" 
+          onmouseout="this.style.boxShadow=''" 
           onclick="editGoal('${rec.id}')">
           <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px">
             <div style="flex:1;font-weight:500;font-size:13px;line-height:1.4">${f['Goal']||''}</div>
@@ -3115,7 +3307,10 @@ function buildWeeklyHTML(monday) {
     el.innerHTML = html;
   }
 
-  function _setGoalsCat(cat) { _goalsActiveCat = cat; _renderGoals(); }
+  function _setGoalsCat(cat) {
+    _goalsActiveCat = cat;
+    _renderGoals();
+  }
 
   function showAddGoalModal() {
     document.getElementById('goal-modal-title').textContent = 'Add Goal';
@@ -3146,7 +3341,9 @@ function buildWeeklyHTML(monday) {
     document.getElementById('goal-modal').style.display = 'flex';
   }
 
-  function hideGoalModal() { document.getElementById('goal-modal').style.display = 'none'; }
+  function hideGoalModal() {
+    document.getElementById('goal-modal').style.display = 'none';
+  }
 
   async function saveGoal() {
     const id = document.getElementById('gm-id').value;
@@ -3290,6 +3487,7 @@ function buildWeeklyHTML(monday) {
         body:JSON.stringify({fields})
       });
       if (!res.ok) throw new Error(await res.text());
+      // Update local cache
       const rec = _profileRecs.find(r => r.id === id);
       if (rec) { rec.fields['Value'] = fields[PROFILE_FIELDS.value]; rec.fields['LastUpdated'] = fields[PROFILE_FIELDS.updated]; }
       hideProfileModal();
@@ -3571,20 +3769,48 @@ function buildWeeklyHTML(monday) {
 
 
 <!-- WEEKLY PRINT MODAL -->
-<div id="weekly-print-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9999;overflow-y:auto;padding:24px">
-  <div style="max-width:900px;margin:0 auto;background:var(--surface);border-radius:12px;padding:24px;position:relative">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+<div id="weekly-print-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;overflow-y:auto;padding:24px">
+  <div style="max-width:860px;margin:0 auto;background:var(--surface);border-radius:12px;padding:24px;position:relative">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
       <div style="font-family:'DM Mono',monospace;font-size:13px;font-weight:600;color:var(--accent);letter-spacing:1px">WEEKLY PRINT</div>
-      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <div style="display:flex;gap:10px;align-items:center">
         <label style="font-size:11px;color:var(--muted)">Week of Monday:</label>
-        <input type="date" id="modal-print-date" onchange="renderWeeklyPrint()"
-          style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:'DM Mono',monospace;color:var(--text);background:var(--surface2)">
-        <button onclick="window.print()" style="padding:6px 16px;background:var(--accent);color:#000;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer">🖨 Print</button>
-        <button onclick="document.getElementById('weekly-print-modal').style.display='none';document.body.classList.remove('printing-weekly')"
-          style="padding:6px 12px;background:var(--surface2);color:var(--muted);border:1px solid var(--border);border-radius:6px;font-size:12px;cursor:pointer">✕ Close</button>
+        <input type="date" id="modal-print-date" style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:'DM Mono',monospace;color:var(--text);background:var(--surface2)" onchange="renderModalPrintSheet()">
+        <button onclick="window.print()" style="padding:6px 14px;background:var(--accent);color:#000;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer">Print</button>
+        <button onclick="document.getElementById('weekly-print-modal').style.display='none'" style="padding:6px 12px;background:var(--surface2);color:var(--muted);border:1px solid var(--border);border-radius:6px;font-size:12px;cursor:pointer">✕ Close</button>
       </div>
     </div>
-    <div id="weekly-print-preview" style="background:white;border-radius:8px;padding:16px"></div>
+    <div id="modal-print-preview" style="background:white;border-radius:8px;padding:16px"></div>
+  </div>
+</div>
+
+<!-- PROFILE EDIT MODAL -->
+<div class="modal-overlay" id="profile-modal" onclick="if(event.target===this)hideProfileModal()" style="display:none">
+  <div class="modal-box" style="width:460px">
+    <div class="modal-header"><h3 id="pm-label-display">Edit Field</h3><button class="modal-close" onclick="hideProfileModal()">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="pm-id">
+      <div class="form-row">
+        <label id="pm-label-heading">Label</label>
+        <input type="text" id="pm-label" readonly style="background:var(--surface2);color:var(--muted)">
+      </div>
+      <div class="form-row">
+        <label>Section</label>
+        <input type="text" id="pm-section" readonly style="background:var(--surface2);color:var(--muted)">
+      </div>
+      <div class="form-row">
+        <label>Value</label>
+        <textarea id="pm-value" rows="4"></textarea>
+      </div>
+      <div class="form-row">
+        <label>Notes</label>
+        <textarea id="pm-notes" rows="2" placeholder="Optional notes"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="modal-btn" onclick="hideProfileModal()">Cancel</button>
+      <button class="modal-btn primary" id="pm-save-btn" onclick="saveProfileField()">Save</button>
+    </div>
   </div>
 </div>
 
@@ -3624,34 +3850,6 @@ function buildWeeklyHTML(monday) {
     </div>
   </div>
 </div>
-<!-- PROFILE EDIT MODAL -->
-<div class="modal-overlay" id="profile-modal" onclick="if(event.target===this)hideProfileModal()" style="display:none">
-  <div class="modal-box" style="width:460px">
-    <div class="modal-header"><h3 id="pm-label-display">Edit Field</h3><button class="modal-close" onclick="hideProfileModal()">✕</button></div>
-    <div class="modal-body">
-      <input type="hidden" id="pm-id">
-      <div class="form-row">
-        <label>Label</label>
-        <input type="text" id="pm-label" readonly style="background:var(--surface2);color:var(--muted)">
-      </div>
-      <div class="form-row">
-        <label>Section</label>
-        <input type="text" id="pm-section" readonly style="background:var(--surface2);color:var(--muted)">
-      </div>
-      <div class="form-row">
-        <label>Value</label>
-        <textarea id="pm-value" rows="4"></textarea>
-      </div>
-      <div class="form-row">
-        <label>Notes</label>
-        <textarea id="pm-notes" rows="2" placeholder="Optional notes"></textarea>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="modal-btn" onclick="hideProfileModal()">Cancel</button>
-      <button class="modal-btn primary" id="pm-save-btn" onclick="saveProfileField()">Save</button>
-    </div>
-  </div>
-</div>
 </body>
 </html>
+<!-- cache bust Wed May 20 21:43:30 UTC 2026 -->
