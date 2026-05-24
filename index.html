@@ -2594,19 +2594,17 @@ function renderLabsTrend() {
   const filtered = getFilteredLabsData();
   if (!filtered.length) { el.innerHTML = '<p style="color:var(--muted);padding:16px">No lab results for this source.</p>'; return; }
 
-  // Cap at last 6 draws
   const allDates = [...new Set(filtered.map(r=>r.Date).filter(Boolean))].sort();
   const dates = allDates.slice(-6);
 
-  // Build lookup: biomarker -> date -> record
   const lookup = {};
   filtered.forEach(r => {
     if (!lookup[r.Biomarker]) lookup[r.Biomarker] = {};
     lookup[r.Biomarker][r.Date] = r;
   });
 
-  const watchlistPresent = LAB_WATCHLIST.filter(b=>lookup[b]);
-  const rest = Object.keys(lookup).filter(b=>!LAB_WATCHLIST.includes(b));
+  const watchlistPresent = new Set(LAB_WATCHLIST.filter(b=>lookup[b]));
+  const rest = Object.keys(lookup).filter(b=>!watchlistPresent.has(b));
   const byType = {};
   rest.forEach(b => {
     const type = filtered.find(r=>r.Biomarker===b)?.['Lab Type'] || 'Other';
@@ -2614,67 +2612,89 @@ function renderLabsTrend() {
     byType[type].push(b);
   });
 
+  // === PRIORITY CARDS ===
+  const getTrend = b => {
+    const recs = lookup[b]; if (!recs) return '';
+    const dv = dates.filter(d=>recs[d]?.Value!=null);
+    if (dv.length < 2) return '<span style="color:var(--muted)">→</span>';
+    const diff = recs[dv[dv.length-1]].Value - recs[dv[dv.length-2]].Value;
+    return diff > 0 ? '<span style="color:var(--red)">↑</span>' : diff < 0 ? '<span style="color:var(--green)">↓</span>' : '<span style="color:var(--muted)">→</span>';
+  };
+  const getLatest = b => {
+    const recs = lookup[b]; if (!recs) return null;
+    const dv = dates.filter(d=>recs[d]?.Value!=null);
+    return dv.length ? recs[dv[dv.length-1]] : null;
+  };
+
+  let cardsHtml = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;padding:14px 16px 6px">';
+  LAB_WATCHLIST_GROUPS.forEach(group => {
+    const inGroup = group.markers.filter(m => watchlistPresent.has(m));
+    if (!inGroup.length) return;
+    cardsHtml += `<div style="border:1px solid var(--accent-border);border-radius:8px;overflow:hidden;background:var(--surface)">
+      <div style="background:var(--accent-light);color:var(--accent);font-size:10px;font-weight:700;letter-spacing:1.2px;padding:6px 12px;text-transform:uppercase;border-bottom:1px solid var(--accent-border)">${group.label}</div>
+      <table style="width:100%;border-collapse:collapse">`;
+    inGroup.forEach(b => {
+      const rec = getLatest(b);
+      const isOut = rec?.Status === 'Out of Range';
+      const displayVal = rec ? ((ASSAY_MAX[b] && rec.Value >= ASSAY_MAX[b]) ? `>${rec.Value}` : rec.Value) : '—';
+      const units = rec?.Units || Object.values(lookup[b]||{}).find(Boolean)?.Units || '';
+      cardsHtml += `<tr style="border-top:1px solid var(--border)">
+        <td style="padding:6px 10px;font-size:12px;font-weight:500;white-space:nowrap">${BIOMARKER_SHORT[b]||b}</td>
+        <td style="padding:6px 4px;font-family:'DM Mono',monospace;font-size:13px;font-weight:700;text-align:right;${isOut?'color:var(--red)':'color:var(--text)'}">${displayVal}</td>
+        <td style="padding:6px 4px;font-size:10px;color:var(--muted);white-space:nowrap">${units}</td>
+        <td style="padding:6px 8px;font-size:13px;text-align:center">${getTrend(b)}</td>
+      </tr>`;
+    });
+    cardsHtml += '</table></div>';
+  });
+  cardsHtml += '</div>';
+
+  // === FULL TREND TABLE ===
   const colHeaders = dates.map(d => {
     const [y,m,day] = d.split('-');
-    return `<th style="text-align:center;font-family:'DM Mono',monospace;font-size:11px;white-space:nowrap;min-width:72px">${m}/${day}/${y.slice(2)}</th>`;
+    return `<th style="text-align:center;font-family:'DM Mono',monospace;font-size:11px;white-space:nowrap;min-width:64px">${m}/${day}/${y.slice(2)}</th>`;
   }).join('');
 
-  const renderRow = (b, isWatch=false) => {
+  const renderRow = b => {
     const recs = lookup[b];
     const units = Object.values(recs).find(Boolean)?.Units || '';
     const datesWithVal = dates.filter(d=>recs[d]?.Value!=null);
     let trend = '';
     if (datesWithVal.length >= 2) {
-      const last = recs[datesWithVal[datesWithVal.length-1]].Value;
-      const prev = recs[datesWithVal[datesWithVal.length-2]].Value;
-      const diff = last - prev;
+      const diff = recs[datesWithVal[datesWithVal.length-1]].Value - recs[datesWithVal[datesWithVal.length-2]].Value;
       trend = diff > 0 ? '<span style="color:var(--red)">↑</span>' : diff < 0 ? '<span style="color:var(--green)">↓</span>' : '<span style="color:var(--muted)">→</span>';
     }
-    const rowBg = isWatch ? 'background:rgba(59,130,246,0.04);border-left:3px solid var(--accent)' : '';
     const cells = dates.map(d => {
       const r = recs[d];
       if (!r) return `<td style="text-align:center;color:var(--border)">—</td>`;
       const out = r.Status === 'Out of Range';
       const displayVal = (ASSAY_MAX[b] && r.Value >= ASSAY_MAX[b]) ? `>${r.Value}` : (r.Value ?? '—');
-      return `<td style="text-align:center;font-family:'DM Mono',monospace;font-size:13px;${out?'background:rgba(239,68,68,0.07)':''}">
+      return `<td style="text-align:center;font-family:'DM Mono',monospace;font-size:12px;${out?'background:rgba(239,68,68,0.07)':''}">
         <span style="${out?'color:var(--red);font-weight:700':''}">${displayVal}</span>
       </td>`;
     }).join('');
-    return `<tr style="${rowBg}">
-      <td style="font-weight:600;font-size:13px;white-space:nowrap;${isWatch?'color:var(--text)':''}">${BIOMARKER_SHORT[b] || b}</td>
-      <td style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace">${units}</td>
+    return `<tr>
+      <td style="font-size:12px;white-space:nowrap;max-width:120px;overflow:hidden;text-overflow:ellipsis">${BIOMARKER_SHORT[b]||b}</td>
+      <td style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace">${units}</td>
       ${cells}
-      <td style="text-align:center;font-size:14px">${trend}</td>
+      <td style="text-align:center;font-size:13px">${trend}</td>
     </tr>`;
   };
 
-  const sectionHeader = (label, icon='', isWatchlist=false) => `<tr><td colspan="${dates.length+3}" style="background:${isWatchlist?'var(--accent-light)':'var(--surface2)'};color:${isWatchlist?'var(--accent)':'var(--muted)'};font-size:11px;font-weight:700;letter-spacing:0.8px;padding:7px 12px;text-transform:uppercase;border-top:${isWatchlist?'2px solid var(--accent-border)':'1px solid var(--border)'}">${icon} ${label}</td></tr>`;
+  const sectionHeader = label => `<tr><td colspan="${dates.length+3}" style="background:var(--surface2);color:var(--muted);font-size:10px;font-weight:700;letter-spacing:0.8px;padding:5px 12px;text-transform:uppercase;border-top:1px solid var(--border)">${label}</td></tr>`;
 
-  let html = `<div class="table-wrap"><table class="data-table"><thead><tr>
-    <th style="min-width:110px">Marker</th><th style="font-size:11px;color:var(--muted)">Unit</th>${colHeaders}<th style="text-align:center">Trend</th>
+  let tableHtml = `<div class="table-wrap"><table class="data-table"><thead><tr>
+    <th style="min-width:90px;font-size:12px">Marker</th><th style="font-size:10px;color:var(--muted)">Unit</th>${colHeaders}<th style="text-align:center;font-size:11px">Trend</th>
   </tr></thead><tbody>`;
 
-  if (watchlistPresent.length) {
-    const watchlistSet = new Set(watchlistPresent);
-    let watchlistRendered = false;
-    LAB_WATCHLIST_GROUPS.forEach(group => {
-      const inGroup = group.markers.filter(m => watchlistSet.has(m) && lookup[m]);
-      if (!inGroup.length) return;
-      if (!watchlistRendered) {
-        html += sectionHeader('Priority Watch List','⭐', true);
-        watchlistRendered = true;
-      }
-      html += `<tr><td colspan="${dates.length+3}" style="background:var(--accent-light);color:var(--accent);font-size:10px;font-weight:700;letter-spacing:1.2px;padding:4px 16px;text-transform:uppercase;border-top:1px solid var(--accent-border);border-left:3px solid var(--accent)">${group.label}</td></tr>`;
-      html += inGroup.map(b => renderRow(b, true)).join('');
-    });
-  }
   Object.keys(byType).sort().forEach(type => {
-    html += sectionHeader(type, '', false);
-    html += byType[type].sort().map(renderRow).join('');
+    tableHtml += sectionHeader(type);
+    tableHtml += byType[type].sort().map(renderRow).join('');
   });
 
-  html += '</tbody></table></div>';
-  el.innerHTML = html;
+  tableHtml += '</tbody></table></div>';
+
+  el.innerHTML = watchlistPresent.size ? cardsHtml + tableHtml : tableHtml;
 }
 
 function renderLabsDraw() {
