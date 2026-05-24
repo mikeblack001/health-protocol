@@ -985,7 +985,9 @@ function getField(record, name) {
     'Brand': 'fldUV7BbEPgXp5aiN', 'Product': 'fldyJ8YmlBlJLYdoi', 'SuppStatus': 'fld1c0IdKsrBWCBkc',
     'SuppTiming': 'fldZHrKEWxpN9eNi2', 'Category': 'fldJL7lIH8Yrzs33g',
     'Suggested Dose': 'fldB9osFGmDBoZBDX', 'Cycle Type': 'fldVifrYFOsF2JyTT', 'Vials on Hand': 'fld2dkhmc1M6AgnQu',
-    'URL': 'fldSwpah2L7TCe8pc', 'SuppSource': 'fldUOuyi2uX3QWG1Z'
+    'URL': 'fldSwpah2L7TCe8pc', 'SuppSource': 'fldUOuyi2uX3QWG1Z',
+    'StartDate': 'fldO3s24TR8o1qfSY', 'EndDate': 'fldbS91GtXsxjZU4q',
+    'SuppStartDate': 'fldUgv5f6NUYkHTKA', 'SuppEndDate': 'fld3sB32jIXA0HLmi'
   };
   // Supp fields may return by name instead of ID
   const suppNameMap = {
@@ -1078,6 +1080,8 @@ function renderPeptides(filter) {
       <th>Cycle</th>
       <th>On Hand</th>
       <th style="cursor:pointer" onclick="sortPep('Status')">Status${pepSortIcon('Status')}</th>
+      <th>Started</th>
+      <th>Ended</th>
     </tr></thead><tbody>
     ${rows.map(r => `<tr>
       <td><div class="compound-name">${getField(r,'Compound')}</div><div class="compound-sub">${getField(r,'Purpose')}</div></td>
@@ -1089,6 +1093,8 @@ function renderPeptides(filter) {
       <td style="font-size:11px;color:var(--muted)">${getField(r,'Cycle Type') || '—'}</td>
       <td style="font-family:'DM Mono',monospace;font-size:12px;text-align:center">${getField(r,'Vials on Hand') !== '' ? `<span style="color:${getField(r,'Vials on Hand') <= 1 ? 'var(--red)' : getField(r,'Vials on Hand') <= 3 ? 'var(--amber)' : 'var(--green)'};font-weight:600">${getField(r,'Vials on Hand')}</span>` : '—'}</td>
       <td>${badge(getField(r,'Status'))}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)">${getField(r,'StartDate') || '—'}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)">${getField(r,'EndDate') || '—'}</td>
     </tr>`).join('')}
     </tbody></table>`;
   }
@@ -3686,45 +3692,10 @@ function buildWeeklyPrintHTML(monday) {
         body: JSON.stringify({ records: [{ fields }] })
       });
       const d = await r.json();
-      if (d.records) {
-        hideAddSuppChangeModal(); loadSuppChanges();
-        await updateSuppFromChange(supp, type, date);
-      } else alert('Error: ' + JSON.stringify(d.error || d));
+      if (d.records) { hideAddSuppChangeModal(); loadSuppChanges(); }
+      else alert('Error: ' + JSON.stringify(d.error || d));
     } catch(e) { alert('Error: ' + e.message); }
     btn.disabled = false; btn.textContent = 'Save';
-  }
-
-  async function updateSuppFromChange(suppName, changeType, date) {
-    if (!suppName || !date) return;
-    const suppRecord = data.supplements.find(r => ((r.fields||{})['Supplement']||'').trim().toLowerCase() === suppName.trim().toLowerCase());
-    if (!suppRecord) { console.warn('No supplement record found for:', suppName); return; }
-    const suppFields = {};
-    if (['Started','Added','Resumed'].includes(changeType)) {
-      suppFields['fldUgv5f6NUYkHTKA'] = date;
-      suppFields['fld1c0IdKsrBWCBkc'] = 'Active';
-      if (changeType === 'Resumed') suppFields['fld3sB32jIXA0HLmi'] = null;
-    } else if (['Paused','Stopped','Removed'].includes(changeType)) {
-      suppFields['fld3sB32jIXA0HLmi'] = date;
-      suppFields['fld1c0IdKsrBWCBkc'] = 'Paused';
-    }
-    if (!Object.keys(suppFields).length) return;
-    try {
-      const res = await fetch(`https://api.airtable.com/v0/${BASE}/${TABLES.supplements}/${suppRecord.id}`, {
-        method: 'PATCH',
-        headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fields: suppFields, typecast: true })
-      });
-      if (res.ok) {
-        const updated = await res.json();
-        const idx = data.supplements.findIndex(r => r.id === suppRecord.id);
-        if (idx !== -1) data.supplements[idx] = updated;
-        renderSupplements(currentSuppFilter);
-        showToast('✅ ' + suppName + ' — ' + (['Started','Added','Resumed'].includes(changeType) ? 'Start' : 'End') + ' Date updated');
-      } else {
-        const err = await res.json(); console.error('Supplement update failed:', err);
-        showToast('⚠️ Change logged but supplement date update failed');
-      }
-    } catch(e) { console.error(e); showToast('⚠️ Change logged but supplement date update failed'); }
   }
 </script>
 
