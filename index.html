@@ -365,6 +365,7 @@
       <div class="drop-menu" id="drop-supp">
         <button class="drop-item" onclick="navDrop('supplements','nav-supp')">Supplements</button>
         <button class="drop-item" onclick="navDrop('suppchanges','nav-supp')">Supplement Changes</button>
+        <button class="drop-item" onclick="navDrop('suppvendors','nav-supp')">Supplement Vendors</button>
       </div>
     </div>
 
@@ -430,6 +431,7 @@
     <div class="mobile-section-label">Supplements</div>
     <button class="mobile-item" onclick="mobileNav('supplements')">Supplements</button>
     <button class="mobile-item" onclick="mobileNav('suppchanges')">Supplement Changes</button>
+    <button class="mobile-item" onclick="mobileNav('suppvendors')">Supplement Vendors</button>
   </div>
 
   <div class="mobile-section">
@@ -774,6 +776,14 @@
     </div>
     <div id="suppchanges-content"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
   </div>
+
+  <!-- SUPPLEMENT VENDORS VIEW -->
+  <div id="view-suppvendors" class="view">
+    <div class="filter-bar">
+      <span style="font-size:13px;font-weight:500;color:var(--text)">Supplement Vendors</span>
+    </div>
+    <div id="suppvendors-content"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
+  </div>
 </main>
 
 
@@ -878,7 +888,7 @@
 <script>
 const TOKEN = 'pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
 const BASE = 'appmHDG4TGT1xy6R6';
-const TABLES = { peptides: 'tblMs6YRdP4wkndUp', supplements: 'tblSnkc0Gu2BzGACP', dailyLog: 'tblaYuZjl4Pu4nKxS', pricing: 'tblnW21TLSqgVerwQ', vendors: 'tblI0nfBBuHXjp3KT', workoutSessions: 'tblk9tTYIcIY4tWjF', workoutSets: 'tblKDqjy5RzqaJvjr', purchases: 'tblWmflohL6d6HC9p', bloodwork: 'tbl3200yJid6fXaOp', protocolChanges: 'tblolVx7YwO5cJhsE', goals: 'tblRuaROlyG93Bz4Y', profile: 'tblPBJkYqlnzrBK3B', suppChanges: 'tblcwqEVCMfSwNSMu' };
+const TABLES = { peptides: 'tblMs6YRdP4wkndUp', supplements: 'tblSnkc0Gu2BzGACP', dailyLog: 'tblaYuZjl4Pu4nKxS', pricing: 'tblnW21TLSqgVerwQ', vendors: 'tblI0nfBBuHXjp3KT', suppVendors: 'tblxI3G63a7WvK0Ya', workoutSessions: 'tblk9tTYIcIY4tWjF', workoutSets: 'tblKDqjy5RzqaJvjr', purchases: 'tblWmflohL6d6HC9p', bloodwork: 'tbl3200yJid6fXaOp', protocolChanges: 'tblolVx7YwO5cJhsE', goals: 'tblRuaROlyG93Bz4Y', profile: 'tblPBJkYqlnzrBK3B', suppChanges: 'tblcwqEVCMfSwNSMu' };
 
 let data = { peptides: [], supplements: [] };
 let currentPepFilter = 'Active';
@@ -2198,6 +2208,8 @@ function mobileNav(viewId) {
   if (viewId === 'profile') loadProfileView();
   if (viewId === 'aicontext') loadAIContext();
   if (viewId === 'suppchanges') loadSuppChanges();
+    if (viewId === 'suppvendors') loadSuppVendors();
+  if (viewId === 'suppvendors') loadSuppVendors();
   if (viewId === 'workout-suggestions') loadWorkoutSuggestions();
   if (viewId === 'workouts') document.getElementById('workout-date').value = new Date().toISOString().split('T')[0];
   toggleMobileMenu();
@@ -3012,6 +3024,8 @@ function buildWeeklyPrintHTML(monday) {
     if (viewId === 'profile') loadProfileView();
     if (viewId === 'aicontext') loadAIContext();
     if (viewId === 'suppchanges') loadSuppChanges();
+    if (viewId === 'suppvendors') loadSuppVendors();
+  if (viewId === 'suppvendors') loadSuppVendors();
     if (viewId === 'workout-suggestions') loadWorkoutSuggestions();
     closeAllDrops();
   }
@@ -3722,6 +3736,48 @@ function firstSource(src) {
   if (Array.isArray(src)) return src[0] || '—';
   return String(src).split(',')[0].trim() || '—';
 }
+
+// ===== SUPPLEMENT VENDORS =====
+let suppVendorsData = [];
+
+async function loadSuppVendors() {
+  const el = document.getElementById('suppvendors-content');
+  if (el) el.innerHTML = '<div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div>';
+  try {
+    let records = [], offset = null;
+    do {
+      const url = `https://api.airtable.com/v0/${BASE}/tblxI3G63a7WvK0Ya?pageSize=100${offset ? '&offset=' + offset : ''}`;
+      const res = await fetch(url, { headers: { Authorization: `Bearer ${TOKEN}` } });
+      const json = await res.json();
+      records = records.concat(json.records || []);
+      offset = json.offset;
+    } while (offset);
+    suppVendorsData = records;
+    renderSuppVendors();
+  } catch(e) {
+    if (el) el.innerHTML = '<p style="color:var(--red);padding:16px">Failed to load supplement vendors.</p>';
+  }
+}
+
+function renderSuppVendors() {
+  const el = document.getElementById('suppvendors-content');
+  if (!el) return;
+  let rows = suppVendorsData.map(r => ({ id: r.id, ...r.fields || {} })).filter(r => r['Vendor']);
+  rows.sort((a,b) => (a['Vendor']||'').localeCompare(b['Vendor']||''));
+  if (!rows.length) { el.innerHTML = '<p style="color:var(--muted);padding:16px">No supplement vendors found.</p>'; return; }
+  el.innerHTML = `<div class="table-wrap"><table class="data-table"><thead><tr>
+    <th>Vendor</th><th>Website</th><th>Priority</th><th>Status</th><th>Notes</th>
+  </tr></thead><tbody>
+  ${rows.map(r => `<tr>
+    <td><div class="compound-name">${r['Vendor']||'—'}</div></td>
+    <td>${r['Website'] ? `<a href="${r['Website']}" target="_blank" style="color:var(--accent);font-size:12px">${r['Website'].replace(/^https?:\/\/(www\.)?/,'')}</a>` : '—'}</td>
+    <td>${badge(r['Priority']||'')}</td>
+    <td>${badge(r['Status']||'')}</td>
+    <td style="font-size:12px;color:var(--muted)">${r['Notes']||'—'}</td>
+  </tr>`).join('')}
+  </tbody></table></div>`;
+}
+
 </script>
 
 <!-- ADD PURCHASE MODAL -->
