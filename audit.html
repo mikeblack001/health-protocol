@@ -205,6 +205,22 @@ async function fileToImages(file) {
   }
 }
 
+const AUDIT_PROMPT = [
+  'Extract all workout data from this handwritten workout log page.',
+  '',
+  'CRITICAL RULES:',
+  '- Weight is ALWAYS the FIRST number, Reps is ALWAYS the SECOND number (e.g. 30x20 = weight:30, reps:20)',
+  '- Each session has a day label (Mon/Tues/Wed/Thurs/Fri) and sometimes a date',
+  '- If a number is crossed out, use the replacement value written nearby',
+  '- Extract exercise name EXACTLY as written (do not correct or standardize)',
+  '- A page may contain 1 or 2 sessions (e.g. Mon + Thurs on same page)',
+  '',
+  'Return ONLY valid JSON - no other text, no markdown fences:',
+  '{ "sessions": [ { "day": "Mon", "date": "2024-10-28", "exercises": [ { "name": "Incline DB", "sets": [ {"set":1,"weight":35,"reps":20}, {"set":2,"weight":40,"reps":20} ] } ] } ] }',
+  '',
+  'If date is not on this page, leave date as empty string. Do not guess dates.'
+].join('\n');
+
 async function extractPageData(b64Image){
   const resp = await fetch('https://api.anthropic.com/v1/messages', {
     method:'POST',
@@ -214,36 +230,7 @@ async function extractPageData(b64Image){
       max_tokens:2000,
       messages:[{role:'user', content:[
         {type:'image', source:{type:'base64', media_type:'image/jpeg', data:b64Image}},
-        {type:'text', text:`Extract all workout data from this handwritten workout log page.
-
-CRITICAL RULES:
-- Weight is ALWAYS the FIRST number, Reps is ALWAYS the SECOND number (e.g. "30x20" = weight:30, reps:20)
-- Each session has a day label (Mon/Tues/Wed/Thurs/Fri) and sometimes a date
-- If a number is crossed out, use the replacement value written nearby
-- Extract exercise name EXACTLY as written (do not correct or standardize)
-- A page may contain 1 or 2 sessions (e.g. Mon + Thurs on same page)
-
-Return ONLY valid JSON in this exact format, no other text:
-{
-  "sessions": [
-    {
-      "day": "Mon",
-      "date": "2024-10-28",
-      "exercises": [
-        {
-          "name": "Incline DB",
-          "sets": [
-            {"set": 1, "weight": 35, "reps": 20},
-            {"set": 2, "weight": 40, "reps": 20},
-            {"set": 3, "weight": 50, "reps": 12}
-          ]
-        }
-      ]
-    }
-  ]
-}
-
-If date is not on this page, leave "date" as empty string "". Do not guess dates.`}
+{type:'text', text: AUDIT_PROMPT}
       ]}]
     })
   });
@@ -424,6 +411,7 @@ async function runAudit(){
 </script>
 </body>
 </html>
+
 
 
 
