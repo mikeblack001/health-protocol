@@ -432,6 +432,8 @@
       <div class="drop-menu" id="drop-tools">
         <button class="drop-item" onclick="navDrop('printlist','nav-tools')">Print List</button>
         <button class="drop-item" onclick="navDrop('aicontext','nav-tools')">AI Context</button>
+        <div class="drop-divider"></div>
+        <button class="drop-item" onclick="navDrop('databrowser','nav-tools')" style="color:var(--accent);font-weight:600">📊 Data Browser</button>
       </div>
     </div>
   </div>
@@ -796,6 +798,43 @@
       <button id="copyAIBtn" onclick="copyForAI()" style="background:var(--accent);color:#000;border:none;padding:8px 18px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;font-family:'DM Sans',sans-serif">📋 Copy for AI</button>
     </div>
     <div id="aicontext-content"><div class="loading">Loading...</div></div>
+  </div>
+
+  <!-- DATA BROWSER -->
+  <div id="view-databrowser" class="view">
+    <div class="section-header" style="flex-wrap:wrap;gap:10px">
+      <h2>Data Browser</h2>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <select id="db-collection" onchange="dbLoad()" style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface)">
+          <option value="">— select collection —</option>
+          <optgroup label="Firestore">
+            <option value="fs:sessions">Sessions (FS)</option>
+            <option value="fs:sets">Sets (FS)</option>
+          </optgroup>
+          <optgroup label="Airtable">
+            <option value="at:supplements">Supplements</option>
+            <option value="at:peptides">Peptides</option>
+            <option value="at:dailyLog">Daily Log</option>
+            <option value="at:bloodwork">Bloodwork / Labs</option>
+            <option value="at:purchases">Purchases</option>
+            <option value="at:pricing">Pricing</option>
+            <option value="at:vendors">Peptide Vendors</option>
+            <option value="at:suppVendors">Supplement Vendors</option>
+            <option value="at:protocolChanges">Protocol Changes</option>
+            <option value="at:suppChanges">Supplement Changes</option>
+            <option value="at:goals">Goals</option>
+            <option value="at:profile">Profile</option>
+          </optgroup>
+        </select>
+        <input id="db-search" type="text" placeholder="Search any field…" oninput="dbRender()" style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface);width:200px">
+        <span id="db-count" style="font-size:12px;color:var(--muted);white-space:nowrap"></span>
+        <button onclick="dbExportCSV()" style="padding:6px 14px;background:var(--accent);color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">↓ CSV</button>
+      </div>
+    </div>
+    <div id="db-status" style="font-size:12px;color:var(--muted);padding:4px 0 8px;display:none"></div>
+    <div id="db-content" style="overflow-x:auto">
+      <div style="padding:40px;text-align:center;color:var(--muted);font-size:14px">Select a collection above to view all records</div>
+    </div>
   </div>
 
   <div id="view-suppchanges" class="view">
@@ -2299,6 +2338,7 @@ function mobileNav(viewId) {
   if (viewId === 'suppvendors') loadSuppVendors();
   if (viewId === 'workout-suggestions') loadWorkoutSuggestions();
   if (viewId === 'workouts') document.getElementById('workout-date').value = new Date().toISOString().split('T')[0];
+  if (viewId === 'databrowser') { _dbAllRows = []; _dbColumns = []; document.getElementById('db-collection').value = ''; document.getElementById('db-search').value = ''; document.getElementById('db-count').textContent = ''; document.getElementById('db-content').innerHTML = '<div style="padding:40px;text-align:center;color:var(--muted);font-size:14px">Select a collection above to view all records</div>'; }
   toggleMobileMenu();
 }
 
@@ -3008,6 +3048,147 @@ function renderModalPrintSheet() {
   if (inlinePreview) inlinePreview.innerHTML = html;
 }
 
+// ── DATA BROWSER ──────────────────────────────────────────────────────────────
+let _dbAllRows = [];
+let _dbColumns = [];
+
+async function dbLoad() {
+  const sel = document.getElementById('db-collection').value;
+  const content = document.getElementById('db-content');
+  const status = document.getElementById('db-status');
+  const countEl = document.getElementById('db-count');
+  if (!sel) return;
+
+  content.innerHTML = '<div style="padding:24px;color:var(--muted);font-size:13px">Loading all records…</div>';
+  status.style.display = 'block';
+  status.textContent = 'Fetching…';
+  countEl.textContent = '';
+  _dbAllRows = [];
+  _dbColumns = [];
+
+  const [src, key] = sel.split(':');
+
+  try {
+    if (src === 'fs') {
+      await dbLoadFirestore(key);
+    } else {
+      await dbLoadAirtable(key);
+    }
+    countEl.textContent = _dbAllRows.length.toLocaleString() + ' records';
+    status.style.display = 'none';
+    dbRender();
+  } catch(e) {
+    content.innerHTML = '<div style="padding:24px;color:var(--red)">Error: ' + e.message + '</div>';
+    status.style.display = 'none';
+  }
+}
+
+async function dbLoadFirestore(collName) {
+  const { db, collection, getDocs, orderBy, query } = window._fb;
+  const status = document.getElementById('db-status');
+  status.textContent = 'Loading from Firestore…';
+  const q = query(collection(db, collName), orderBy('Date', 'desc'));
+  const snap = await getDocs(q).catch(() => getDocs(collection(db, collName)));
+  const colSet = new Set();
+  snap.forEach(d => Object.keys(d.data()).forEach(k => colSet.add(k)));
+  _dbColumns = [...colSet].sort();
+  snap.forEach(d => _dbAllRows.push(d.data()));
+}
+
+async function dbLoadAirtable(tableKey) {
+  const tableId = TABLES[tableKey];
+  if (!tableId) throw new Error('Unknown table: ' + tableKey);
+  const status = document.getElementById('db-status');
+  let offset = null;
+  let page = 0;
+  do {
+    page++;
+    status.textContent = 'Fetching page ' + page + '… (' + _dbAllRows.length + ' records so far)';
+    let url = 'https://api.airtable.com/v0/' + BASE + '/' + tableId + '?pageSize=100';
+    if (offset) url += '&offset=' + offset;
+    const res = await fetch(url, { headers: { Authorization: 'Bearer ' + TOKEN } });
+    const json = await res.json();
+    if (json.error) throw new Error(json.error.message);
+    const records = json.records || [];
+    records.forEach(r => _dbAllRows.push(r.fields));
+    // Collect all columns
+    records.forEach(r => Object.keys(r.fields).forEach(k => {
+      if (!_dbColumns.includes(k)) _dbColumns.push(k);
+    }));
+    offset = json.offset;
+  } while (offset);
+}
+
+function dbRender() {
+  const content = document.getElementById('db-content');
+  const search = (document.getElementById('db-search').value || '').toLowerCase();
+  const countEl = document.getElementById('db-count');
+
+  const filtered = search
+    ? _dbAllRows.filter(r => Object.values(r).some(v => String(v).toLowerCase().includes(search)))
+    : _dbAllRows;
+
+  countEl.textContent = (filtered.length < _dbAllRows.length
+    ? filtered.length.toLocaleString() + ' of ' + _dbAllRows.length.toLocaleString()
+    : _dbAllRows.length.toLocaleString()) + ' records';
+
+  if (!filtered.length) {
+    content.innerHTML = '<div style="padding:24px;color:var(--muted)">No records match.</div>';
+    return;
+  }
+
+  // Build table
+  const thStyle = 'padding:7px 10px;text-align:left;font-size:11px;font-weight:600;color:var(--muted);background:var(--surface2);border-bottom:1px solid var(--border);white-space:nowrap;position:sticky;top:0;z-index:1';
+  const tdStyle = 'padding:6px 10px;font-size:12px;border-bottom:1px solid var(--border);white-space:nowrap;max-width:280px;overflow:hidden;text-overflow:ellipsis;vertical-align:top';
+
+  let html = '<div style="max-height:75vh;overflow:auto;border:1px solid var(--border);border-radius:8px">'
+    + '<table style="width:100%;border-collapse:collapse;font-family:\'DM Sans\',sans-serif">'
+    + '<thead><tr>'
+    + _dbColumns.map(c => '<th style="' + thStyle + '">' + c + '</th>').join('')
+    + '</tr></thead><tbody>';
+
+  filtered.forEach((r, i) => {
+    const bg = i % 2 === 0 ? 'background:var(--surface)' : 'background:var(--surface2)';
+    html += '<tr style="' + bg + '">'
+      + _dbColumns.map(c => {
+          let v = r[c];
+          if (v === null || v === undefined) v = '';
+          if (Array.isArray(v)) v = v.join(', ');
+          const str = String(v);
+          const highlighted = search && str.toLowerCase().includes(search)
+            ? str.replace(new RegExp('(' + search.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + ')', 'gi'),
+                '<mark style="background:#fef08a;border-radius:2px">$1</mark>')
+            : str;
+          return '<td style="' + tdStyle + '" title="' + str.replace(/"/g,'&quot;') + '">' + highlighted + '</td>';
+        }).join('')
+      + '</tr>';
+  });
+
+  html += '</tbody></table></div>';
+  content.innerHTML = html;
+}
+
+function dbExportCSV() {
+  if (!_dbAllRows.length) return;
+  const search = (document.getElementById('db-search').value || '').toLowerCase();
+  const rows = search
+    ? _dbAllRows.filter(r => Object.values(r).some(v => String(v).toLowerCase().includes(search)))
+    : _dbAllRows;
+  const escape = v => {
+    const s = v === null || v === undefined ? '' : Array.isArray(v) ? v.join('; ') : String(v);
+    return s.includes(',') || s.includes('"') || s.includes('\n') ? '"' + s.replace(/"/g,'""') + '"' : s;
+  };
+  const csv = [_dbColumns.join(','), ...rows.map(r => _dbColumns.map(c => escape(r[c])).join(','))].join('\n');
+  const blob = new Blob([csv], {type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const colName = document.getElementById('db-collection').value.split(':')[1] || 'data';
+  a.download = colName + '_' + new Date().toISOString().split('T')[0] + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 function buildWeeklyPrintHTML(monday) {
   const days = [
     { label: 'Monday - Push',           key: 'Monday - Push',           offset: 0 },
@@ -3109,6 +3290,7 @@ function buildWeeklyPrintHTML(monday) {
     if (viewId === 'suppvendors') loadSuppVendors();
   if (viewId === 'suppvendors') loadSuppVendors();
     if (viewId === 'workout-suggestions') loadWorkoutSuggestions();
+    if (viewId === 'databrowser') { _dbAllRows = []; _dbColumns = []; document.getElementById('db-collection').value = ''; document.getElementById('db-search').value = ''; document.getElementById('db-count').textContent = ''; document.getElementById('db-content').innerHTML = '<div style="padding:40px;text-align:center;color:var(--muted);font-size:14px">Select a collection above to view all records</div>'; }
     closeAllDrops();
   }
   document.addEventListener('click', function(e) {
