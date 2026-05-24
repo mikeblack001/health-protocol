@@ -1094,8 +1094,8 @@ function renderPeptides(filter) {
       <td style="font-size:11px;color:var(--muted)">${getField(r,'Cycle Type') || '—'}</td>
       <td style="font-family:'DM Mono',monospace;font-size:12px;text-align:center">${getField(r,'Vials on Hand') !== '' ? `<span style="color:${getField(r,'Vials on Hand') <= 1 ? 'var(--red)' : getField(r,'Vials on Hand') <= 3 ? 'var(--amber)' : 'var(--green)'};font-weight:600">${getField(r,'Vials on Hand')}</span>` : '—'}</td>
       <td>${badge(getField(r,'Status'))}</td>
-      <td style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)">${getField(r,'StartDate') || '—'}</td>
-      <td style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)">${getField(r,'EndDate') || '—'}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)">${fmtDate(getField(r,'StartDate'))}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)">${fmtDate(getField(r,'EndDate'))}</td>
     </tr>`).join('')}
     </tbody></table>`;
   }
@@ -3707,6 +3707,13 @@ function showToast(msg) {
   if (!t) { t = document.createElement('div'); t.id = 'toast-msg'; t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--border);color:var(--text);padding:10px 18px;border-radius:8px;font-size:13px;font-family:DM Sans,sans-serif;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,0.15);transition:opacity 0.3s'; document.body.appendChild(t); }
   t.textContent = msg; t.style.opacity = '1';
   clearTimeout(t._timer); t._timer = setTimeout(() => { t.style.opacity = '0'; }, 3500);
+}
+
+function fmtDate(d) {
+  if (!d) return '—';
+  const [y,m,day] = d.split('-');
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return months[parseInt(m)-1] + ' ' + parseInt(day) + ', ' + y;
 }
 </script>
 
