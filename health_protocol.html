@@ -916,9 +916,9 @@ function renderPrintList() {
       <table class="data-table"><thead><tr><th>Compound</th><th>Dose</th><th>Frequency</th><th>Source</th></tr></thead><tbody>
       ${amPep.map(r => `<tr>
         <td><div class="compound-name">${getField(r,'Compound')}</div></td>
-        <td style="font-family:'DM Mono',monospace;font-size:12px">${getField(r,'Dose')}</td>
-        <td style="font-family:'DM Mono',monospace;font-size:12px">${getField(r,'Frequency')}</td>
-        <td style="font-size:12px;color:var(--muted)">${getField(r,'Source')}</td>
+        <td style="font-size:13px;font-weight:500">${getField(r,'Dose')}</td>
+        <td style="font-size:12px;color:var(--muted)">${getField(r,'Frequency')}</td>
+        <td style="font-size:12px;color:var(--muted)">${firstSource(getField(r,'Source'))}</td>
       </tr>`).join('')}</tbody></table></div>`;
   }
 
@@ -928,9 +928,9 @@ function renderPrintList() {
       <table class="data-table"><thead><tr><th>Compound</th><th>Dose</th><th>Frequency</th><th>Source</th></tr></thead><tbody>
       ${pmPep.map(r => `<tr>
         <td><div class="compound-name">${getField(r,'Compound')}</div></td>
-        <td style="font-family:'DM Mono',monospace;font-size:12px">${getField(r,'Dose')}</td>
-        <td style="font-family:'DM Mono',monospace;font-size:12px">${getField(r,'Frequency')}</td>
-        <td style="font-size:12px;color:var(--muted)">${getField(r,'Source')}</td>
+        <td style="font-size:13px;font-weight:500">${getField(r,'Dose')}</td>
+        <td style="font-size:12px;color:var(--muted)">${getField(r,'Frequency')}</td>
+        <td style="font-size:12px;color:var(--muted)">${firstSource(getField(r,'Source'))}</td>
       </tr>`).join('')}</tbody></table></div>`;
   }
 
@@ -1086,9 +1086,9 @@ function renderPeptides(filter) {
     </tr></thead><tbody>
     ${rows.map(r => `<tr>
       <td><div class="compound-name">${getField(r,'Compound')}</div><div class="compound-sub">${getField(r,'Purpose')}</div></td>
-      <td style="font-family:'DM Mono',monospace;font-size:12px">${getField(r,'Dose')}</td>
-      <td style="font-family:'DM Mono',monospace;font-size:12px">${getField(r,'Frequency')}</td>
-      <td style="font-size:12px;color:var(--muted)">${getField(r,'Source')}</td>
+      <td style="font-size:13px;font-weight:500">${getField(r,'Dose')}</td>
+      <td style="font-size:12px;color:var(--muted)">${getField(r,'Frequency')}</td>
+      <td style="font-size:12px;color:var(--muted)">${firstSource(getField(r,'Source'))}</td>
       <td style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)">${getField(r,'Vial Size')}</td>
       <td style="font-size:11px;color:var(--muted)">${getField(r,'Suggested Dose') || '—'}</td>
       <td style="font-size:11px;color:var(--muted)">${getField(r,'Cycle Type') || '—'}</td>
@@ -3714,6 +3714,12 @@ function fmtDate(d) {
   const [y,m,day] = d.split('-');
   const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   return months[parseInt(m)-1] + ' ' + parseInt(day) + ', ' + y;
+}
+
+function firstSource(src) {
+  if (!src) return '—';
+  if (Array.isArray(src)) return src[0] || '—';
+  return String(src).split(',')[0].trim() || '—';
 }
 </script>
 
