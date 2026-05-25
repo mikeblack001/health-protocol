@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>MB PDF QA</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
@@ -336,6 +337,8 @@ var GSC = "https://www.googleapis.com/auth/drive.readonly";
 var ATK = "pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a";
 var ATB = "appmHDG4TGT1xy6R6";
 var FOLDER_MIME = "application/vnd.google-apps.folder";
+// Set pdf.js worker
+if (typeof pdfjsLib !== "undefined") pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 
 // ── STATE ─────────────────────────────────────────────────────────────
 var gTok = null, gCli = null;
@@ -473,60 +476,58 @@ async function selFile(id, name, type) {
     var buf = await resp.arrayBuffer();
     setDot("d", "ok", "DRIVE");
     function dbg(msg) { var el = document.getElementById("dbgStatus"); if (el) el.textContent = msg; }
-    dbg("Downloaded " + buf.byteLength + " bytes. Checking JSZip...");
+    dbg("Downloaded " + (buf.byteLength/1024).toFixed(0) + "KB. Detecting format...");
 
-    // Try unzip (ZIP of JPEGs)
     var loaded = false;
+
+    // 1. Try JSZip (ZIP of images)
     try {
-      if (typeof JSZip === "undefined") { dbg("ERROR: JSZip not loaded"); throw new Error("JSZip undefined"); }
-      dbg("Opening ZIP...");
       var zip = await JSZip.loadAsync(buf);
       var imgFiles = [];
-      zip.forEach(function(path, file) {
-        if (!file.dir) imgFiles.push({ path: path, file: file });
-      });
-      dbg("ZIP opened. Found " + imgFiles.length + " files inside.");
-      // Sort numerically by filename number
+      zip.forEach(function(path, file) { if (!file.dir) imgFiles.push({ path: path, file: file }); });
       imgFiles.sort(function(a, b) {
-        var na = parseInt(a.path.replace(/\D/g,""),10);
-        var nb = parseInt(b.path.replace(/\D/g,""),10);
-        if (!isNaN(na) && !isNaN(nb)) return na - nb;
-        return a.path.localeCompare(b.path);
+        var na = parseInt(a.path.replace(/\D/g,""),10), nb = parseInt(b.path.replace(/\D/g,""),10);
+        return (!isNaN(na) && !isNaN(nb)) ? na - nb : a.path.localeCompare(b.path);
       });
       if (imgFiles.length) {
-        dbg("Extracting " + imgFiles.length + " images...");
         for (var i = 0; i < imgFiles.length; i++) {
-          dbg("Extracting image " + (i+1) + " of " + imgFiles.length + "...");
+          dbg("Extracting image " + (i+1) + "/" + imgFiles.length);
           var b64 = await imgFiles[i].file.async("base64");
           var ext = imgFiles[i].path.split(".").pop().toLowerCase();
-          var mime = (ext === "png") ? "image/png" : (ext === "gif") ? "image/gif" : "image/jpeg";
-          var dataUrl = "data:" + mime + ";base64," + b64;
-          pages.push({ url: dataUrl, filename: imgFiles[i].path });
+          var mime = ext === "png" ? "image/png" : ext === "gif" ? "image/gif" : "image/jpeg";
+          pages.push({ url: "data:" + mime + ";base64," + b64, filename: imgFiles[i].path });
         }
         loaded = true;
-        document.getElementById("pdfMeta").textContent = pages.length + " pages · " + type;
-        renderThumbs();
-        goToPage(0);
-        updateStatusBar();
-        toast("Loaded " + pages.length + " pages", "tg");
-      } else {
-        dbg("ZIP opened but 0 files found inside.");
       }
-    } catch(zipErr) { dbg("ZIP error: " + zipErr.message); console.warn("JSZip error:", zipErr); }
+    } catch(e) { dbg("Not a ZIP. Trying PDF..."); }
 
+    // 2. Try pdf.js (real PDF)
     if (!loaded) {
-      dbg("Fallback: rendering raw bytes as image...");
-      // Fallback: single image via base64
-      var u8 = new Uint8Array(buf);
-      var binary = "";
-      for (var j = 0; j < u8.length; j++) binary += String.fromCharCode(u8[j]);
-      var b64 = btoa(binary);
-      var dataUrl = "data:image/jpeg;base64," + b64;
-      pages.push({ url: dataUrl, filename: name });
-      document.getElementById("pdfMeta").textContent = "1 page · " + type;
-      renderThumbs();
-      goToPage(0);
-      updateStatusBar();
+      try {
+        if (typeof pdfjsLib === "undefined") throw new Error("pdf.js not loaded");
+        dbg("Loading PDF with pdf.js...");
+        var pdfDoc = await pdfjsLib.getDocument({ data: buf }).promise;
+        dbg("PDF loaded. Rendering " + pdfDoc.numPages + " pages...");
+        for (var p = 1; p <= pdfDoc.numPages; p++) {
+          dbg("Rendering page " + p + "/" + pdfDoc.numPages);
+          var page = await pdfDoc.getPage(p);
+          var vp = page.getViewport({ scale: 2.0 });
+          var canvas = document.createElement("canvas");
+          canvas.width = vp.width; canvas.height = vp.height;
+          await page.render({ canvasContext: canvas.getContext("2d"), viewport: vp }).promise;
+          pages.push({ url: canvas.toDataURL("image/jpeg", 0.9), filename: "page_" + p + ".jpg" });
+        }
+        loaded = true;
+      } catch(e) { dbg("PDF error: " + e.message); }
+    }
+
+    if (loaded) {
+      document.getElementById("pdfMeta").textContent = pages.length + " pages · " + type;
+      renderThumbs(); goToPage(0); updateStatusBar();
+      toast("Loaded " + pages.length + " pages", "tg");
+    } else {
+      dbg("Failed to load file. Check console for details.");
+      toast("Could not load file", "tr");
     }
 
   } catch(e) {
