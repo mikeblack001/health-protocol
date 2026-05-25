@@ -1415,7 +1415,7 @@ function shiftTrackerWeek(dir) {
 
 async function loadTrackerWeekData(mondayISO) {
   try {
-    const url = `https://api.airtable.com/v0/${BASE}/${TABLES.dailyLog}?filterByFormula=${encodeURIComponent(`{Date}="${mondayISO}"`)}&fields[]=${DL.pepLog}`;
+    const url = `https://api.airtable.com/v0/${BASE}/${TABLES.dailyLog}?filterByFormula=${encodeURIComponent(`IS_SAME({Date},"${mondayISO}","day")`)}&fields[]=${DL.pepLog}`;
     const res = await fetch(url, { headers: { Authorization: `Bearer ${TOKEN}` } });
     const json = await res.json();
     const records = json.records || [];
@@ -3027,13 +3027,13 @@ function printTracker() {
       const dose = getField(r,'Dose');
       const label = dose ? `<span style="font-size:8pt;font-weight:600">${name}</span> <span style="font-size:6.5pt;color:#555">${dose}</span>` : name;
       const active = TRACKER_SCHEDULE[name] || [0,1,2,3,4,5,6];
-      let tr = `<tr><td style="background-color:${bg}!important;border:1px solid #000;padding:1px 4px;height:18px;vertical-align:middle;white-space:nowrap;overflow:hidden">${label}</td>`;
+      let tr = `<tr><td style="background-color:${bg}!important;border:1px solid #000;padding:1px 4px;height:26px;vertical-align:middle;white-space:nowrap;overflow:hidden">${label}</td>`;
       for (let d=0; d<7; d++) {
         tr += active.includes(d)
-          ? `<td style="background-color:${bg}!important;border:1px solid #000;height:18px;"></td>`
-          : `<td style="background-color:${INACTIVE}!important;border:1px solid #000;height:18px;"></td>`;
+          ? `<td style="background-color:${bg}!important;border:1px solid #000;height:26px;"></td>`
+          : `<td style="background-color:${INACTIVE}!important;border:1px solid #000;height:26px;"></td>`;
       }
-      tr += `<td style="background-color:${bg}!important;border:1px solid #000;height:18px;"></td></tr>`;
+      tr += `<td style="background-color:${bg}!important;border:1px solid #000;height:26px;"></td></tr>`;
       return tr;
     }).join('');
   }
@@ -3041,9 +3041,9 @@ function printTracker() {
   const SLEEP_BG = '#F0F0F0';
   function sleepRows() {
     return ['Sleep (hrs)', 'Deep Sleep (min)', 'Duration (min)'].map(label =>
-      `<tr><td style="background-color:${SLEEP_BG}!important;border:1px solid #000;padding:1px 4px;height:16px;font-style:italic;font-size:7pt;color:#444">${label}</td>` +
-      DAYS.map(() => `<td style="background-color:${SLEEP_BG}!important;border:1px solid #000;height:16px;"></td>`).join('') +
-      `<td style="background-color:${SLEEP_BG}!important;border:1px solid #000;height:16px;"></td></tr>`
+      `<tr><td style="background-color:${SLEEP_BG}!important;border:1px solid #000;padding:1px 4px;height:24px;font-style:italic;font-size:7pt;color:#444">${label}</td>` +
+      DAYS.map(() => `<td style="background-color:${SLEEP_BG}!important;border:1px solid #000;height:24px;"></td>`).join('') +
+      `<td style="background-color:${SLEEP_BG}!important;border:1px solid #000;height:24px;"></td></tr>`
     ).join('');
   }
 
