@@ -250,32 +250,48 @@
   width: 100%;
   border-collapse: collapse;
   font-family: Arial, sans-serif;
-  font-size: 10px;
-  margin-bottom: 14px;
+  font-size: 11px;
+  margin-bottom: 16px;
   table-layout: fixed;
 }
 .pday-hdr {
   background: #1a56db;
   color: #fff;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: bold;
-  padding: 5px 8px;
+  padding: 7px 8px;
   text-align: left;
   letter-spacing: 0.3px;
 }
 .pmeta td, .pmeta-cell {
   background: #ebf2ff;
-  padding: 3px 6px;
-  font-size: 9px;
+  padding: 5px 8px;
+  font-size: 10px;
   border: 1px solid #bfdbfe;
   vertical-align: middle;
+  height: 26px;
 }
 .pmeta-val { font-weight: 600; }
+.psleep-row td {
+  background: #ebf2ff;
+  padding: 4px 8px;
+  font-size: 10px;
+  border: 1px solid #bfdbfe;
+  vertical-align: bottom;
+  height: 28px;
+}
+.psleep-line {
+  display: inline-block;
+  border-bottom: 1.5px solid #1a56db;
+  width: 80px;
+  margin-left: 4px;
+  vertical-align: bottom;
+}
 .pcol-hdr th {
   background: #dbeafe;
   color: #1e40af;
-  padding: 3px 4px;
-  font-size: 8px;
+  padding: 4px 4px;
+  font-size: 9px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.3px;
@@ -283,14 +299,14 @@
   text-align: center;
 }
 .pcol-hdr th.pex-name, .pcol-hdr th.pex-var { text-align: left; }
-.pex td { border: 1px solid #ccc; padding: 4px 5px; vertical-align: middle; }
-.pex-name { font-weight: 600; font-size: 10px; word-break: break-word; }
-.pex-var  { font-size: 8px; color: #555; word-break: break-word; }
-.pset     { text-align: center; color: #999; font-size: 8px; background: #fafafa; }
+.pex td { border: 1px solid #ccc; padding: 6px 5px; vertical-align: middle; height: 22px; }
+.pex-name { font-weight: 600; font-size: 11px; word-break: break-word; }
+.pex-var  { font-size: 9px; color: #555; word-break: break-word; }
+.pset     { text-align: center; color: #999; font-size: 9px; background: #fafafa; }
 .preps, .pwt { text-align: center; }
-.pnotes td { border: 1px solid #ccc; padding: 3px 6px; background: #fafafa; }
-.pnotes-label { font-weight: 700; font-size: 9px; white-space: nowrap; }
-.pnotes-val   { font-size: 8px; color: #555; font-style: italic; }
+.pnotes td { border: 1px solid #ccc; padding: 6px 8px; background: #fafafa; height: 20px; }
+.pnotes-label { font-weight: 700; font-size: 10px; white-space: nowrap; }
+.pnotes-val   { font-size: 9px; color: #aaa; }
 
 @media screen {
   .print-page { border: 1px solid #ddd; padding: 16px; border-radius: 6px; background: white; }
@@ -3493,19 +3509,11 @@ function buildWeeklyPrintHTML(monday) {
     { label: 'Thursday - Arms / Chest', key: 'Thursday - Arms / Chest', offset: 3 },
   ];
 
-  const dayNotes = {
-    'Monday - Push':           'Variations - 45lb Olym -- 35lb Smith -- DBs -- Cables          V - Bar -- Straight bar -- Rope',
-    'Tuesday - Pull':          'Variation: Lat Machine -- High Cable -- 2 Hand Cables',
-    'Wednesday - Legs / Core': 'Nordic Curl / Reverse Hyper - optional when back allows',
-    'Thursday - Arms / Chest': 'Chest first (Cable Press > HCF > LCF > Cross Overs) then: TED[TRI] > Incline Curls[BI] > TEU[TRI] > Preacher[BI] > Forearm Raise',
-  };
-
   function makeDayTable(day) {
     const d = new Date(monday);
     d.setDate(monday.getDate() + day.offset);
     const dateStr = d.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' });
     const exercises = (typeof WORKOUT_DAYS !== 'undefined' ? WORKOUT_DAYS[day.key] : null) || [];
-    const notes = dayNotes[day.key] || '';
 
     let exRows = '';
     exercises.forEach(ex => {
@@ -3531,12 +3539,22 @@ function buildWeeklyPrintHTML(monday) {
         <tr><th colspan="11" class="pday-hdr">${day.label}</th></tr>
         <tr class="pmeta">
           <td colspan="2" class="pmeta-cell">Date: <span class="pmeta-val">${dateStr}</span></td>
-          <td colspan="3" class="pmeta-cell">Sleep: _______________ &nbsp;&nbsp; Deep: _______________</td>
-          <td colspan="6" class="pmeta-cell" style="text-align:right">Workout Duration: _______________</td>
+          <td colspan="9" class="pmeta-cell" style="text-align:right">Duration: <span class="psleep-line" style="width:70px"></span></td>
+        </tr>
+        <tr class="psleep-row">
+          <td colspan="3" style="background:#ebf2ff;border:1px solid #bfdbfe;padding:5px 8px;font-size:10px;height:30px;vertical-align:bottom">
+            Sleep (hrs): <span class="psleep-line" style="width:90px"></span>
+          </td>
+          <td colspan="4" style="background:#ebf2ff;border:1px solid #bfdbfe;padding:5px 8px;font-size:10px;height:30px;vertical-align:bottom">
+            Deep Sleep (min): <span class="psleep-line" style="width:90px"></span>
+          </td>
+          <td colspan="4" style="background:#ebf2ff;border:1px solid #bfdbfe;padding:5px 8px;font-size:10px;height:30px;vertical-align:bottom">
+            Notes: <span class="psleep-line" style="width:120px"></span>
+          </td>
         </tr>
         <tr class="pcol-hdr">
           <th class="pex-name">Exercise</th>
-          <th class="pex-var">Variation:</th>
+          <th class="pex-var">Variation</th>
           <th>Set</th><th>Reps</th><th>Weight</th>
           <th>Set</th><th>Reps</th><th>Weight</th>
           <th>Set</th><th>Reps</th><th>Weight</th>
@@ -3544,10 +3562,6 @@ function buildWeeklyPrintHTML(monday) {
       </thead>
       <tbody>
         ${exRows}
-        <tr class="pnotes">
-          <td class="pnotes-label">Notes:</td>
-          <td colspan="10" class="pnotes-val">${notes}</td>
-        </tr>
       </tbody>
     </table>`;
   }
