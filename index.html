@@ -291,14 +291,13 @@
   text-align: center;
 }
 .pcol-hdr th.pex-name, .pcol-hdr th.pex-var { text-align: left; }
-.pex td { border: 1px solid #ccc; padding: 7px 5px; vertical-align: middle; height: 28px; }
+.pex td { border: 1px solid #888; padding: 7px 5px; vertical-align: middle; height: 28px; }
 .pex-name { font-weight: 600; font-size: 11px; word-break: break-word; }
 .pex-var  { font-size: 9px; color: #555; word-break: break-word; }
 .pset     { text-align: center; color: #999; font-size: 9px; background: #fafafa; }
 .preps, .pwt { text-align: center; }
-.pnotes td { border: 1px solid #ccc; padding: 8px; background: #fafafa; height: 48px; vertical-align: top; }
-.pnotes-label { font-weight: 700; font-size: 10px; white-space: nowrap; color: #555; }
-.pnotes-val   { font-size: 9px; color: #ccc; }
+.pnotes td { border: 1.5px solid #888; padding: 8px 10px; background: #fafafa; height: 60px; vertical-align: top; }
+.pnotes-label { font-weight: 700; font-size: 10px; color: #333; }
 
 @media screen {
   .print-page { border: 1px solid #ddd; padding: 16px; border-radius: 6px; background: white; }
@@ -333,23 +332,34 @@
     margin: 0;
     padding: 0;
     width: 100%;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
   }
   .print-page:last-child { page-break-after: auto; }
 
   .ptable {
     width: 100%;
-    font-size: 9.5px;
-    margin-bottom: 10px;
+    font-size: 10px;
+    margin-bottom: 8px;
+    flex: 1;
   }
+  .pex td { height: 30px !important; border: 1.5px solid #888 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .pcol-hdr th { border: 1.5px solid #6b9fd4 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .pmeta td, .pmeta-cell { border: 1.5px solid #6b9fd4 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .pnotes td { border: 1.5px solid #888 !important; height: 70px !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .psleep-line { border-bottom: 1.5px solid #1a56db !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .pday-hdr { font-size: 11px; background: #1a56db !important; color: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .pcol-hdr th { background: #dbeafe !important; color: #1e40af !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .pmeta td, .pmeta-cell { background: #ebf2ff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 
   @page {
     size: letter portrait;
-    margin: 0.45in 0.45in 0.45in 0.45in;
+    margin: 0.4in 0.4in 0.4in 0.4in;
   }
 }
+
 </style>
 </head>
 <body>
@@ -411,7 +421,6 @@
         <button class="drop-item" onclick="navDrop('databrowser','nav-tools')" style="color:var(--accent);font-weight:600">📊 Data Browser</button>
         <div class="drop-divider"></div>
         <button class="drop-item" onclick="window.open('https://mikeblack001.github.io/health-protocol/pdf_qa.html','_blank')" style="color:var(--accent);font-weight:600">📄 Data Accuracy Check</button>
-        <button class="drop-item" onclick="navDrop('injaudit','nav-tools')" style="color:var(--accent);font-weight:600">📋 Injection Log Audit</button>
       </div>
     </div>
   </div>
@@ -919,15 +928,6 @@
       <button class="filter-btn" onclick="showAddChangeModal()" style="margin-left:auto;background:var(--accent);color:#fff;border-color:var(--accent)">+ Log Change</button>
     </div>
     <div id="changes-content"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
-  </div>
-
-  <div id="view-injaudit" class="view">
-    <div class="filter-bar">
-      <span style="font-size:13px;font-weight:500;color:var(--text)">Injection Log Audit</span>
-      <span id="injaudit-status" style="font-size:11px;color:var(--muted)">Loading...</span>
-    </div>
-    <div id="injaudit-nav" style="display:flex;gap:4px;flex-wrap:wrap;padding:8px 12px;border-bottom:1px solid var(--border)"></div>
-    <div id="injaudit-content" style="padding:12px;overflow:auto"></div>
   </div>
 
 <!-- ADD PRICING MODAL -->
@@ -2439,7 +2439,6 @@ function mobileNav(viewId) {
   if (viewId === 'purchases') loadPurchases();
   if (viewId === 'labs') loadLabs();
   if (viewId === 'changes') loadChanges();
-  if (viewId === 'injaudit') loadInjAudit();
   if (viewId === 'goals') loadGoals();
   if (viewId === 'profile') loadProfileView();
   if (viewId === 'aicontext') loadAIContext();
@@ -2462,114 +2461,11 @@ function showView(name, e) {
   if (name === 'purchases') loadPurchases();
   if (name === 'labs') loadLabs();
   if (name === 'changes') loadChanges();
-  if (name === 'injaudit') loadInjAudit();
   if (name === 'workouts') {
     document.getElementById('workout-date').value = new Date().toISOString().split('T')[0];
   }
 }
 
-
-async function loadInjAudit() {
-  const statusEl = document.getElementById('injaudit-status');
-  const navEl = document.getElementById('injaudit-nav');
-  const contentEl = document.getElementById('injaudit-content');
-  if (!statusEl || !navEl || !contentEl) return;
-  statusEl.textContent = 'Loading...';
-  navEl.innerHTML = '';
-  contentEl.innerHTML = '';
-  const ALIAS_INJ = {
-    'trt':'Testosterone (TRT)', 'testosterone':'Testosterone (TRT)',
-    'cjc-1295':'CJC-1295 No DAC', 'cjc 1295':'CJC-1295 No DAC',
-    'cag':'Cagrilintide', 'epithalon':'Epitalon',
-    'deca nano':'Deca (Nano)', 'deca':'Deca (Nano)',
-    'melanotan 2':'Melanotan II', 'mt-2':'Melanotan II',
-    'melanotan ii (mt2)':'Melanotan II',
-    'mots c':'Mots-C', 'ss 31':'SS-31',
-    'bpc 157':'BPC-157', 'tb 500':'TB-500',
-  };
-  const nrm = s => (s||'').toLowerCase().trim().replace(/ +/g,' ');
-  const res = raw => ALIAS_INJ[nrm(raw)] || raw;
-  function getMon(dateStr) {
-    const d = new Date(dateStr + 'T12:00:00');
-    const diff = d.getDay() === 0 ? -6 : 1 - d.getDay();
-    const m = new Date(d); m.setDate(d.getDate() + diff);
-    return m.toISOString().split('T')[0];
-  }
-  try {
-    let records = [], offset = null;
-    do {
-      let url = 'https://api.airtable.com/v0/' + BASE + '/tblBvEaLkGGipnOFc?pageSize=100&fields[]=Name&fields[]=Site&fields[]=Date&fields[]=Notes&sort[0][field]=Date&sort[0][direction]=asc';
-      if (offset) url += '&offset=' + encodeURIComponent(offset);
-      const r = await fetch(url, { headers: { Authorization: 'Bearer ' + TOKEN } });
-      const j = await r.json();
-      if (j.error) throw new Error(j.error.message);
-      records = records.concat(j.records || []);
-      offset = j.offset;
-      statusEl.textContent = 'Loading... ' + records.length + ' records';
-    } while (offset);
-    const weeks = {};
-    records.forEach(rec => {
-      const f = rec.fields;
-      const date = f['Date'];
-      if (!date) return;
-      const compound = res(f['Name'] || '');
-      const mon = getMon(date);
-      if (!weeks[mon]) weeks[mon] = {};
-      const key = compound + '|' + date;
-      if (!weeks[mon][key]) weeks[mon][key] = [];
-      weeks[mon][key].push({ site: f['Site'] || '', note: f['Notes'] || '' });
-    });
-    const DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-    const sortedWeeks = Object.keys(weeks).sort();
-    statusEl.textContent = records.length + ' records across ' + sortedWeeks.length + ' weeks';
-    sortedWeeks.forEach(mon => {
-      const btn = document.createElement('button');
-      btn.textContent = mon.slice(5);
-      btn.style.cssText = 'padding:3px 8px;border:1px solid var(--border);border-radius:4px;cursor:pointer;font-size:10px;background:var(--surface);color:var(--text);margin:1px';
-      btn.onclick = () => {
-        navEl.querySelectorAll('button').forEach(b => { b.style.background='var(--surface)'; b.style.color='var(--text)'; });
-        btn.style.background = 'var(--accent)'; btn.style.color = '#fff';
-        showAuditWeek(mon, weeks[mon], DAYS);
-      };
-      navEl.appendChild(btn);
-    });
-    if (sortedWeeks.length) navEl.querySelectorAll('button')[sortedWeeks.length - 1].click();
-  } catch(e) {
-    statusEl.textContent = 'Error: ' + e.message;
-    console.error('loadInjAudit:', e);
-  }
-}
-function showAuditWeek(mon, weekData, DAYS) {
-  const el = document.getElementById('injaudit-content');
-  const monDate = new Date(mon + 'T12:00:00');
-  const dates = [];
-  for (let i = 0; i < 7; i++) { const d = new Date(monDate); d.setDate(monDate.getDate() + i); dates.push(d.toISOString().split('T')[0]); }
-  const compounds = [...new Set(Object.keys(weekData).map(k => k.split('|')[0]))].sort();
-  const NIGHT_LIST = ['CJC-1295 No DAC','Ipamorelin','DSIP','KPV','Epitalon','Selank'];
-  const sectionOf = c => NIGHT_LIST.includes(c) ? 'Night' : 'Morning';
-  const CC = { 'L':'#dbeafe','R':'#fef3c7','S':'#fee2e2','N':'#e5e7eb' };
-  const TC = { 'L':'#1d4ed8','R':'#92400e','S':'#dc2626','N':'#6b7280' };
-  function cell(entries) {
-    if (!entries || !entries.length) return '<td style="border:1px solid #ccc;width:44px"></td>';
-    const s = entries[0].site;
-    return '<td style="border:1px solid #ccc;width:44px;text-align:center;background:' + (CC[s]||'#dcfce7') + ';font-size:11px;font-weight:700;color:' + (TC[s]||'#15803d') + '">' + (s||'?') + '</td>';
-  }
-  let html = '<table style="border-collapse:collapse;font-size:11px"><thead><tr>';
-  html += '<th style="text-align:left;padding:4px 8px;border:1px solid #999;min-width:160px;background:#e5e7eb;font-size:10px">Compound</th>';
-  DAYS.forEach((d,i) => { html += '<th style="padding:4px 6px;border:1px solid #999;text-align:center;background:#e5e7eb;font-size:9px">' + d + '<br><span style="font-weight:400">' + dates[i].slice(5) + '</span></th>'; });
-  html += '<th style="border:1px solid #999;background:#e5e7eb;padding:4px 8px;font-size:10px">Notes</th></tr></thead><tbody>';
-  ['Morning','Night'].forEach(section => {
-    html += '<tr><td colspan="9" style="background:#374151;color:#fff;padding:3px 8px;font-size:10px;font-weight:600;border:1px solid #555">' + (section==='Morning'?'Morning':'Night') + '</td></tr>';
-    compounds.filter(c => sectionOf(c) === section).forEach(c => {
-      html += '<tr><td style="padding:3px 8px;border:1px solid #ccc;font-size:10px;font-weight:500;background:#f9fafb;white-space:nowrap">' + c + '</td>';
-      dates.forEach(date => { html += cell(weekData[c+'|'+date]); });
-      const notes = [...new Set(dates.flatMap(date => (weekData[c+'|'+date]||[]).map(e=>e.note).filter(Boolean)))];
-      html += '<td style="padding:3px 8px;border:1px solid #ccc;font-size:9px;color:#666">' + notes.join('; ') + '</td></tr>';
-    });
-  });
-  html += '</tbody></table>';
-  el.innerHTML = html;
-}
 async function saveLog() {
   const btn = document.querySelector('.save-btn');
   const status = document.getElementById('log-save-status');
@@ -3665,8 +3561,8 @@ function buildWeeklyPrintHTML(monday) {
         <tr><th colspan="11" class="pday-hdr">${day.label}</th></tr>
         <tr class="pmeta">
           <td colspan="2" class="pmeta-cell">Date: <span class="pmeta-val">${dateStr}</span></td>
-          <td colspan="3" class="pmeta-cell">Sleep: <span class="psleep-line" style="width:60px"></span> &nbsp; Deep: <span class="psleep-line" style="width:60px"></span></td>
-          <td colspan="6" class="pmeta-cell" style="text-align:right">Duration: <span class="psleep-line" style="width:70px"></span></td>
+          <td colspan="3" class="pmeta-cell" style="font-size:10px">Sleep: <span class="psleep-line" style="width:55px"></span>&nbsp; Deep: <span class="psleep-line" style="width:55px"></span></td>
+          <td colspan="6" class="pmeta-cell" style="text-align:right;font-size:10px">Duration: <span class="psleep-line" style="width:65px"></span></td>
         </tr>
         <tr class="pcol-hdr">
           <th class="pex-name">Exercise</th>
@@ -3679,8 +3575,7 @@ function buildWeeklyPrintHTML(monday) {
       <tbody>
         ${exRows}
         <tr class="pnotes">
-          <td class="pnotes-label">Notes:</td>
-          <td colspan="10" class="pnotes-val"></td>
+          <td colspan="11" class="pnotes-label" style="font-weight:700;font-size:10px;color:#333;border:1.5px solid #888;padding:8px 10px;height:60px;vertical-align:top;background:#fafafa">Notes:</td>
         </tr>
       </tbody>
     </table>`;
