@@ -2154,6 +2154,16 @@ async function loadTrackerWeekData(mondayISO) {
           const val = rest.slice(ci + 1).trim();
           const noteInput = document.querySelector(`input[data-type="notes"][data-compound="${compound}"]`);
           if (noteInput) noteInput.value = val;
+        } else if (entry.includes('|') && entry.includes(':')) {
+          const pipeIdx = entry.indexOf('|');
+          const colonIdx = entry.lastIndexOf(':');
+          if (pipeIdx === -1 || colonIdx === -1 || colonIdx < pipeIdx) return;
+          const date = entry.slice(0, pipeIdx).trim();
+          const compound = entry.slice(pipeIdx + 1, colonIdx).trim();
+          const state = entry.slice(colonIdx + 1).trim();
+          if (!state || state === '0') return;
+          const box = allBoxes.find(b => norm(b.dataset.compound) === norm(compound) && b.dataset.date === date);
+          if (box && !box.dataset.s) applyState(box, state);
         }
       });
     }
