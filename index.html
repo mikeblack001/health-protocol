@@ -255,7 +255,7 @@
   table-layout: fixed;
 }
 .pday-hdr {
-  background: #222;
+  background: #1a56db;
   color: #fff;
   font-size: 12px;
   font-weight: bold;
@@ -264,21 +264,22 @@
   letter-spacing: 0.3px;
 }
 .pmeta td, .pmeta-cell {
-  background: #f2f2f2;
+  background: #ebf2ff;
   padding: 3px 6px;
   font-size: 9px;
-  border: 1px solid #ccc;
+  border: 1px solid #bfdbfe;
   vertical-align: middle;
 }
 .pmeta-val { font-weight: 600; }
 .pcol-hdr th {
-  background: #e0e0e0;
+  background: #dbeafe;
+  color: #1e40af;
   padding: 3px 4px;
   font-size: 8px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.3px;
-  border: 1px solid #bbb;
+  border: 1px solid #93c5fd;
   text-align: center;
 }
 .pcol-hdr th.pex-name, .pcol-hdr th.pex-var { text-align: left; }
@@ -332,7 +333,9 @@
     font-size: 9.5px;
     margin-bottom: 10px;
   }
-  .pday-hdr { font-size: 11px; }
+  .pday-hdr { font-size: 11px; background: #1a56db !important; color: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .pcol-hdr th { background: #dbeafe !important; color: #1e40af !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .pmeta td, .pmeta-cell { background: #ebf2ff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 
   @page {
     size: letter portrait;
