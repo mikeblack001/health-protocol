@@ -1492,13 +1492,22 @@ async function loadTrackerWeekData(mondayISO) {
     if (dlRec) {
       const pepLog = dlRec.fields['fldAatoFJQPQwbVhQ'] || '';
       pepLog.split(', ').forEach(entry => {
-        if (!entry.startsWith('METRIC|')) return;
-        const rest = entry.slice(7); // "sleep:2026-05-04:7.5"
-        const parts = rest.split(':');
-        if (parts.length < 3) return;
-        const key = parts[0]; const date = parts[1]; const val = parts[2];
-        const inp = document.querySelector(`input[data-sleepkey="${key}"][data-date="${date}"]`);
-        if (inp) inp.value = val;
+        if (entry.startsWith('METRIC|')) {
+          const rest = entry.slice(7);
+          const parts = rest.split(':');
+          if (parts.length < 3) return;
+          const key = parts[0]; const date = parts[1]; const val = parts[2];
+          const inp = document.querySelector(`input[data-sleepkey="${key}"][data-date="${date}"]`);
+          if (inp) inp.value = val;
+        } else if (entry.startsWith('NOTE|')) {
+          const rest = entry.slice(5);
+          const ci = rest.indexOf(':');
+          if (ci === -1) return;
+          const compound = rest.slice(0, ci).trim();
+          const val = rest.slice(ci + 1).trim();
+          const noteInput = document.querySelector(`input[data-type="notes"][data-compound="${compound}"]`);
+          if (noteInput) noteInput.value = val;
+        }
       });
     }
   } catch(e) { console.error('loadTrackerWeekData failed:', e); }
