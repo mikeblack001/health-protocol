@@ -34,27 +34,22 @@ html,body{height:100%;background:#f5f6f8;color:#1a1a1a;font-family:'IBM Plex San
 .sbht{font-size:9px;letter-spacing:2px;color:var(--d);text-transform:uppercase;flex:1;font-family:var(--mono)}
 .sbb{flex:1;overflow-y:auto;padding:6px}
 .sbf{padding:10px;border-top:1px solid var(--b);display:flex;flex-direction:column;gap:6px;background:var(--s2)}
-/* FILE ITEMS */
-.fi{padding:8px 10px;border-radius:5px;cursor:pointer;border:1px solid transparent;margin-bottom:2px;transition:all .12s}
+.fi{padding:9px 10px;border-radius:5px;cursor:pointer;border:1px solid transparent;margin-bottom:2px;transition:all .12s}
 .fi:hover{background:var(--s2);border-color:var(--b)}
 .fi.active{background:var(--bld);border-color:var(--bl)}
 .fi.done{border-color:var(--g);background:var(--gd)}
-.fn{font-size:11px;color:var(--t);display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:1px;font-weight:500}
+.fn{font-size:11px;color:var(--t);display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:2px;font-weight:500}
 .fm{font-size:9px;color:var(--dd);font-family:var(--mono)}
-.ftype{font-size:9px;font-family:var(--mono);padding:1px 5px;border-radius:3px;display:inline-block;margin-bottom:2px;font-weight:600}
-.ft-workout{background:#e8f5ef;color:var(--g)}
-.ft-injection{background:#fff3e8;color:var(--y)}
-.ft-supplement{background:#e8eeff;color:var(--bl)}
-.ft-lab{background:#fde8e8;color:var(--r)}
-.ft-untyped{background:var(--s2);color:var(--dd)}
-/* GROUP HEADER */
-.grp-hdr{padding:5px 10px;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dd);font-family:var(--mono);margin-top:8px}
+.ftype{font-size:9px;font-family:var(--mono);padding:1px 6px;border-radius:3px;display:inline-block;margin-bottom:3px;font-weight:600;text-transform:capitalize}
+.ft-workout{background:#e8f5ef;color:var(--g)} .ft-injection{background:#fff3e8;color:var(--y)}
+.ft-supplement{background:#e8eeff;color:var(--bl)} .ft-lab{background:#fde8e8;color:var(--r)}
+.grp-hdr{padding:6px 10px 3px;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dd);font-family:var(--mono);margin-top:6px}
 /* PANEL */
 .panel{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
 .tabs{display:flex;border-bottom:1px solid var(--b);background:var(--s);flex-shrink:0}
 .tab{font-size:11px;padding:11px 18px;cursor:pointer;color:var(--d);border-bottom:2px solid transparent;transition:all .12s;font-weight:500}
 .tab:hover{color:var(--t)} .tab.active{color:var(--bl);border-bottom-color:var(--bl);font-weight:600}
-.tc{flex:1;overflow-y:auto;padding:18px;display:none}
+.tc{flex:1;overflow-y:auto;padding:20px;display:none}
 .tc.active{display:block}
 /* BUTTONS */
 .btn{font-size:11px;padding:7px 13px;border-radius:5px;cursor:pointer;border:1px solid;display:inline-flex;align-items:center;gap:5px;font-family:inherit;font-weight:500;transition:all .12s;white-space:nowrap}
@@ -67,7 +62,7 @@ html,body{height:100%;background:#f5f6f8;color:#1a1a1a;font-family:'IBM Plex San
 .bg{background:transparent;color:var(--d);border-color:var(--b)} .bg:hover{border-color:var(--b2);color:var(--t)}
 .bfull{width:100%;justify-content:center}
 /* CARDS */
-.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:14px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:16px}
 .card{background:var(--s);border:1px solid var(--b);border-radius:6px;padding:12px 14px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
 .cardg{border-color:var(--g);background:var(--gd)} .cardr{border-color:var(--r);background:var(--rd)}
 .cardy{border-color:var(--y);background:var(--yd)} .cardbl{border-color:var(--bl);background:var(--bld)}
@@ -94,50 +89,58 @@ html,body{height:100%;background:#f5f6f8;color:#1a1a1a;font-family:'IBM Plex San
 .pt canvas{width:100%;display:block}
 .pnum{position:absolute;bottom:0;left:0;right:0;background:rgba(255,255,255,.9);font-size:9px;color:var(--d);padding:2px 5px;text-align:center;border-top:1px solid var(--b);font-family:var(--mono)}
 .pstat{position:absolute;top:3px;right:3px;font-size:11px}
-/* FORM */
-.inp{font-family:var(--mono);font-size:11px;background:#fff;border:1px solid var(--b);color:var(--t);padding:7px 10px;border-radius:5px;outline:none;transition:border .12s}
-.inp:focus{border-color:var(--bl);box-shadow:0 0 0 3px rgba(34,85,204,.1)}
+/* SETTINGS */
+.type-section{margin-bottom:14px;border:1px solid var(--b);border-radius:6px;overflow:hidden}
+.type-hdr{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--s2);border-bottom:1px solid var(--b)}
+.type-badge{font-size:11px;font-family:var(--mono);padding:3px 10px;border-radius:4px;font-weight:600;text-transform:capitalize}
+.type-workout{background:#e8f5ef;color:var(--g)} .type-injection{background:#fff3e8;color:var(--y)}
+.type-supplement{background:#e8eeff;color:var(--bl)} .type-lab{background:#fde8e8;color:var(--r)}
+.type-body{padding:10px 14px;display:flex;flex-wrap:wrap;gap:5px;align-items:center;min-height:42px}
+.chip{font-size:10px;font-family:var(--mono);padding:3px 8px 3px 10px;border-radius:12px;background:var(--s2);border:1px solid var(--b);color:var(--t);display:inline-flex;align-items:center;gap:4px;max-width:220px}
+.chip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chip-x{cursor:pointer;color:var(--dd);flex-shrink:0;font-size:12px;line-height:1} .chip-x:hover{color:var(--r)}
+.chip-add{background:transparent;border-style:dashed;color:var(--bl);cursor:pointer} .chip-add:hover{background:var(--bld)}
+/* MODAL — FOLDER BROWSER */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:200;display:none;align-items:center;justify-content:center}
+.modal-bg.open{display:flex}
+.modal{background:#fff;border-radius:8px;width:540px;max-width:95vw;height:600px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 8px 40px rgba(0,0,0,.2)}
+.mhdr{padding:14px 18px;border-bottom:1px solid var(--b);flex-shrink:0}
+.mhdr-top{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.mhdr-title{font-size:14px;font-weight:600;flex:1}
+/* BREADCRUMB */
+.breadcrumb{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.bc-item{font-size:11px;color:var(--bl);cursor:pointer;font-family:var(--mono);padding:2px 5px;border-radius:3px}
+.bc-item:hover{background:var(--bld)}
+.bc-item.current{color:var(--t);cursor:default;font-weight:600}
+.bc-item.current:hover{background:transparent}
+.bc-sep{font-size:10px;color:var(--dd)}
+/* FOLDER BROWSER LIST */
+.msearch{padding:8px 14px;border-bottom:1px solid var(--b);flex-shrink:0}
+.msearch input{width:100%;font-family:var(--mono);font-size:11px;background:var(--s2);border:1px solid var(--b);color:var(--t);padding:7px 10px;border-radius:5px;outline:none}
+.msearch input:focus{border-color:var(--bl)}
+.mlist{flex:1;overflow-y:auto;padding:6px}
+.mitem{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:5px;cursor:pointer;transition:background .1s;user-select:none}
+.mitem:hover{background:var(--s2)}
+.mitem.checked{background:var(--bld)}
+.mitem.disabled{opacity:.5;cursor:not-allowed}
+.mitem-icon{font-size:16px;flex-shrink:0;width:22px;text-align:center}
+.mitem-name{font-size:11px;color:var(--t);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
+.mitem-meta{font-size:9px;color:var(--dd);font-family:var(--mono);flex-shrink:0}
+.mitem-arrow{font-size:11px;color:var(--dd);flex-shrink:0}
+.mftr{padding:12px 16px;border-top:1px solid var(--b);display:flex;align-items:center;gap:8px;flex-shrink:0}
+.mftr-count{font-size:11px;color:var(--d);flex:1;font-family:var(--mono)}
+/* AI SUMMARY */
+.ai-panel{background:linear-gradient(135deg,#f0f7ff,#f5f0ff);border:1px solid #c0d4ff;border-radius:6px;padding:16px;margin-bottom:14px}
+.ai-panel-hdr{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.ai-panel-title{font-size:12px;font-weight:600;color:#1a3a8f}
+.ai-panel-body{font-size:12px;color:#2a3a5a;line-height:1.7}
+/* MISC */
+.inp{font-family:var(--mono);font-size:11px;background:#fff;border:1px solid var(--b);color:var(--t);padding:7px 10px;border-radius:5px;outline:none}
+.inp:focus{border-color:var(--bl);box-shadow:0 0 0 3px var(--bld)}
 select.inp{cursor:pointer}
 .tbtn{font-family:inherit;font-size:11px;padding:5px 11px;border-radius:5px;cursor:pointer;border:1px solid var(--b);color:var(--d);background:#fff;font-weight:500;transition:all .12s}
 .tbtn.active{border-color:var(--bl);color:var(--bl);background:var(--bld);font-weight:600}
 .tb{display:flex;gap:7px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
-/* SETTINGS — TYPE ROWS */
-.type-section{margin-bottom:16px}
-.type-hdr{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--s2);border:1px solid var(--b);border-radius:6px 6px 0 0;border-bottom:none}
-.type-badge{font-size:11px;font-family:var(--mono);padding:3px 10px;border-radius:4px;font-weight:600;text-transform:capitalize}
-.type-workout{background:#e8f5ef;color:var(--g)} .type-injection{background:#fff3e8;color:var(--y)}
-.type-supplement{background:#e8eeff;color:var(--bl)} .type-lab{background:#fde8e8;color:var(--r)}
-.type-body{border:1px solid var(--b);border-radius:0 0 6px 6px;overflow:hidden}
-.type-row{display:flex;align-items:center;gap:10px;padding:8px 14px;border-bottom:1px solid var(--b)}
-.type-row:last-child{border-bottom:none}
-.type-row-lbl{font-size:10px;color:var(--d);font-family:var(--mono);width:100px;flex-shrink:0;text-transform:uppercase;letter-spacing:1px}
-.file-chips{display:flex;flex-wrap:wrap;gap:5px;flex:1}
-.chip{font-size:10px;font-family:var(--mono);padding:2px 8px 2px 10px;border-radius:12px;background:var(--s2);border:1px solid var(--b);color:var(--t);display:inline-flex;align-items:center;gap:4px;max-width:200px}
-.chip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.chip-x{cursor:pointer;color:var(--dd);flex-shrink:0;font-size:11px;line-height:1}
-.chip-x:hover{color:var(--r)}
-.chip-add{background:transparent;border-style:dashed;color:var(--bl);cursor:pointer}
-.chip-add:hover{background:var(--bld)}
-/* MODAL */
-.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:200;display:none;align-items:center;justify-content:center}
-.modal-bg.open{display:flex}
-.modal{background:#fff;border-radius:8px;width:520px;max-width:95vw;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 8px 40px rgba(0,0,0,.2)}
-.mhdr{padding:16px 20px;border-bottom:1px solid var(--b);display:flex;align-items:center;gap:10px}
-.mhdr-title{font-size:14px;font-weight:600;flex:1}
-.mhdr-sub{font-size:11px;color:var(--d)}
-.msearch{padding:10px 14px;border-bottom:1px solid var(--b)}
-.msearch input{width:100%;font-family:var(--mono);font-size:11px;background:var(--s2);border:1px solid var(--b);color:var(--t);padding:7px 10px;border-radius:5px;outline:none}
-.msearch input:focus{border-color:var(--bl)}
-.mlist{flex:1;overflow-y:auto;padding:8px}
-.mfile{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:5px;cursor:pointer;transition:background .1s}
-.mfile:hover{background:var(--s2)}
-.mfile.checked{background:var(--bld)}
-.mfile input[type=checkbox]{accent-color:var(--bl);cursor:pointer;flex-shrink:0;width:15px;height:15px}
-.mfile-name{font-size:11px;color:var(--t);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
-.mfile-meta{font-size:9px;color:var(--dd);font-family:var(--mono);flex-shrink:0}
-.mftrs{padding:12px 16px;border-top:1px solid var(--b);display:flex;align-items:center;gap:8px}
-.mftrs-count{font-size:11px;color:var(--d);flex:1;font-family:var(--mono)}
-/* MISC */
 .abox{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:40px;text-align:center}
 .atitle{font-size:13px;font-weight:600} .asub{font-size:12px;color:var(--d);max-width:240px;line-height:1.6}
 .empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:50px 20px;text-align:center}
@@ -162,77 +165,67 @@ select.inp{cursor:pointer}
   </div>
 </div>
 <div class="body">
-  <!-- SIDEBAR -->
   <div class="sb">
     <div class="sbh">
       <span class="sbht">Library</span>
-      <button class="btn bg" style="padding:3px 8px;font-size:10px" onclick="loadDrive()">&#8635;</button>
+      <button class="btn bg" style="padding:3px 8px;font-size:9px" onclick="loadMappedFiles()">&#8635;</button>
     </div>
     <div class="sbb" id="fileList">
-      <div class="abox">
+      <div class="abox" style="padding:24px">
         <div class="atitle">Connect Drive</div>
-        <div class="asub">Sign in to access your PDF library.</div>
+        <div class="asub">Sign in to load your PDF library.</div>
         <button class="btn bp" onclick="signIn()">Sign in with Google</button>
       </div>
     </div>
     <div class="sbf">
-      <button class="btn bp bfull" id="extractBtn" onclick="startExtract()" disabled>&#9654; Extract Selected</button>
-      <button class="btn bb bfull" id="compareBtn" onclick="showTab('compare')" disabled>&#8646; Compare vs Airtable</button>
+      <button class="btn bp bfull" id="extractBtn" onclick="startExtract()" disabled>&#9654; Extract &amp; Compare</button>
     </div>
   </div>
-  <!-- PANEL -->
   <div class="panel">
     <div class="tabs">
-      <div class="tab active" id="tab-extract" onclick="showTab('extract')">Extract</div>
-      <div class="tab" id="tab-compare" onclick="showTab('compare')">Compare</div>
+      <div class="tab active" id="tab-review" onclick="showTab('review')">Review</div>
       <div class="tab" id="tab-export" onclick="showTab('export')">Export</div>
       <div class="tab" id="tab-settings" onclick="showTab('settings')">&#9881; Settings</div>
     </div>
-    <!-- EXTRACT -->
-    <div class="tc active" id="tc-extract">
-      <div class="empty" id="xEmpty"><div class="ei">&#128196;</div><div class="et">No PDF Selected</div><div class="es">Select a PDF from the library.</div></div>
-      <div id="xUI" style="display:none">
-        <div class="tb">
-          <span style="font-size:12px;font-weight:500;color:var(--t)" id="pdfName">&#8212;</span>
-          <span style="color:var(--dd)">&#183;</span>
-          <span style="font-size:11px;color:var(--dd);font-family:var(--mono)" id="pdfPages"></span>
-          <span style="color:var(--dd)">&#183;</span>
-          <button class="tbtn active" data-type="workout" onclick="setType(this)">Workout</button>
-          <button class="tbtn" data-type="injection" onclick="setType(this)">Injection</button>
-          <button class="tbtn" data-type="supplement" onclick="setType(this)">Supplement</button>
-          <button class="tbtn" data-type="lab" onclick="setType(this)">Lab</button>
+
+    <!-- REVIEW TAB -->
+    <div class="tc active" id="tc-review">
+      <div class="empty" id="revEmpty">
+        <div class="ei">&#128196;</div>
+        <div class="et">Select a PDF</div>
+        <div class="es">Choose a file from the library, then click Extract &amp; Compare. Claude will review the results.</div>
+      </div>
+      <div id="revUI" style="display:none">
+        <!-- File info + controls -->
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--b)">
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:600" id="pdfName">&#8212;</div>
+            <div style="font-size:11px;color:var(--dd);font-family:var(--mono);margin-top:2px" id="pdfMeta"></div>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <button class="tbtn active" data-type="workout" onclick="setType(this)">Workout</button>
+            <button class="tbtn" data-type="injection" onclick="setType(this)">Injection</button>
+            <button class="tbtn" data-type="supplement" onclick="setType(this)">Supplement</button>
+            <button class="tbtn" data-type="lab" onclick="setType(this)">Lab</button>
+          </div>
         </div>
-        <div class="sec" style="margin-bottom:12px">
-          <div class="sech">
+        <!-- Page grid (collapsed by default) -->
+        <div class="sec" style="margin-bottom:14px" id="pgSection">
+          <div class="sech" onclick="togglePages()" style="cursor:pointer">
             <span class="sect sectbl">Pages</span>
             <span class="secc" id="pgCount">0/0</span>
-            <button class="btn bg" style="padding:3px 8px;font-size:10px" id="xAllBtn" onclick="extractAll()">Extract All</button>
+            <span style="font-size:11px;color:var(--d)" id="pgToggleLabel">&#9660; Show</span>
           </div>
-          <div class="pgrid" id="pgGrid"></div>
+          <div id="pgGrid" style="display:none"></div>
         </div>
-        <div id="xRes" style="display:none">
-          <div class="cards" id="xCards"></div>
-          <div class="sec">
-            <div class="sech"><span class="sect sectg">Extracted Records</span><span class="secc" id="xCount">0</span><button class="btn bg" style="padding:3px 8px;font-size:10px" onclick="clearExtracted()">Clear</button></div>
-            <div class="tw"><table class="tbl"><thead id="xHead"></thead><tbody id="xBody"></tbody></table></div>
-          </div>
-        </div>
+        <!-- AI Summary (shown after compare) -->
+        <div id="aiPanel" style="display:none"></div>
+        <!-- Compare results -->
+        <div id="revResults"></div>
       </div>
     </div>
-    <!-- COMPARE -->
-    <div class="tc" id="tc-compare">
-      <div class="empty" id="cEmpty"><div class="ei">&#8646;</div><div class="et">Nothing to Compare</div><div class="es">Extract data first.</div></div>
-      <div id="cUI" style="display:none">
-        <div class="tb">
-          <select class="inp" id="cTable" style="min-width:200px"><option value="">Select Airtable table...</option></select>
-          <button class="btn bp" onclick="runCompare()">Compare</button>
-          <button class="btn bg" onclick="exportDiff()">Export Diff</button>
-        </div>
-        <div class="cards" id="cCards"></div>
-        <div id="cResults"></div>
-      </div>
-    </div>
-    <!-- EXPORT -->
+
+    <!-- EXPORT TAB -->
     <div class="tc" id="tc-export">
       <div class="empty" id="eEmpty"><div class="ei">&#8595;</div><div class="et">Nothing to Export</div><div class="es">Extract data first.</div></div>
       <div id="eUI" style="display:none">
@@ -242,24 +235,23 @@ select.inp{cursor:pointer}
           <button class="btn by" onclick="pushToAT()">&#8593; Push to Airtable</button>
         </div>
         <div class="sec">
-          <div class="sech"><span class="sect sectg">Preview</span><span class="secc" id="eCount">0</span></div>
+          <div class="sech"><span class="sect sectg">Extracted Records</span><span class="secc" id="eCount">0</span></div>
           <div class="tw"><table class="tbl"><thead id="eHead"></thead><tbody id="eBody"></tbody></table></div>
         </div>
       </div>
     </div>
-    <!-- SETTINGS -->
+
+    <!-- SETTINGS TAB -->
     <div class="tc" id="tc-settings">
-      <div style="max-width:660px">
-        <div style="font-size:12px;color:var(--d);margin-bottom:16px;line-height:1.6">
-          Assign PDFs to each type. Click <strong>+ Add PDFs</strong> to browse and multi-select from your Drive. The library will group files by type.
-        </div>
+      <div style="max-width:620px">
+        <p style="font-size:12px;color:var(--d);margin-bottom:16px;line-height:1.6">Click <strong>+ Add PDFs</strong> to browse your Drive folders and assign files to each type.</p>
         <div id="typeSections"></div>
         <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--b)">
-          <div style="font-size:11px;font-weight:600;color:var(--t);margin-bottom:10px">Airtable Table Mapping</div>
-          <table style="width:100%;border-collapse:collapse" id="atMapTable">
+          <div style="font-size:12px;font-weight:600;margin-bottom:10px">Airtable Table Mapping</div>
+          <table style="width:100%;border-collapse:collapse;background:var(--s);border:1px solid var(--b);border-radius:6px;overflow:hidden">
             <thead><tr>
-              <th style="font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--d);text-align:left;padding:7px 11px;border-bottom:1px solid var(--b);background:var(--s2);font-family:var(--mono)">Type</th>
-              <th style="font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--d);text-align:left;padding:7px 11px;border-bottom:1px solid var(--b);background:var(--s2);font-family:var(--mono)">Airtable Table</th>
+              <th style="font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--d);text-align:left;padding:8px 12px;border-bottom:1px solid var(--b);background:var(--s2);font-family:var(--mono)">Type</th>
+              <th style="font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--d);text-align:left;padding:8px 12px;border-bottom:1px solid var(--b);background:var(--s2);font-family:var(--mono)">Airtable Table</th>
             </tr></thead>
             <tbody id="atMapBody"></tbody>
           </table>
@@ -276,20 +268,20 @@ select.inp{cursor:pointer}
 </div>
 </div>
 
-<!-- FILE PICKER MODAL -->
+<!-- FOLDER BROWSER MODAL -->
 <div class="modal-bg" id="pickerModal">
   <div class="modal">
     <div class="mhdr">
-      <div>
-        <div class="mhdr-title" id="pickerTitle">Select PDFs</div>
-        <div class="mhdr-sub" id="pickerSub">Check files to assign to this type</div>
+      <div class="mhdr-top">
+        <div class="mhdr-title" id="pickerTitle">Add PDFs</div>
+        <button class="btn bg" style="padding:4px 9px;font-size:11px" onclick="closePickerModal()">&#x2715;</button>
       </div>
-      <button class="btn bg" style="padding:4px 9px" onclick="closePickerModal()">&#x2715;</button>
+      <div class="breadcrumb" id="breadcrumb"></div>
     </div>
-    <div class="msearch"><input type="text" id="pickerSearch" placeholder="Search files..." oninput="filterPickerFiles()"></div>
-    <div class="mlist" id="pickerList"></div>
-    <div class="mftrs">
-      <span class="mftrs-count" id="pickerSelCount">0 selected</span>
+    <div class="msearch"><input type="text" id="pickerSearch" placeholder="Search in current folder..." oninput="filterItems()"></div>
+    <div class="mlist" id="pickerList"><div style="padding:20px;text-align:center;color:var(--dd)">Loading...</div></div>
+    <div class="mftr">
+      <span class="mftr-count" id="pickerSelCount">0 selected</span>
       <button class="btn bg" onclick="closePickerModal()">Cancel</button>
       <button class="btn bp" onclick="confirmPicker()">Add Selected</button>
     </div>
@@ -303,36 +295,27 @@ var GCI="478191426516-94rflpalsl5ev56ptck62k5imes6jk8l.apps.googleusercontent.co
 var GSC="https://www.googleapis.com/auth/drive.readonly";
 var ATK="pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a";
 var ATB="appmHDG4TGT1xy6R6";
+var FOLDER_MIME="application/vnd.google-apps.folder";
 pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 
-var gTok=null,gCli=null,pdfDoc=null,selFile=null,pdfType="workout";
-var allDriveFiles=[],extracted=[],atTables=[],atCache={};
-var pickerType=null,pickerPending=[];
+var gTok=null,gCli=null,pdfDoc=null,curFile=null,pdfType="workout";
+var extracted=[],atTables=[],atCache={};
+var pagesVisible=false;
 
-// Default cfg — pre-filled AT table IDs
+// Folder browser state
+var pickerType=null,pickerPending=[],folderStack=[],folderCache={},curFolderItems=[];
+
 var cfg={
   types:{
-    workout:{files:[],tableID:"tblKDqjy5RzqaJvjr",tableName:"Sets"},
+    workout:{files:[],tableID:"tblKDqjy5RzqaJvjr",tableName:"Sets (Workout)"},
     injection:{files:[],tableID:"tblaYuZjl4Pu4nKxS",tableName:"DailyLog"},
     supplement:{files:[],tableID:"tblSnkc0Gu2BzGACP",tableName:"Supplements"},
-    lab:{files:[],tableID:"tbl3200yJid6fXaOp",tableName:"Bloodwork"}
+    lab:{files:[],tableID:"tbl3200yJid6fXaOp",tableName:"Bloodwork / Labs"}
   }
 };
 
-function loadCfg(){
-  try{
-    var s=localStorage.getItem("mb_pdfqa3");
-    if(s){
-      var p=JSON.parse(s);
-      if(p.types){
-        Object.keys(p.types).forEach(function(k){
-          if(cfg.types[k])cfg.types[k]=Object.assign({},cfg.types[k],p.types[k]);
-        });
-      }
-    }
-  }catch(e){}
-}
-function saveCfg(){localStorage.setItem("mb_pdfqa3",JSON.stringify(cfg));}
+function loadCfg(){try{var s=localStorage.getItem("mb_pdfqa4");if(s){var p=JSON.parse(s);if(p.types)Object.keys(p.types).forEach(function(k){if(cfg.types[k])cfg.types[k]=Object.assign({},cfg.types[k],p.types[k]);});}}catch(e){}}
+function saveCfg(){localStorage.setItem("mb_pdfqa4",JSON.stringify(cfg));}
 function loadTok(){var t=localStorage.getItem("mb_pdfqat"),e=parseInt(localStorage.getItem("mb_pdfqae")||0);return(t&&Date.now()<e)?t:null;}
 function saveTok(t,exp){localStorage.setItem("mb_pdfqat",t);localStorage.setItem("mb_pdfqae",Date.now()+(exp-60)*1000);}
 function clearTok(){localStorage.removeItem("mb_pdfqat");localStorage.removeItem("mb_pdfqae");}
@@ -356,15 +339,18 @@ function showTab(name){
 function setType(btn){
   document.querySelectorAll(".tbtn").forEach(function(b){b.classList.remove("active");});
   btn.classList.add("active");pdfType=btn.dataset.type;
-  var m=cfg.types[pdfType];
-  if(m&&m.tableID){var s=document.getElementById("cTable");if(s)s.value=m.tableID;}
+}
+function togglePages(){
+  pagesVisible=!pagesVisible;
+  document.getElementById("pgGrid").style.display=pagesVisible?"":"none";
+  document.getElementById("pgToggleLabel").innerHTML=pagesVisible?"&#9650; Hide":"&#9660; Show";
 }
 
 // AUTH
 function initAuth(){
   if(typeof google==="undefined"){setTimeout(initAuth,300);return;}
   var stored=loadTok();
-  if(stored){gTok=stored;setDot("d","ok","DRIVE");loadDrive();return;}
+  if(stored){gTok=stored;setDot("d","ok","DRIVE");loadMappedFiles();return;}
   setDot("d","","DRIVE");
 }
 function signIn(){
@@ -373,100 +359,78 @@ function signIn(){
     callback:function(r){
       if(r.error){toast("Auth error: "+r.error,"tr");return;}
       gTok=r.access_token;saveTok(r.access_token,r.expires_in||3600);
-      setDot("d","ok","DRIVE");loadDrive();
+      setDot("d","ok","DRIVE");loadMappedFiles();
     }
   });
   gCli.requestAccessToken({prompt:""});
 }
 function signOut(){clearTok();gTok=null;setDot("d","","DRIVE");document.getElementById("fileList").innerHTML="<div class='abox'><div class='atitle'>Signed Out</div><button class='btn bp' onclick='signIn()'>Sign in</button></div>";toast("Signed out","ti");}
 
-// DRIVE — load ALL pdfs
-async function loadDrive(){
+// LOAD MAPPED FILES INTO SIDEBAR
+async function loadMappedFiles(){
   if(!gTok){signIn();return;}
   setDot("d","warn","LOADING");
-  try{
-    var url="https://www.googleapis.com/drive/v3/files?q="+encodeURIComponent("mimeType='application/pdf' and trashed=false")+"&fields=files(id,name,size,modifiedTime)&pageSize=200&orderBy=modifiedTime%20desc";
-    var r=await fetch(url,{headers:{Authorization:"Bearer "+gTok}});
-    var d=await r.json();
-    if(d.error)throw new Error(d.error.message);
-    allDriveFiles=d.files||[];
+  // Collect all mapped file IDs, fetch their current metadata
+  var allMapped=[];
+  Object.keys(cfg.types).forEach(function(type){
+    cfg.types[type].files.forEach(function(f){allMapped.push({type:type,id:f.id,name:f.name});});
+  });
+  if(!allMapped.length){
     setDot("d","ok","DRIVE");
-    renderFileList();
-  }catch(e){setDot("d","err","ERR");clearTok();toast("Drive: "+e.message,"tr",6000);}
-}
-
-function renderFileList(){
-  var el=document.getElementById("fileList");
-  if(!allDriveFiles.length){el.innerHTML="<div class='empty'><div class='et'>No PDFs found</div></div>";return;}
-  // Group by type
-  var typeOrder=["workout","injection","supplement","lab"];
-  var groups={workout:[],injection:[],supplement:[],lab:[],untyped:[]};
-  allDriveFiles.forEach(function(f){
-    var found=false;
-    typeOrder.forEach(function(type){
-      if(cfg.types[type].files.some(function(x){return x.id===f.id;})){groups[type].push(f);found=true;}
-    });
-    if(!found)groups.untyped.push(f);
-  });
-  var html="";
-  typeOrder.forEach(function(type){
-    if(groups[type].length){
-      html+="<div class='grp-hdr'>"+type+"</div>";
-      groups[type].forEach(function(f){
-        html+="<div class='fi' id='fi_"+f.id+"' onclick='selFile(\""+f.id+"\")'>";
-        html+="<span class='ftype ft-"+type+"'>"+type+"</span>";
-        html+="<span class='fn'>"+esc(f.name)+"</span>";
-        html+="<span class='fm'>"+fmtSz(f.size)+" &middot; "+fmtDt(f.modifiedTime)+"</span></div>";
-      });
-    }
-  });
-  if(groups.untyped.length){
-    html+="<div class='grp-hdr'>unassigned</div>";
-    groups.untyped.forEach(function(f){
-      html+="<div class='fi' id='fi_"+f.id+"' onclick='selFile(\""+f.id+"\")'>";
-      html+="<span class='fn'>"+esc(f.name)+"</span>";
-      html+="<span class='fm'>"+fmtSz(f.size)+" &middot; "+fmtDt(f.modifiedTime)+"</span></div>";
-    });
+    document.getElementById("fileList").innerHTML="<div class='empty'><div class='et'>No files mapped</div><div class='es'>Go to Settings to assign PDFs to each type.</div></div>";
+    return;
   }
-  el.innerHTML=html;
+  setDot("d","ok","DRIVE");
+  renderSidebarFiles(allMapped);
 }
 
-// FILE SELECT
-async function selFile(id){
+function renderSidebarFiles(files){
+  var types=["workout","injection","supplement","lab"];
+  var html="";
+  types.forEach(function(type){
+    var group=files.filter(function(f){return f.type===type;});
+    if(!group.length)return;
+    html+="<div class='grp-hdr'>"+type+"</div>";
+    group.forEach(function(f){
+      html+="<div class='fi' id='fi_"+f.id+"' onclick='selFile(\""+f.id+"\",\""+esc(f.name)+"\",\""+type+"\")'>";
+      html+="<span class='ftype ft-"+type+"'>"+type+"</span>";
+      html+="<span class='fn'>"+esc(f.name)+"</span></div>";
+    });
+  });
+  document.getElementById("fileList").innerHTML=html||"<div class='empty'><div class='et'>No files</div></div>";
+}
+
+// SELECT FILE
+async function selFile(id,name,type){
   document.querySelectorAll(".fi").forEach(function(e){e.classList.remove("active");});
   var fi=document.getElementById("fi_"+id);if(fi)fi.classList.add("active");
-  selFile=allDriveFiles.find(function(f){return f.id===id;});
-  if(!selFile)return;
-  document.getElementById("xEmpty").style.display="none";
-  document.getElementById("xUI").style.display="";
-  document.getElementById("xRes").style.display="none";
-  document.getElementById("pdfName").textContent=selFile.name;
-  document.getElementById("pdfPages").textContent="loading...";
+  curFile={id:id,name:name};pdfType=type;
+  extracted=[];
+  document.getElementById("revEmpty").style.display="none";
+  document.getElementById("revUI").style.display="";
+  document.getElementById("pdfName").textContent=name;
+  document.getElementById("pdfMeta").textContent="Loading...";
+  document.getElementById("pgGrid").innerHTML="";
+  document.getElementById("pgGrid").style.display="none";
+  document.getElementById("pgToggleLabel").innerHTML="&#9660; Show";
+  pagesVisible=false;
+  document.getElementById("aiPanel").style.display="none";
+  document.getElementById("revResults").innerHTML="";
   document.getElementById("extractBtn").disabled=true;
-  document.getElementById("pgGrid").innerHTML="<div style='padding:14px;color:var(--dd);font-size:11px'>Loading...</div>";
-  // Auto-detect type from mapping
-  var dt="workout";
-  Object.keys(cfg.types).forEach(function(type){
-    if(cfg.types[type].files.some(function(x){return x.id===id;}))dt=type;
-  });
-  // Fallback: filename detection
-  if(dt==="workout"){var nm=selFile.name.toLowerCase();if(nm.indexOf("inject")>=0||nm.indexOf("peptide")>=0)dt="injection";else if(nm.indexOf("lab")>=0||nm.indexOf("blood")>=0)dt="lab";else if(nm.indexOf("supp")>=0)dt="supplement";}
-  document.querySelectorAll(".tbtn").forEach(function(b){b.classList.toggle("active",b.dataset.type===dt);});
-  pdfType=dt;
-  var m=cfg.types[pdfType];if(m&&m.tableID){var s=document.getElementById("cTable");if(s)s.value=m.tableID;}
+  document.querySelectorAll(".tbtn").forEach(function(b){b.classList.toggle("active",b.dataset.type===type);});
+  showTab("review");
   try{
     var resp=await fetch("https://www.googleapis.com/drive/v3/files/"+id+"?alt=media",{headers:{Authorization:"Bearer "+gTok}});
     if(!resp.ok)throw new Error("HTTP "+resp.status);
     var buf=await resp.arrayBuffer();
     pdfDoc=await pdfjsLib.getDocument({data:buf}).promise;
-    document.getElementById("pdfPages").textContent=pdfDoc.numPages+" pages";
+    document.getElementById("pdfMeta").textContent=pdfDoc.numPages+" pages &middot; "+type;
     document.getElementById("pgCount").textContent="0/"+pdfDoc.numPages;
     document.getElementById("extractBtn").disabled=false;
     renderPgGrid();
-  }catch(e){toast("Load error: "+e.message,"tr");document.getElementById("pdfPages").textContent="error";}
+  }catch(e){toast("Load error: "+e.message,"tr");document.getElementById("pdfMeta").textContent="Load error";}
 }
 
-// PAGE GRID
 async function renderPgGrid(){
   var grid=document.getElementById("pgGrid");grid.innerHTML="";
   for(var i=1;i<=pdfDoc.numPages;i++){
@@ -484,7 +448,7 @@ async function renderPgGrid(){
 function getPrompt(type){
   var p={
     workout:"Extract workout set data from this handwritten gym log. Return JSON array, each object: date (YYYY-MM-DD or null), session (YYYY-MM-DD Day), day (Mon/Tue/etc), exercise (name), variation (implement or empty string), set_number (int), reps (int), weight (number lbs). ONLY JSON array.",
-    injection:"Extract peptide/injection log data. Return JSON array: date (YYYY-MM-DD or null), compound, dose (number), unit, time_of_day (AM/PM/Night or null), notes. ONLY JSON array.",
+    injection:"Extract peptide/injection log data. Return JSON array: date (YYYY-MM-DD or null), compound, dose (number), unit (u/mg/mcg/IU), time_of_day (AM/PM/Night or null), notes. ONLY JSON array.",
     supplement:"Extract supplement data. Return JSON array: date, name, dose, unit, time_of_day. ONLY JSON array.",
     lab:"Extract lab results. Return JSON array: date, marker, value, unit, ref_range, status (HIGH/LOW/Normal). ONLY JSON array."
   };
@@ -509,43 +473,35 @@ async function extractPage(n){
     raw=raw.replace(/```json\n?|```\n?/g,"").trim();
     var parsed=[];try{parsed=JSON.parse(raw);}catch(e){}
     if(!Array.isArray(parsed))parsed=[];
-    parsed=parsed.map(function(r){return Object.assign({},r,{_page:n,_src:selFile?selFile.name:"",_type:pdfType});});
+    parsed=parsed.map(function(r){return Object.assign({},r,{_page:n,_type:pdfType});});
     extracted=extracted.concat(parsed);
     w.classList.remove("busy");w.classList.add("done");
     s.textContent=parsed.length?""+parsed.length:"-";
-    updPgCount();renderExtracted();
+    updPgCount();
     toast("Pg "+n+": "+parsed.length+" records","tg");
   }catch(e){w.classList.remove("busy");s.textContent="!";toast("Pg "+n+" error","tr",5000);}
 }
 async function extractAll(){
   if(!pdfDoc)return;
-  document.getElementById("xAllBtn").disabled=true;
+  document.getElementById("extractBtn").disabled=true;
+  document.getElementById("extractBtn").textContent="Extracting...";
   for(var i=1;i<=pdfDoc.numPages;i++){await extractPage(i);await new Promise(function(r){setTimeout(r,350);});}
-  document.getElementById("xAllBtn").disabled=false;
-  document.getElementById("compareBtn").disabled=false;
+  document.getElementById("extractBtn").disabled=false;
+  document.getElementById("extractBtn").innerHTML="&#9654; Extract &amp; Compare";
+  // Auto-run compare
+  var m=cfg.types[pdfType];
+  if(m&&m.tableID)await runCompareAndSummarize(m.tableID);
   renderExportUI();
 }
-function startExtract(){extracted=[];document.getElementById("xRes").style.display="none";extractAll();}
+function startExtract(){extracted=[];document.getElementById("revResults").innerHTML="";document.getElementById("aiPanel").style.display="none";extractAll();}
 function updPgCount(){var d=document.querySelectorAll(".pt.done").length;document.getElementById("pgCount").textContent=d+"/"+(pdfDoc?pdfDoc.numPages:0);}
-function clearExtracted(){extracted=[];document.getElementById("xRes").style.display="none";document.querySelectorAll(".pt").forEach(function(e){e.classList.remove("done");});document.querySelectorAll("[id^='ps_']").forEach(function(e){e.textContent="";});updPgCount();}
-function renderExtracted(){
-  if(!extracted.length)return;
-  document.getElementById("xRes").style.display="";
-  document.getElementById("xCount").textContent=extracted.length;
-  var keys=dKeys(extracted);
-  document.getElementById("xHead").innerHTML="<tr>"+keys.map(function(k){return"<th>"+k+"</th>";}).join("")+"</tr>";
-  document.getElementById("xBody").innerHTML=extracted.map(function(r){return"<tr>"+keys.map(function(k){return"<td title='"+esc(r[k])+"'>"+esc(r[k])+"</td>";}).join("")+"</tr>";}).join("");
-  var uniq=extracted.filter(function(v,i,a){return a.findIndex(function(x){return x.date===v.date;})===i;}).length;
-  document.getElementById("xCards").innerHTML="<div class='card cardbl'><div class='cv'>"+extracted.length+"</div><div class='cl'>Records</div></div><div class='card cardg'><div class='cv'>"+uniq+"</div><div class='cl'>Dates</div></div><div class='card cardbl'><div class='cv'>"+(pdfDoc?pdfDoc.numPages:0)+"</div><div class='cl'>Pages</div></div>";
-}
 
 // AIRTABLE
 async function loadAtTables(){
   try{
     var r=await fetch("https://api.airtable.com/v0/meta/bases/"+ATB+"/tables",{headers:{Authorization:"Bearer "+ATK}});
     var d=await r.json();atTables=d.tables||[];setDot("a","ok","AT");
-    var sel=document.getElementById("cTable");
-    atTables.forEach(function(t){var o=document.createElement("option");o.value=t.id;o.textContent=t.name;sel.appendChild(o);});
+    // Update table names
     Object.keys(cfg.types).forEach(function(type){var m=cfg.types[type];if(m.tableID){var t=atTables.find(function(x){return x.id===m.tableID;});if(t)m.tableName=t.name;}});
   }catch(e){setDot("a","err","AT ERR");}
 }
@@ -556,31 +512,60 @@ async function fetchAt(tid){
   atCache[tid]=recs;return recs;
 }
 
-// COMPARE
-async function runCompare(){
-  if(!extracted.length){toast("Extract data first","tr");return;}
-  var tid=document.getElementById("cTable").value;if(!tid){toast("Select a table","tr");return;}
-  showTab("compare");document.getElementById("cEmpty").style.display="none";document.getElementById("cUI").style.display="";
-  document.getElementById("cResults").innerHTML="<div style='padding:16px;color:var(--dd)'>Loading...</div>";
-  var atRecs=await fetchAt(tid);
+// COMPARE + AI SUMMARY
+async function runCompareAndSummarize(tableID){
+  if(!extracted.length)return;
+  document.getElementById("revResults").innerHTML="<div style='padding:20px;color:var(--dd);font-size:11px'>Comparing against Airtable...</div>";
+  var atRecs=await fetchAt(tableID);
   var atMap={};atRecs.forEach(function(r){var fp=atFP(r);if(!atMap[fp])atMap[fp]=[];atMap[fp].push(r);});
   var results=extracted.map(function(er){var fp=exFP(er),hits=atMap[fp];if(hits&&hits.length){var diffs=findDiffs(er,hits[0]);return{er:er,at:hits[0],status:diffs.length?"diff":"match",diffs:diffs};}return{er:er,at:null,status:"missing",diffs:[]};});
   var exFPs={};extracted.forEach(function(er){exFPs[exFP(er)]=1;});
   var atOnly=atRecs.filter(function(r){return!exFPs[atFP(r)];});
-  renderCompareUI(results,atOnly);
+  renderResults(results,atOnly);
+  // AI Summary
+  await runAISummary(results,atOnly);
 }
 function atFP(r){var f=r.fields;return((f.Date||"").slice(0,10))+"|"+((f.Exercise||f.Name||f.Compound||f.Marker||"").toLowerCase())+"|"+(f["Set#"]||f.SetID||"");}
 function exFP(r){return((r.date||"").slice(0,10))+"|"+((r.exercise||r.compound||r.name||r.marker||"").toLowerCase())+"|"+(r.set_number||r.SetID||"");}
 function findDiffs(er,at){var diffs=[],map={weight:"Weight",reps:"Reps",dose:"Dose",value:"Value"};Object.keys(map).forEach(function(ek){var av=at.fields[map[ek]];if(er[ek]!=null&&av!=null&&String(er[ek])!==String(av))diffs.push({f:ek,ex:er[ek],at:av});});return diffs;}
-function renderCompareUI(results,atOnly){
-  var matched=results.filter(function(r){return r.status==="match";}).length,missing=results.filter(function(r){return r.status==="missing";}).length,diffs=results.filter(function(r){return r.status==="diff";}).length;
-  document.getElementById("cCards").innerHTML="<div class='card cardg'><div class='cv'>"+matched+"</div><div class='cl'>Matched</div></div><div class='card cardr'><div class='cv'>"+missing+"</div><div class='cl'>Missing</div></div><div class='card cardy'><div class='cv'>"+diffs+"</div><div class='cl'>Diffs</div></div><div class='card cardbl'><div class='cv'>"+atOnly.length+"</div><div class='cl'>AT Only</div></div>";
-  var html=[],keys=dKeys(extracted).filter(function(k){return k[0]!=="_";});
-  if(missing)html.push("<div class='sec'><div class='sech'><span class='sect sectr'>Missing from Airtable</span><span class='secc'>"+missing+"</span></div><div class='tw'><table class='tbl'><thead><tr>"+keys.map(function(k){return"<th>"+k+"</th>";}).join("")+"</tr></thead><tbody>"+results.filter(function(r){return r.status==="missing";}).map(function(r){return"<tr>"+keys.map(function(k){return"<td class='tcr'>"+esc(r.er[k])+"</td>";}).join("")+"</tr>";}).join("")+"</tbody></table></div></div>");
-  if(diffs)html.push("<div class='sec'><div class='sech'><span class='sect secty'>Mismatches</span><span class='secc'>"+diffs+"</span></div><div class='tw'><table class='tbl'><thead><tr><th>Date</th><th>Record</th><th>Field</th><th>PDF</th><th>AT</th></tr></thead><tbody>"+results.filter(function(r){return r.status==="diff";}).map(function(r){return r.diffs.map(function(d){return"<tr><td>"+esc(r.er.date)+"</td><td>"+esc(r.er.exercise||r.er.compound||"")+"</td><td class='tcy'>"+d.f+"</td><td class='tcy'>"+esc(d.ex)+"</td><td class='tcd'>"+esc(d.at)+"</td></tr>";}).join("");}).join("")+"</tbody></table></div></div>");
-  if(atOnly.length){var ak=Object.keys(atOnly[0].fields).slice(0,5);html.push("<div class='sec'><div class='sech'><span class='sect sectbl'>In Airtable Only</span><span class='secc'>"+atOnly.length+"</span></div><div class='tw'><table class='tbl'><thead><tr>"+ak.map(function(k){return"<th>"+k+"</th>";}).join("")+"</tr></thead><tbody>"+atOnly.map(function(r){return"<tr>"+ak.map(function(k){return"<td class='tcd'>"+esc(r.fields[k])+"</td>";}).join("")+"</tr>";}).join("")+"</tbody></table></div></div>");}
-  if(!missing&&!diffs&&!atOnly.length&&matched)html.push("<div class='sec'><div class='sech'><span class='sect sectg'>&#10003; All "+matched+" records match</span></div></div>");
-  document.getElementById("cResults").innerHTML=html.join("")||"<div class='empty'><div class='et'>Clean</div></div>";
+
+async function runAISummary(results,atOnly){
+  var panel=document.getElementById("aiPanel");
+  panel.style.display="";
+  panel.innerHTML="<div class='ai-panel'><div class='ai-panel-hdr'><span style='font-size:16px'>&#129302;</span><span class='ai-panel-title'>Claude is reviewing results...</span></div></div>";
+  var matched=results.filter(function(r){return r.status==="match";}).length;
+  var missing=results.filter(function(r){return r.status==="missing";}).length;
+  var diffs=results.filter(function(r){return r.status==="diff";}).length;
+  var missingEx=results.filter(function(r){return r.status==="missing";}).slice(0,5).map(function(r){return(r.er.date||"?")+" "+(r.er.exercise||r.er.compound||r.er.name||"");}).join(", ");
+  var diffEx=results.filter(function(r){return r.status==="diff";}).slice(0,3).map(function(r){return r.diffs.map(function(d){return(r.er.exercise||r.er.compound||"")+" "+d.f+": PDF="+d.ex+" AT="+d.at;}).join("; ");}).join(" | ");
+  var summary="PDF: "+curFile.name+" | Type: "+pdfType+" | Extracted: "+extracted.length+" records | Matched: "+matched+" | Missing from Airtable: "+missing+(missingEx?" (e.g. "+missingEx+")":"")+" | Value diffs: "+diffs+(diffEx?" (e.g. "+diffEx+")":"")+" | In AT only: "+atOnly.length;
+  try{
+    var resp=await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:300,
+        messages:[{role:"user",content:"You are reviewing health data QA results. Give a 2-3 sentence summary of the data quality findings and what needs attention. Be direct and specific. Data: "+summary}]})
+    });
+    var data=await resp.json();
+    var text=((data.content||[]).find(function(x){return x.type==="text";})||{text:""}).text;
+    panel.innerHTML="<div class='ai-panel'><div class='ai-panel-hdr'><span style='font-size:16px'>&#129302;</span><span class='ai-panel-title'>Claude&#39;s Review</span></div><div class='ai-panel-body'>"+esc(text)+"</div></div>";
+  }catch(e){panel.style.display="none";}
+}
+
+function renderResults(results,atOnly){
+  var matched=results.filter(function(r){return r.status==="match";}).length;
+  var missing=results.filter(function(r){return r.status==="missing";}).length;
+  var diffs=results.filter(function(r){return r.status==="diff";}).length;
+  var html="<div class='cards'>";
+  html+="<div class='card cardg'><div class='cv'>"+matched+"</div><div class='cl'>Matched</div></div>";
+  html+="<div class='card cardr'><div class='cv'>"+missing+"</div><div class='cl'>Missing</div></div>";
+  html+="<div class='card cardy'><div class='cv'>"+diffs+"</div><div class='cl'>Diffs</div></div>";
+  html+="<div class='card cardbl'><div class='cv'>"+atOnly.length+"</div><div class='cl'>AT Only</div></div>";
+  html+="</div>";
+  var keys=dKeys(extracted).filter(function(k){return k[0]!=="_";});
+  if(missing)html+="<div class='sec'><div class='sech'><span class='sect sectr'>Missing from Airtable</span><span class='secc'>"+missing+"</span></div><div class='tw'><table class='tbl'><thead><tr>"+keys.map(function(k){return"<th>"+k+"</th>";}).join("")+"</tr></thead><tbody>"+results.filter(function(r){return r.status==="missing";}).map(function(r){return"<tr>"+keys.map(function(k){return"<td class='tcr'>"+esc(r.er[k])+"</td>";}).join("")+"</tr>";}).join("")+"</tbody></table></div></div>";
+  if(diffs)html+="<div class='sec'><div class='sech'><span class='sect secty'>Value Mismatches</span><span class='secc'>"+diffs+"</span></div><div class='tw'><table class='tbl'><thead><tr><th>Date</th><th>Record</th><th>Field</th><th>PDF Value</th><th>Airtable Value</th></tr></thead><tbody>"+results.filter(function(r){return r.status==="diff";}).map(function(r){return r.diffs.map(function(d){return"<tr><td>"+esc(r.er.date)+"</td><td>"+esc(r.er.exercise||r.er.compound||"")+"</td><td class='tcy'>"+d.f+"</td><td class='tcy'>"+esc(d.ex)+"</td><td class='tcd'>"+esc(d.at)+"</td></tr>";}).join("");}).join("")+"</tbody></table></div>";
+  if(!missing&&!diffs&&!atOnly.length&&matched)html+="<div class='sec'><div class='sech'><span class='sect sectg'>&#10003; All "+matched+" records match perfectly</span></div></div>";
+  document.getElementById("revResults").innerHTML=html;
 }
 
 // EXPORT
@@ -591,126 +576,124 @@ function renderExportUI(){
   document.getElementById("eHead").innerHTML="<tr>"+keys.map(function(k){return"<th>"+k+"</th>";}).join("")+"</tr>";
   document.getElementById("eBody").innerHTML=extracted.slice(0,50).map(function(r){return"<tr>"+keys.map(function(k){return"<td>"+esc(r[k])+"</td>";}).join("")+"</tr>";}).join("")+(extracted.length>50?"<tr><td colspan='"+keys.length+"' class='tcd'>... "+(extracted.length-50)+" more</td></tr>":"");
 }
-function exportJSON(){dl(new Blob([JSON.stringify(extracted,null,2)],{type:"application/json"}),(selFile?selFile.name.replace(".pdf",""):"data")+"_"+today()+".json");toast("Exported","tg");}
-function exportCSV(){if(!extracted.length)return;var keys=dKeys(extracted);var rows=[keys.join(",")].concat(extracted.map(function(r){return keys.map(function(k){var v=String(r[k]||"");return v.indexOf(",")>=0?'"'+v+'"':v;}).join(",");}));dl(new Blob([rows.join("\n")],{type:"text/csv"}),(selFile?selFile.name.replace(".pdf",""):"data")+"_"+today()+".csv");toast("Exported","tg");}
-function exportDiff(){dl(new Blob([document.getElementById("cResults").innerText],{type:"text/plain"}),"diff_"+today()+".txt");}
+function exportJSON(){dl(new Blob([JSON.stringify(extracted,null,2)],{type:"application/json"}),(curFile?curFile.name.replace(".pdf",""):"data")+"_"+today()+".json");toast("Exported","tg");}
+function exportCSV(){if(!extracted.length)return;var keys=dKeys(extracted);var rows=[keys.join(",")].concat(extracted.map(function(r){return keys.map(function(k){var v=String(r[k]||"");return v.indexOf(",")>=0?'"'+v+'"':v;}).join(",");}));dl(new Blob([rows.join("\n")],{type:"text/csv"}),(curFile?curFile.name.replace(".pdf",""):"data")+"_"+today()+".csv");toast("Exported","tg");}
 async function pushToAT(){
-  var tid=document.getElementById("cTable").value;if(!tid){toast("Select table on Compare tab","tr");return;}
-  if(!confirm("Push "+extracted.length+" records?"))return;
+  var m=cfg.types[pdfType];var tid=m?m.tableID:"";if(!tid){toast("No table mapped for "+pdfType,"tr");return;}
+  if(!confirm("Push "+extracted.length+" records to "+m.tableName+"?"))return;
   var pushed=0,failed=0;
-  for(var i=0;i<extracted.length;i+=10){
-    var chunk=extracted.slice(i,i+10);
-    try{await fetch("https://api.airtable.com/v0/"+ATB+"/"+tid,{method:"POST",headers:{Authorization:"Bearer "+ATK,"Content-Type":"application/json"},body:JSON.stringify({records:chunk.map(function(r){return{fields:toAtF(r)};}),typecast:true})});pushed+=chunk.length;}catch(e){failed+=chunk.length;}
-    await new Promise(function(r){setTimeout(r,200);});
-  }
+  for(var i=0;i<extracted.length;i+=10){var chunk=extracted.slice(i,i+10);try{await fetch("https://api.airtable.com/v0/"+ATB+"/"+tid,{method:"POST",headers:{Authorization:"Bearer "+ATK,"Content-Type":"application/json"},body:JSON.stringify({records:chunk.map(function(r){return{fields:toAtF(r)};}),typecast:true})});pushed+=chunk.length;}catch(e){failed+=chunk.length;}await new Promise(function(r){setTimeout(r,200);});}
   toast("Pushed "+pushed+(failed?", failed "+failed:""),pushed?"tg":"tr");
 }
 function toAtF(r){var map={date:"Date",exercise:"Exercise",variation:"Variation",set_number:"Set#",reps:"Reps",weight:"Weight",session:"Session",day:"Day",notes:"Notes",compound:"Name",dose:"Dose",unit:"Unit",time_of_day:"Time",marker:"Marker",value:"Value",ref_range:"Ref Range",status:"Status"};var out={};Object.keys(map).forEach(function(k){if(r[k]!=null&&r[k]!=="")out[map[k]]=r[k];});return out;}
 
 // SETTINGS
 function renderSettings(){
-  renderTypeSections();
-  renderAtMap();
-}
-function renderTypeSections(){
   var types=["workout","injection","supplement","lab"];
-  var html=types.map(function(type){
+  document.getElementById("typeSections").innerHTML=types.map(function(type){
     var m=cfg.types[type];
-    var chips=m.files.map(function(f,i){
-      return "<span class='chip'><span>"+esc(f.name)+"</span><span class='chip-x' onclick='removeFile(\""+type+"\","+i+")'>&#x2715;</span></span>";
-    }).join("");
+    var chips=m.files.map(function(f,i){return"<span class='chip'><span>"+esc(f.name)+"</span><span class='chip-x' onclick='removeFile(\""+type+"\","+i+")'>&#x2715;</span></span>";}).join("");
     chips+="<span class='chip chip-add' onclick='openPicker(\""+type+"\")'>+ Add PDFs</span>";
-    return "<div class='type-section'>"+
-      "<div class='type-hdr'><span class='type-badge type-"+type+"'>"+type+"</span><span style='font-size:11px;color:var(--d);font-family:var(--mono)'>"+m.files.length+" file"+(m.files.length!==1?"s":"")+" assigned</span></div>"+
-      "<div class='type-body'><div style='padding:10px 14px;display:flex;flex-wrap:wrap;gap:5px;align-items:center' id='chips_"+type+"'>"+chips+"</div></div>"+
-    "</div>";
+    return "<div class='type-section'><div class='type-hdr'><span class='type-badge type-"+type+"'>"+type+"</span><span style='font-size:11px;color:var(--d)'>"+m.files.length+" file"+(m.files.length!==1?"s":"")+"</span></div><div class='type-body' id='chips_"+type+"'>"+chips+"</div></div>";
   }).join("");
-  document.getElementById("typeSections").innerHTML=html;
-}
-function renderAtMap(){
   var tbody=document.getElementById("atMapBody");
-  var types=["workout","injection","supplement","lab"];
-  var rows=types.map(function(type){
-    var m=cfg.types[type];
-    var cur=m.tableID||"";
+  tbody.innerHTML=types.map(function(type){
+    var m=cfg.types[type];var cur=m.tableID||"";
     var opts="<option value=''>&#8212;</option>"+atTables.map(function(t){return"<option value='"+t.id+"'"+(t.id===cur?" selected":"")+">"+t.name+"</option>";}).join("");
-    return "<tr style='border-bottom:1px solid var(--b)'>"+
-      "<td style='padding:8px 11px'><span class='type-badge type-"+type+"'>"+type+"</span></td>"+
-      "<td style='padding:6px 11px'><select class='inp' style='width:100%' id='atsel_"+type+"'>"+opts+"</select></td>"+
-    "</tr>";
+    return "<tr style='border-bottom:1px solid var(--b)'><td style='padding:8px 12px'><span class='type-badge type-"+type+"'>"+type+"</span></td><td style='padding:6px 12px'><select class='inp' style='width:100%' id='atsel_"+type+"'>"+opts+"</select></td></tr>";
   }).join("");
-  tbody.innerHTML=rows;
 }
-function removeFile(type,idx){
-  cfg.types[type].files.splice(idx,1);
-  saveCfg();renderTypeSections();renderFileList();
-  toast("Removed","ti");
+function removeFile(type,idx){cfg.types[type].files.splice(idx,1);saveCfg();renderSettings();loadMappedFiles();toast("Removed","ti");}
+function saveSettings(){
+  ["workout","injection","supplement","lab"].forEach(function(type){var s=document.getElementById("atsel_"+type);if(s){cfg.types[type].tableID=s.value;var t=atTables.find(function(x){return x.id===s.value;});if(t)cfg.types[type].tableName=t.name;}});
+  saveCfg();
+  var el=document.getElementById("saveStatus");if(el){el.textContent="Saved "+new Date().toLocaleTimeString();setTimeout(function(){el.textContent="";},3000);}
+  toast("Saved","tg");loadMappedFiles();
+}
+function resetAll(){if(!confirm("Reset?"))return;localStorage.removeItem("mb_pdfqa4");location.reload();}
+
+// FOLDER BROWSER
+async function fetchFolderContents(folderId){
+  if(folderCache[folderId])return folderCache[folderId];
+  var qId=folderId==="root"?"'root' in parents":"'"+folderId+"' in parents";
+  var url="https://www.googleapis.com/drive/v3/files?q="+encodeURIComponent(qId+" and trashed=false")+"&fields=files(id,name,mimeType,size,modifiedTime)&pageSize=200&orderBy=folder,name";
+  var r=await fetch(url,{headers:{Authorization:"Bearer "+gTok}});
+  var d=await r.json();
+  if(d.error)throw new Error(d.error.message);
+  var items=d.files||[];
+  folderCache[folderId]=items;
+  return items;
 }
 
-// PICKER
 function openPicker(type){
-  if(!gTok){toast("Sign in to Google first","tr");return;}
-  if(!allDriveFiles.length){toast("Loading Drive files...","ti");loadDrive().then(function(){openPicker(type);});return;}
-  pickerType=type;pickerPending=[];
-  document.getElementById("pickerTitle").textContent="Add PDFs — "+type;
-  document.getElementById("pickerSub").textContent="Select one or more PDFs to assign to "+type;
+  if(!gTok){toast("Sign in first","tr");return;}
+  pickerType=type;pickerPending=[];folderStack=[];
+  document.getElementById("pickerTitle").textContent="Add PDFs \u2014 "+type;
   document.getElementById("pickerSearch").value="";
-  renderPickerList("");
   document.getElementById("pickerModal").classList.add("open");
+  navigateToFolder("root","My Drive");
+}
+async function navigateToFolder(folderId,folderName){
+  document.getElementById("pickerList").innerHTML="<div style='padding:20px;text-align:center;color:var(--dd);font-size:11px'>Loading...</div>";
+  // Update stack
+  var existing=folderStack.findIndex(function(f){return f.id===folderId;});
+  if(existing>=0)folderStack=folderStack.slice(0,existing+1);
+  else folderStack.push({id:folderId,name:folderName});
+  renderBreadcrumb();
+  try{
+    curFolderItems=await fetchFolderContents(folderId);
+    renderPickerList(document.getElementById("pickerSearch").value);
+  }catch(e){document.getElementById("pickerList").innerHTML="<div style='padding:20px;text-align:center;color:var(--r);font-size:11px'>Error: "+esc(e.message)+"</div>";}
+}
+function renderBreadcrumb(){
+  var bc=document.getElementById("breadcrumb");
+  bc.innerHTML=folderStack.map(function(f,i){
+    var isCur=i===folderStack.length-1;
+    return "<span class='bc-item"+(isCur?" current":"")+"'"+(isCur?"":" onclick='navigateToFolder(\""+f.id+"\",\""+esc(f.name)+"\")'")+">"+(i>0?"&#128193; ":"")+esc(f.name)+"</span>"+(isCur?"":"<span class='bc-sep'>&#8250;</span>");
+  }).join("");
 }
 function renderPickerList(filter){
   var already=cfg.types[pickerType]?cfg.types[pickerType].files.map(function(f){return f.id;}):[];
-  var files=allDriveFiles.filter(function(f){
-    return !filter||f.name.toLowerCase().indexOf(filter.toLowerCase())>=0;
+  var items=curFolderItems.filter(function(f){
+    if(filter&&f.name.toLowerCase().indexOf(filter.toLowerCase())<0)return false;
+    return f.mimeType===FOLDER_MIME||f.mimeType==="application/pdf";
   });
-  var html=files.map(function(f){
-    var isSel=pickerPending.indexOf(f.id)>=0;
-    var isAssigned=already.indexOf(f.id)>=0;
-    return "<div class='mfile"+(isSel?" checked":"")+"' id='pfi_"+f.id+"' onclick='togglePicker(\""+f.id+"\",\""+esc(f.name)+"\")'>"+ 
-      "<input type='checkbox' id='pfc_"+f.id+"'"+(isSel?" checked":"")+(isAssigned?" disabled":"")+" onclick='event.stopPropagation();togglePicker(\""+f.id+"\",\""+esc(f.name)+"\")'>" +
-      "<span class='mfile-name'>"+esc(f.name)+(isAssigned?" <span style='color:var(--g);font-size:9px'>(already assigned)</span>":"")+"</span>"+
-      "<span class='mfile-meta'>"+fmtSz(f.size)+"</span>"+
-    "</div>";
+  if(!items.length){document.getElementById("pickerList").innerHTML="<div style='padding:20px;text-align:center;color:var(--dd);font-size:11px'>No folders or PDFs here</div>";updatePickerCount();return;}
+  var html=items.map(function(f){
+    var isFolder=f.mimeType===FOLDER_MIME;
+    var isSel=!isFolder&&pickerPending.indexOf(f.id)>=0;
+    var isAssigned=!isFolder&&already.indexOf(f.id)>=0;
+    if(isFolder){
+      return "<div class='mitem' onclick='navigateToFolder(\""+f.id+"\",\""+esc(f.name)+"\")'><div class='mitem-icon'>&#128193;</div><div class='mitem-name'>"+esc(f.name)+"</div><div class='mitem-arrow'>&#8250;</div></div>";
+    }
+    return "<div class='mitem"+(isSel?" checked":"")+(isAssigned?" disabled":"")+"' id='pfi_"+f.id+"' onclick='"+(isAssigned?"":"togglePicker(\""+f.id+"\",\""+esc(f.name)+"\")")+"'><input type='checkbox'"+(isSel?" checked":"")+(isAssigned?" disabled checked":"")+" onclick='event.stopPropagation();"+(isAssigned?"":"togglePicker(\""+f.id+"\",\""+esc(f.name)+"\")")+"' style='accent-color:var(--bl);width:15px;height:15px;flex-shrink:0;cursor:pointer'><div class='mitem-name'>"+esc(f.name)+(isAssigned?" <span style='font-size:9px;color:var(--g)'>(assigned)</span>":"")+"</div><div class='mitem-meta'>"+fmtSz(f.size)+"</div></div>";
   }).join("");
-  document.getElementById("pickerList").innerHTML=html||"<div style='padding:20px;text-align:center;color:var(--dd);font-size:11px'>No files found</div>";
+  document.getElementById("pickerList").innerHTML=html;
   updatePickerCount();
 }
 function togglePicker(id,name){
   var already=cfg.types[pickerType]?cfg.types[pickerType].files.map(function(f){return f.id;}):[];
   if(already.indexOf(id)>=0)return;
   var idx=pickerPending.indexOf(id);
-  if(idx>=0)pickerPending.splice(idx,1);
-  else pickerPending.push(id);
+  if(idx>=0)pickerPending.splice(idx,1);else pickerPending.push(id);
   var el=document.getElementById("pfi_"+id);if(el)el.classList.toggle("checked",pickerPending.indexOf(id)>=0);
-  var cb=document.getElementById("pfc_"+id);if(cb)cb.checked=pickerPending.indexOf(id)>=0;
+  var cb=el?el.querySelector("input"):null;if(cb)cb.checked=pickerPending.indexOf(id)>=0;
   updatePickerCount();
 }
+function filterItems(){renderPickerList(document.getElementById("pickerSearch").value);}
 function updatePickerCount(){document.getElementById("pickerSelCount").textContent=pickerPending.length+" selected";}
-function filterPickerFiles(){renderPickerList(document.getElementById("pickerSearch").value);}
 function closePickerModal(){document.getElementById("pickerModal").classList.remove("open");pickerType=null;pickerPending=[];}
 function confirmPicker(){
   if(!pickerPending.length){toast("No files selected","tr");return;}
   pickerPending.forEach(function(id){
-    var f=allDriveFiles.find(function(x){return x.id===id;});
-    if(f)cfg.types[pickerType].files.push({id:f.id,name:f.name});
+    var f=curFolderItems.find(function(x){return x.id===id;})||{id:id,name:id};
+    cfg.types[pickerType].files.push({id:f.id,name:f.name});
   });
-  saveCfg();renderTypeSections();renderFileList();
+  saveCfg();renderSettings();loadMappedFiles();
   toast("Added "+pickerPending.length+" file"+(pickerPending.length!==1?"s":"")+" to "+pickerType,"tg");
   closePickerModal();
 }
 document.getElementById("pickerModal").addEventListener("click",function(e){if(e.target===this)closePickerModal();});
-
-function saveSettings(){
-  var types=["workout","injection","supplement","lab"];
-  types.forEach(function(type){
-    var sel=document.getElementById("atsel_"+type);if(sel){cfg.types[type].tableID=sel.value;var t=atTables.find(function(x){return x.id===sel.value;});if(t)cfg.types[type].tableName=t.name;}
-  });
-  saveCfg();
-  var el=document.getElementById("saveStatus");if(el){el.textContent="Saved "+new Date().toLocaleTimeString();setTimeout(function(){el.textContent="";},3000);}
-  toast("Settings saved","tg");
-  renderFileList();
-}
-function resetAll(){if(!confirm("Reset all settings?"))return;localStorage.removeItem("mb_pdfqa3");location.reload();}
 
 window.addEventListener("load",function(){loadCfg();loadAtTables();initAuth();});
 </script>
