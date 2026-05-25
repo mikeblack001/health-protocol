@@ -225,7 +225,8 @@ select.inp{cursor:pointer}
               <div style="margin-left:8px;display:flex;gap:6px">
                 <button class="navbtn" onclick="markPage('ok')" id="markOkBtn" title="Mark Verified">&#10003;</button>
                 <button class="navbtn" onclick="markPage('flagged')" id="markFlagBtn" title="Flag Issue">&#9873;</button>
-                <button class="navbtn" onclick="sendToClaude()" title="Download page to send to Claude" style="background:#2255cc;color:#fff;border-color:#2255cc">&#8595; Send to Claude</button>
+                <button class="navbtn" id="extractBtn" onclick="extractCurrentPage()" style="background:#00a855;color:#fff;border-color:#00a855">&#8659; Extract Page</button>
+                <button class="navbtn" onclick="sendToClaude()" title="Download page" style="background:#2255cc;color:#fff;border-color:#2255cc">&#8595; Download</button>
               </div>
               <div class="img-meta" id="imgMeta"></div>
             </div>
@@ -337,6 +338,58 @@ var GSC = "https://www.googleapis.com/auth/drive.readonly";
 var ATK = "pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a";
 var ATB = "appmHDG4TGT1xy6R6";
 var FOLDER_MIME = "application/vnd.google-apps.folder";
+var WORKER_URL = "https://anthropic-proxy.mikeblack01.workers.dev";
+
+function getPrompt(type) {
+  var p = {
+    workout: "Extract workout set data from this handwritten gym log. Return ONLY a JSON array, each object: {date, session, day, exercise, variation, set_number, reps, weight}. date=YYYY-MM-DD, session='YYYY-MM-DD Day', day=Mon/Tue/etc, weight=number lbs. No explanation.",
+    injection: "Extract peptide/injection log data. Return ONLY a JSON array: [{date, compound, dose, unit, time_of_day, notes}]. date=YYYY-MM-DD. No explanation.",
+    supplement: "Extract supplement data. Return ONLY a JSON array: [{date, name, dose, unit, time_of_day}]. No explanation.",
+    lab: "Extract lab results. Return ONLY a JSON array: [{date, marker, value, unit, ref_range, status}]. No explanation."
+  };
+  return p[type] || p.workout;
+}
+
+async function extractCurrentPage() {
+  if (!pages[curPage]) return;
+  var btn = document.getElementById("extractBtn");
+  btn.disabled = true; btn.textContent = "Extracting...";
+  try {
+    var b64 = pages[curPage].url.split(",")[1];
+    var resp = await fetch(WORKER_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514", max_tokens: 4000,
+        system: getPrompt(pdfType),
+        messages: [{ role: "user", content: [
+          { type: "image", source: { type: "base64", media_type: "image/jpeg", data: b64 } },
+          { type: "text", text: "Page " + (curPage+1) + " of " + pages.length }
+        ]}]
+      })
+    });
+    var data = await resp.json();
+    var raw = ((data.content || []).find(function(x) { return x.type === "text"; }) || {text:"[]"}).text;
+    raw = raw.replace(/```json\n?|```\n?/g, "").trim();
+    var parsed = []; try { parsed = JSON.parse(raw); } catch(e) {}
+    if (!Array.isArray(parsed)) parsed = [];
+    renderExtracted(parsed);
+    markPage("ok");
+    toast("Extracted " + parsed.length + " records", "tg");
+  } catch(e) { toast("Extract error: " + e.message, "tr"); }
+  btn.disabled = false; btn.textContent = "\u21e9 Extract Page";
+}
+
+function renderExtracted(records) {
+  var existing = document.getElementById("extractedPanel");
+  if (existing) existing.remove();
+  if (!records.length) return;
+  var keys = Object.keys(records[0]).filter(function(k){return k[0]!=="\_";}).slice(0,8);
+  var html = "<div class='sec' id='extractedPanel' style='margin-top:10px'><div class='sech'><span class='sect sectg'>Extracted — Page "+(curPage+1)+"</span><span class='secc'>"+records.length+"</span></div><div style='overflow-x:auto'><table class='tbl'><thead><tr>"+keys.map(function(k){return"<th>"+k+"</th>";}).join("")+"</tr></thead><tbody>";
+  records.forEach(function(r){html+="<tr>"+keys.map(function(k){return"<td>"+esc(r[k]!=null?r[k]:"\u2014")+"</td>";}).join("")+"</tr>";});
+  html+="</tbody></table></div></div>";
+  document.getElementById("atScroll").insertAdjacentHTML("beforeend", html);
+}
 // Set pdf.js worker
 if (typeof pdfjsLib !== "undefined") pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 
