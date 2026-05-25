@@ -5583,39 +5583,138 @@ function renderVerifyResults(rows, startDate, endDate) {
   });
   var html = "<div style='display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px'>";
   html += "<span style='font-size:10px;color:var(--dd);font-family:var(--mono)'>Run: "+runDate+" · "+startDate+" → "+endDate+"</span>";
-  html += "<div style='display:flex;gap:6px'>";
+  html += "<div style='display:flex;gap:6px;flex-wrap:wrap'>";
   html += "<button class='btn bg-btn' style='font-size:10px;padding:4px 10px' onclick='toggleDiffSort()'>&#8597; " + (_diffSort==='asc'?'Oldest first':'Newest first') + "</button>";
-  html += "<button class='btn bg-btn' style='font-size:10px;padding:4px 10px' onclick='backToExtracted()'>&#8592; Back to Extracted</button>";
+  html += "<button class='btn bg-btn' style='font-size:10px;padding:4px 10px' onclick='backToExtracted()'>&#8592; Back</button>";
   html += "<button class='btn bg-btn' style='font-size:10px;padding:4px 10px' onclick='copyForClaude()'>&#128203; Send to Claude</button>";
   html += "</div></div>";
-  html += "<div style=\'display:flex;gap:20px;margin-bottom:14px;padding:12px 16px;background:var(--s);border:1px solid var(--b);border-radius:6px\'>";
+  // Stats + bulk actions
+  html += "<div style='display:flex;align-items:center;gap:12px;margin-bottom:14px;padding:12px 16px;background:var(--s);border:1px solid var(--b);border-radius:6px;flex-wrap:wrap'>";
   html += stat(ok,"Match","var(--g)") + stat(wrong,"Wrong","var(--y)") + stat(missing,"Missing","var(--r)") + stat(extra,"Extra","var(--bl)");
+  if (missing > 0) html += "<button class='btn bp' style='margin-left:auto;font-size:11px;padding:6px 14px' onclick='addAllMissing()'>&#43; Add All Missing ("+missing+")</button>";
+  if (extra > 0) html += "<button class='btn br' style='font-size:11px;padding:6px 14px' onclick='deleteAllExtra()'>&#x2715; Delete All Extra ("+extra+")</button>";
   html += "</div>";
-  html += "<div style=\'overflow-x:auto\'><table class=\'tbl\' style=\'width:100%;font-size:11px\'><thead><tr style=\'background:var(--s2)\'>";
+  html += "<div style='overflow-x:auto'><table class='tbl' style='width:100%;font-size:11px'><thead><tr style='background:var(--s2)'>";
   ["Date","Compound","PDF Side","PDF Dose","PDF TOD","AT Side","AT Dose","AT TOD","Notes","Issues",""].forEach(function(h){
-    html += "<th style=\'padding:7px 10px;text-align:left;font-size:9px;letter-spacing:1.2px;text-transform:uppercase;font-family:var(--mono);color:var(--d);border-bottom:1px solid var(--b)\'>" + h + "</th>";
+    html += "<th style='padding:7px 10px;text-align:left;font-size:9px;letter-spacing:1.2px;text-transform:uppercase;font-family:var(--mono);color:var(--d);border-bottom:1px solid var(--b)'>" + h + "</th>";
   });
   html += "</tr></thead><tbody>";
   sorted.forEach(function(r, idx) {
     var bg = r.status==="missing" ? "background:var(--rd)" : r.status==="extra" ? "background:var(--bld)" : r.status==="wrong" ? "background:var(--yd)" : "";
     var p = r.pdf || {}, a = r.at || {};
-    html += "<tr style=\'" + bg + "\'>";
+    html += "<tr id='vrow-"+idx+"' style='" + bg + "'>";
     html += td(r.date);
-    html += "<td style=\'padding:6px 10px;font-weight:600\'>" + esc(r.compound) + "</td>";
+    html += "<td style='padding:6px 10px;font-weight:600'>" + esc(r.compound) + "</td>";
     html += tdMono(p.side||"—"); html += tdMono(p.dose||"—"); html += tdMono(p.tod||"—");
     html += tdMono(a.side||"—"); html += tdMono(a.dose||"—"); html += tdMono(a.tod||"—");
-    html += "<td style=\'padding:6px 10px;font-size:10px;color:var(--d);max-width:160px\'>" + esc((p.notes||a.notes||"")) + "</td>";
+    html += "<td style='padding:6px 10px;font-size:10px;color:var(--d);max-width:160px'>" + esc((p.notes||a.notes||"")) + "</td>";
     var ic = r.status==="ok"?"color:var(--g)":r.status==="missing"?"color:var(--r)":r.status==="extra"?"color:var(--bl)":"color:var(--y)";
-    html += "<td style=\'padding:6px 10px;font-size:10px;"+ic+"\'>" + esc(r.issues.join("; ")||"✓") + "</td>";
-    // Action cell
+    html += "<td style='padding:6px 10px;font-size:10px;"+ic+"'>" + esc(r.issues.join("; ")||"✓") + "</td>";
     var act = "";
-    if (r.status === "missing") act = "<button class=\'btn bg-btn\' style=\'font-size:9px;padding:3px 8px\' onclick=\'flagMissing("+idx+")\''>Flag</button>";
-    if (r.status === "wrong" && a.id) act = "<button class=\'btn bg-btn\' style=\'font-size:9px;padding:3px 8px\' onclick=\'fixRecord(\""+a.id+"\","+idx+")\''>Fix AT</button>";
-    html += "<td style=\'padding:6px 8px\'>" + act + "</td>";
+    if (r.status === "missing") act = "<button class='btn bp' style='font-size:9px;padding:3px 8px' onclick='addToAT("+idx+")'>+ Add</button>";
+    if (r.status === "extra" && a.id) act = "<button class='btn br' style='font-size:9px;padding:3px 8px' onclick='deleteFromAT(\""+a.id+"\","+idx+")'>✕ Delete</button>";
+    if (r.status === "wrong" && a.id) act = "<button class='btn by' style='font-size:9px;padding:3px 8px' onclick='fixRecord(\""+a.id+"\","+idx+")'>Fix</button>";
+    html += "<td style='padding:6px 8px'>" + act + "</td>";
     html += "</tr>";
   });
   html += "</tbody></table></div>";
-  resEl.innerHTML = html.replace(/\\'/g, "'");
+  resEl.innerHTML = html;
+}
+
+async function addToAT(idx) {
+  var r = verifyRowData[idx];
+  if (!r || !r.pdf) return;
+  var btn = document.querySelector('#vrow-' + idx + ' button');
+  if (btn) { btn.disabled = true; btn.textContent = '...'; }
+  try {
+    var fields = {
+      'fldhYEtLEGA4VxvvO': r.date,
+      'fldwVFyizH4mBANBa': r.compound,
+      'fldHDlJY8FpAvK018': r.pdf.side || '',
+      'fldIdzew4Jd0qO4Uc': r.pdf.tod || '',
+      'fld8d8mtRapfaIyqL': r.pdf.dose || ''
+    };
+    if (r.pdf.notes) fields['Notes'] = r.pdf.notes;
+    var resp = await fetch('https://api.airtable.com/v0/' + BASE + '/tblBvEaLkGGipnOFc', {
+      method: 'POST', headers: { Authorization: 'Bearer ' + TOKEN, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ records: [{ fields: fields }], typecast: true })
+    });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    toast('Added: ' + r.compound + ' ' + r.date, 'tg');
+    var row = document.getElementById('vrow-' + idx);
+    if (row) { row.style.background = 'var(--gd)'; row.querySelector('td:last-child').textContent = '✓'; }
+    verifyRowData[idx].status = 'ok';
+  } catch(e) { toast('Add failed: ' + e.message, 'tr'); if (btn) { btn.disabled = false; btn.textContent = '+ Add'; } }
+}
+
+async function deleteFromAT(recId, idx) {
+  var btn = document.querySelector('#vrow-' + idx + ' button');
+  if (btn) { btn.disabled = true; btn.textContent = '...'; }
+  try {
+    var resp = await fetch('https://api.airtable.com/v0/' + BASE + '/tblBvEaLkGGipnOFc/' + recId, {
+      method: 'DELETE', headers: { Authorization: 'Bearer ' + TOKEN }
+    });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    toast('Deleted', 'tg');
+    var row = document.getElementById('vrow-' + idx);
+    if (row) row.style.opacity = '0.35';
+    verifyRowData[idx].status = 'deleted';
+  } catch(e) { toast('Delete failed: ' + e.message, 'tr'); if (btn) { btn.disabled = false; btn.textContent = '✕ Delete'; } }
+}
+
+async function addAllMissing() {
+  var missing = verifyRowData.filter(function(r, i){ r._idx = i; return r.status === 'missing'; });
+  if (!missing.length) return;
+  vStatus('Adding ' + missing.length + ' missing records...');
+  var batches = [];
+  for (var i = 0; i < missing.length; i += 10) batches.push(missing.slice(i, i+10));
+  var added = 0, failed = 0;
+  for (var b = 0; b < batches.length; b++) {
+    try {
+      var records = batches[b].map(function(r) {
+        var f = { 'fldhYEtLEGA4VxvvO': r.date, 'fldwVFyizH4mBANBa': r.compound,
+          'fldHDlJY8FpAvK018': (r.pdf||{}).side||'', 'fldIdzew4Jd0qO4Uc': (r.pdf||{}).tod||'',
+          'fld8d8mtRapfaIyqL': (r.pdf||{}).dose||'' };
+        if ((r.pdf||{}).notes) f['Notes'] = r.pdf.notes;
+        return { fields: f };
+      });
+      var resp = await fetch('https://api.airtable.com/v0/' + BASE + '/tblBvEaLkGGipnOFc', {
+        method: 'POST', headers: { Authorization: 'Bearer ' + TOKEN, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ records: records, typecast: true })
+      });
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      added += batches[b].length;
+      vStatus('Added ' + added + '/' + missing.length + '...');
+    } catch(e) { failed += batches[b].length; }
+  }
+  vStatus('Done — ' + added + ' added' + (failed?' · ' + failed + ' failed':''), failed ? 'warn' : 'ok');
+  toast(added + ' records added to AT', 'tg', 4000);
+  // Re-run compare to refresh
+  setTimeout(function(){ compareWithAT(); }, 1000);
+}
+
+async function deleteAllExtra() {
+  var extra = verifyRowData.filter(function(r){ return r.status === 'extra' && r.at && r.at.id; });
+  if (!extra.length) return;
+  vStatus('Deleting ' + extra.length + ' extra records...');
+  var batches = [];
+  for (var i = 0; i < extra.length; i += 10) batches.push(extra.slice(i, i+10));
+  var deleted = 0, failed = 0;
+  for (var b = 0; b < batches.length; b++) {
+    try {
+      var ids = batches[b].map(function(r){ return r.at.id; });
+      var params = ids.map(function(id){ return 'records[]=' + id; }).join('&');
+      var resp = await fetch('https://api.airtable.com/v0/' + BASE + '/tblBvEaLkGGipnOFc?' + params, {
+        method: 'DELETE', headers: { Authorization: 'Bearer ' + TOKEN }
+      });
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      deleted += batches[b].length;
+      vStatus('Deleted ' + deleted + '/' + extra.length + '...');
+    } catch(e) { failed += batches[b].length; }
+  }
+  vStatus('Done — ' + deleted + ' deleted' + (failed?' · ' + failed + ' failed':''), failed ? 'warn' : 'ok');
+  toast(deleted + ' records deleted from AT', 'tg', 4000);
+  setTimeout(function(){ compareWithAT(); }, 1000);
 }
 
 function stat(n,label,color) {
