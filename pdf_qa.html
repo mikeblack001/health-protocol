@@ -473,43 +473,52 @@ async function selFile(id, name, type) {
     var buf = await resp.arrayBuffer();
     setDot("d", "ok", "DRIVE");
 
-    // Try unzip first (ZIP of JPEGs)
+    // Try unzip (ZIP of JPEGs)
+    var loaded = false;
     try {
       var zip = await JSZip.loadAsync(buf);
       var imgFiles = [];
       zip.forEach(function(path, file) {
-        if (!file.dir && /\.(jpe?g|png|gif|webp)$/i.test(path)) imgFiles.push({ path: path, file: file });
+        if (!file.dir) imgFiles.push({ path: path, file: file });
       });
-      // Sort numerically
+      // Sort numerically by filename number
       imgFiles.sort(function(a, b) {
-        var na = parseInt(a.path) || a.path.replace(/\D/g, "") || a.path;
-        var nb = parseInt(b.path) || b.path.replace(/\D/g, "") || b.path;
-        return na - nb;
+        var na = parseInt(a.path.replace(/\D/g,""),10);
+        var nb = parseInt(b.path.replace(/\D/g,""),10);
+        if (!isNaN(na) && !isNaN(nb)) return na - nb;
+        return a.path.localeCompare(b.path);
       });
       if (imgFiles.length) {
-        // Extract all to object URLs
+        document.getElementById("imgEmpty").innerHTML = "<span style='font-size:20px'>&#8635;</span><span>Extracting " + imgFiles.length + " images...</span>";
         for (var i = 0; i < imgFiles.length; i++) {
-          var blob = await imgFiles[i].file.async("blob");
-          var url = URL.createObjectURL(blob);
-          pages.push({ url: url, filename: imgFiles[i].path });
+          var b64 = await imgFiles[i].file.async("base64");
+          var ext = imgFiles[i].path.split(".").pop().toLowerCase();
+          var mime = (ext === "png") ? "image/png" : (ext === "gif") ? "image/gif" : "image/jpeg";
+          var dataUrl = "data:" + mime + ";base64," + b64;
+          pages.push({ url: dataUrl, filename: imgFiles[i].path });
         }
+        loaded = true;
         document.getElementById("pdfMeta").textContent = pages.length + " pages · " + type;
         renderThumbs();
         goToPage(0);
         updateStatusBar();
         toast("Loaded " + pages.length + " pages", "tg");
-        return;
       }
-    } catch(zipErr) {}
+    } catch(zipErr) { console.warn("JSZip error:", zipErr); }
 
-    // Fallback: treat as single image
-    var blob = new Blob([buf]);
-    var url = URL.createObjectURL(blob);
-    pages.push({ url: url, filename: name });
-    document.getElementById("pdfMeta").textContent = "1 page · " + type;
-    renderThumbs();
-    goToPage(0);
-    updateStatusBar();
+    if (!loaded) {
+      // Fallback: single image via base64
+      var u8 = new Uint8Array(buf);
+      var binary = "";
+      for (var j = 0; j < u8.length; j++) binary += String.fromCharCode(u8[j]);
+      var b64 = btoa(binary);
+      var dataUrl = "data:image/jpeg;base64," + b64;
+      pages.push({ url: dataUrl, filename: name });
+      document.getElementById("pdfMeta").textContent = "1 page · " + type;
+      renderThumbs();
+      goToPage(0);
+      updateStatusBar();
+    }
 
   } catch(e) {
     setDot("d", "err", "DRIVE ERR");
