@@ -204,6 +204,7 @@
       <div class="tab active" onclick="showTab('extract')" id="tab-extract">Extract</div>
       <div class="tab" onclick="showTab('compare')" id="tab-compare">Compare</div>
       <div class="tab" onclick="showTab('export')" id="tab-export">Export</div>
+      <div class="tab" onclick="showTab('settings');renderSettingsTab()" id="tab-settings">⚙ Settings</div>
     </div>
 
     <!-- EXTRACT TAB -->
@@ -319,6 +320,9 @@ const AT_TOKEN     = 'pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f3
 const AT_BASE      = 'appmHDG4TGT1xy6R6';
 const AT_META      = 'https://api.airtable.com/v0/meta/bases';
 const AT_API       = 'https://api.airtable.com/v0';
+const LS_TOKEN     = 'mb_pdf_token';
+const LS_EXPIRY    = 'mb_pdf_expiry';
+const LS_SETTINGS  = 'mb_pdf_settings';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
@@ -333,22 +337,185 @@ let extractedRecords = [];
 let allAirtableTables = [];
 let airtableRecordsCache = {};
 
+// Default settings — saved to localStorage
+let settings = {
+  watchedFolders: [],          // [{id, name}]
+  tableMap: {                  // pdf type → airtable table id
+    workout: '',
+    injection: '',
+    supplement: '',
+    lab: '',
+    generic: ''
+  },
+  autoCompare: true,           // auto-run compare after extraction
+  defaultFolder: ''            // last used folder id
+};
+
+// ── SETTINGS ─────────────────────────────────────────────────────────────────
+function loadSettings() {
+  try {
+    const s = localStorage.getItem(LS_SETTINGS);
+    if (s) settings = { ...settings, ...JSON.parse(s) };
+  } catch {}
+}
+function saveSettings() {
+  localStorage.setItem(LS_SETTINGS, JSON.stringify(settings));
+}
+function renderSettingsTab() {
+  const folderList = settings.watchedFolders.map((f,i) => `
+    <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">
+      <span style="font-family:var(--mono);font-size:10px;flex:1;color:var(--text)">${f.name}</span>
+      <span style="font-family:var(--mono);font-size:9px;color:var(--dimmer)">${f.id}</span>
+      <button class="btn btn-danger" style="padding:3px 8px;font-size:9px" onclick="removeFolder(${i})">✕</button>
+    </div>
+  `).join('') || '<div style="font-family:var(--mono);font-size:10px;color:var(--dimmer);padding:8px 0">No folders configured</div>';
+
+  const tableOpts = ['<option value="">—</option>', ...allAirtableTables.map(t=>`<option value="${t.id}">${t.name}</option>`)].join('');
+  const mapRows = ['workout','injection','supplement','lab','generic'].map(type => `
+    <tr>
+      <td style="font-family:var(--mono);font-size:10px;color:var(--dim);text-transform:capitalize;padding:6px 10px">${type}</td>
+      <td style="padding:6px 10px">
+        <select class="inp" style="width:100%" onchange="settings.tableMap['${type}']=this.value;saveSettings()">
+          ${tableOpts.replace(`value="${settings.tableMap[type]}"`, `value="${settings.tableMap[type]}" selected`)}
+        </select>
+      </td>
+    </tr>
+  `).join('');
+
+  document.getElementById('tc-settings').innerHTML = `
+    <div style="max-width:600px;display:flex;flex-direction:column;gap:20px">
+
+      <div class="section">
+        <div class="section-hdr"><span class="section-title blue">Google Drive — Watched Folders</span></div>
+        <div style="padding:14px">
+          <div style="font-family:var(--mono);font-size:9px;color:var(--dimmer);margin-bottom:10px;line-height:1.6">
+            Add Google Drive folder IDs to watch. The tool will automatically list all PDFs from these folders.<br>
+            To get a folder ID: open the folder in Drive → copy the ID from the URL after /folders/
+          </div>
+          ${folderList}
+          <div style="display:flex;gap:8px;margin-top:10px">
+            <input id="newFolderId" class="inp" placeholder="Folder ID" style="flex:1;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:4px;font-family:var(--mono);font-size:10px">
+            <input id="newFolderName" class="inp" placeholder="Label (e.g. Workouts)" style="flex:1;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:4px;font-family:var(--mono);font-size:10px">
+            <button class="btn btn-primary" onclick="addFolder()">Add</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-hdr"><span class="section-title green">Default Airtable Table per PDF Type</span></div>
+        <div class="tbl-wrap">
+          <table class="tbl"><thead><tr><th>PDF Type</th><th>Airtable Table</th></tr></thead>
+          <tbody>${mapRows}</tbody></table>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-hdr"><span class="section-title yellow">Preferences</span></div>
+        <div style="padding:14px;display:flex;flex-direction:column;gap:10px">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+            <input type="checkbox" ${settings.autoCompare?'checked':''} onchange="settings.autoCompare=this.checked;saveSettings()" style="accent-color:var(--green)">
+            <span style="font-family:var(--mono);font-size:10px;color:var(--dim)">Auto-run compare after extraction completes</span>
+          </label>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-primary" onclick="saveSettings();toast('Settings saved','ok');loadDriveFiles()">Save &amp; Reload</button>
+        <button class="btn btn-ghost" onclick="if(confirm('Clear all saved settings?')){localStorage.removeItem(LS_SETTINGS);location.reload()}">Reset Defaults</button>
+        <button class="btn btn-danger" onclick="signOut()">Sign Out of Google</button>
+      </div>
+    </div>
+  `;
+  // Set current select values
+  ['workout','injection','supplement','lab','generic'].forEach(type => {
+    const sel = document.querySelector(`select[onchange*="${type}"]`);
+    if (sel && settings.tableMap[type]) sel.value = settings.tableMap[type];
+  });
+}
+
+function addFolder() {
+  const id = document.getElementById('newFolderId').value.trim();
+  const name = document.getElementById('newFolderName').value.trim() || id;
+  if (!id) { toast('Enter a folder ID','err'); return; }
+  settings.watchedFolders.push({ id, name });
+  saveSettings();
+  renderSettingsTab();
+  toast('Folder added','ok');
+}
+function removeFolder(idx) {
+  settings.watchedFolders.splice(idx, 1);
+  saveSettings();
+  renderSettingsTab();
+}
+
 // ── AUTH ──────────────────────────────────────────────────────────────────────
+function saveToken(token, expiresIn = 3600) {
+  localStorage.setItem(LS_TOKEN, token);
+  localStorage.setItem(LS_EXPIRY, Date.now() + (expiresIn - 60) * 1000); // 60s buffer
+}
+function loadToken() {
+  const token = localStorage.getItem(LS_TOKEN);
+  const expiry = parseInt(localStorage.getItem(LS_EXPIRY) || '0');
+  if (token && Date.now() < expiry) return token;
+  return null;
+}
+function clearToken() {
+  localStorage.removeItem(LS_TOKEN);
+  localStorage.removeItem(LS_EXPIRY);
+}
+function signOut() {
+  clearToken();
+  accessToken = null;
+  setDot('drive','','DRIVE');
+  document.getElementById('fileList').innerHTML = `
+    <div class="auth-box">
+      <div class="auth-title">Signed Out</div>
+      <button class="btn btn-primary" onclick="signIn()">Sign in with Google</button>
+    </div>`;
+  toast('Signed out','info');
+}
+
 function initAuth() {
   if (typeof google === 'undefined') { setTimeout(initAuth, 500); return; }
+
+  // Check for stored valid token first
+  const stored = loadToken();
+  if (stored) {
+    accessToken = stored;
+    setDot('drive','ok','DRIVE ✓');
+    loadDriveFiles();
+    return;
+  }
+
   tokenClient = google.accounts.oauth2.initTokenClient({
     client_id: OAUTH_CLIENT,
     scope: DRIVE_SCOPE,
     callback: async (resp) => {
       if (resp.error) { toast('Auth failed: ' + resp.error, 'err'); return; }
       accessToken = resp.access_token;
-      setDot('drive', 'ok', 'DRIVE ✓');
+      saveToken(resp.access_token, resp.expires_in || 3600);
+      setDot('drive','ok','DRIVE ✓');
       await loadDriveFiles();
-      await loadAirtableTables();
     }
   });
+
+  // Show sign-in UI only if no stored token
+  document.getElementById('fileList').innerHTML = `
+    <div class="auth-box">
+      <div class="auth-title">Sign In Required</div>
+      <div class="auth-sub">Connect Google Drive to access your PDF library.</div>
+      <button class="btn btn-primary" onclick="signIn()">Sign in with Google</button>
+    </div>`;
 }
-function signIn() { tokenClient && tokenClient.requestAccessToken(); }
+
+function signIn() {
+  if (tokenClient) {
+    tokenClient.requestAccessToken({ prompt: '' }); // '' = no consent screen if already granted
+  } else {
+    initAuth();
+    setTimeout(() => tokenClient?.requestAccessToken({ prompt: '' }), 600);
+  }
+}
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
 function toast(msg, type='info', ms=3500) {
@@ -383,17 +550,22 @@ async function loadDriveFiles() {
   if (!accessToken) return;
   setDot('drive','warn','LOADING...');
   try {
-    const r = await fetch(
-      "https://www.googleapis.com/drive/v3/files?q=mimeType%3D'application%2Fpdf'&fields=files(id,name,size,modifiedTime)&pageSize=50&orderBy=modifiedTime%20desc",
-      { headers: { Authorization: `Bearer ${accessToken}` } }
-    );
+    let q = "mimeType='application/pdf'";
+    if (settings.watchedFolders.length > 0) {
+      const folderClauses = settings.watchedFolders.map(f => `'${f.id}' in parents`).join(' or ');
+      q += ` and (${folderClauses})`;
+    }
+    const url = 'https://www.googleapis.com/drive/v3/files?q=' + encodeURIComponent(q) + '&fields=files(id,name,size,modifiedTime)&pageSize=100&orderBy=modifiedTime%20desc';
+    const r = await fetch(url, { headers: { Authorization: 'Bearer ' + accessToken } });
     const d = await r.json();
+    if (d.error) throw new Error(d.error.message);
     driveFiles = d.files || [];
     setDot('drive','ok','DRIVE ✓');
     renderFileList();
   } catch(e) {
     setDot('drive','err','DRIVE ERR');
     toast('Drive error: ' + e.message, 'err');
+    clearToken();
   }
 }
 
@@ -461,6 +633,7 @@ async function selectFile(fileId) {
 
 function setTypeByName(type) {
   pdfType = type;
+  applyTableMapFromSettings();
   document.querySelectorAll('.type-btn').forEach(b => {
     b.classList.toggle('active', b.textContent.toLowerCase() === type);
   });
@@ -625,7 +798,9 @@ async function extractAllPages() {
   }
   document.getElementById('extractAllBtn').disabled = false;
   document.getElementById('compareBtn').disabled = false;
+  applyTableMapFromSettings();
   renderExportUI();
+  if (settings.autoCompare) { showTab('compare'); runCompare(); }
 }
 
 async function startExtraction() {
@@ -961,10 +1136,21 @@ function toAirtableFields(r) {
   return out;
 }
 
+// ── AUTO-SELECT TABLE FROM SETTINGS ──────────────────────────────────────────
+function applyTableMapFromSettings() {
+  const mapped = settings.tableMap[pdfType];
+  if (mapped) {
+    const sel = document.getElementById('compareTable');
+    if (sel) sel.value = mapped;
+  }
+}
+
 // ── INIT ──────────────────────────────────────────────────────────────────────
-window.addEventListener('load', () => {
+window.addEventListener('load', async () => {
+  loadSettings();
+  await loadAirtableTables();
   initAuth();
-  loadAirtableTables();
+  renderSettingsTab();
 });
 </script>
 </body>
