@@ -3279,8 +3279,7 @@ function printTracker() {
   const activeM = MORNING_ORDER.filter(n => pepMap[n]).length;
   const activeN = NIGHT_ORDER.filter(n => pepMap[n]).length;
   const totalRows = activeM + activeN;
-  // Row height: CSS auto-sizes rows to fill the page — no JS calc needed
-  const rowH = 'auto';
+  const rowH = ROW_H;
 
   function rows(order, bg) {
     return order.map(name => {
@@ -3324,7 +3323,7 @@ function printTracker() {
   function weekTable(weekNum) {
     const mondayStr = getMonday(weekNum - 1);
     return `
-    <table style="width:100%;border-collapse:collapse;margin-top:0;border:2px solid #000;table-layout:fixed;font-size:8pt">
+    <table style="width:100%;border-collapse:collapse;margin-top:10px;border:2px solid #000;table-layout:fixed;font-size:8pt">
     <colgroup><col style="width:34%">${DAYS.map(()=>'<col style="width:6%">').join('')}<col style="width:24%"></colgroup>
     <tbody>
     <tr>
@@ -3345,19 +3344,17 @@ function printTracker() {
     </tbody></table>`;
   }
 
+  const ROW_H = 28;
   const html = `<!DOCTYPE html><html><head><title></title>
   <style>
-    @page { size: portrait letter; margin: 0.2in; }
-    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; box-sizing: border-box; }
-    html, body { margin: 0; padding: 0; height: 100%; font-family: Calibri, Arial, sans-serif; }
-    .pg { height: calc(100vh - 0.4in); display: flex; flex-direction: column; gap: 18px; page-break-after: always; }
-    .pg:last-child { page-break-after: auto; }
-    .wk { flex: 1; min-height: 0; display: flex; flex-direction: column; }
-    .wk table { flex: 1; width: 100%; border-collapse: collapse; table-layout: fixed; }
-    .wk table tbody { height: 100%; }
+    @page { size: letter portrait; margin: 0.4in; }
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
+    body { font-family: Calibri, Arial, sans-serif; margin: 0; padding: 0; }
+    .print-page { page-break-after: always; margin-bottom: 0; }
+    .print-page:last-child { page-break-after: auto; }
   </style></head><body>
-  <div class="pg"><div class="wk">${weekTable(1)}</div><div class="wk">${weekTable(2)}</div></div>
-  <div class="pg"><div class="wk">${weekTable(3)}</div><div class="wk">${weekTable(4)}</div></div>
+  <div class="print-page">${weekTable(1)}${weekTable(2)}</div>
+  <div class="print-page">${weekTable(3)}${weekTable(4)}</div>
   
 <!-- ADD SUPP CHANGE MODAL -->
 <div class="modal-overlay" id="add-supp-change-modal" onclick="if(event.target===this)hideAddSuppChangeModal()" style="display:none">
