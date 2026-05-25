@@ -1415,28 +1415,30 @@ function shiftTrackerWeek(dir) {
 
 async function loadTrackerWeekData(mondayISO) {
   try {
-    const sunday = new Date(mondayISO + 'T00:00:00');
-    sunday.setDate(sunday.getDate() + 6);
-    const sundayISO = sunday.toISOString().split('T')[0];
-    const formula = `AND({Date}>="${mondayISO}",{Date}<="${sundayISO}")`;
-    const url = `https://api.airtable.com/v0/${BASE}/tblBvEaLkGGipnOFc?filterByFormula=${encodeURIComponent(formula)}&fields[]=Date&fields[]=Compound&fields[]=Site`;
+    const mon = new Date(mondayISO + 'T12:00:00');
+    const prevDay = new Date(mon); prevDay.setDate(mon.getDate() - 1);
+    const nextDay = new Date(mon); nextDay.setDate(mon.getDate() + 7);
+    const prevISO = prevDay.toISOString().split('T')[0];
+    const nextISO = nextDay.toISOString().split('T')[0];
+    const formula = `AND(IS_AFTER({Date},"${prevISO}"),IS_BEFORE({Date},"${nextISO}"))`;
+    const url = `https://api.airtable.com/v0/${BASE}/tblBvEaLkGGipnOFc?filterByFormula=${encodeURIComponent(formula)}&fields[]=Date&fields[]=Compound&fields[]=Site&fields[]=Name`;
     const res = await fetch(url, { headers: { Authorization: `Bearer ${TOKEN}` } });
     const json = await res.json();
     const records = json.records || [];
-    if (!records.length) return;
+    const allBoxes = Array.from(document.querySelectorAll('.check-box[data-compound]'));
     records.forEach(r => {
       const f = r.fields;
-      const compound = Array.isArray(f['Compound']) ? f['Compound'][0] : f['Compound'];
+      const compound = Array.isArray(f['Compound']) ? f['Compound'][0] : (f['Compound'] || f['Name']);
       const date = f['Date'];
-      const site = f['Site'];
-      if (!compound || !date || !site) return;
-      const box = document.querySelector(`.check-box[data-compound="${CSS.escape(compound)}"][data-date="${date}"]`);
-      if (box) {
-        box.dataset.s = site;
-        box.textContent = site;
-        if (site === 'L') { box.style.background='var(--accent-light)';box.style.borderColor='var(--accent)';box.style.color='var(--accent)'; }
-        else if (site === 'R') { box.style.background='#fef3c7';box.style.borderColor='#d97706';box.style.color='#92400e'; }
-      }
+      const site = f['Site'] || '✓';
+      if (!compound || !date) return;
+      const box = allBoxes.find(b => b.dataset.compound === compound && b.dataset.date === date);
+      if (!box) return;
+      box.dataset.s = site;
+      box.textContent = site;
+      if (site === 'L') { box.style.background='var(--accent-light)';box.style.borderColor='var(--accent)';box.style.color='var(--accent)'; }
+      else if (site === 'R') { box.style.background='#fef3c7';box.style.borderColor='#d97706';box.style.color='#92400e'; }
+      else { box.style.background='#dcfce7';box.style.borderColor='#16a34a';box.style.color='#15803d'; }
     });
   } catch(e) { console.error('loadTrackerWeekData failed:', e); }
 }
