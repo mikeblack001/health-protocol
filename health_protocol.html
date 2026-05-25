@@ -1317,14 +1317,14 @@ function renderSupplements(filter) {
 let trackerMondayOffset = 0; // weeks offset from current week
 
 const TRACKER_MORNING_ORDER = [
-  'Testosterone (TRT)', 'Deca (Nano)', 'NAD+', 'Retatrutide',
+  'Testosterone', 'Deca (Nano)', 'NAD+', 'Retatrutide',
   'Cagrilintide', 'Tesamorelin', 'GHK-Cu', 'Melanotan II', 'Tirzepatide'
 ];
 const TRACKER_NIGHT_ORDER = [
   'CJC-1295 No DAC', 'Ipamorelin', 'DSIP', 'KPV', 'Epitalon'
 ];
 const TRACKER_SCHEDULE = {
-  'Testosterone (TRT)': [0,3],        // Mon/Thu
+  'Testosterone': [0,3],        // Mon/Thu
   'Deca (Nano)':        [0,3],        // Mon/Thu
   'NAD+':               [1,4,6],      // Tue/Fri/Sun
   'Retatrutide':        [2],          // Wed
@@ -1515,10 +1515,10 @@ async function loadTrackerWeekData(mondayISO) {
     const norm = s => (s||'').toLowerCase().trim().replace(/\s+/g,' ');
     // Alias map: injection log name → tracker name (both normalized)
     const ALIAS = {
-      'trt': 'testosterone (trt)',
-      'testosterone': 'testosterone (trt)',
-      'testosterone cypionate': 'testosterone (trt)',
-      'testosterone enanthate': 'testosterone (trt)',
+      'trt': 'testosterone',
+      'testosterone': 'testosterone',
+      'testosterone cypionate': 'testosterone',
+      'testosterone enanthate': 'testosterone',
       'cjc-1295': 'cjc-1295 no dac',
       'cjc 1295': 'cjc-1295 no dac',
       'cjc1295': 'cjc-1295 no dac',
@@ -3155,7 +3155,7 @@ function printTracker() {
   activePeps.forEach(r => { pepMap[getField(r,'Compound')] = r; });
 
   const MORNING_ORDER = [
-    'Testosterone (TRT)', 'Deca (Nano)', 'NAD+', 'Retatrutide',
+    'Testosterone', 'Deca (Nano)', 'NAD+', 'Retatrutide',
     'Cagrilintide', 'Tesamorelin', 'GHK-Cu', 'Melanotan II', 'Tirzepatide'
   ];
   const NIGHT_ORDER = [
