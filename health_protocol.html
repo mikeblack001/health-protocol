@@ -5572,49 +5572,63 @@ function renderVerifyResults(rows, startDate, endDate) {
   _lastDiffEnd = endDate;
   verifyRowData = rows;
   var resEl = document.getElementById("verifyResults");
+  if (!resEl) return;
   var ok = rows.filter(function(r){ return r.status==="ok"; }).length;
   var wrong = rows.filter(function(r){ return r.status==="wrong"; }).length;
   var missing = rows.filter(function(r){ return r.status==="missing"; }).length;
   var extra = rows.filter(function(r){ return r.status==="extra"; }).length;
   var runDate = new Date().toLocaleString();
-  var sorted = rows.slice().sort(function(a,b){
-    var d = (a.date||"").localeCompare(b.date||"") || (a.compound||"").localeCompare(b.compound||"");
+  // Build sorted list preserving original indices
+  var indexed = rows.map(function(r,i){ return {r:r, i:i}; });
+  indexed.sort(function(a,b){
+    var d = (a.r.date||"").localeCompare(b.r.date||"") || (a.r.compound||"").localeCompare(b.r.compound||"");
     return _diffSort === 'asc' ? d : -d;
   });
-  var html = "<div style='display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px'>";
+  var html = "";
+  // Header
+  html += "<div style='display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px'>";
   html += "<span style='font-size:10px;color:var(--dd);font-family:var(--mono)'>Run: "+runDate+" · "+startDate+" → "+endDate+"</span>";
   html += "<div style='display:flex;gap:6px;flex-wrap:wrap'>";
   html += "<button class='btn bg-btn' style='font-size:10px;padding:4px 10px' onclick='toggleDiffSort()'>&#8597; " + (_diffSort==='asc'?'Oldest first':'Newest first') + "</button>";
   html += "<button class='btn bg-btn' style='font-size:10px;padding:4px 10px' onclick='backToExtracted()'>&#8592; Back</button>";
   html += "<button class='btn bg-btn' style='font-size:10px;padding:4px 10px' onclick='copyForClaude()'>&#128203; Send to Claude</button>";
   html += "</div></div>";
-  // Stats + bulk actions
-  html += "<div style='display:flex;align-items:center;gap:12px;margin-bottom:14px;padding:12px 16px;background:var(--s);border:1px solid var(--b);border-radius:6px;flex-wrap:wrap'>";
-  html += stat(ok,"Match","var(--g)") + stat(wrong,"Wrong","var(--y)") + stat(missing,"Missing","var(--r)") + stat(extra,"Extra","var(--bl)");
-  if (missing > 0) html += "<button class='btn bp' style='margin-left:auto;font-size:11px;padding:6px 14px' onclick='addAllMissing()'>&#43; Add All Missing ("+missing+")</button>";
+  // Stats bar
+  html += "<div style='display:flex;align-items:center;gap:16px;margin-bottom:14px;padding:12px 16px;background:var(--s);border:1px solid var(--b);border-radius:6px;flex-wrap:wrap'>";
+  html += "<div style='text-align:center'><div style='font-size:22px;font-weight:700;color:var(--g);font-family:var(--mono)'>"+ok+"</div><div style='font-size:10px;color:var(--d)'>Match</div></div>";
+  html += "<div style='text-align:center'><div style='font-size:22px;font-weight:700;color:var(--y);font-family:var(--mono)'>"+wrong+"</div><div style='font-size:10px;color:var(--d)'>Wrong</div></div>";
+  html += "<div style='text-align:center'><div style='font-size:22px;font-weight:700;color:var(--r);font-family:var(--mono)'>"+missing+"</div><div style='font-size:10px;color:var(--d)'>Missing</div></div>";
+  html += "<div style='text-align:center'><div style='font-size:22px;font-weight:700;color:var(--bl);font-family:var(--mono)'>"+extra+"</div><div style='font-size:10px;color:var(--d)'>Extra</div></div>";
+  if (missing > 0) html += "<button class='btn bp' style='margin-left:auto;font-size:11px;padding:6px 14px' onclick='addAllMissing()'>+ Add All Missing ("+missing+")</button>";
   if (extra > 0) html += "<button class='btn br' style='font-size:11px;padding:6px 14px' onclick='deleteAllExtra()'>&#x2715; Delete All Extra ("+extra+")</button>";
   html += "</div>";
+  // Table
   html += "<div style='overflow-x:auto'><table class='tbl' style='width:100%;font-size:11px'><thead><tr style='background:var(--s2)'>";
   ["Date","Compound","PDF Side","PDF Dose","PDF TOD","AT Side","AT Dose","AT TOD","Notes","Issues",""].forEach(function(h){
-    html += "<th style='padding:7px 10px;text-align:left;font-size:9px;letter-spacing:1.2px;text-transform:uppercase;font-family:var(--mono);color:var(--d);border-bottom:1px solid var(--b)'>" + h + "</th>";
+    html += "<th style='padding:7px 10px;text-align:left;font-size:9px;letter-spacing:1.2px;text-transform:uppercase;font-family:var(--mono);color:var(--d);border-bottom:1px solid var(--b)'>"+h+"</th>";
   });
   html += "</tr></thead><tbody>";
-  sorted.forEach(function(r, idx) {
-    var bg = r.status==="missing" ? "background:var(--rd)" : r.status==="extra" ? "background:var(--bld)" : r.status==="wrong" ? "background:var(--yd)" : "";
-    var p = r.pdf || {}, a = r.at || {};
-    html += "<tr id='vrow-"+idx+"' style='" + bg + "'>";
-    html += td(r.date);
-    html += "<td style='padding:6px 10px;font-weight:600'>" + esc(r.compound) + "</td>";
-    html += tdMono(p.side||"—"); html += tdMono(p.dose||"—"); html += tdMono(p.tod||"—");
-    html += tdMono(a.side||"—"); html += tdMono(a.dose||"—"); html += tdMono(a.tod||"—");
-    html += "<td style='padding:6px 10px;font-size:10px;color:var(--d);max-width:160px'>" + esc((p.notes||a.notes||"")) + "</td>";
+  indexed.forEach(function(item) {
+    var r = item.r, i = item.i;
+    var bg = r.status==="missing"?"background:var(--rd)":r.status==="extra"?"background:var(--bld)":r.status==="wrong"?"background:var(--yd)":"";
+    var p = r.pdf||{}, a = r.at||{};
+    html += "<tr id='vrow-"+i+"' style='"+bg+"'>";
+    html += "<td style='padding:6px 10px;font-family:var(--mono);font-size:10px'>"+(r.date||"—")+"</td>";
+    html += "<td style='padding:6px 10px;font-weight:600'>"+esc(r.compound)+"</td>";
+    html += "<td style='padding:6px 10px;font-family:var(--mono)'>"+esc(p.side||"—")+"</td>";
+    html += "<td style='padding:6px 10px;font-family:var(--mono)'>"+esc(p.dose||"—")+"</td>";
+    html += "<td style='padding:6px 10px;font-family:var(--mono)'>"+esc(p.tod||"—")+"</td>";
+    html += "<td style='padding:6px 10px;font-family:var(--mono)'>"+esc(a.side||"—")+"</td>";
+    html += "<td style='padding:6px 10px;font-family:var(--mono)'>"+esc(a.dose||"—")+"</td>";
+    html += "<td style='padding:6px 10px;font-family:var(--mono)'>"+esc(a.tod||"—")+"</td>";
+    html += "<td style='padding:6px 10px;font-size:10px;color:var(--d);max-width:160px'>"+esc((p.notes||a.notes||""))+"</td>";
     var ic = r.status==="ok"?"color:var(--g)":r.status==="missing"?"color:var(--r)":r.status==="extra"?"color:var(--bl)":"color:var(--y)";
-    html += "<td style='padding:6px 10px;font-size:10px;"+ic+"'>" + esc(r.issues.join("; ")||"✓") + "</td>";
+    html += "<td style='padding:6px 10px;font-size:10px;"+ic+"'>"+esc(r.issues.join("; ")||"✓")+"</td>";
     var act = "";
-    if (r.status === "missing") act = "<button class='btn bp' style='font-size:9px;padding:3px 8px' onclick='addToAT("+idx+")'>+ Add</button>";
-    if (r.status === "extra" && a.id) act = "<button class='btn br' style='font-size:9px;padding:3px 8px' onclick='deleteFromAT(\""+a.id+"\","+idx+")'>✕ Delete</button>";
-    if (r.status === "wrong" && a.id) act = "<button class='btn by' style='font-size:9px;padding:3px 8px' onclick='fixRecord(\""+a.id+"\","+idx+")'>Fix</button>";
-    html += "<td style='padding:6px 8px'>" + act + "</td>";
+    if (r.status==="missing") act = "<button class='btn bp' style='font-size:9px;padding:3px 8px' onclick='addToAT("+i+")'>+ Add</button>";
+    if (r.status==="extra" && a.id) act = "<button class='btn br' style='font-size:9px;padding:3px 8px' onclick='deleteFromAT(\""+a.id+"\","+i+")'>&#x2715; Del</button>";
+    if (r.status==="wrong" && a.id) act = "<button class='btn by' style='font-size:9px;padding:3px 8px' onclick='fixRecord(\""+a.id+"\","+i+")'>Fix</button>";
+    html += "<td style='padding:6px 8px'>"+act+"</td>";
     html += "</tr>";
   });
   html += "</tbody></table></div>";
