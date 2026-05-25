@@ -396,39 +396,35 @@ function clearTok() { localStorage.removeItem("mb_pdfqat"); localStorage.removeI
 
 // ── AUTH ──────────────────────────────────────────────────────────────
 function initAuth() {
-  if (typeof google === "undefined") { setTimeout(initAuth, 300); return; }
-  gCli = google.accounts.oauth2.initTokenClient({
-    client_id: GCI, scope: GSC,
-    callback: function(r) {
-      if (r.error) { setDot("d", "err", "DRIVE"); return; }
-      gTok = r.access_token; saveTok(r.access_token, r.expires_in || 3600);
-      setDot("d", "ok", "DRIVE"); loadMappedFiles();
+  // Check for token returned from Google redirect
+  var hash = window.location.hash;
+  if (hash) {
+    var params = {};
+    hash.slice(1).split("&").forEach(function(p) { var kv = p.split("="); params[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1] || ""); });
+    if (params.access_token) {
+      gTok = params.access_token;
+      saveTok(params.access_token, parseInt(params.expires_in) || 3600);
+      history.replaceState(null, "", window.location.pathname);
+      setDot("d", "ok", "DRIVE"); loadMappedFiles(); return;
     }
-  });
-  var stored = loadTok();
-  if (stored) {
-    // Valid stored token — use it, silently refresh in background
-    gTok = stored; setDot("d", "ok", "DRIVE"); loadMappedFiles();
-    gCli.requestAccessToken({ prompt: "" });
-  } else {
-    // No token — wait for user to click Sign In
-    setDot("d", "", "DRIVE");
   }
+  // Use stored token if valid
+  var stored = loadTok();
+  if (stored) { gTok = stored; setDot("d", "ok", "DRIVE"); loadMappedFiles(); return; }
+  setDot("d", "", "DRIVE");
 }
 function signIn() {
-  if (!gCli) gCli = google.accounts.oauth2.initTokenClient({
-    client_id: GCI, scope: GSC,
-    callback: function(r) {
-      if (r.error) { toast("Auth error: " + r.error, "tr"); return; }
-      gTok = r.access_token; saveTok(r.access_token, r.expires_in || 3600);
-      setDot("d", "ok", "DRIVE"); loadMappedFiles();
-    }
-  });
-  gCli.requestAccessToken({ prompt: "" });
+  // Same-window redirect — no popup
+  var redirect = window.location.href.split("#")[0].split("?")[0];
+  window.location.href = "https://accounts.google.com/o/oauth2/v2/auth" +
+    "?client_id=" + encodeURIComponent(GCI) +
+    "&redirect_uri=" + encodeURIComponent(redirect) +
+    "&response_type=token" +
+    "&scope=" + encodeURIComponent(GSC);
 }
 function signOut() {
   clearTok(); gTok = null; setDot("d", "", "DRIVE");
-  document.getElementById("fileList").innerHTML = "<div class='abox'><div class='atitle'>Signed Out</div><button class='btn bp' onclick='signIn()'>Sign in</button></div>";
+  document.getElementById("fileList").innerHTML = "<div class='abox'><div class='atitle'>Signed Out</div><button class='btn bp' onclick='signIn()'>Sign in with Google</button></div>";
   toast("Signed out", "ti");
 }
 
