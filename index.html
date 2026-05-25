@@ -1210,6 +1210,13 @@
                 </select>
                 to analyze
               </label>
+              <label style="font-size:11px;color:var(--d);display:flex;align-items:center;gap:6px">
+                Model:
+                <select id="verifyModel" style="padding:4px 8px;font-size:11px;border:1px solid var(--b);border-radius:4px;background:var(--s2);color:var(--t)">
+                  <option value="claude-haiku-4-5-20251001" selected>Haiku 4.5 — fast</option>
+                  <option value="claude-sonnet-4-6">Sonnet 4.6 — accurate</option>
+                </select>
+              </label>
             </div>
             <div id="verifyStatus" style="font-size:11px;color:var(--d);font-family:var(--mono);margin-bottom:12px;min-height:18px"></div>
             <div id="verifyResults"></div>
@@ -4885,7 +4892,7 @@ async function extractCurrentPage() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "claude-sonnet-4-6", max_tokens: 4000,
+        model: (document.getElementById("verifyModel")||{value:"claude-haiku-4-5-20251001"}).value, max_tokens: 4000,
         system: getPrompt(pdfType),
         messages: [{ role: "user", content: [
           { type: "image", source: { type: "base64", media_type: "image/jpeg", data: b64 } },
@@ -5463,7 +5470,7 @@ async function callClaudePages(pageIndices, prompt) {
   });
   var resp = await fetch(WORKER_URL, {
     method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 4000,
+    body: JSON.stringify({ model: (document.getElementById("verifyModel")||{value:"claude-haiku-4-5-20251001"}).value, max_tokens: 4000,
       messages: [{ role: "user", content: imgBlocks.concat([{ type: "text", text: prompt }]) }] })
   });
   if (!resp.ok) throw new Error("Worker HTTP " + resp.status);
@@ -6029,6 +6036,6 @@ async function runVerification() {
 </div>
 </body>
 </html>
-<!-- cache bust Mon May 26 2026 — pdfqa merged -->
+<!-- cache bust Mon May 26 2026 — haiku selector -->
 
 
