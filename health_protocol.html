@@ -1332,6 +1332,7 @@ function renderTracker(weekNum) {
         var s=this.dataset.s||'0';
         if(s==='0'){this.dataset.s='L';this.textContent='L';this.style.background='var(--accent-light)';this.style.borderColor='var(--accent)';this.style.color='var(--accent)';}
         else if(s==='L'){this.dataset.s='R';this.textContent='R';this.style.background='#fef3c7';this.style.borderColor='#d97706';this.style.color='#92400e';}
+        else if(s==='R'){this.dataset.s='S';this.textContent='S';this.style.background='#fee2e2';this.style.borderColor='#dc2626';this.style.color='#dc2626';}
         else{this.dataset.s='0';this.textContent='';this.style.background='';this.style.borderColor='';this.style.color='';}
       " style="margin:0 auto;border:1.5px solid #888"></div></td>`;
   }
@@ -1403,6 +1404,31 @@ function renderTracker(weekNum) {
   }
 
   html += `</tbody></table></div>`;
+
+  // Sleep / Deep Sleep / Duration rows
+  const SLEEP_BG2 = '#f8f8f8';
+  const sleepFields = [
+    { label: 'Sleep (hrs)',      key: 'sleep', type: 'number', step: '0.5', placeholder: '7.5' },
+    { label: 'Deep Sleep (min)', key: 'deep',  type: 'number', step: '1',   placeholder: '45' },
+    { label: 'Duration (min)',   key: 'dur',   type: 'number', step: '5',   placeholder: '60' },
+  ];
+  html += `<div style="border:2px solid #000;border-top:none;border-radius:0 0 8px 8px;overflow:hidden">
+  <table style="width:100%;border-collapse:collapse;font-size:13px">`;
+  sleepFields.forEach(f => {
+    html += `<tr>
+      <td style="padding:5px 10px;border:1px solid #000;background:${SLEEP_BG2};min-width:200px;font-weight:600;font-size:12px;font-style:italic">${f.label}</td>`;
+    days.forEach((_,i) => {
+      const dayDate = new Date(monday); dayDate.setDate(monday.getDate() + i);
+      const dateStr = dayDate.toISOString().split('T')[0];
+      html += `<td style="border:1px solid #000;background:${SLEEP_BG2};width:44px;text-align:center;padding:2px">
+        <input type="${f.type}" step="${f.step}" placeholder="${f.placeholder}" data-sleepkey="${f.key}" data-date="${dateStr}"
+          style="width:38px;border:none;background:transparent;font-size:11px;font-family:'DM Mono',monospace;text-align:center;outline:none;color:var(--text)">
+      </td>`;
+    });
+    html += `<td style="border:1px solid #000;background:${SLEEP_BG2}"></td><td style="border:1px solid #000;background:${SLEEP_BG2}"></td></tr>`;
+  });
+  html += `</table></div>`;
+
   document.getElementById('tracker-content').innerHTML = html;
 }
 
@@ -1426,18 +1452,22 @@ async function loadTrackerWeekData(mondayISO) {
     const json = await res.json();
     const records = json.records || [];
     const allBoxes = Array.from(document.querySelectorAll('.check-box[data-compound]'));
+    // Normalize compound name for matching (lowercase, trim, collapse spaces)
+    const norm = s => (s||'').toLowerCase().trim().replace(/\s+/g,' ');
     records.forEach(r => {
       const f = r.fields;
-      const compound = Array.isArray(f['Compound']) ? f['Compound'][0] : (f['Compound'] || f['Name']);
+      const rawCompound = Array.isArray(f['Compound']) ? f['Compound'][0] : (f['Compound'] || f['Name']);
       const date = f['Date'];
       const site = f['Site'] || '✓';
-      if (!compound || !date) return;
-      const box = allBoxes.find(b => b.dataset.compound === compound && b.dataset.date === date);
+      if (!rawCompound || !date) return;
+      const normCompound = norm(rawCompound);
+      const box = allBoxes.find(b => norm(b.dataset.compound) === normCompound && b.dataset.date === date);
       if (!box) return;
       box.dataset.s = site;
       box.textContent = site;
       if (site === 'L') { box.style.background='var(--accent-light)';box.style.borderColor='var(--accent)';box.style.color='var(--accent)'; }
       else if (site === 'R') { box.style.background='#fef3c7';box.style.borderColor='#d97706';box.style.color='#92400e'; }
+      else if (site === 'S') { box.style.background='#fee2e2';box.style.borderColor='#dc2626';box.style.color='#dc2626'; }
       else { box.style.background='#dcfce7';box.style.borderColor='#16a34a';box.style.color='#15803d'; }
     });
   } catch(e) { console.error('loadTrackerWeekData failed:', e); }
