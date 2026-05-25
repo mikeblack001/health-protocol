@@ -1078,190 +1078,6 @@
     <div id="injaudit-content" style="padding:16px;overflow-x:auto;width:100%"></div>
   </div>
 
-  <div id="view-pdfqa" class="view">
-  <div class="pdfqa-root">
-    <div class="hdr" style="padding:8px 20px;flex-shrink:0">
-      <span class="logo">MB</span><span style="color:var(--b2)">&#8212;</span>
-      <span class="htitle">PDF QA &amp; VERIFICATION</span>
-      <div class="hright">
-        <div class="dot" id="dDot"></div><span class="dlbl" id="dLbl">DRIVE</span>
-        <span style="color:var(--dd)">&#183;</span>
-        <div class="dot" id="aDot"></div><span class="dlbl" id="aLbl">AIRTABLE</span>
-      </div>
-    </div>
-    <div class="body">
-      <div class="sb">
-        <div class="sbh">
-          <span class="sbht">Library</span>
-          <button class="btn bg-btn" style="padding:3px 8px;font-size:9px" onclick="loadMappedFiles()">&#8635;</button>
-        </div>
-        <div class="sbb" id="fileList">
-          <div class="abox" style="padding:24px">
-            <div class="atitle">Connect Drive</div>
-            <div class="asub">Sign in to load your PDF library.</div>
-            <button class="btn bp" onclick="signIn()">Sign in with Google</button>
-          </div>
-        </div>
-      </div>
-      <div class="panel">
-        <div class="tabs">
-          <div class="tab active" id="tab-review" onclick="showTab('review')">Review</div>
-          <div class="tab" id="tab-export" onclick="showTab('export')">Export</div>
-          <div class="tab" id="tab-verify" onclick="showTab('verify')">&#9889; Verify</div>
-          <div class="tab" id="tab-settings" onclick="showTab('settings')">&#9881; Settings</div>
-        </div>
-        <div class="tc active" id="tc-review">
-          <div class="empty" id="revEmpty" style="flex:1">
-            <div class="ei">&#128196;</div>
-            <div class="et">Select a file from the library</div>
-            <div class="es">Choose a workout, injection, or lab PDF from the sidebar to begin review.</div>
-          </div>
-          <div id="revUI" style="display:none;flex:1;flex-direction:column;overflow:hidden" class="tc active">
-            <div style="padding:8px 14px;border-bottom:1px solid var(--b);display:flex;align-items:center;gap:10px;flex-shrink:0;background:var(--s)">
-              <div style="flex:1">
-                <span style="font-size:12px;font-weight:600" id="pdfName">&#8212;</span>
-                <span style="font-size:10px;color:var(--dd);font-family:var(--mono);margin-left:10px" id="pdfMeta"></span>
-              </div>
-              <div id="pgStatusBadges" style="display:flex;gap:5px"></div>
-            </div>
-            <div class="rev-wrap">
-              <div class="img-panel">
-                <div class="img-toolbar">
-                  <div class="img-nav">
-                    <button class="navbtn" id="prevBtn" onclick="navPage(-1)" disabled>&#8592;</button>
-                    <span class="pg-label" id="pgLabel">&#8212; / &#8212;</span>
-                    <button class="navbtn" id="nextBtn" onclick="navPage(1)" disabled>&#8594;</button>
-                  </div>
-                  <div style="margin-left:8px;display:flex;gap:6px">
-                    <button class="navbtn" onclick="markPage('ok')" id="markOkBtn" title="Mark Verified">&#10003;</button>
-                    <button class="navbtn" onclick="markPage('flagged')" id="markFlagBtn" title="Flag Issue">&#9873;</button>
-                    <button class="navbtn" id="extractBtn" onclick="extractCurrentPage()" style="background:#00a855;color:#fff;border-color:#00a855">&#8659; Extract Page</button>
-                    <button class="navbtn" onclick="sendToClaude()" style="background:#2255cc;color:#fff;border-color:#2255cc">&#8595; Download</button>
-                  </div>
-                  <div class="img-meta" id="imgMeta"></div>
-                </div>
-                <div class="img-scroll" id="imgScroll">
-                  <div class="img-empty" id="imgEmpty">
-                    <span style="font-size:28px">&#128247;</span>
-                    <span>Loading pages...</span>
-                  </div>
-                  <img id="mainImg" style="display:none" alt="Page"/>
-                </div>
-                <div class="thumb-strip" id="thumbStrip"></div>
-              </div>
-              <div class="at-panel">
-                <div class="at-toolbar">
-                  <span class="at-toolbar-title">Airtable &#8212; <span id="atTableLabel" style="color:var(--bl)">Sets</span></span>
-                  <span id="atStatusLabel" style="font-size:10px;color:var(--dd);font-family:var(--mono)"></span>
-                  <button class="btn bg-btn" style="padding:3px 9px;font-size:10px" onclick="refreshAtData()" id="atRefreshBtn">&#8635; Load</button>
-                </div>
-                <div id="injAuditNav" style="display:none;flex-wrap:wrap;gap:3px;padding:8px 12px;border-bottom:1px solid var(--b);flex-shrink:0;overflow-y:auto;max-height:100px"></div>
-                <div class="at-scroll" id="atScroll">
-                  <div class="date-row">
-                    <input type="date" class="date-inp" id="dateFilter" onchange="refreshAtData()" placeholder="YYYY-MM-DD"/>
-                    <span style="font-size:10px;color:var(--dd);font-family:var(--mono)">filter date</span>
-                  </div>
-                  <div id="atContent">
-                    <div class="empty" style="padding:30px 10px">
-                      <div class="et" style="font-size:11px">Set a date to load Airtable records</div>
-                    </div>
-                  </div>
-                </div>
-                <div class="pg-status-bar">
-                  <span style="font-family:var(--mono);font-size:10px;color:var(--d)">Page status:</span>
-                  <span id="pgStatusText" style="font-family:var(--mono);font-size:10px;color:var(--dd)">&#8212;</span>
-                  <div style="margin-left:auto;display:flex;gap:6px">
-                    <span id="okCount" style="font-size:10px;font-family:var(--mono);color:var(--g)"></span>
-                    <span id="flagCount" style="font-size:10px;font-family:var(--mono);color:var(--r)"></span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="tc" id="tc-export">
-          <div class="tc-scroll">
-            <p style="font-size:12px;color:var(--d);line-height:1.6;margin-bottom:16px">Mark pages verified (&#10003;) or flagged (&#9873;) in the Review tab.</p>
-            <div id="exportSummary"><div class="empty"><div class="et">No file loaded</div></div></div>
-          </div>
-        </div>
-        <div class="tc" id="tc-verify">
-          <div class="tc-scroll">
-            <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
-              <div style="flex:1">
-                <div style="font-size:13px;font-weight:600;margin-bottom:3px">Protocol Verification</div>
-                <div style="font-size:11px;color:var(--d)">Verifies every injection entry in the PDF against the Airtable Injection Log.</div>
-              </div>
-              <button class="btn bp" id="runVerifyBtn" onclick="runVerification()" style="white-space:nowrap;padding:8px 18px">&#9889; Run Verify</button>
-            </div>
-            <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
-              <label style="font-size:11px;color:var(--d);display:flex;align-items:center;gap:6px">
-                <select id="verifyPages" style="padding:4px 8px;font-size:11px;border:1px solid var(--b);border-radius:4px;background:var(--s2);color:var(--t)">
-                  <option value="4">Last 4 pages</option>
-                  <option value="6">Last 6 pages</option>
-                  <option value="10">Last 10 pages</option>
-                  <option value="all" selected>All pages</option>
-                </select>
-                to analyze
-              </label>
-              <label style="font-size:11px;color:var(--d);display:flex;align-items:center;gap:6px">
-                Model:
-                <select id="verifyModel" style="padding:4px 8px;font-size:11px;border:1px solid var(--b);border-radius:4px;background:var(--s2);color:var(--t)">
-                  <option value="claude-haiku-4-5-20251001" selected>Haiku 4.5 — fast</option>
-                  <option value="claude-sonnet-4-6">Sonnet 4.6 — accurate</option>
-                </select>
-              </label>
-            </div>
-            <div id="verifyStatus" style="font-size:11px;color:var(--d);font-family:var(--mono);margin-bottom:12px;min-height:18px"></div>
-            <div id="verifyResults"></div>
-          </div>
-        </div>
-        <div class="tc" id="tc-settings">
-          <div class="tc-scroll">
-            <p style="font-size:12px;color:var(--d);margin-bottom:16px;line-height:1.6">Assign Drive files (ZIP or PDF) to each type. Use <strong>+ Add Files</strong> to browse your Drive.</p>
-            <div id="typeSections"></div>
-            <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--b)">
-              <div style="font-size:12px;font-weight:600;margin-bottom:10px">Airtable Table Mapping</div>
-              <table style="width:100%;border-collapse:collapse;background:var(--s);border:1px solid var(--b);border-radius:6px;overflow:hidden">
-                <thead><tr>
-                  <th style="font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--d);text-align:left;padding:8px 12px;border-bottom:1px solid var(--b);background:var(--s2);font-family:var(--mono)">Type</th>
-                  <th style="font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--d);text-align:left;padding:8px 12px;border-bottom:1px solid var(--b);background:var(--s2);font-family:var(--mono)">Airtable Table</th>
-                </tr></thead>
-                <tbody id="atMapBody"></tbody>
-              </table>
-            </div>
-            <div style="display:flex;gap:8px;margin-top:16px">
-              <button class="btn bp" onclick="saveSettings()">&#10003; Save Settings</button>
-              <button class="btn bg-btn" onclick="signOut()">Sign Out</button>
-              <button class="btn br" onclick="resetAll()">Reset All</button>
-            </div>
-            <div style="margin-top:8px;font-size:11px;color:var(--g);font-family:var(--mono)" id="saveStatus"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="modal-bg" id="pickerModal">
-      <div class="modal">
-        <div class="mhdr">
-          <div class="mhdr-top">
-            <div class="mhdr-title" id="pickerTitle">Add Files</div>
-            <button class="btn bg-btn" style="padding:4px 9px;font-size:11px" onclick="closePickerModal()">&#x2715;</button>
-          </div>
-          <div class="breadcrumb" id="breadcrumb"></div>
-        </div>
-        <div class="msearch"><input type="text" id="pickerSearch" placeholder="Search..." oninput="filterItems()"></div>
-        <div class="mlist" id="pickerList"></div>
-        <div class="mftr">
-          <span class="mftr-count" id="pickerSelCount">0 selected</span>
-          <button class="btn bg-btn" onclick="closePickerModal()">Cancel</button>
-          <button class="btn bp" onclick="confirmPicker()">Add Selected</button>
-        </div>
-      </div>
-    </div>
-    <div class="toasts" id="toasts"></div>
-  </div>
-  </div>
-
 
 <!-- ADD PRICING MODAL -->
 <!-- BULK EDIT PRICING MODAL -->
@@ -1637,6 +1453,7 @@ function renderSupplements(filter) {
 
 // ===== PEPTIDE TRACKER =====
 let trackerMondayOffset = 0; // weeks offset from current week
+let trackerHistoricalData = null; // Map<compoundName, Set<dateISO>> for past weeks; null = current/future
 
 const TRACKER_MORNING_ORDER = [
   'Testosterone', 'Deca (Nandrolone)', 'NAD+', 'Retatrutide',
@@ -1674,12 +1491,76 @@ function getTrackerMonday() {
   return mon;
 }
 
+function isNightPep(name) {
+  const pep = data.peptides.find(r => getField(r,'Compound') === name);
+  if (pep) return (getField(pep,'Timing')||'').toLowerCase().includes('night');
+  return TRACKER_NIGHT_ORDER.some(n => n.toLowerCase() === name.toLowerCase());
+}
+
+const INJECTION_ALIAS = {
+  'trt':'testosterone','testosterone (trt)':'testosterone','testosterone cypionate':'testosterone','testosterone enanthate':'testosterone',
+  'cjc-1295':'cjc-1295 no dac','cjc 1295':'cjc-1295 no dac','cjc1295':'cjc-1295 no dac','cjc-1295 nodac':'cjc-1295 no dac',
+  'epithalon':'epitalon','epithalone':'epitalon','epitalone':'epitalon',
+  'cag':'cagrilintide','reta':'retatrutide',
+  'deca nano':'deca (nandrolone)','deca (nano)':'deca (nandrolone)','deca':'deca (nandrolone)','nandrolone':'deca (nandrolone)',
+  'melanotan ii':'melanotan ii (mt2)','melanotan':'melanotan ii (mt2)','melanotan 2':'melanotan ii (mt2)','mt-2':'melanotan ii (mt2)','mt2':'melanotan ii (mt2)',
+  'ghk':'ghk-cu','ghk cu':'ghk-cu','mots c':'mots-c','ss 31':'ss-31',
+  'stanozolal':'winstrol (stanozolol)','stanozolol':'winstrol (stanozolol)',
+  'anavar':'anavar (oxandrolone)',
+};
+function resolveInjectionCompound(raw) {
+  const n = (raw||'').toLowerCase().trim().replace(/\s+/g,' ');
+  return INJECTION_ALIAS[n] || n;
+}
+
+async function fetchHistoricalCompounds(mondayISO) {
+  try {
+    const mon = new Date(mondayISO + 'T12:00:00');
+    const prev = new Date(mon); prev.setDate(mon.getDate() - 1);
+    const next = new Date(mon); next.setDate(mon.getDate() + 7);
+    const formula = `AND(IS_AFTER({Date},"${prev.toISOString().split('T')[0]}"),IS_BEFORE({Date},"${next.toISOString().split('T')[0]}"))`;
+    const url = `https://api.airtable.com/v0/${BASE}/tblBvEaLkGGipnOFc?filterByFormula=${encodeURIComponent(formula)}&fields[]=Date&fields[]=Compound&fields[]=Name`;
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${TOKEN}` }});
+    const json = await res.json();
+    const map = new Map();
+    (json.records||[]).forEach(r => {
+      const f = r.fields;
+      const raw = Array.isArray(f['Compound']) ? f['Compound'][0] : (f['Compound'] || f['Name']);
+      const date = f['Date'];
+      if (!raw || !date) return;
+      const name = resolveInjectionCompound(raw);
+      if (!map.has(name)) map.set(name, new Set());
+      map.get(name).add(date);
+    });
+    return map.size > 0 ? map : null;
+  } catch(e) { console.error('fetchHistoricalCompounds failed:', e); return null; }
+}
+
 function renderTracker(weekNum) {
   const activePeps = data.peptides.filter(r => getField(r,'Status') === 'Active');
   const pepMap = {};
   activePeps.forEach(r => { pepMap[getField(r,'Compound')] = r; });
-  const morning = TRACKER_MORNING_ORDER.map(n => pepMap[n]).filter(Boolean);
-  const night   = TRACKER_NIGHT_ORDER.map(n => pepMap[n]).filter(Boolean);
+
+  let morning, night;
+  if (trackerHistoricalData) {
+    // Historical mode: compound list comes from injection log
+    const histNames = [...trackerHistoricalData.keys()];
+    morning = histNames.filter(n => !isNightPep(n))
+      .map(n => pepMap[n] || { fields: { Compound: n, Dose: '', Status: 'Historical', Timing: 'Morning' }});
+    night   = histNames.filter(n =>  isNightPep(n))
+      .map(n => pepMap[n] || { fields: { Compound: n, Dose: '', Status: 'Historical', Timing: 'Night' }});
+  } else {
+    // Current/future: known order first, then any unlisted Active peps
+    const knownM = new Set(TRACKER_MORNING_ORDER), knownN = new Set(TRACKER_NIGHT_ORDER);
+    morning = [
+      ...TRACKER_MORNING_ORDER.map(n => pepMap[n]).filter(Boolean),
+      ...activePeps.filter(r => { const n = getField(r,'Compound'); const t = getField(r,'Timing')||''; return !t.toLowerCase().includes('night') && !knownM.has(n); })
+    ];
+    night = [
+      ...TRACKER_NIGHT_ORDER.map(n => pepMap[n]).filter(Boolean),
+      ...activePeps.filter(r => { const n = getField(r,'Compound'); const t = getField(r,'Timing')||''; return t.toLowerCase().includes('night') && !knownN.has(n); })
+    ];
+  }
   const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
 
   const monday = getTrackerMonday();
@@ -1798,11 +1679,17 @@ function renderTracker(weekNum) {
   }
 }
 
-function shiftTrackerWeek(dir) {
+async function shiftTrackerWeek(dir) {
   trackerMondayOffset += dir;
-  renderTracker();
   const monday = getTrackerMonday();
-  loadTrackerWeekData(monday.toISOString().split('T')[0]);
+  const mondayISO = monday.toISOString().split('T')[0];
+  if (trackerMondayOffset < 0) {
+    trackerHistoricalData = await fetchHistoricalCompounds(mondayISO);
+  } else {
+    trackerHistoricalData = null;
+  }
+  renderTracker();
+  loadTrackerWeekData(mondayISO);
 }
 
 async function loadTrackerWeekData(mondayISO) {
@@ -3627,20 +3514,23 @@ function printTracker() {
   const pepMap = {};
   activePeps.forEach(r => { pepMap[getField(r,'Compound')] = r; });
 
+  // Dynamic: known order first, then any unlisted Active peps
+  const knownPM = new Set(TRACKER_MORNING_ORDER), knownPN = new Set(TRACKER_NIGHT_ORDER);
   const MORNING_ORDER = [
-    'Testosterone', 'Deca (Nandrolone)', 'NAD+', 'Retatrutide',
-    'Cagrilintide', 'Tesamorelin', 'GHK-Cu', 'Melanotan II (MT2)', 'Tirzepatide'
+    ...TRACKER_MORNING_ORDER.filter(n => pepMap[n]),
+    ...activePeps.filter(r => { const n = getField(r,'Compound'); const t = getField(r,'Timing')||''; return !t.toLowerCase().includes('night') && !knownPM.has(n); }).map(r => getField(r,'Compound'))
   ];
   const NIGHT_ORDER = [
-    'CJC-1295 No DAC', 'Ipamorelin', 'DSIP', 'KPV', 'Epitalon'
+    ...TRACKER_NIGHT_ORDER.filter(n => pepMap[n]),
+    ...activePeps.filter(r => { const n = getField(r,'Compound'); const t = getField(r,'Timing')||''; return t.toLowerCase().includes('night') && !knownPN.has(n); }).map(r => getField(r,'Compound'))
   ];
 
   const MORN_BG = '#ffffff'; const NIGHT_BG = '#ffffff'; const INACTIVE = '#C0C0C0';
   const DAYS = ['Mon','Tues','Wed','Thurs','Fri','Sat','Sun'];
 
   // totalRows used below for auto-size calc
-  const activeM = MORNING_ORDER.filter(n => pepMap[n]).length;
-  const activeN = NIGHT_ORDER.filter(n => pepMap[n]).length;
+  const activeM = MORNING_ORDER.length;
+  const activeN = NIGHT_ORDER.length;
   const totalRows = activeM + activeN;
 
   function rows(order, bg) {
@@ -4995,8 +4885,8 @@ function initAuth() {
   setDot("d", "", "DRIVE");
 }
 function signIn() {
-  // Always redirect via verify2.html — it's the authorized OAuth URI
-  var redirect = "https://mikeblack001.github.io/health-protocol/verify2.html";
+  // Same-window redirect — no popup
+  var redirect = window.location.href.split("#")[0].split("?")[0];
   window.location.href = "https://accounts.google.com/o/oauth2/v2/auth" +
     "?client_id=" + encodeURIComponent(GCI) +
     "&redirect_uri=" + encodeURIComponent(redirect) +
@@ -5756,63 +5646,49 @@ function renderVerifyResults(rows, startDate, endDate) {
   _lastDiffEnd = endDate;
   verifyRowData = rows;
   var resEl = document.getElementById("verifyResults");
-  if (!resEl) return;
   var ok = rows.filter(function(r){ return r.status==="ok"; }).length;
   var wrong = rows.filter(function(r){ return r.status==="wrong"; }).length;
   var missing = rows.filter(function(r){ return r.status==="missing"; }).length;
   var extra = rows.filter(function(r){ return r.status==="extra"; }).length;
   var runDate = new Date().toLocaleString();
-  // Build sorted list preserving original indices
-  var indexed = rows.map(function(r,i){ return {r:r, i:i}; });
-  indexed.sort(function(a,b){
-    var d = (a.r.date||"").localeCompare(b.r.date||"") || (a.r.compound||"").localeCompare(b.r.compound||"");
+  var sorted = rows.slice().sort(function(a,b){
+    var d = (a.date||"").localeCompare(b.date||"") || (a.compound||"").localeCompare(b.compound||"");
     return _diffSort === 'asc' ? d : -d;
   });
-  var html = "";
-  // Header
-  html += "<div style='display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px'>";
+  var html = "<div style='display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px'>";
   html += "<span style='font-size:10px;color:var(--dd);font-family:var(--mono)'>Run: "+runDate+" · "+startDate+" → "+endDate+"</span>";
   html += "<div style='display:flex;gap:6px;flex-wrap:wrap'>";
   html += "<button class='btn bg-btn' style='font-size:10px;padding:4px 10px' onclick='toggleDiffSort()'>&#8597; " + (_diffSort==='asc'?'Oldest first':'Newest first') + "</button>";
   html += "<button class='btn bg-btn' style='font-size:10px;padding:4px 10px' onclick='backToExtracted()'>&#8592; Back</button>";
   html += "<button class='btn bg-btn' style='font-size:10px;padding:4px 10px' onclick='copyForClaude()'>&#128203; Send to Claude</button>";
   html += "</div></div>";
-  // Stats bar
-  html += "<div style='display:flex;align-items:center;gap:16px;margin-bottom:14px;padding:12px 16px;background:var(--s);border:1px solid var(--b);border-radius:6px;flex-wrap:wrap'>";
-  html += "<div style='text-align:center'><div style='font-size:22px;font-weight:700;color:var(--g);font-family:var(--mono)'>"+ok+"</div><div style='font-size:10px;color:var(--d)'>Match</div></div>";
-  html += "<div style='text-align:center'><div style='font-size:22px;font-weight:700;color:var(--y);font-family:var(--mono)'>"+wrong+"</div><div style='font-size:10px;color:var(--d)'>Wrong</div></div>";
-  html += "<div style='text-align:center'><div style='font-size:22px;font-weight:700;color:var(--r);font-family:var(--mono)'>"+missing+"</div><div style='font-size:10px;color:var(--d)'>Missing</div></div>";
-  html += "<div style='text-align:center'><div style='font-size:22px;font-weight:700;color:var(--bl);font-family:var(--mono)'>"+extra+"</div><div style='font-size:10px;color:var(--d)'>Extra</div></div>";
-  if (missing > 0) html += "<button class='btn bp' style='margin-left:auto;font-size:11px;padding:6px 14px' onclick='addAllMissing()'>+ Add All Missing ("+missing+")</button>";
+  // Stats + bulk actions
+  html += "<div style='display:flex;align-items:center;gap:12px;margin-bottom:14px;padding:12px 16px;background:var(--s);border:1px solid var(--b);border-radius:6px;flex-wrap:wrap'>";
+  html += stat(ok,"Match","var(--g)") + stat(wrong,"Wrong","var(--y)") + stat(missing,"Missing","var(--r)") + stat(extra,"Extra","var(--bl)");
+  if (missing > 0) html += "<button class='btn bp' style='margin-left:auto;font-size:11px;padding:6px 14px' onclick='addAllMissing()'>&#43; Add All Missing ("+missing+")</button>";
   if (extra > 0) html += "<button class='btn br' style='font-size:11px;padding:6px 14px' onclick='deleteAllExtra()'>&#x2715; Delete All Extra ("+extra+")</button>";
   html += "</div>";
-  // Table
   html += "<div style='overflow-x:auto'><table class='tbl' style='width:100%;font-size:11px'><thead><tr style='background:var(--s2)'>";
   ["Date","Compound","PDF Side","PDF Dose","PDF TOD","AT Side","AT Dose","AT TOD","Notes","Issues",""].forEach(function(h){
-    html += "<th style='padding:7px 10px;text-align:left;font-size:9px;letter-spacing:1.2px;text-transform:uppercase;font-family:var(--mono);color:var(--d);border-bottom:1px solid var(--b)'>"+h+"</th>";
+    html += "<th style='padding:7px 10px;text-align:left;font-size:9px;letter-spacing:1.2px;text-transform:uppercase;font-family:var(--mono);color:var(--d);border-bottom:1px solid var(--b)'>" + h + "</th>";
   });
   html += "</tr></thead><tbody>";
-  indexed.forEach(function(item) {
-    var r = item.r, i = item.i;
-    var bg = r.status==="missing"?"background:var(--rd)":r.status==="extra"?"background:var(--bld)":r.status==="wrong"?"background:var(--yd)":"";
-    var p = r.pdf||{}, a = r.at||{};
-    html += "<tr id='vrow-"+i+"' style='"+bg+"'>";
-    html += "<td style='padding:6px 10px;font-family:var(--mono);font-size:10px'>"+(r.date||"—")+"</td>";
-    html += "<td style='padding:6px 10px;font-weight:600'>"+esc(r.compound)+"</td>";
-    html += "<td style='padding:6px 10px;font-family:var(--mono)'>"+esc(p.side||"—")+"</td>";
-    html += "<td style='padding:6px 10px;font-family:var(--mono)'>"+esc(p.dose||"—")+"</td>";
-    html += "<td style='padding:6px 10px;font-family:var(--mono)'>"+esc(p.tod||"—")+"</td>";
-    html += "<td style='padding:6px 10px;font-family:var(--mono)'>"+esc(a.side||"—")+"</td>";
-    html += "<td style='padding:6px 10px;font-family:var(--mono)'>"+esc(a.dose||"—")+"</td>";
-    html += "<td style='padding:6px 10px;font-family:var(--mono)'>"+esc(a.tod||"—")+"</td>";
-    html += "<td style='padding:6px 10px;font-size:10px;color:var(--d);max-width:160px'>"+esc((p.notes||a.notes||""))+"</td>";
+  sorted.forEach(function(r, idx) {
+    var bg = r.status==="missing" ? "background:var(--rd)" : r.status==="extra" ? "background:var(--bld)" : r.status==="wrong" ? "background:var(--yd)" : "";
+    var p = r.pdf || {}, a = r.at || {};
+    html += "<tr id='vrow-"+idx+"' style='" + bg + "'>";
+    html += td(r.date);
+    html += "<td style='padding:6px 10px;font-weight:600'>" + esc(r.compound) + "</td>";
+    html += tdMono(p.side||"—"); html += tdMono(p.dose||"—"); html += tdMono(p.tod||"—");
+    html += tdMono(a.side||"—"); html += tdMono(a.dose||"—"); html += tdMono(a.tod||"—");
+    html += "<td style='padding:6px 10px;font-size:10px;color:var(--d);max-width:160px'>" + esc((p.notes||a.notes||"")) + "</td>";
     var ic = r.status==="ok"?"color:var(--g)":r.status==="missing"?"color:var(--r)":r.status==="extra"?"color:var(--bl)":"color:var(--y)";
-    html += "<td style='padding:6px 10px;font-size:10px;"+ic+"'>"+esc(r.issues.join("; ")||"✓")+"</td>";
+    html += "<td style='padding:6px 10px;font-size:10px;"+ic+"'>" + esc(r.issues.join("; ")||"✓") + "</td>";
     var act = "";
-    if (r.status==="missing") act = "<button class='btn bp' style='font-size:9px;padding:3px 8px' onclick='addToAT("+i+")'>+ Add</button>";
-    if (r.status==="extra" && a.id) act = "<button class='btn br' style='font-size:9px;padding:3px 8px' onclick='deleteFromAT(\""+a.id+"\","+i+")'>&#x2715; Del</button>";
-    if (r.status==="wrong" && a.id) act = "<button class='btn by' style='font-size:9px;padding:3px 8px' onclick='fixRecord(\""+a.id+"\","+i+")'>Fix</button>";
-    html += "<td style='padding:6px 8px'>"+act+"</td>";
+    if (r.status === "missing") act = "<button class='btn bp' style='font-size:9px;padding:3px 8px' onclick='addToAT("+idx+")'>+ Add</button>";
+    if (r.status === "extra" && a.id) act = "<button class='btn br' style='font-size:9px;padding:3px 8px' onclick='deleteFromAT(\""+a.id+"\","+idx+")'>✕ Delete</button>";
+    if (r.status === "wrong" && a.id) act = "<button class='btn by' style='font-size:9px;padding:3px 8px' onclick='fixRecord(\""+a.id+"\","+idx+")'>Fix</button>";
+    html += "<td style='padding:6px 8px'>" + act + "</td>";
     html += "</tr>";
   });
   html += "</tbody></table></div>";
