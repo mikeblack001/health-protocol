@@ -3259,22 +3259,20 @@ async function saveAddChange() {
 
 
 async function printTracker() {
-  // Open window immediately (must be sync/direct user gesture — before any await)
-  const w = window.open('','_blank','width=900,height=700');
-  if (!w) { alert('Popup blocked — allow popups for this site'); return; }
-  w.document.write('<html><body style="font-family:Calibri,Arial,sans-serif;padding:40px;text-align:center"><p>Loading latest protocol data...</p></body></html>');
-
-  // Now fetch fresh from Airtable so dose changes are always reflected
-  let activePeps;
+  // Fetch fresh peptide data from Airtable so doses are always current
   try {
-    const res = await fetch(`https://api.airtable.com/v0/${BASE}/${TABLES.peptides}?pageSize=100`, {
+    const res = await fetch(`https://api.airtable.com/v0/${BASE}/${TABLES.peptides}?pageSize=100&fields[]=Status&fields[]=Compound&fields[]=Dose&fields[]=Timing&fields[]=Frequency`, {
       headers: { Authorization: 'Bearer ' + TOKEN }
     });
     const json = await res.json();
-    activePeps = (json.records || []).filter(r => getField(r,'Status') === 'Active');
-  } catch(e) {
-    activePeps = data.peptides.filter(r => getField(r,'Status') === 'Active');
-  }
+    if (json.records) data.peptides = json.records;
+  } catch(e) { /* use cached data */ }
+
+  // Open window after fetch — data is ready
+  const w = window.open('','_blank','width=900,height=700');
+  if (!w) { alert('Popup blocked — allow popups for this site'); return; }
+
+  const activePeps = data.peptides.filter(r => getField(r,'Status') === 'Active');
   const pepMap = {};
   activePeps.forEach(r => { pepMap[getField(r,'Compound')] = r; });
 
@@ -3398,7 +3396,6 @@ async function printTracker() {
 </div>
 </body></html>`;
 
-  w.document.open();
   w.document.write(html);
   w.document.close();
   setTimeout(() => w.print(), 800);
