@@ -1474,7 +1474,7 @@ async function loadTrackerWeekData(mondayISO) {
     const prevISO = prevDay.toISOString().split('T')[0];
     const nextISO = nextDay.toISOString().split('T')[0];
     const formula = `AND(IS_AFTER({Date},"${prevISO}"),IS_BEFORE({Date},"${nextISO}"))`;
-    const url = `https://api.airtable.com/v0/${BASE}/tblBvEaLkGGipnOFc?filterByFormula=${encodeURIComponent(formula)}&fields[]=Date&fields[]=Compound&fields[]=Site&fields[]=Name`;
+    const url = `https://api.airtable.com/v0/${BASE}/tblBvEaLkGGipnOFc?filterByFormula=${encodeURIComponent(formula)}&fields[]=Date&fields[]=Compound&fields[]=Site&fields[]=Name&fields[]=Notes`;
     const res = await fetch(url, { headers: { Authorization: `Bearer ${TOKEN}` } });
     const json = await res.json();
     const records = json.records || [];
@@ -1516,7 +1516,14 @@ async function loadTrackerWeekData(mondayISO) {
       if (!rawCompound || !date) return;
       const resolved = resolveCompound(rawCompound);
       const box = allBoxes.find(b => norm(b.dataset.compound) === resolved && b.dataset.date === date);
-      if (box) applyState(box, site);
+      if (box) {
+        applyState(box, site);
+        const note = f['Notes'];
+        if (note && note.trim()) {
+          const noteInput = document.querySelector(`input[data-type="notes"][data-compound="${box.dataset.compound}"]`);
+          if (noteInput && !noteInput.value) noteInput.value = note.trim();
+        }
+      }
     });
     // Load metrics (sleep/deep/duration) from DailyLog
     const dlUrl = `https://api.airtable.com/v0/${BASE}/${TABLES.dailyLog}?filterByFormula=${encodeURIComponent('IS_SAME({Date},"' + mondayISO + '","day")')}&fields[]=fldAatoFJQPQwbVhQ`;
