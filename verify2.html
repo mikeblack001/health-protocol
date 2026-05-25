@@ -562,9 +562,8 @@ async function selFile(id, name, type) {
   if (type === "injection") {
     document.getElementById("dateFilter").closest(".date-row").style.display = "none";
     document.getElementById("atRefreshBtn").style.display = "none";
-    document.getElementById("injAuditNav").style.display = "flex";
-    document.getElementById("atContent").innerHTML = "<div style='padding:16px;text-align:center;font-size:11px;color:var(--dd)'>Loading audit data...</div>";
-    loadInjAuditPanel();
+    document.getElementById("injAuditNav").style.display = "none";
+    document.getElementById("atContent").innerHTML = "<div class='empty' style='padding:20px 10px'><div class='et' style='font-size:11px'>Use ⚡ Verify tab to run verification</div><div class='es'>Or <a href='#' onclick=\"loadInjAuditPanel();return false\" style=\"color:var(--bl)\">load audit grid</a> for manual review.</div></div>";
   } else {
     document.getElementById("dateFilter").closest(".date-row").style.display = "flex";
     document.getElementById("atRefreshBtn").style.display = "";
