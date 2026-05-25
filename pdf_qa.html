@@ -384,11 +384,11 @@ function showTab(name) {
 // ── CONFIG PERSISTENCE ────────────────────────────────────────────────
 function loadCfg() {
   try {
-    var s = localStorage.getItem("mb_pdfqa5");
+    var s = localStorage.getItem("mb_pdfqa4");
     if (s) { var p = JSON.parse(s); if (p.types) Object.keys(p.types).forEach(function(k) { if (cfg.types[k]) cfg.types[k] = Object.assign({}, cfg.types[k], p.types[k]); }); }
   } catch(e) {}
 }
-function saveCfg() { localStorage.setItem("mb_pdfqa5", JSON.stringify(cfg)); }
+function saveCfg() { localStorage.setItem("mb_pdfqa4", JSON.stringify(cfg)); }
 function loadTok() { var t = localStorage.getItem("mb_pdfqat"), e = parseInt(localStorage.getItem("mb_pdfqae") || 0); return (t && Date.now() < e) ? t : null; }
 function saveTok(t, exp) { localStorage.setItem("mb_pdfqat", t); localStorage.setItem("mb_pdfqae", Date.now() + (exp - 60) * 1000); }
 function clearTok() { localStorage.removeItem("mb_pdfqat"); localStorage.removeItem("mb_pdfqae"); }
@@ -733,7 +733,7 @@ function saveSettings() {
   var el = document.getElementById("saveStatus"); if (el) { el.textContent = "Saved " + new Date().toLocaleTimeString(); setTimeout(function() { el.textContent = ""; }, 3000); }
   toast("Saved", "tg"); loadMappedFiles();
 }
-function resetAll() { if (!confirm("Reset all settings?")) return; localStorage.removeItem("mb_pdfqa5"); location.reload(); }
+function resetAll() { if (!confirm("Reset all settings?")) return; localStorage.removeItem("mb_pdfqa4"); location.reload(); }
 
 // ── FOLDER BROWSER ────────────────────────────────────────────────────
 async function fetchFolderContents(folderId) {
