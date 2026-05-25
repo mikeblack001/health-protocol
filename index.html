@@ -304,23 +304,23 @@
 }
 
 @media print {
-  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-  body, html { background: white !important; margin: 0; padding: 0; }
+  body.print-workout * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  body.print-workout, body.print-workout html { background: white !important; margin: 0; padding: 0; }
 
-  body > * { display: none !important; }
-  #app-container, .nav-sidebar, header, .tab-bar { display: none !important; }
+  body.print-workout > * { display: none !important; }
+  body.print-workout #app-container, body.print-workout .nav-sidebar, body.print-workout header, body.print-workout .tab-bar { display: none !important; }
 
-  #view-workouts { display: block !important; position: static !important; }
-  #view-workouts .filter-bar { display: none !important; }
-  #workout-log-panel, #workout-history-panel, #workout-progress-panel { display: none !important; }
-  #workout-print-panel { display: block !important; }
+  body.print-workout #view-workouts { display: block !important; position: static !important; }
+  body.print-workout #view-workouts .filter-bar { display: none !important; }
+  body.print-workout #workout-log-panel, body.print-workout #workout-history-panel, body.print-workout #workout-progress-panel { display: none !important; }
+  body.print-workout #workout-print-panel { display: block !important; }
 
-  #weekly-print-modal { display: block !important; position: static !important; background: white !important; padding: 0 !important; z-index: auto !important; overflow: visible !important; }
-  #weekly-print-modal > div { background: white !important; border-radius: 0 !important; padding: 0 !important; max-width: 100% !important; box-shadow: none !important; }
-  #weekly-print-modal > div > div:first-child { display: none !important; }
-  #modal-print-preview { padding: 0 !important; }
-  #print-week-date, button { display: none !important; }
-  .print-page-controls { display: none !important; }
+  body.print-workout #weekly-print-modal { display: block !important; position: static !important; background: white !important; padding: 0 !important; z-index: auto !important; overflow: visible !important; }
+  body.print-workout #weekly-print-modal > div { background: white !important; border-radius: 0 !important; padding: 0 !important; max-width: 100% !important; box-shadow: none !important; }
+  body.print-workout #weekly-print-modal > div > div:first-child { display: none !important; }
+  body.print-workout #modal-print-preview { padding: 0 !important; }
+  body.print-workout #print-week-date, body.print-workout button { display: none !important; }
+  body.print-workout .print-page-controls { display: none !important; }
 
   .print-page { page-break-after: always; margin: 0; padding: 0; width: 100%; }
   .print-page:last-child { page-break-after: auto; }
@@ -2374,7 +2374,9 @@ async function saveWorkout() {
 }
 
 function printWorkout() {
+  document.body.classList.add('print-workout');
   window.print();
+  document.body.classList.remove('print-workout');
 }
 
 async function loadWorkoutHistory() {
