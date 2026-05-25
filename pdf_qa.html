@@ -397,7 +397,6 @@ function clearTok() { localStorage.removeItem("mb_pdfqat"); localStorage.removeI
 // ── AUTH ──────────────────────────────────────────────────────────────
 function initAuth() {
   if (typeof google === "undefined") { setTimeout(initAuth, 300); return; }
-  // Always init the client and attempt silent token refresh
   gCli = google.accounts.oauth2.initTokenClient({
     client_id: GCI, scope: GSC,
     callback: function(r) {
@@ -407,9 +406,14 @@ function initAuth() {
     }
   });
   var stored = loadTok();
-  if (stored) { gTok = stored; setDot("d", "ok", "DRIVE"); loadMappedFiles(); }
-  // Always request silently — no popup if already authorized
-  gCli.requestAccessToken({ prompt: "" });
+  if (stored) {
+    // Valid stored token — use it, silently refresh in background
+    gTok = stored; setDot("d", "ok", "DRIVE"); loadMappedFiles();
+    gCli.requestAccessToken({ prompt: "" });
+  } else {
+    // No token — wait for user to click Sign In
+    setDot("d", "", "DRIVE");
+  }
 }
 function signIn() {
   if (!gCli) gCli = google.accounts.oauth2.initTokenClient({
