@@ -1894,7 +1894,7 @@ function renderTracker(weekNum) {
   const pepMap = {};
   activePeps.forEach(r => { pepMap[getField(r,'Compound')] = r; });
   const pepMapCI = {};
-  activePeps.forEach(r => { pepMapCI[getField(r,'Compound').toLowerCase()] = r; });
+  data.peptides.forEach(r => { pepMapCI[getField(r,'Compound').toLowerCase()] = r; });
 
   let morning, night;
   if (trackerHistoricalData) {
