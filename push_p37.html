@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Push Page 37 — PUSH + PULL</title>
+<style>
+  body{font-family:monospace;padding:20px;background:#1a1a1a;color:#eee;}
+  h2{color:#4CAF50;}
+  button{padding:10px 24px;background:#4CAF50;color:#000;border:none;cursor:pointer;font-size:15px;border-radius:4px;font-weight:bold;}
+  button:disabled{background:#444;color:#888;cursor:default;}
+  #bar-wrap{margin:12px 0;background:#333;border-radius:4px;height:18px;width:100%;max-width:500px;}
+  #bar{height:18px;background:#4CAF50;border-radius:4px;width:0%;transition:width 0.2s;}
+  #status{margin:6px 0 2px;font-size:13px;color:#aaa;}
+  #log{margin-top:12px;font-size:11px;max-height:400px;overflow-y:auto;}
+  .ok{color:#4CAF50;}.err{color:#f44336;}.info{color:#aaa;}
+</style>
+</head>
+<body>
+<h2>Page 37 — 2025-03-10 PUSH + 2025-03-11 PULL</h2>
+<p>2 Sessions · 39 PUSH sets · 36 PULL sets = <strong>77 records</strong></p>
+<button id="runBtn" onclick="run()">▶ Push All Records</button>
+<div id="bar-wrap"><div id="bar"></div></div>
+<div id="status">Ready.</div>
+<div id="log"></div>
+<script>
+const BASE='appmHDG4TGT1xy6R6';
+const TOKEN='pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
+const SESS_TBL='tblk9tTYIcIY4tWjF',SETS_TBL='tblKDqjy5RzqaJvjr';
+const SS='fldtyX5g2302mdKRM',SD='fld0NOLsoRvUklsUx',SY='fldCOlVjVlkvg7xQ6';
+const FID='fld4hUpEzC9IqN0xh',FDT='fld75zYXknF0RtCWH',FSS='fldBChNmPkNg61oTN',
+      FEX='fldZ93A1t7fGjjsSS',FVR='fld2TZdmCOloH0gAK',FNM='fldNm9Ao0rmcwwDXo',
+      FRP='fldelUngWHRTm48m1',FWT='fldmrbBmfgSMtREMt',FDY='fldypzlwqw9AzWrEE';
+
+const sessions=[
+  {[SS]:'2025-03-10 PUSH',[SD]:'2025-03-10',[SY]:'PUSH'},
+  {[SS]:'2025-03-11 PULL',[SD]:'2025-03-11',[SY]:'PULL'},
+];
+
+function s(date,sess,day,ex,vari,num,reps,wt){
+  const abbr=ex.replace(/[^A-Za-z0-9]/g,'').substring(0,12).toUpperCase();
+  const va=vari?vari.replace(/[^A-Za-z0-9]/g,'').substring(0,6).toUpperCase():'';
+  return{[FID]:`${date}-${abbr}${va?'-'+va:''}-${num}`,[FDT]:date,[FSS]:sess,
+         [FEX]:ex,[FVR]:vari,[FNM]:num,[FRP]:reps,[FWT]:wt,[FDY]:day};
+}
+
+const PD='2025-03-10',PS='2025-03-10 PUSH',PY='PUSH';
+const TD='2025-03-11',TS='2025-03-11 PULL',TY='PULL';
+
+const allSets=[
+  // ── PUSH 3/10 ──
+  s(PD,PS,PY,'Bench Press','DBs',1,25,50),
+  s(PD,PS,PY,'Bench Press','DBs',2,18,55),
+  s(PD,PS,PY,'Bench Press','DBs',3,12,60),
+  s(PD,PS,PY,'Tricep Pushdowns 1/2','',1,20,120),
+  s(PD,PS,PY,'Tricep Pushdowns 1/2','',2,18,140),
+  s(PD,PS,PY,'Tricep Pushdowns 1/2','',3,12,160),
+  s(PD,PS,PY,'Incline Fly','DBs',1,25,20),
+  s(PD,PS,PY,'Incline Fly','DBs',2,20,25),
+  s(PD,PS,PY,'Incline Fly','DBs',3,18,30),
+  s(PD,PS,PY,'Tricep Pushdowns 1/2','Rope 1/2',1,25,80),
+  s(PD,PS,PY,'Tricep Pushdowns 1/2','Rope 1/2',2,25,90),
+  s(PD,PS,PY,'Tricep Pushdowns 1/2','Rope 1/2',3,20,100),
+  s(PD,PS,PY,'Cable Press 1/2 ea','Cable',1,25,90),
+  s(PD,PS,PY,'Cable Press 1/2 ea','Cable',2,15,100),
+  s(PD,PS,PY,'Cable Press 1/2 ea','Cable',3,15,110),
+  s(PD,PS,PY,'Fly','Cable',1,20,40),
+  s(PD,PS,PY,'Fly','Cable',2,20,40),
+  s(PD,PS,PY,'Fly','Cable',3,20,40),
+  s(PD,PS,PY,'1 Hand Tri','Cable',1,25,40),
+  s(PD,PS,PY,'1 Hand Tri','Cable',2,25,40),
+  s(PD,PS,PY,'1 Hand Tri','Cable',3,25,40),
+  s(PD,PS,PY,'Decline Press','Cable',1,25,100),
+  s(PD,PS,PY,'Decline Press','Cable',2,20,110),
+  s(PD,PS,PY,'Decline Press','Cable',3,12,120),
+  s(PD,PS,PY,'Decline Fly','Cable',1,25,40),
+  s(PD,PS,PY,'Decline Fly','Cable',2,25,40),
+  s(PD,PS,PY,'Decline Fly','Cable',3,25,40),
+  s(PD,PS,PY,'Tri Rope Press','Cable',1,25,70),
+  s(PD,PS,PY,'Tri Rope Press','Cable',2,20,80),
+  s(PD,PS,PY,'Tri Rope Press','Cable',3,15,90),
+  s(PD,PS,PY,'Incline Press','Cable',1,25,40),
+  s(PD,PS,PY,'Incline Press','Cable',2,25,50),
+  s(PD,PS,PY,'Incline Press','Cable',3,11,60),
+  s(PD,PS,PY,'Incline Fly','Cable',1,20,30),
+  s(PD,PS,PY,'Incline Fly','Cable',2,15,30),
+  s(PD,PS,PY,'Incline Fly','Cable',3,15,30),
+  s(PD,PS,PY,'Overhead Tricep Ext','DBs',1,25,15),
+  s(PD,PS,PY,'Overhead Tricep Ext','DBs',2,25,10),
+  s(PD,PS,PY,'Overhead Tricep Ext','DBs',3,25,5),
+  // ── PULL 3/11 ──
+  s(TD,TS,TY,'Wide Pull','Lat Machine',1,25,120),
+  s(TD,TS,TY,'Wide Pull','Lat Machine',2,15,130),
+  s(TD,TS,TY,'Wide Pull','Lat Machine',3,10,140),
+  s(TD,TS,TY,'Curls','DBs',1,15,20),
+  s(TD,TS,TY,'Curls','DBs',2,15,20),
+  s(TD,TS,TY,'Curls','DBs',3,12,20),
+  s(TD,TS,TY,'2 Hand Pull','Cable',1,25,100),
+  s(TD,TS,TY,'2 Hand Pull','Cable',2,25,100),
+  s(TD,TS,TY,'2 Hand Pull','Cable',3,20,100),
+  s(TD,TS,TY,'Close Grip','Lat Machine',1,20,100),
+  s(TD,TS,TY,'Close Grip','Lat Machine',2,20,100),
+  s(TD,TS,TY,'Close Grip','Lat Machine',3,20,100),
+  s(TD,TS,TY,'Hammer Curls','DBs',1,20,25),
+  s(TD,TS,TY,'Hammer Curls','DBs',2,12,25),
+  s(TD,TS,TY,'Hammer Curls','DBs',3,10,25),
+  s(TD,TS,TY,'V Pull','Lat Machine',1,20,100),
+  s(TD,TS,TY,'V Pull','Lat Machine',2,20,100),
+  s(TD,TS,TY,'V Pull','Lat Machine',3,20,100),
+  s(TD,TS,TY,'MD Row','Cable',1,15,90),
+  s(TD,TS,TY,'MD Row','Cable',2,12,80),
+  s(TD,TS,TY,'MD Row','Cable',3,15,70),
+  s(TD,TS,TY,'EZ Curl','EZ-Bar',1,20,45),
+  s(TD,TS,TY,'EZ Curl','EZ-Bar',2,12,45),
+  s(TD,TS,TY,'EZ Curl','EZ-Bar',3,12,45),
+  s(TD,TS,TY,'Curl Bar','Cable',1,14,80),
+  s(TD,TS,TY,'Curl Bar','Cable',2,12,70),
+  s(TD,TS,TY,'Curl Bar','Cable',3,15,60),
+  s(TD,TS,TY,'Forearm Curl','Cable',1,20,50),
+  s(TD,TS,TY,'Forearm Curl','Cable',2,20,40),
+  s(TD,TS,TY,'Forearm Curl','Cable',3,25,30),
+  s(TD,TS,TY,'Curls','DBs',1,10,15),
+  s(TD,TS,TY,'Curls','DBs',2,5,10),
+  s(TD,TS,TY,'Curls','DBs',3,10,5),
+  s(TD,TS,TY,'2 Hand Curl','Cable',1,15,30),
+  s(TD,TS,TY,'2 Hand Curl','Cable',2,15,20),
+  s(TD,TS,TY,'2 Hand Curl','Cable',3,20,20),
+];
+
+const TOTAL=sessions.length+allSets.length;
+let pushed=0;
+function log(msg,cls='info'){const d=document.getElementById('log');const el=document.createElement('div');el.className=cls;el.textContent=msg;d.appendChild(el);d.scrollTop=d.scrollHeight;}
+function setBar(p){document.getElementById('bar').style.width=p+'%';}
+function setStatus(m){document.getElementById('status').textContent=m;}
+async function push(table,records){
+  const res=await fetch(`https://api.airtable.com/v0/${BASE}/${table}`,{
+    method:'POST',headers:{'Authorization':`Bearer ${TOKEN}`,'Content-Type':'application/json'},
+    body:JSON.stringify({records:records.map(f=>({fields:f})),typecast:true})});
+  return res.json();}
+async function run(){
+  document.getElementById('runBtn').disabled=true;pushed=0;
+  setStatus('Pushing 2 sessions...');
+  const sr=await push(SESS_TBL,sessions);
+  if(sr.records){pushed+=sr.records.length;log(`✓ Sessions: ${sr.records.length} created`,'ok');}
+  else{log(`✗ Sessions FAILED: ${JSON.stringify(sr.error||sr)}`,'err');}
+  setBar(Math.round(pushed/TOTAL*100));
+  for(let i=0;i<allSets.length;i+=10){
+    const batch=allSets.slice(i,i+10);
+    setStatus(`Pushing sets ${i+1}–${Math.min(i+10,allSets.length)} of ${allSets.length}...`);
+    const r=await push(SETS_TBL,batch);
+    if(r.records){pushed+=r.records.length;log(`✓ Sets ${i+1}–${i+r.records.length} OK`,'ok');}
+    else{log(`✗ Batch ${i+1} FAILED: ${JSON.stringify(r.error||r)}`,'err');break;}
+    setBar(Math.round(pushed/TOTAL*100));
+    await new Promise(res=>setTimeout(res,200));}
+  setStatus(`Done — ${pushed}/${TOTAL} records pushed.`);setBar(100);
+  document.getElementById('runBtn').disabled=false;}
+</script>
+</body></html>
