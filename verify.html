@@ -553,14 +553,22 @@ async function selFile(id, name, type) {
   document.getElementById("mainImg").style.display = "none";
   document.getElementById("imgEmpty").style.display = "flex";
   document.getElementById("imgEmpty").innerHTML = "<span style='font-size:28px'>&#8635;</span><span id='dbgStatus'>Downloading file...</span>";
-  document.getElementById("atContent").innerHTML = "<div class='empty' style='padding:30px 10px'><div class='et' style='font-size:11px'>Set a date to load Airtable records</div></div>";
   document.getElementById("dateFilter").value = "";
-  document.getElementById("atTableLabel").textContent = cfg.types[type].tableName || type;
   showTab("review");
-
-  // Update Airtable dot
   var m = cfg.types[type];
-  document.getElementById("atTableLabel").textContent = m.tableName || type;
+  // Injection: Active Peptides panel; others: date filter
+  if (type === "injection") {
+    document.getElementById("dateFilter").closest(".date-row").style.display = "none";
+    document.getElementById("atRefreshBtn").style.display = "none";
+    document.getElementById("atTableLabel").textContent = "Active Peptides";
+    document.getElementById("atContent").innerHTML = "<div style='padding:16px;color:var(--dd);font-size:11px;text-align:center'>Loading...</div>";
+    loadActivePeptides();
+  } else {
+    document.getElementById("dateFilter").closest(".date-row").style.display = "flex";
+    document.getElementById("atRefreshBtn").style.display = "";
+    document.getElementById("atTableLabel").textContent = m.tableName || type;
+    document.getElementById("atContent").innerHTML = "<div class='empty' style='padding:30px 10px'><div class='et' style='font-size:11px'>Set a date to load Airtable records</div></div>";
+  }
 
   try {
     setDot("d", "warn", "LOADING");
