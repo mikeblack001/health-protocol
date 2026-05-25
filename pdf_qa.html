@@ -908,7 +908,7 @@ async function runVerification() {
       imgBlocks.push({ type: "image", source: { type: "base64", media_type: "image/jpeg", data: pages[i].url.split(",")[1] } });
       imgBlocks.push({ type: "text", text: "Page " + (i+1) + " of " + pages.length });
     }
-    var prompt = "You are reading the last pages of a handwritten peptide/injection tracking log. These pages show weekly grids with compound names printed as row headers.\n\nTask: From the most recent printed template (the page with typed/printed compound names in a structured table — NOT blank future weeks), extract every compound listed.\n\nFor each compound return:\n- name: exact compound name as printed (e.g. 'TRT (Testosterone)', 'Tesamorelin', 'CJC-1295 No DAC')\n- dose_units: dose shown on the template row label (e.g. '75 units', '15 units', '5u'). If dose changed (shown with annotation), use the MOST RECENT annotated value.\n- time_of_day: 'Morning' or 'Night' based on section heading\n- notes: any handwritten notes visible (e.g. 'Finished', 'Starting 5/21', dose change annotations)\n\nAlso note if any compound has a handwritten annotation suggesting it is FINISHED, STOPPED, or PAUSED.\n\nReturn ONLY a valid JSON array. No explanation, no markdown.";
+    var prompt = "You are reading the last pages of a handwritten peptide/injection tracking log. These pages show weekly grids with compound names printed as row headers.\n\nTask: From the most recent printed template (the page with typed/printed compound names in a structured table — NOT blank future weeks), extract every compound listed.\n\nFor each compound return:\n- name: exact compound name as printed (e.g. 'TRT (Testosterone)', 'Tesamorelin', 'CJC-1295 No DAC')\n- dose_units: dose shown on the template row label (e.g. '75 units', '15 units', '5u'). If dose changed (shown with annotation), use the MOST RECENT annotated value.\n- time_of_day: 'Morning' or 'Night' based on section heading\n- notes: any handwritten notes visible (dose changes, start dates, etc.)\n\nIMPORTANT: 'Finished' in this log means finished a vial and started a new one — it does NOT mean the compound was stopped. Only flag a compound as stopped if notes say 'Stopped', 'Discontinued', or 'Paused'.\n\nReturn ONLY a valid JSON array. No explanation, no markdown.";
     var resp = await fetch(WORKER_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -988,11 +988,12 @@ function renderVerifyDiff(pdfProtocol, atRecords) {
     } else {
       matched.add(normalizeName(at.name));
       // Check status
-      var isFinished = p.notes && /finish|stop|done|paused/i.test(p.notes);
-      if (isFinished && at.status === "Active") {
-        rowClass = "err"; issues.push("PDF: FINISHED — AT status: Active");
+      var isStopped = p.notes && /\bstop|stopped|paused|discontinued\b/i.test(p.notes);
+      // "Finished" = finished vial, not stopped — don't flag
+      if (isStopped && at.status === "Active") {
+        rowClass = "err"; issues.push("PDF: STOPPED — AT status: Active");
       }
-      if (!isFinished && at.status === "Paused") {
+      if (!isStopped && at.status === "Paused") {
         rowClass = "err"; issues.push("PDF: on template — AT status: Paused");
       }
     }
