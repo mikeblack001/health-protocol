@@ -1415,7 +1415,7 @@ function shiftTrackerWeek(dir) {
 
 async function loadTrackerWeekData(mondayISO) {
   try {
-    const url = `https://api.airtable.com/v0/${BASE}/${TABLES.dailyLog}?filterByFormula=${encodeURIComponent(`{${DL.date}}="${mondayISO}"`)}&fields[]=${DL.pepLog}`;
+    const url = `https://api.airtable.com/v0/${BASE}/${TABLES.dailyLog}?filterByFormula=${encodeURIComponent(`{Date}="${mondayISO}"`)}&fields[]=${DL.pepLog}`;
     const res = await fetch(url, { headers: { Authorization: `Bearer ${TOKEN}` } });
     const json = await res.json();
     const records = json.records || [];
@@ -3025,15 +3025,15 @@ function printTracker() {
       const r = pepMap[name];
       if (!r) return '';
       const dose = getField(r,'Dose');
-      const label = dose ? `${name}<br><span style="font-size:7pt;color:#555">${dose}</span>` : name;
+      const label = dose ? `<span style="font-size:8pt;font-weight:600">${name}</span> <span style="font-size:6.5pt;color:#555">${dose}</span>` : name;
       const active = TRACKER_SCHEDULE[name] || [0,1,2,3,4,5,6];
-      let tr = `<tr><td style="background-color:${bg}!important;border:1px solid #000;padding:3px 5px;height:22px;vertical-align:middle">${label}</td>`;
+      let tr = `<tr><td style="background-color:${bg}!important;border:1px solid #000;padding:1px 4px;height:18px;vertical-align:middle;white-space:nowrap;overflow:hidden">${label}</td>`;
       for (let d=0; d<7; d++) {
         tr += active.includes(d)
-          ? `<td style="background-color:${bg}!important;border:1px solid #000;height:22px;"></td>`
-          : `<td style="background-color:${INACTIVE}!important;border:1px solid #000;height:22px;"></td>`;
+          ? `<td style="background-color:${bg}!important;border:1px solid #000;height:18px;"></td>`
+          : `<td style="background-color:${INACTIVE}!important;border:1px solid #000;height:18px;"></td>`;
       }
-      tr += `<td style="background-color:${bg}!important;border:1px solid #000;height:22px;"></td></tr>`;
+      tr += `<td style="background-color:${bg}!important;border:1px solid #000;height:18px;"></td></tr>`;
       return tr;
     }).join('');
   }
@@ -3041,43 +3041,41 @@ function printTracker() {
   const SLEEP_BG = '#F0F0F0';
   function sleepRows() {
     return ['Sleep (hrs)', 'Deep Sleep (min)', 'Duration (min)'].map(label =>
-      `<tr><td style="background-color:${SLEEP_BG}!important;border:1px solid #000;padding:3px 5px;height:20px;font-style:italic;font-size:7.5pt;color:#333">${label}</td>` +
-      DAYS.map(() => `<td style="background-color:${SLEEP_BG}!important;border:1px solid #000;height:20px;"></td>`).join('') +
-      `<td style="background-color:${SLEEP_BG}!important;border:1px solid #000;height:20px;"></td></tr>`
+      `<tr><td style="background-color:${SLEEP_BG}!important;border:1px solid #000;padding:1px 4px;height:16px;font-style:italic;font-size:7pt;color:#444">${label}</td>` +
+      DAYS.map(() => `<td style="background-color:${SLEEP_BG}!important;border:1px solid #000;height:16px;"></td>`).join('') +
+      `<td style="background-color:${SLEEP_BG}!important;border:1px solid #000;height:16px;"></td></tr>`
     ).join('');
   }
 
   function weekTable(weekNum) {
     return `
-    <table style="width:100%;border-collapse:collapse;margin-top:${weekNum>1?'8px':'0'};border:2px solid #000">
-      <tr>
-        <td style="background-color:#1B4332!important;color:#fff!important;font-weight:bold;font-size:9pt;padding:4px 8px;width:70px;white-space:nowrap">Week ${weekNum}</td>
-        <td style="background-color:#fff!important;border-left:2px solid #000;font-size:9pt;padding:4px 8px;color:#000">Monday Date: _____________________________</td>
-      </tr>
-    </table>
-    <table style="width:100%;border-collapse:collapse;font-size:8pt;table-layout:fixed;border:2px solid #000;border-top:none">
+    <table style="width:100%;border-collapse:collapse;margin-top:${weekNum>1?'6px':'0'};border:2px solid #000;table-layout:fixed;font-size:8pt">
     <colgroup><col style="width:34%">${DAYS.map(()=>'<col style="width:6%">').join('')}<col style="width:24%"></colgroup>
-    <thead><tr style="background-color:#D9D9D9!important">
-      <th style="border:1px solid #000;padding:2px 5px;text-align:left">Medication</th>
-      ${DAYS.map(d=>`<th style="border:1px solid #000;padding:2px;text-align:center">${d}</th>`).join('')}
-      <th style="border:1px solid #000;padding:2px 5px;text-align:left">Notes</th>
-    </tr></thead><tbody>
-    <tr><td colspan="9" style="background-color:#E8A838!important;color:#fff!important;font-weight:bold;padding:3px 6px;font-size:8pt">☀ Morning</td></tr>
+    <tbody>
+    <tr>
+      <td style="background-color:#1B4332!important;color:#fff!important;font-weight:bold;font-size:8.5pt;padding:3px 6px;border:1px solid #000">Week ${weekNum}</td>
+      <td colspan="8" style="background-color:#fff!important;border:1px solid #000;font-size:8.5pt;padding:3px 6px;color:#000">Monday Date: _________________________________</td>
+    </tr>
+    <tr style="background-color:#D9D9D9!important">
+      <th style="border:1px solid #000;padding:2px 4px;text-align:left;font-size:7.5pt">Medication</th>
+      ${DAYS.map(d=>`<th style="border:1px solid #000;padding:2px 1px;text-align:center;font-size:7.5pt">${d}</th>`).join('')}
+      <th style="border:1px solid #000;padding:2px 4px;text-align:left;font-size:7.5pt">Notes</th>
+    </tr>
+    <tr><td colspan="9" style="background-color:#E8A838!important;color:#fff!important;font-weight:bold;padding:2px 5px;font-size:7.5pt">☀ Morning</td></tr>
     ${rows(MORNING_ORDER, MORN_BG)}
-    <tr><td colspan="9" style="height:6px;background-color:#e8e8e8!important;border:1px solid #000"></td></tr>
-    <tr><td colspan="9" style="background-color:#4A6FA5!important;color:#fff!important;font-weight:bold;padding:3px 6px;font-size:8pt">🌙 Night</td></tr>
+    <tr><td colspan="9" style="height:4px;background-color:#ddd!important;border:1px solid #000"></td></tr>
+    <tr><td colspan="9" style="background-color:#4A6FA5!important;color:#fff!important;font-weight:bold;padding:2px 5px;font-size:7.5pt">🌙 Night</td></tr>
     ${rows(NIGHT_ORDER, NIGHT_BG)}
-    <tr><td colspan="9" style="height:4px;background-color:#ccc!important;border:1px solid #000"></td></tr>
+    <tr><td colspan="9" style="height:3px;background-color:#ccc!important;border:1px solid #000"></td></tr>
     ${sleepRows()}
     </tbody></table>`;
   }
 
   const html = `<!DOCTYPE html><html><head><title></title>
   <style>
-    @page { size: portrait letter; margin: 0.3in; }
-    body { font-family: Calibri, Arial, sans-serif; margin: 0; font-size: 8.5pt; -webkit-print-color-adjust: exact; print-color-adjust: exact; color-adjust: exact; }
+    @page { size: portrait letter; margin: 0.2in; }
+    body { font-family: Calibri, Arial, sans-serif; margin: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; color-adjust: exact; }
     * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
-    table { width: 100%; border-collapse: collapse; table-layout: fixed; }
     .page-break { page-break-after: always; }
   </style></head><body>
   <div class="page-break">${weekTable(1)}${weekTable(2)}</div>
