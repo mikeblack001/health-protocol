@@ -1043,7 +1043,7 @@ async function loadAll() {
       try { renderPeptides('Active'); } catch(e2) { console.error('[loadAll] renderPeptides failed:', e2); }
     loadVendors();
       try { renderSupplements('Active'); } catch(e2) { console.error('[loadAll] renderSupplements failed:', e2); }
-      try { renderTracker(); } catch(e2) { console.error('[loadAll] renderTracker failed:', e2); }
+      try { renderTracker(); const _tm = getTrackerMonday(); loadTrackerWeekData(_tm.toISOString().split('T')[0]); } catch(e2) { console.error('[loadAll] renderTracker failed:', e2); }
     renderPrintList();
     } catch(e) {
     document.getElementById('statusDot').className = 'status-dot';
@@ -1323,17 +1323,17 @@ function renderTracker(weekNum) {
   function dayCell(compound, dayIdx, bg) {
     const active = TRACKER_SCHEDULE[compound];
     if (active && !active.includes(dayIdx)) {
-      return `<td style="background:${INACTIVE};border:1px solid #ccc;width:44px"></td>`;
+      return `<td style="background:${INACTIVE};border:1px solid #000;width:44px"></td>`;
     }
     const dayDate = new Date(monday); dayDate.setDate(monday.getDate() + dayIdx);
     const dateStr = dayDate.toISOString().split('T')[0];
-    return `<td style="background:${bg};border:1px solid #ccc;width:44px;text-align:center;padding:2px">
+    return `<td style="background:${bg};border:1px solid #000;width:44px;text-align:center;padding:2px">
       <div class="check-box" data-compound="${compound}" data-day="${dayIdx}" data-date="${dateStr}" onclick="
         var s=this.dataset.s||'0';
         if(s==='0'){this.dataset.s='L';this.textContent='L';this.style.background='var(--accent-light)';this.style.borderColor='var(--accent)';this.style.color='var(--accent)';}
         else if(s==='L'){this.dataset.s='R';this.textContent='R';this.style.background='#fef3c7';this.style.borderColor='#d97706';this.style.color='#92400e';}
         else{this.dataset.s='0';this.textContent='';this.style.background='';this.style.borderColor='';this.style.color='';}
-      " style="margin:0 auto"></div></td>`;
+      " style="margin:0 auto;border:1.5px solid #888"></div></td>`;
   }
 
   function vialBtns(name) {
@@ -1368,13 +1368,13 @@ function renderTracker(weekNum) {
     morning.forEach(r => {
       const name = getField(r,'Compound');
       html += `<tr>
-        <td style="padding:5px 10px;border:1px solid #ccc;background:${MORN_BG}">
+        <td style="padding:5px 10px;border:1px solid #000;background:${MORN_BG}">
           <div style="font-weight:600;font-size:12px">${name}</div>
           <div style="font-size:11px;color:var(--muted)">${getField(r,'Dose')}</div>
         </td>
         ${days.map((_,i) => dayCell(name, i, MORN_BG)).join('')}
         ${vialBtns(name)}
-        <td style="border:1px solid #ccc;background:${MORN_BG};padding:2px 4px">
+        <td style="border:1px solid #000;background:${MORN_BG};padding:2px 4px">
           <input type="text" placeholder="Notes..." data-compound="${name}" data-type="notes"
             style="width:100%;border:none;background:transparent;font-size:11px;font-family:'DM Sans',sans-serif;outline:none;color:var(--text)">
         </td>
@@ -1388,13 +1388,13 @@ function renderTracker(weekNum) {
     night.forEach(r => {
       const name = getField(r,'Compound');
       html += `<tr>
-        <td style="padding:5px 10px;border:1px solid #ccc;background:${NIGHT_BG}">
+        <td style="padding:5px 10px;border:1px solid #000;background:${NIGHT_BG}">
           <div style="font-weight:600;font-size:12px">${name}</div>
           <div style="font-size:11px;color:var(--muted)">${getField(r,'Dose')}</div>
         </td>
         ${days.map((_,i) => dayCell(name, i, NIGHT_BG)).join('')}
         ${vialBtns(name)}
-        <td style="border:1px solid #ccc;background:${NIGHT_BG};padding:2px 4px">
+        <td style="border:1px solid #000;background:${NIGHT_BG};padding:2px 4px">
           <input type="text" placeholder="Notes..." data-compound="${name}" data-type="notes"
             style="width:100%;border:none;background:transparent;font-size:11px;font-family:'DM Sans',sans-serif;outline:none;color:var(--text)">
         </td>
@@ -1409,6 +1409,41 @@ function renderTracker(weekNum) {
 function shiftTrackerWeek(dir) {
   trackerMondayOffset += dir;
   renderTracker();
+  const monday = getTrackerMonday();
+  loadTrackerWeekData(monday.toISOString().split('T')[0]);
+}
+
+async function loadTrackerWeekData(mondayISO) {
+  try {
+    const url = `https://api.airtable.com/v0/${BASE}/${TABLES.dailyLog}?filterByFormula=${encodeURIComponent(`{${DL.date}}="${mondayISO}"`)}&fields[]=${DL.pepLog}`;
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${TOKEN}` } });
+    const json = await res.json();
+    const records = json.records || [];
+    if (!records.length) return;
+    const pepLog = records[0].fields[DL.pepLog] || '';
+    pepLog.split(', ').forEach(entry => {
+      const pipeIdx = entry.indexOf('|');
+      if (pipeIdx === -1) return;
+      const prefix = entry.slice(0, pipeIdx).trim();
+      const rest = entry.slice(pipeIdx + 1);
+      const colonIdx = rest.indexOf(':');
+      if (colonIdx === -1) return;
+      const compound = rest.slice(0, colonIdx).trim();
+      const value = rest.slice(colonIdx + 1).trim();
+      if (prefix === 'NOTE') {
+        const noteInput = document.querySelector(`input[data-type="notes"][data-compound="${CSS.escape(compound)}"]`);
+        if (noteInput) noteInput.value = value;
+      } else {
+        const box = document.querySelector(`.check-box[data-compound="${CSS.escape(compound)}"][data-date="${prefix}"]`);
+        if (box) {
+          box.dataset.s = value;
+          box.textContent = value;
+          if (value === 'L') { box.style.background='var(--accent-light)';box.style.borderColor='var(--accent)';box.style.color='var(--accent)'; }
+          else if (value === 'R') { box.style.background='#fef3c7';box.style.borderColor='#d97706';box.style.color='#92400e'; }
+        }
+      }
+    });
+  } catch(e) { console.error('loadTrackerWeekData failed:', e); }
 }
 
 async function logVialEvent(compound, type) {
