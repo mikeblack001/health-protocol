@@ -3279,11 +3279,10 @@ function printTracker() {
   const MORN_BG = '#ffffff'; const NIGHT_BG = '#ffffff'; const INACTIVE = '#C0C0C0';
   const DAYS = ['Mon','Tues','Wed','Thurs','Fri','Sat','Sun'];
 
-  // Dynamic row height — adapts to active compound count automatically
+  // totalRows used below for auto-size calc
   const activeM = MORNING_ORDER.filter(n => pepMap[n]).length;
   const activeN = NIGHT_ORDER.filter(n => pepMap[n]).length;
   const totalRows = activeM + activeN;
-  const rowH = ROW_H;
 
   function rows(order, bg) {
     return order.map(name => {
@@ -3339,7 +3338,19 @@ function printTracker() {
     </tbody></table>`;
   }
 
-  const html = `<!DOCTYPE html><html><head><title></title>
+  // Auto-size: letter portrait @0.4in margins = 9.2in usable height per page
+  // Per page: 2 week tables. Each table has: 1 week header + 1 col header + 1 morn header +
+  //   activeM rows + 1 divider + 1 night header + activeN rows + margin-top = fixed overhead ~130px
+  // Available px per page at 96dpi ≈ 883px. Two tables per page = ~441px each.
+  // Fixed overhead per table (headers + divider + padding) ≈ 90px
+  // Remaining for data rows: (441 - 90) / totalRows
+  const PAGE_H_PX = 883;
+  const TABLES_PER_PAGE = 2;
+  const FIXED_OVERHEAD_PX = 95; // week header + col header + section headers + divider + margin
+  const availPerTable = Math.floor(PAGE_H_PX / TABLES_PER_PAGE) - FIXED_OVERHEAD_PX;
+  const rowH = totalRows > 0 ? Math.max(18, Math.min(36, Math.floor(availPerTable / totalRows))) : 28;
+
+  const html = `<!DOCTYPE html><html><head><title>Peptide Tracker</title>
   <style>
     @page { size: letter portrait; margin: 0.4in; }
     * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
@@ -3349,34 +3360,7 @@ function printTracker() {
   </style></head><body>
   <div class="print-page">${weekTable(1)}${weekTable(2)}</div>
   <div class="print-page">${weekTable(3)}${weekTable(4)}</div>
-  
-<!-- ADD SUPP CHANGE MODAL -->
-<div class="modal-overlay" id="add-supp-change-modal" onclick="if(event.target===this)hideAddSuppChangeModal()" style="display:none">
-  <div class="modal-box">
-    <div class="modal-header"><h3>Log Supplement Change</h3><button class="modal-close" onclick="hideAddSuppChangeModal()">✕</button></div>
-    <div class="modal-body">
-      <div class="form-row"><label>Date</label><input type="date" id="asc-date"></div>
-      <div class="form-row"><label>Type</label>
-        <select id="asc-type" style="padding:7px 10px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);font-size:13px;width:100%">
-          <option value="">— Select —</option>
-          <option>Started</option><option>Dose Change</option><option>Added</option>
-          <option>Paused</option><option>Resumed</option><option>Stopped</option><option>Removed</option><option>Note</option>
-        </select>
-      </div>
-      <div class="form-row"><label>Supplement</label>
-        <select id="asc-supplement" style="padding:7px 10px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);font-size:13px;width:100%"></select>
-      </div>
-      <div class="form-row"><label>Description</label><textarea id="asc-description" rows="2" placeholder="What changed?"></textarea></div>
-      <div class="form-row"><label>Reason</label><textarea id="asc-reason" rows="2" placeholder="Why?"></textarea></div>
-      <div class="form-row"><label>Notes</label><textarea id="asc-notes" rows="2"></textarea></div>
-    </div>
-    <div class="modal-footer">
-      <button class="modal-btn" onclick="hideAddSuppChangeModal()">Cancel</button>
-      <button class="modal-btn primary" id="asc-save-btn" onclick="saveAddSuppChange()">Save</button>
-    </div>
-  </div>
-</div>
-</body></html>`;
+  </body></html>`;
 
   const w = window.open('','_blank','width=900,height=700');
   w.document.write(html);
