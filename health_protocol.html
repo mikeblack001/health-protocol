@@ -1543,11 +1543,18 @@ function renderTracker(weekNum) {
   let morning, night;
   if (trackerHistoricalData) {
     // Historical mode: compound list comes from injection log
+    // Sort by known order (TRACKER_*_ORDER), unknowns appended at end
+    const mornOrder = TRACKER_MORNING_ORDER.map(n => n.toLowerCase());
+    const nightOrder = TRACKER_NIGHT_ORDER.map(n => n.toLowerCase());
+    const sortByOrder = (names, order) => [
+      ...order.filter(o => names.some(n => n === o || (pepMapCI[n] && getField(pepMapCI[n],'Compound').toLowerCase() === o))),
+      ...names.filter(n => { const k = (pepMapCI[n] ? getField(pepMapCI[n],'Compound').toLowerCase() : n); return !order.includes(k); })
+    ].map(o => names.find(n => n === o || (pepMapCI[n] && getField(pepMapCI[n],'Compound').toLowerCase() === o)) || o);
     const histNames = [...trackerHistoricalData.keys()];
-    morning = histNames.filter(n => !isNightPep(n))
-      .map(n => pepMap[n] || pepMapCI[n] || { fields: { Compound: n, Dose: '', Status: 'Historical', Timing: 'Morning' }});
-    night   = histNames.filter(n =>  isNightPep(n))
-      .map(n => pepMap[n] || pepMapCI[n] || { fields: { Compound: n, Dose: '', Status: 'Historical', Timing: 'Night' }});
+    const histMorn = sortByOrder(histNames.filter(n => !isNightPep(n)), mornOrder);
+    const histNight = sortByOrder(histNames.filter(n => isNightPep(n)), nightOrder);
+    morning = histMorn.map(n => pepMap[n] || pepMapCI[n] || { fields: { Compound: n, Dose: '', Status: 'Historical', Timing: 'Morning' }});
+    night   = histNight.map(n => pepMap[n] || pepMapCI[n] || { fields: { Compound: n, Dose: '', Status: 'Historical', Timing: 'Night' }});
   } else {
     // Current/future: known order first, then any unlisted Active peps
     const knownM = new Set(TRACKER_MORNING_ORDER), knownN = new Set(TRACKER_NIGHT_ORDER);
@@ -5512,26 +5519,21 @@ async function runInjectionVerification(pageIndices) {
   var batches = [];
   for (var b = 0; b < pageIndices.length; b += BATCH_SIZE) batches.push(pageIndices.slice(b, b + BATCH_SIZE));
   var prompt = INJ_PROMPT.replace("CANONICAL_PLACEHOLDER", CANONICAL_COMPOUNDS.join(", "));
-  var totalBatches = batches.length;
-  var completedBatches = 0;
-  vStatus("⏳ 0 / " + totalBatches + " batches complete (" + pageIndices.length + " pages)...");
+  vStatus("Running " + batches.length + " batches in parallel (" + pageIndices.length + " pages)...");
 
-  // Run all batches simultaneously with live progress
+  // Run all batches simultaneously
   var batchResults = await Promise.all(batches.map(async function(batch, bi) {
     try {
       var raw = await callClaudePages(batch, prompt);
       var parsed = [];
       try { parsed = JSON.parse(raw); } catch(e) {
+        // Try to salvage partial JSON
         var trimmed = raw.replace(/,\s*$/, '').replace(/^\s*\[?/, '[');
         if (!trimmed.endsWith(']')) trimmed += ']';
         try { parsed = JSON.parse(trimmed); } catch(e2) { parsed = []; }
       }
-      completedBatches++;
-      vStatus("⏳ " + completedBatches + " / " + totalBatches + " batches complete...");
       return { batch: bi, pages: batch, entries: Array.isArray(parsed) ? parsed : [], err: null };
     } catch(e) {
-      completedBatches++;
-      vStatus("⏳ " + completedBatches + " / " + totalBatches + " batches complete...");
       return { batch: bi, pages: batch, entries: [], err: e.message };
     }
   }));
