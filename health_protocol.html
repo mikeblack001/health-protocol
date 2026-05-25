@@ -251,7 +251,7 @@
   border-collapse: collapse;
   font-family: Arial, sans-serif;
   font-size: 11px;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
   table-layout: fixed;
 }
 .pday-hdr {
@@ -265,19 +265,20 @@
 }
 .pmeta td, .pmeta-cell {
   background: #ebf2ff;
-  padding: 6px 8px;
+  padding: 0 8px;
   font-size: 10px;
-  border: 1px solid #bfdbfe;
+  border: 1.5px solid #6b9fd4;
   vertical-align: middle;
-  height: 32px;
+  height: 36px;
 }
 .pmeta-val { font-weight: 600; }
-.psleep-line {
+.pwrite {
   display: inline-block;
-  border-bottom: 1.5px solid #1a56db;
-  width: 80px;
-  margin-left: 4px;
-  vertical-align: bottom;
+  min-width: 64px;
+  height: 18px;
+  border-bottom: 2px solid #333;
+  margin: 0 3px;
+  vertical-align: middle;
 }
 .pcol-hdr th {
   background: #dbeafe;
@@ -287,17 +288,16 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.3px;
-  border: 1px solid #93c5fd;
+  border: 1.5px solid #6b9fd4;
   text-align: center;
 }
 .pcol-hdr th.pex-name, .pcol-hdr th.pex-var { text-align: left; }
-.pex td { border: 1px solid #888; padding: 7px 5px; vertical-align: middle; height: 28px; }
+.pex td { border: 1.5px solid #888; padding: 6px 5px; vertical-align: middle; height: 32px; }
 .pex-name { font-weight: 600; font-size: 11px; word-break: break-word; }
-.pex-var  { font-size: 9px; color: #555; word-break: break-word; }
+.pex-var  { font-size: 9px; color: #444; word-break: break-word; }
 .pset     { text-align: center; color: #999; font-size: 9px; background: #fafafa; }
 .preps, .pwt { text-align: center; }
-.pnotes td { border: 1.5px solid #888; padding: 8px 10px; background: #fafafa; height: 60px; vertical-align: top; }
-.pnotes-label { font-weight: 700; font-size: 10px; color: #333; }
+.pnotes td { border: 1.5px solid #888; padding: 8px 10px; background: #fafafa; height: 80px; vertical-align: top; font-weight: 700; font-size: 10px; color: #333; }
 
 @media screen {
   .print-page { border: 1px solid #ddd; padding: 16px; border-radius: 6px; background: white; }
@@ -308,18 +308,14 @@
   * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
   body, html { background: white !important; margin: 0; padding: 0; }
 
-  /* Hide entire app chrome */
   body > * { display: none !important; }
   #app-container, .nav-sidebar, header, .tab-bar { display: none !important; }
 
-  /* Show only the print view */
   #view-workouts { display: block !important; position: static !important; }
   #view-workouts .filter-bar { display: none !important; }
-  #workout-log-panel,
-  #workout-history-panel,
-  #workout-progress-panel { display: none !important; }
+  #workout-log-panel, #workout-history-panel, #workout-progress-panel { display: none !important; }
   #workout-print-panel { display: block !important; }
-  /* Modal print - show modal content only */
+
   #weekly-print-modal { display: block !important; position: static !important; background: white !important; padding: 0 !important; z-index: auto !important; overflow: visible !important; }
   #weekly-print-modal > div { background: white !important; border-radius: 0 !important; padding: 0 !important; max-width: 100% !important; box-shadow: none !important; }
   #weekly-print-modal > div > div:first-child { display: none !important; }
@@ -327,49 +323,19 @@
   #print-week-date, button { display: none !important; }
   .print-page-controls { display: none !important; }
 
-  .print-page {
-    page-break-after: always;
-    margin: 0;
-    padding: 0;
-    width: 100%;
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-  }
+  .print-page { page-break-after: always; margin: 0; padding: 0; width: 100%; }
   .print-page:last-child { page-break-after: auto; }
 
-  .ptable {
-    width: 100%;
-    font-size: 10px;
-    margin-bottom: 8px;
-    flex: 1;
-  }
-  .pex td { height: 30px !important; border: 1.5px solid #888 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .pcol-hdr th { border: 1.5px solid #6b9fd4 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .pmeta td, .pmeta-cell { border: 1.5px solid #6b9fd4 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .pnotes td { border: 1.5px solid #888 !important; height: 70px !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .psleep-line { border-bottom: 1.5px solid #1a56db !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .ptable { width: 100%; font-size: 10px; margin-bottom: 10px; }
   .pday-hdr { font-size: 11px; background: #1a56db !important; color: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .pcol-hdr th { background: #dbeafe !important; color: #1e40af !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .pmeta td, .pmeta-cell { background: #ebf2ff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .pmeta td, .pmeta-cell { background: #ebf2ff !important; border: 1.5px solid #6b9fd4 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .pcol-hdr th { background: #dbeafe !important; color: #1e40af !important; border: 1.5px solid #6b9fd4 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .pex td { height: 32px !important; border: 1.5px solid #777 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .pset { background: #f5f5f5 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .pwrite { border-bottom: 2px solid #333 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .pnotes td { border: 1.5px solid #777 !important; height: 120px !important; background: #fafafa !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 
-  @page {
-    size: letter portrait;
-    margin: 0.4in 0.4in 0.4in 0.4in;
-  }
-}
-    font-size: 9.5px;
-    margin-bottom: 10px;
-  }
-  .pday-hdr { font-size: 11px; background: #1a56db !important; color: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .pcol-hdr th { background: #dbeafe !important; color: #1e40af !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .pmeta td, .pmeta-cell { background: #ebf2ff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-
-  @page {
-    size: letter portrait;
-    margin: 0.45in 0.45in 0.45in 0.45in;
-  }
+  @page { size: letter portrait; margin: 0.4in 0.4in 0.4in 0.4in; }
 }
 </style>
 </head>
@@ -1317,14 +1283,14 @@ function renderSupplements(filter) {
 let trackerMondayOffset = 0; // weeks offset from current week
 
 const TRACKER_MORNING_ORDER = [
-  'Testosterone', 'Deca (Nano)', 'NAD+', 'Retatrutide',
+  'Testosterone (TRT)', 'Deca (Nano)', 'NAD+', 'Retatrutide',
   'Cagrilintide', 'Tesamorelin', 'GHK-Cu', 'Melanotan II', 'Tirzepatide'
 ];
 const TRACKER_NIGHT_ORDER = [
   'CJC-1295 No DAC', 'Ipamorelin', 'DSIP', 'KPV', 'Epitalon'
 ];
 const TRACKER_SCHEDULE = {
-  'Testosterone': [0,3],        // Mon/Thu
+  'Testosterone (TRT)': [0,3],        // Mon/Thu
   'Deca (Nano)':        [0,3],        // Mon/Thu
   'NAD+':               [1,4,6],      // Tue/Fri/Sun
   'Retatrutide':        [2],          // Wed
@@ -1515,10 +1481,10 @@ async function loadTrackerWeekData(mondayISO) {
     const norm = s => (s||'').toLowerCase().trim().replace(/\s+/g,' ');
     // Alias map: injection log name → tracker name (both normalized)
     const ALIAS = {
-      'trt': 'testosterone',
-      'testosterone': 'testosterone',
-      'testosterone cypionate': 'testosterone',
-      'testosterone enanthate': 'testosterone',
+      'trt': 'testosterone (trt)',
+      'testosterone': 'testosterone (trt)',
+      'testosterone cypionate': 'testosterone (trt)',
+      'testosterone enanthate': 'testosterone (trt)',
       'cjc-1295': 'cjc-1295 no dac',
       'cjc 1295': 'cjc-1295 no dac',
       'cjc1295': 'cjc-1295 no dac',
@@ -3155,7 +3121,7 @@ function printTracker() {
   activePeps.forEach(r => { pepMap[getField(r,'Compound')] = r; });
 
   const MORNING_ORDER = [
-    'Testosterone', 'Deca (Nano)', 'NAD+', 'Retatrutide',
+    'Testosterone (TRT)', 'Deca (Nano)', 'NAD+', 'Retatrutide',
     'Cagrilintide', 'Tesamorelin', 'GHK-Cu', 'Melanotan II', 'Tirzepatide'
   ];
   const NIGHT_ORDER = [
@@ -3517,20 +3483,21 @@ function dbExportCSV() {
 }
 
 function shortenVar(v) {
-  // If starts with a weight (e.g. "35lbs Smith Machine", "45lb Olympic") → keep only the weight
   const wtMatch = v.match(/^(\d+\s*lbs?)\s+.+/i);
   if (wtMatch) return wtMatch[1];
-  // Abbreviate known implements
   return v
     .replace('Smith Machine', 'SM')
+    .replace('Smith 35lb', 'SM 35')
     .replace('Lat Machine', 'Lat M')
     .replace('High Cable', 'Hi Cbl')
     .replace('2 Hand Cables', '2H')
-    .replace('Cables (2:1)', 'Cable')
+    .replace('Cables (2:1)', 'Cbl')
+    .replace('Cables', 'Cbl')
     .replace('EZ Bar (15lbs)', 'EZ 15lb')
     .replace('EZ-Bar', 'EZ')
     .replace(' 1/2', '')
     .replace('Bodyweight', 'BW')
+    .replace('Olympic', 'Oly')
     .trim();
 }
 
@@ -3550,9 +3517,8 @@ function buildWeeklyPrintHTML(monday) {
 
     let exRows = '';
     exercises.forEach(ex => {
-      const varStr = ex.variations && ex.variations.length
-        ? ex.variations.map(shortenVar).join(' / ')
-        : '';
+      const vars = ex.variations && ex.variations.length ? ex.variations.slice(0, 3).map(shortenVar) : [];
+      const varStr = vars.join(' / ');
       const nameStr = ex.note ? ex.name + ' ' + ex.note : ex.name;
       exRows += `<tr class="pex">
         <td class="pex-name">${nameStr}</td>
@@ -3574,8 +3540,8 @@ function buildWeeklyPrintHTML(monday) {
         <tr><th colspan="11" class="pday-hdr">${day.label}</th></tr>
         <tr class="pmeta">
           <td colspan="2" class="pmeta-cell">Date: <span class="pmeta-val">${dateStr}</span></td>
-          <td colspan="3" class="pmeta-cell" style="font-size:10px">Sleep: <span class="psleep-line" style="width:55px"></span>&nbsp; Deep: <span class="psleep-line" style="width:55px"></span></td>
-          <td colspan="6" class="pmeta-cell" style="text-align:right;font-size:10px">Duration: <span class="psleep-line" style="width:65px"></span></td>
+          <td colspan="3" class="pmeta-cell" style="font-size:10px">Sleep: <span class="pwrite">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>&nbsp; Deep: <span class="pwrite">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td>
+          <td colspan="6" class="pmeta-cell" style="text-align:right;font-size:10px">Duration: <span class="pwrite">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td>
         </tr>
         <tr class="pcol-hdr">
           <th class="pex-name">Exercise</th>
@@ -3588,7 +3554,7 @@ function buildWeeklyPrintHTML(monday) {
       <tbody>
         ${exRows}
         <tr class="pnotes">
-          <td colspan="11" class="pnotes-label" style="font-weight:700;font-size:10px;color:#333;border:1.5px solid #888;padding:8px 10px;height:60px;vertical-align:top;background:#fafafa">Notes:</td>
+          <td colspan="11" style="font-weight:700;font-size:10px;color:#333;border:1.5px solid #777;padding:8px 10px;height:80px;vertical-align:top;background:#fafafa">Notes:</td>
         </tr>
       </tbody>
     </table>`;
