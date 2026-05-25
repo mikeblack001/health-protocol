@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>MB PDF QA</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
@@ -29,66 +29,80 @@ html,body{height:100%;background:#f5f6f8;color:#1a1a1a;font-family:'IBM Plex San
 .dlbl{font-size:10px;color:var(--d);font-family:var(--mono)}
 .body{display:flex;flex:1;overflow:hidden}
 /* SIDEBAR */
-.sb{width:260px;background:var(--s);border-right:1px solid var(--b);display:flex;flex-direction:column;flex-shrink:0}
+.sb{width:220px;background:var(--s);border-right:1px solid var(--b);display:flex;flex-direction:column;flex-shrink:0}
 .sbh{padding:10px 14px;border-bottom:1px solid var(--b);display:flex;align-items:center;background:var(--s2)}
 .sbht{font-size:9px;letter-spacing:2px;color:var(--d);text-transform:uppercase;flex:1;font-family:var(--mono)}
 .sbb{flex:1;overflow-y:auto;padding:6px}
-.sbf{padding:10px;border-top:1px solid var(--b);display:flex;flex-direction:column;gap:6px;background:var(--s2)}
 .fi{padding:9px 10px;border-radius:5px;cursor:pointer;border:1px solid transparent;margin-bottom:2px;transition:all .12s}
 .fi:hover{background:var(--s2);border-color:var(--b)}
 .fi.active{background:var(--bld);border-color:var(--bl)}
-.fi.done{border-color:var(--g);background:var(--gd)}
 .fn{font-size:11px;color:var(--t);display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:2px;font-weight:500}
 .fm{font-size:9px;color:var(--dd);font-family:var(--mono)}
 .ftype{font-size:9px;font-family:var(--mono);padding:1px 6px;border-radius:3px;display:inline-block;margin-bottom:3px;font-weight:600;text-transform:capitalize}
 .ft-workout{background:#e8f5ef;color:var(--g)} .ft-injection{background:#fff3e8;color:var(--y)}
 .ft-supplement{background:#e8eeff;color:var(--bl)} .ft-lab{background:#fde8e8;color:var(--r)}
 .grp-hdr{padding:6px 10px 3px;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dd);font-family:var(--mono);margin-top:6px}
-/* PANEL */
+/* MAIN PANEL */
 .panel{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
 .tabs{display:flex;border-bottom:1px solid var(--b);background:var(--s);flex-shrink:0}
 .tab{font-size:11px;padding:11px 18px;cursor:pointer;color:var(--d);border-bottom:2px solid transparent;transition:all .12s;font-weight:500}
 .tab:hover{color:var(--t)} .tab.active{color:var(--bl);border-bottom-color:var(--bl);font-weight:600}
-.tc{flex:1;overflow-y:auto;padding:20px;display:none}
-.tc.active{display:block}
-/* BUTTONS */
-.btn{font-size:11px;padding:7px 13px;border-radius:5px;cursor:pointer;border:1px solid;display:inline-flex;align-items:center;gap:5px;font-family:inherit;font-weight:500;transition:all .12s;white-space:nowrap}
+.tc{flex:1;overflow:hidden;display:none;flex-direction:column}
+.tc.active{display:flex}
+/* REVIEW SPLIT VIEW */
+.rev-wrap{flex:1;display:flex;overflow:hidden}
+/* LEFT — IMAGE VIEWER */
+.img-panel{width:55%;border-right:1px solid var(--b);display:flex;flex-direction:column;overflow:hidden;background:#1a1a1a}
+.img-toolbar{background:#111;padding:8px 12px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.img-nav{display:flex;align-items:center;gap:6px}
+.navbtn{background:#333;color:#ccc;border:1px solid #444;border-radius:4px;padding:4px 10px;cursor:pointer;font-size:11px;font-family:var(--mono);transition:background .1s}
+.navbtn:hover{background:#444;color:#fff} .navbtn:disabled{opacity:.3;cursor:not-allowed}
+.pg-label{font-size:11px;color:#aaa;font-family:var(--mono);min-width:60px;text-align:center}
+.img-meta{margin-left:auto;font-size:10px;color:#666;font-family:var(--mono)}
+.img-scroll{flex:1;overflow:auto;display:flex;align-items:flex-start;justify-content:center;padding:12px}
+.img-scroll img{max-width:100%;height:auto;display:block;box-shadow:0 4px 20px rgba(0,0,0,.4)}
+.img-empty{flex:1;display:flex;align-items:center;justify-content:center;color:#555;font-size:12px;font-family:var(--mono);flex-direction:column;gap:10px}
+/* THUMB STRIP */
+.thumb-strip{height:90px;border-top:1px solid #333;display:flex;overflow-x:auto;background:#111;flex-shrink:0;gap:4px;padding:6px}
+.thumb{width:60px;height:76px;flex-shrink:0;border:2px solid #333;border-radius:3px;overflow:hidden;cursor:pointer;position:relative;background:#222}
+.thumb:hover{border-color:#666} .thumb.active{border-color:#2255cc}
+.thumb.ok{border-color:#00a855} .thumb.flagged{border-color:#d63030}
+.thumb img{width:100%;height:100%;object-fit:cover}
+.thumb-num{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.7);color:#aaa;font-size:8px;text-align:center;padding:1px;font-family:var(--mono)}
+.thumb.active .thumb-num{color:#fff}
+/* RIGHT — AIRTABLE PANEL */
+.at-panel{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--s)}
+.at-toolbar{padding:10px 14px;border-bottom:1px solid var(--b);display:flex;align-items:center;gap:8px;flex-shrink:0;background:var(--s2)}
+.at-toolbar-title{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--d);font-family:var(--mono);flex:1}
+.at-scroll{flex:1;overflow-y:auto;padding:10px}
+.date-row{display:flex;align-items:center;gap:6px;margin-bottom:10px}
+.date-inp{font-family:var(--mono);font-size:11px;background:var(--s);border:1px solid var(--b);color:var(--t);padding:6px 9px;border-radius:5px;outline:none;width:130px}
+.date-inp:focus{border-color:var(--bl)}
+.btn{font-size:11px;padding:6px 12px;border-radius:5px;cursor:pointer;border:1px solid;display:inline-flex;align-items:center;gap:5px;font-family:inherit;font-weight:500;transition:all .12s;white-space:nowrap}
 .bp{background:var(--g);color:#fff;border-color:var(--g)} .bp:hover{background:var(--gb)}
 .bp:disabled{background:var(--dd);border-color:var(--dd);cursor:not-allowed}
 .bb{background:transparent;color:var(--bl);border-color:var(--bl)} .bb:hover{background:var(--bld)}
 .bb:disabled{opacity:.4;cursor:not-allowed}
 .by{background:transparent;color:var(--y);border-color:var(--y)} .by:hover{background:var(--yd)}
 .br{background:transparent;color:var(--r);border-color:var(--r)} .br:hover{background:var(--rd)}
-.bg{background:transparent;color:var(--d);border-color:var(--b)} .bg:hover{border-color:var(--b2);color:var(--t)}
-.bfull{width:100%;justify-content:center}
-/* CARDS */
-.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:16px}
-.card{background:var(--s);border:1px solid var(--b);border-radius:6px;padding:12px 14px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
-.cardg{border-color:var(--g);background:var(--gd)} .cardr{border-color:var(--r);background:var(--rd)}
-.cardy{border-color:var(--y);background:var(--yd)} .cardbl{border-color:var(--bl);background:var(--bld)}
-.cv{font-size:24px;font-weight:700;line-height:1;margin-bottom:3px;font-family:var(--mono)}
-.cardg .cv{color:var(--g)} .cardr .cv{color:var(--r)} .cardy .cv{color:var(--y)} .cardbl .cv{color:var(--bl)}
-.cl{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--d)}
-/* SECTION */
-.sec{background:var(--s);border:1px solid var(--b);border-radius:6px;overflow:hidden;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
-.sech{padding:9px 13px;border-bottom:1px solid var(--b);display:flex;align-items:center;gap:8px;background:var(--s2)}
-.sect{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;font-weight:600;flex:1;font-family:var(--mono)}
-.sectg{color:var(--g)} .sectr{color:var(--r)} .secty{color:var(--y)} .sectbl{color:var(--bl)} .sectn{color:var(--d)}
-.secc{font-size:10px;color:var(--d);background:var(--b);padding:1px 7px;border-radius:10px;font-family:var(--mono)}
+.bg-btn{background:transparent;color:var(--d);border-color:var(--b)} .bg-btn:hover{border-color:var(--b2);color:var(--t)}
+/* STATUS BADGES */
+.badge{font-size:9px;padding:2px 7px;border-radius:10px;font-family:var(--mono);font-weight:600;display:inline-block}
+.badge-ok{background:var(--gd);color:var(--g)} .badge-miss{background:var(--rd);color:var(--r)}
+.badge-flag{background:var(--yd);color:var(--y)}
 /* TABLE */
-.tw{overflow-x:auto}
-.tbl{width:100%;border-collapse:collapse;font-size:12px}
-.tbl th{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--d);text-align:left;padding:7px 11px;border-bottom:1px solid var(--b);background:var(--s2);white-space:nowrap;font-family:var(--mono)}
-.tbl td{padding:6px 11px;border-bottom:1px solid var(--b);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tbl{width:100%;border-collapse:collapse;font-size:11px}
+.tbl th{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--d);text-align:left;padding:6px 10px;border-bottom:1px solid var(--b);background:var(--s2);white-space:nowrap;font-family:var(--mono)}
+.tbl td{padding:5px 10px;border-bottom:1px solid var(--b);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tbl tr:last-child td{border-bottom:none} .tbl tr:hover td{background:var(--s2)}
 .tcg{color:var(--g)} .tcr{color:var(--r)} .tcy{color:var(--y)} .tcd{color:var(--dd)}
-/* PAGES GRID */
-.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:6px;padding:10px}
-.pt{border:1px solid var(--b);border-radius:4px;overflow:hidden;cursor:pointer;position:relative;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.06)}
-.pt:hover{border-color:var(--bl)} .pt.done{border-color:var(--g)} .pt.busy{border-color:var(--y)}
-.pt canvas{width:100%;display:block}
-.pnum{position:absolute;bottom:0;left:0;right:0;background:rgba(255,255,255,.9);font-size:9px;color:var(--d);padding:2px 5px;text-align:center;border-top:1px solid var(--b);font-family:var(--mono)}
-.pstat{position:absolute;top:3px;right:3px;font-size:11px}
+.sec{background:var(--s);border:1px solid var(--b);border-radius:6px;overflow:hidden;margin-bottom:10px}
+.sech{padding:8px 12px;border-bottom:1px solid var(--b);display:flex;align-items:center;gap:8px;background:var(--s2)}
+.sect{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;font-weight:600;flex:1;font-family:var(--mono)}
+.sectg{color:var(--g)} .sectr{color:var(--r)} .secty{color:var(--y)} .sectbl{color:var(--bl)}
+.secc{font-size:10px;color:var(--d);background:var(--b);padding:1px 7px;border-radius:10px;font-family:var(--mono)}
+/* PAGE STATUS ROW */
+.pg-status-bar{padding:8px 14px;border-top:1px solid var(--b);display:flex;align-items:center;gap:8px;background:var(--s);flex-shrink:0;font-size:11px}
 /* SETTINGS */
 .type-section{margin-bottom:14px;border:1px solid var(--b);border-radius:6px;overflow:hidden}
 .type-hdr{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--s2);border-bottom:1px solid var(--b)}
@@ -100,47 +114,33 @@ html,body{height:100%;background:#f5f6f8;color:#1a1a1a;font-family:'IBM Plex San
 .chip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .chip-x{cursor:pointer;color:var(--dd);flex-shrink:0;font-size:12px;line-height:1} .chip-x:hover{color:var(--r)}
 .chip-add{background:transparent;border-style:dashed;color:var(--bl);cursor:pointer} .chip-add:hover{background:var(--bld)}
-/* MODAL — FOLDER BROWSER */
+.inp{font-family:var(--mono);font-size:11px;background:#fff;border:1px solid var(--b);color:var(--t);padding:7px 10px;border-radius:5px;outline:none}
+.inp:focus{border-color:var(--bl);box-shadow:0 0 0 3px var(--bld)}
+select.inp{cursor:pointer}
+/* MODAL */
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:200;display:none;align-items:center;justify-content:center}
 .modal-bg.open{display:flex}
 .modal{background:#fff;border-radius:8px;width:540px;max-width:95vw;height:600px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 8px 40px rgba(0,0,0,.2)}
 .mhdr{padding:14px 18px;border-bottom:1px solid var(--b);flex-shrink:0}
 .mhdr-top{display:flex;align-items:center;gap:8px;margin-bottom:6px}
 .mhdr-title{font-size:14px;font-weight:600;flex:1}
-/* BREADCRUMB */
 .breadcrumb{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
 .bc-item{font-size:11px;color:var(--bl);cursor:pointer;font-family:var(--mono);padding:2px 5px;border-radius:3px}
-.bc-item:hover{background:var(--bld)}
-.bc-item.current{color:var(--t);cursor:default;font-weight:600}
-.bc-item.current:hover{background:transparent}
+.bc-item:hover{background:var(--bld)} .bc-item.current{color:var(--t);cursor:default;font-weight:600} .bc-item.current:hover{background:transparent}
 .bc-sep{font-size:10px;color:var(--dd)}
-/* FOLDER BROWSER LIST */
 .msearch{padding:8px 14px;border-bottom:1px solid var(--b);flex-shrink:0}
 .msearch input{width:100%;font-family:var(--mono);font-size:11px;background:var(--s2);border:1px solid var(--b);color:var(--t);padding:7px 10px;border-radius:5px;outline:none}
 .msearch input:focus{border-color:var(--bl)}
 .mlist{flex:1;overflow-y:auto;padding:6px}
 .mitem{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:5px;cursor:pointer;transition:background .1s;user-select:none}
-.mitem:hover{background:var(--s2)}
-.mitem.checked{background:var(--bld)}
-.mitem.disabled{opacity:.5;cursor:not-allowed}
+.mitem:hover{background:var(--s2)} .mitem.checked{background:var(--bld)} .mitem.disabled{opacity:.5;cursor:not-allowed}
 .mitem-icon{font-size:16px;flex-shrink:0;width:22px;text-align:center}
 .mitem-name{font-size:11px;color:var(--t);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
 .mitem-meta{font-size:9px;color:var(--dd);font-family:var(--mono);flex-shrink:0}
 .mitem-arrow{font-size:11px;color:var(--dd);flex-shrink:0}
 .mftr{padding:12px 16px;border-top:1px solid var(--b);display:flex;align-items:center;gap:8px;flex-shrink:0}
 .mftr-count{font-size:11px;color:var(--d);flex:1;font-family:var(--mono)}
-/* AI SUMMARY */
-.ai-panel{background:linear-gradient(135deg,#f0f7ff,#f5f0ff);border:1px solid #c0d4ff;border-radius:6px;padding:16px;margin-bottom:14px}
-.ai-panel-hdr{display:flex;align-items:center;gap:8px;margin-bottom:8px}
-.ai-panel-title{font-size:12px;font-weight:600;color:#1a3a8f}
-.ai-panel-body{font-size:12px;color:#2a3a5a;line-height:1.7}
 /* MISC */
-.inp{font-family:var(--mono);font-size:11px;background:#fff;border:1px solid var(--b);color:var(--t);padding:7px 10px;border-radius:5px;outline:none}
-.inp:focus{border-color:var(--bl);box-shadow:0 0 0 3px var(--bld)}
-select.inp{cursor:pointer}
-.tbtn{font-family:inherit;font-size:11px;padding:5px 11px;border-radius:5px;cursor:pointer;border:1px solid var(--b);color:var(--d);background:#fff;font-weight:500;transition:all .12s}
-.tbtn.active{border-color:var(--bl);color:var(--bl);background:var(--bld);font-weight:600}
-.tb{display:flex;gap:7px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
 .abox{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:40px;text-align:center}
 .atitle{font-size:13px;font-weight:600} .asub{font-size:12px;color:var(--d);max-width:240px;line-height:1.6}
 .empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:50px 20px;text-align:center}
@@ -150,11 +150,16 @@ select.inp{cursor:pointer}
 .tg{background:#f0faf5;border-color:var(--g);color:var(--g)}
 .tr{background:#fdf0f0;border-color:var(--r);color:var(--r)}
 .ti{background:#f0f3ff;border-color:var(--bl);color:var(--bl)}
+.ty{background:#fff8f0;border-color:var(--y);color:var(--y)}
 ::-webkit-scrollbar{width:5px;height:5px} ::-webkit-scrollbar-track{background:var(--s2)} ::-webkit-scrollbar-thumb{background:var(--b2);border-radius:3px}
+/* EXPORT TAB */
+.tc-scroll{overflow-y:auto;padding:20px;flex:1}
 </style>
 </head>
 <body>
 <div class="page">
+
+<!-- HEADER -->
 <div class="hdr">
   <span class="logo">MB</span><span style="color:var(--b2)">&#8212;</span>
   <span class="htitle">PDF QA &amp; VERIFICATION</span>
@@ -164,11 +169,13 @@ select.inp{cursor:pointer}
     <div class="dot" id="aDot"></div><span class="dlbl" id="aLbl">AIRTABLE</span>
   </div>
 </div>
+
 <div class="body">
+  <!-- SIDEBAR -->
   <div class="sb">
     <div class="sbh">
       <span class="sbht">Library</span>
-      <button class="btn bg" style="padding:3px 8px;font-size:9px" onclick="loadMappedFiles()">&#8635;</button>
+      <button class="btn bg-btn" style="padding:3px 8px;font-size:9px" onclick="loadMappedFiles()">&#8635;</button>
     </div>
     <div class="sbb" id="fileList">
       <div class="abox" style="padding:24px">
@@ -177,10 +184,9 @@ select.inp{cursor:pointer}
         <button class="btn bp" onclick="signIn()">Sign in with Google</button>
       </div>
     </div>
-    <div class="sbf">
-      <button class="btn bp bfull" id="extractBtn" onclick="startExtract()" disabled>&#9654; Extract &amp; Compare</button>
-    </div>
   </div>
+
+  <!-- MAIN PANEL -->
   <div class="panel">
     <div class="tabs">
       <div class="tab active" id="tab-review" onclick="showTab('review')">Review</div>
@@ -190,61 +196,94 @@ select.inp{cursor:pointer}
 
     <!-- REVIEW TAB -->
     <div class="tc active" id="tc-review">
-      <div class="empty" id="revEmpty">
+      <!-- Empty state -->
+      <div class="empty" id="revEmpty" style="flex:1">
         <div class="ei">&#128196;</div>
-        <div class="et">Select a PDF</div>
-        <div class="es">Choose a file from the library, then click Extract &amp; Compare. Claude will review the results.</div>
+        <div class="et">Select a file from the library</div>
+        <div class="es">Choose a workout, injection, or lab PDF from the sidebar to begin review.</div>
       </div>
-      <div id="revUI" style="display:none">
-        <!-- File info + controls -->
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--b)">
+      <!-- Loaded state: split view -->
+      <div id="revUI" style="display:none;flex:1;flex-direction:column;overflow:hidden" class="tc active">
+        <!-- File bar -->
+        <div style="padding:8px 14px;border-bottom:1px solid var(--b);display:flex;align-items:center;gap:10px;flex-shrink:0;background:var(--s)">
           <div style="flex:1">
-            <div style="font-size:13px;font-weight:600" id="pdfName">&#8212;</div>
-            <div style="font-size:11px;color:var(--dd);font-family:var(--mono);margin-top:2px" id="pdfMeta"></div>
+            <span style="font-size:12px;font-weight:600" id="pdfName">—</span>
+            <span style="font-size:10px;color:var(--dd);font-family:var(--mono);margin-left:10px" id="pdfMeta"></span>
           </div>
-          <div style="display:flex;gap:6px;align-items:center">
-            <button class="tbtn active" data-type="workout" onclick="setType(this)">Workout</button>
-            <button class="tbtn" data-type="injection" onclick="setType(this)">Injection</button>
-            <button class="tbtn" data-type="supplement" onclick="setType(this)">Supplement</button>
-            <button class="tbtn" data-type="lab" onclick="setType(this)">Lab</button>
+          <div id="pgStatusBadges" style="display:flex;gap:5px"></div>
+        </div>
+        <!-- Split: image left, AT right -->
+        <div class="rev-wrap">
+          <!-- LEFT: Image viewer -->
+          <div class="img-panel">
+            <div class="img-toolbar">
+              <div class="img-nav">
+                <button class="navbtn" id="prevBtn" onclick="navPage(-1)" disabled>&#8592;</button>
+                <span class="pg-label" id="pgLabel">— / —</span>
+                <button class="navbtn" id="nextBtn" onclick="navPage(1)" disabled>&#8594;</button>
+              </div>
+              <div style="margin-left:8px;display:flex;gap:6px">
+                <button class="navbtn" onclick="markPage('ok')" id="markOkBtn" title="Mark Verified">&#10003;</button>
+                <button class="navbtn" onclick="markPage('flagged')" id="markFlagBtn" title="Flag Issue">&#9873;</button>
+              </div>
+              <div class="img-meta" id="imgMeta"></div>
+            </div>
+            <div class="img-scroll" id="imgScroll">
+              <div class="img-empty" id="imgEmpty">
+                <span style="font-size:28px">&#128247;</span>
+                <span>Loading pages...</span>
+              </div>
+              <img id="mainImg" style="display:none" alt="Workout page"/>
+            </div>
+            <div class="thumb-strip" id="thumbStrip"></div>
+          </div>
+          <!-- RIGHT: Airtable panel -->
+          <div class="at-panel">
+            <div class="at-toolbar">
+              <span class="at-toolbar-title">Airtable — <span id="atTableLabel" style="color:var(--bl)">Sets</span></span>
+              <button class="btn bg-btn" style="padding:3px 9px;font-size:10px" onclick="refreshAtData()" id="atRefreshBtn">&#8635; Load</button>
+            </div>
+            <div class="at-scroll" id="atScroll">
+              <div class="date-row">
+                <input type="date" class="date-inp" id="dateFilter" onchange="refreshAtData()" placeholder="YYYY-MM-DD"/>
+                <span style="font-size:10px;color:var(--dd);font-family:var(--mono)">filter date</span>
+              </div>
+              <div id="atContent">
+                <div class="empty" style="padding:30px 10px">
+                  <div class="et" style="font-size:11px">Set a date to load Airtable records</div>
+                </div>
+              </div>
+            </div>
+            <!-- Page status footer -->
+            <div class="pg-status-bar">
+              <span style="font-family:var(--mono);font-size:10px;color:var(--d)">Page status:</span>
+              <span id="pgStatusText" style="font-family:var(--mono);font-size:10px;color:var(--dd)">—</span>
+              <div style="margin-left:auto;display:flex;gap:6px">
+                <span id="okCount" style="font-size:10px;font-family:var(--mono);color:var(--g)"></span>
+                <span id="flagCount" style="font-size:10px;font-family:var(--mono);color:var(--r)"></span>
+              </div>
+            </div>
           </div>
         </div>
-        <!-- Page grid (collapsed by default) -->
-        <div class="sec" style="margin-bottom:14px" id="pgSection">
-          <div class="sech" onclick="togglePages()" style="cursor:pointer">
-            <span class="sect sectbl">Pages</span>
-            <span class="secc" id="pgCount">0/0</span>
-            <span style="font-size:11px;color:var(--d)" id="pgToggleLabel">&#9660; Show</span>
-          </div>
-          <div id="pgGrid" style="display:none"></div>
-        </div>
-        <!-- AI Summary (shown after compare) -->
-        <div id="aiPanel" style="display:none"></div>
-        <!-- Compare results -->
-        <div id="revResults"></div>
       </div>
     </div>
 
     <!-- EXPORT TAB -->
     <div class="tc" id="tc-export">
-      <div class="empty" id="eEmpty"><div class="ei">&#8595;</div><div class="et">Nothing to Export</div><div class="es">Extract data first.</div></div>
-      <div id="eUI" style="display:none">
-        <div class="tb">
-          <button class="btn bp" onclick="exportJSON()">&#8595; JSON</button>
-          <button class="btn bb" onclick="exportCSV()">&#8595; CSV</button>
-          <button class="btn by" onclick="pushToAT()">&#8593; Push to Airtable</button>
+      <div class="tc-scroll">
+        <div style="margin-bottom:16px">
+          <p style="font-size:12px;color:var(--d);line-height:1.6">Review status summary. Mark pages as verified (&#10003;) or flagged (&#9873;) in the Review tab.</p>
         </div>
-        <div class="sec">
-          <div class="sech"><span class="sect sectg">Extracted Records</span><span class="secc" id="eCount">0</span></div>
-          <div class="tw"><table class="tbl"><thead id="eHead"></thead><tbody id="eBody"></tbody></table></div>
+        <div id="exportSummary">
+          <div class="empty"><div class="et">No file loaded</div></div>
         </div>
       </div>
     </div>
 
     <!-- SETTINGS TAB -->
     <div class="tc" id="tc-settings">
-      <div style="max-width:620px">
-        <p style="font-size:12px;color:var(--d);margin-bottom:16px;line-height:1.6">Click <strong>+ Add PDFs</strong> to browse your Drive folders and assign files to each type.</p>
+      <div class="tc-scroll">
+        <p style="font-size:12px;color:var(--d);margin-bottom:16px;line-height:1.6">Assign Drive files (ZIP or PDF) to each type. Use <strong>+ Add Files</strong> to browse your Drive.</p>
         <div id="typeSections"></div>
         <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--b)">
           <div style="font-size:12px;font-weight:600;margin-bottom:10px">Airtable Table Mapping</div>
@@ -258,8 +297,8 @@ select.inp{cursor:pointer}
         </div>
         <div style="display:flex;gap:8px;margin-top:16px">
           <button class="btn bp" onclick="saveSettings()">&#10003; Save Settings</button>
-          <button class="btn bg" onclick="signOut()">Sign Out</button>
-          <button class="btn br" onclick="resetAll()">Reset</button>
+          <button class="btn bg-btn" onclick="signOut()">Sign Out</button>
+          <button class="btn br" onclick="resetAll()">Reset All</button>
         </div>
         <div style="margin-top:8px;font-size:11px;color:var(--g);font-family:var(--mono)" id="saveStatus"></div>
       </div>
@@ -273,16 +312,16 @@ select.inp{cursor:pointer}
   <div class="modal">
     <div class="mhdr">
       <div class="mhdr-top">
-        <div class="mhdr-title" id="pickerTitle">Add PDFs</div>
-        <button class="btn bg" style="padding:4px 9px;font-size:11px" onclick="closePickerModal()">&#x2715;</button>
+        <div class="mhdr-title" id="pickerTitle">Add Files</div>
+        <button class="btn bg-btn" style="padding:4px 9px;font-size:11px" onclick="closePickerModal()">&#x2715;</button>
       </div>
       <div class="breadcrumb" id="breadcrumb"></div>
     </div>
-    <div class="msearch"><input type="text" id="pickerSearch" placeholder="Search in current folder..." oninput="filterItems()"></div>
-    <div class="mlist" id="pickerList"><div style="padding:20px;text-align:center;color:var(--dd)">Loading...</div></div>
+    <div class="msearch"><input type="text" id="pickerSearch" placeholder="Search..." oninput="filterItems()"></div>
+    <div class="mlist" id="pickerList"></div>
     <div class="mftr">
       <span class="mftr-count" id="pickerSelCount">0 selected</span>
-      <button class="btn bg" onclick="closePickerModal()">Cancel</button>
+      <button class="btn bg-btn" onclick="closePickerModal()">Cancel</button>
       <button class="btn bp" onclick="confirmPicker()">Add Selected</button>
     </div>
   </div>
@@ -291,411 +330,418 @@ select.inp{cursor:pointer}
 <div class="toasts" id="toasts"></div>
 
 <script>
-var GCI="478191426516-94rflpalsl5ev56ptck62k5imes6jk8l.apps.googleusercontent.com";
-var GSC="https://www.googleapis.com/auth/drive.readonly";
-var ATK="pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a";
-var ATB="appmHDG4TGT1xy6R6";
-var FOLDER_MIME="application/vnd.google-apps.folder";
-pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+// ── CONFIG ───────────────────────────────────────────────────────────
+var GCI = "478191426516-94rflpalsl5ev56ptck62k5imes6jk8l.apps.googleusercontent.com";
+var GSC = "https://www.googleapis.com/auth/drive.readonly";
+var ATK = "pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a";
+var ATB = "appmHDG4TGT1xy6R6";
+var FOLDER_MIME = "application/vnd.google-apps.folder";
 
-var gTok=null,gCli=null,pdfDoc=null,curFile=null,pdfType="workout";
-var extracted=[],atTables=[],atCache={};
-var pagesVisible=false;
+// ── STATE ─────────────────────────────────────────────────────────────
+var gTok = null, gCli = null;
+var curFile = null, pdfType = "workout";
+var pages = []; // {url, filename}
+var curPage = 0;
+var pageStatus = {}; // page index → 'ok'|'flagged'|null
+var atTables = [], atCache = {};
+var pickerType = null, pickerPending = [], folderStack = [], folderCache = {}, curFolderItems = [];
 
-// Folder browser state
-var pickerType=null,pickerPending=[],folderStack=[],folderCache={},curFolderItems=[];
-
-var cfg={
-  types:{
-    workout:{files:[],tableID:"tblKDqjy5RzqaJvjr",tableName:"Sets (Workout)"},
-    injection:{files:[],tableID:"tblaYuZjl4Pu4nKxS",tableName:"DailyLog"},
-    supplement:{files:[],tableID:"tblSnkc0Gu2BzGACP",tableName:"Supplements"},
-    lab:{files:[],tableID:"tbl3200yJid6fXaOp",tableName:"Bloodwork / Labs"}
+var cfg = {
+  types: {
+    workout:    { files: [], tableID: "tblKDqjy5RzqaJvjr", tableName: "Sets (Workout)" },
+    injection:  { files: [], tableID: "tblBvEaLkGGipnOFc", tableName: "Injection Log" },
+    supplement: { files: [], tableID: "tblSnkc0Gu2BzGACP", tableName: "Supplements" },
+    lab:        { files: [], tableID: "tbl3200yJid6fXaOp", tableName: "Bloodwork / Labs" }
   }
 };
 
-function loadCfg(){try{var s=localStorage.getItem("mb_pdfqa4");if(s){var p=JSON.parse(s);if(p.types)Object.keys(p.types).forEach(function(k){if(cfg.types[k])cfg.types[k]=Object.assign({},cfg.types[k],p.types[k]);});}}catch(e){}}
-function saveCfg(){localStorage.setItem("mb_pdfqa4",JSON.stringify(cfg));}
-function loadTok(){var t=localStorage.getItem("mb_pdfqat"),e=parseInt(localStorage.getItem("mb_pdfqae")||0);return(t&&Date.now()<e)?t:null;}
-function saveTok(t,exp){localStorage.setItem("mb_pdfqat",t);localStorage.setItem("mb_pdfqae",Date.now()+(exp-60)*1000);}
-function clearTok(){localStorage.removeItem("mb_pdfqat");localStorage.removeItem("mb_pdfqae");}
-
-function toast(msg,cls,ms){var c=document.getElementById("toasts"),el=document.createElement("div");el.className="toast "+(cls||"ti");el.textContent=msg;c.appendChild(el);setTimeout(function(){el.remove();},ms||3000);}
-function setDot(w,s,l){var d=document.getElementById(w+"Dot"),lb=document.getElementById(w+"Lbl");d.className="dot"+(s==="ok"?" ok":s==="err"?" err":s==="warn"?" warn":"");lb.textContent=l;}
-function esc(v){if(v==null)return"";return String(v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
-function today(){return new Date().toISOString().slice(0,10);}
-function dl(blob,name){var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;a.click();}
-function dKeys(recs){var skip={_page:1,_src:1,_type:1},all={};recs.forEach(function(r){Object.keys(r).forEach(function(k){if(!skip[k])all[k]=1;});});return Object.keys(all).slice(0,10);}
-function fmtSz(b){if(!b)return"";var k=parseInt(b)/1024;return k>1024?(k/1024).toFixed(1)+"MB":Math.round(k)+"KB";}
-function fmtDt(s){if(!s)return"";return new Date(s).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"2-digit"});}
-
-function showTab(name){
-  document.querySelectorAll(".tab").forEach(function(t){t.classList.remove("active");});
-  document.querySelectorAll(".tc").forEach(function(t){t.classList.remove("active");});
-  document.getElementById("tab-"+name).classList.add("active");
-  document.getElementById("tc-"+name).classList.add("active");
-  if(name==="settings")renderSettings();
+// ── UTILS ─────────────────────────────────────────────────────────────
+function toast(msg, cls, ms) {
+  var c = document.getElementById("toasts"), el = document.createElement("div");
+  el.className = "toast " + (cls || "ti"); el.textContent = msg;
+  c.appendChild(el); setTimeout(function() { el.remove(); }, ms || 3000);
 }
-function setType(btn){
-  document.querySelectorAll(".tbtn").forEach(function(b){b.classList.remove("active");});
-  btn.classList.add("active");pdfType=btn.dataset.type;
+function setDot(w, s, l) {
+  var d = document.getElementById(w + "Dot"), lb = document.getElementById(w + "Lbl");
+  d.className = "dot" + (s === "ok" ? " ok" : s === "err" ? " err" : s === "warn" ? " warn" : "");
+  lb.textContent = l;
 }
-function togglePages(){
-  pagesVisible=!pagesVisible;
-  document.getElementById("pgGrid").style.display=pagesVisible?"":"none";
-  document.getElementById("pgToggleLabel").innerHTML=pagesVisible?"&#9650; Hide":"&#9660; Show";
+function esc(v) { if (v == null) return ""; return String(v).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+function fmtSz(b) { if (!b) return ""; var k = parseInt(b) / 1024; return k > 1024 ? (k / 1024).toFixed(1) + "MB" : Math.round(k) + "KB"; }
+function showTab(name) {
+  document.querySelectorAll(".tab").forEach(function(t) { t.classList.remove("active"); });
+  document.querySelectorAll(".tc").forEach(function(t) { t.classList.remove("active"); });
+  document.getElementById("tab-" + name).classList.add("active");
+  document.getElementById("tc-" + name).classList.add("active");
+  if (name === "settings") renderSettings();
+  if (name === "export") renderExport();
 }
 
-// AUTH
-function initAuth(){
-  if(typeof google==="undefined"){setTimeout(initAuth,300);return;}
-  var stored=loadTok();
-  if(stored){gTok=stored;setDot("d","ok","DRIVE");loadMappedFiles();return;}
-  setDot("d","","DRIVE");
+// ── CONFIG PERSISTENCE ────────────────────────────────────────────────
+function loadCfg() {
+  try {
+    var s = localStorage.getItem("mb_pdfqa5");
+    if (s) { var p = JSON.parse(s); if (p.types) Object.keys(p.types).forEach(function(k) { if (cfg.types[k]) cfg.types[k] = Object.assign({}, cfg.types[k], p.types[k]); }); }
+  } catch(e) {}
 }
-function signIn(){
-  if(!gCli)gCli=google.accounts.oauth2.initTokenClient({
-    client_id:GCI,scope:GSC,
-    callback:function(r){
-      if(r.error){toast("Auth error: "+r.error,"tr");return;}
-      gTok=r.access_token;saveTok(r.access_token,r.expires_in||3600);
-      setDot("d","ok","DRIVE");loadMappedFiles();
+function saveCfg() { localStorage.setItem("mb_pdfqa5", JSON.stringify(cfg)); }
+function loadTok() { var t = localStorage.getItem("mb_pdfqat"), e = parseInt(localStorage.getItem("mb_pdfqae") || 0); return (t && Date.now() < e) ? t : null; }
+function saveTok(t, exp) { localStorage.setItem("mb_pdfqat", t); localStorage.setItem("mb_pdfqae", Date.now() + (exp - 60) * 1000); }
+function clearTok() { localStorage.removeItem("mb_pdfqat"); localStorage.removeItem("mb_pdfqae"); }
+
+// ── AUTH ──────────────────────────────────────────────────────────────
+function initAuth() {
+  if (typeof google === "undefined") { setTimeout(initAuth, 300); return; }
+  var stored = loadTok();
+  if (stored) { gTok = stored; setDot("d", "ok", "DRIVE"); loadMappedFiles(); return; }
+  setDot("d", "", "DRIVE");
+}
+function signIn() {
+  if (!gCli) gCli = google.accounts.oauth2.initTokenClient({
+    client_id: GCI, scope: GSC,
+    callback: function(r) {
+      if (r.error) { toast("Auth error: " + r.error, "tr"); return; }
+      gTok = r.access_token; saveTok(r.access_token, r.expires_in || 3600);
+      setDot("d", "ok", "DRIVE"); loadMappedFiles();
     }
   });
-  gCli.requestAccessToken({prompt:""});
+  gCli.requestAccessToken({ prompt: "" });
 }
-function signOut(){clearTok();gTok=null;setDot("d","","DRIVE");document.getElementById("fileList").innerHTML="<div class='abox'><div class='atitle'>Signed Out</div><button class='btn bp' onclick='signIn()'>Sign in</button></div>";toast("Signed out","ti");}
+function signOut() {
+  clearTok(); gTok = null; setDot("d", "", "DRIVE");
+  document.getElementById("fileList").innerHTML = "<div class='abox'><div class='atitle'>Signed Out</div><button class='btn bp' onclick='signIn()'>Sign in</button></div>";
+  toast("Signed out", "ti");
+}
 
-// LOAD MAPPED FILES INTO SIDEBAR
-async function loadMappedFiles(){
-  if(!gTok){signIn();return;}
-  setDot("d","warn","LOADING");
-  // Collect all mapped file IDs, fetch their current metadata
-  var allMapped=[];
-  Object.keys(cfg.types).forEach(function(type){
-    cfg.types[type].files.forEach(function(f){allMapped.push({type:type,id:f.id,name:f.name});});
+// ── SIDEBAR FILE LIST ─────────────────────────────────────────────────
+async function loadMappedFiles() {
+  if (!gTok) { signIn(); return; }
+  var allMapped = [];
+  Object.keys(cfg.types).forEach(function(type) {
+    cfg.types[type].files.forEach(function(f) { allMapped.push({ type: type, id: f.id, name: f.name }); });
   });
-  if(!allMapped.length){
-    setDot("d","ok","DRIVE");
-    document.getElementById("fileList").innerHTML="<div class='empty'><div class='et'>No files mapped</div><div class='es'>Go to Settings to assign PDFs to each type.</div></div>";
+  if (!allMapped.length) {
+    setDot("d", "ok", "DRIVE");
+    document.getElementById("fileList").innerHTML = "<div class='empty'><div class='et'>No files mapped</div><div class='es'>Go to Settings to assign files.</div></div>";
     return;
   }
-  setDot("d","ok","DRIVE");
+  setDot("d", "ok", "DRIVE");
   renderSidebarFiles(allMapped);
 }
-
-function renderSidebarFiles(files){
-  var types=["workout","injection","supplement","lab"];
-  var html="";
-  types.forEach(function(type){
-    var group=files.filter(function(f){return f.type===type;});
-    if(!group.length)return;
-    html+="<div class='grp-hdr'>"+type+"</div>";
-    group.forEach(function(f){
-      html+="<div class='fi' id='fi_"+f.id+"' onclick='selFile(\""+f.id+"\",\""+esc(f.name)+"\",\""+type+"\")'>";
-      html+="<span class='ftype ft-"+type+"'>"+type+"</span>";
-      html+="<span class='fn'>"+esc(f.name)+"</span></div>";
+function renderSidebarFiles(files) {
+  var types = ["workout", "injection", "supplement", "lab"], html = "";
+  types.forEach(function(type) {
+    var group = files.filter(function(f) { return f.type === type; });
+    if (!group.length) return;
+    html += "<div class='grp-hdr'>" + type + "</div>";
+    group.forEach(function(f) {
+      html += "<div class='fi' id='fi_" + f.id + "' onclick='selFile(\"" + f.id + "\",\"" + esc(f.name) + "\",\"" + type + "\")'>";
+      html += "<span class='ftype ft-" + type + "'>" + type + "</span>";
+      html += "<span class='fn'>" + esc(f.name) + "</span></div>";
     });
   });
-  document.getElementById("fileList").innerHTML=html||"<div class='empty'><div class='et'>No files</div></div>";
+  document.getElementById("fileList").innerHTML = html || "<div class='empty'><div class='et'>No files</div></div>";
 }
 
-// SELECT FILE
-async function selFile(id,name,type){
-  document.querySelectorAll(".fi").forEach(function(e){e.classList.remove("active");});
-  var fi=document.getElementById("fi_"+id);if(fi)fi.classList.add("active");
-  curFile={id:id,name:name};pdfType=type;
-  extracted=[];
-  document.getElementById("revEmpty").style.display="none";
-  document.getElementById("revUI").style.display="";
-  document.getElementById("pdfName").textContent=name;
-  document.getElementById("pdfMeta").textContent="Loading...";
-  document.getElementById("pgGrid").innerHTML="";
-  document.getElementById("pgGrid").style.display="none";
-  document.getElementById("pgToggleLabel").innerHTML="&#9660; Show";
-  pagesVisible=false;
-  document.getElementById("aiPanel").style.display="none";
-  document.getElementById("revResults").innerHTML="";
-  document.getElementById("extractBtn").disabled=true;
-  document.querySelectorAll(".tbtn").forEach(function(b){b.classList.toggle("active",b.dataset.type===type);});
+// ── SELECT FILE & LOAD ZIP ────────────────────────────────────────────
+async function selFile(id, name, type) {
+  document.querySelectorAll(".fi").forEach(function(e) { e.classList.remove("active"); });
+  var fi = document.getElementById("fi_" + id); if (fi) fi.classList.add("active");
+  curFile = { id: id, name: name }; pdfType = type;
+  pages = []; curPage = 0; pageStatus = {};
+  document.getElementById("revEmpty").style.display = "none";
+  document.getElementById("revUI").style.display = "flex";
+  document.getElementById("pdfName").textContent = name;
+  document.getElementById("pdfMeta").textContent = "Loading...";
+  document.getElementById("thumbStrip").innerHTML = "";
+  document.getElementById("mainImg").style.display = "none";
+  document.getElementById("imgEmpty").style.display = "flex";
+  document.getElementById("imgEmpty").innerHTML = "<span style='font-size:28px'>&#8635;</span><span>Downloading & unpacking...</span>";
+  document.getElementById("atContent").innerHTML = "<div class='empty' style='padding:30px 10px'><div class='et' style='font-size:11px'>Set a date to load Airtable records</div></div>";
+  document.getElementById("dateFilter").value = "";
+  document.getElementById("atTableLabel").textContent = cfg.types[type].tableName || type;
   showTab("review");
-  try{
-    var resp=await fetch("https://www.googleapis.com/drive/v3/files/"+id+"?alt=media",{headers:{Authorization:"Bearer "+gTok}});
-    if(!resp.ok)throw new Error("HTTP "+resp.status);
-    var buf=await resp.arrayBuffer();
-    pdfDoc=await pdfjsLib.getDocument({data:buf}).promise;
-    document.getElementById("pdfMeta").textContent=pdfDoc.numPages+" pages &middot; "+type;
-    document.getElementById("pgCount").textContent="0/"+pdfDoc.numPages;
-    document.getElementById("extractBtn").disabled=false;
-    renderPgGrid();
-  }catch(e){toast("Load error: "+e.message,"tr");document.getElementById("pdfMeta").textContent="Load error";}
-}
 
-async function renderPgGrid(){
-  var grid=document.getElementById("pgGrid");grid.innerHTML="";
-  for(var i=1;i<=pdfDoc.numPages;i++){
-    var w=document.createElement("div");w.className="pt";w.id="pt_"+i;
-    (function(n){w.onclick=function(){extractPage(n);};})(i);
-    w.innerHTML="<canvas id='pc_"+i+"'></canvas><div class='pnum'>"+i+"</div><div class='pstat' id='ps_"+i+"'></div>";
-    grid.appendChild(w);
-    var pg=await pdfDoc.getPage(i),vp=pg.getViewport({scale:0.3}),c=document.getElementById("pc_"+i);
-    c.width=vp.width;c.height=vp.height;
-    await pg.render({canvasContext:c.getContext("2d"),viewport:vp}).promise;
+  // Update Airtable dot
+  var m = cfg.types[type];
+  document.getElementById("atTableLabel").textContent = m.tableName || type;
+
+  try {
+    setDot("d", "warn", "LOADING");
+    var resp = await fetch("https://www.googleapis.com/drive/v3/files/" + id + "?alt=media", { headers: { Authorization: "Bearer " + gTok } });
+    if (!resp.ok) throw new Error("HTTP " + resp.status);
+    var buf = await resp.arrayBuffer();
+    setDot("d", "ok", "DRIVE");
+
+    // Try unzip first (ZIP of JPEGs)
+    try {
+      var zip = await JSZip.loadAsync(buf);
+      var imgFiles = [];
+      zip.forEach(function(path, file) {
+        if (!file.dir && /\.(jpe?g|png|gif|webp)$/i.test(path)) imgFiles.push({ path: path, file: file });
+      });
+      // Sort numerically
+      imgFiles.sort(function(a, b) {
+        var na = parseInt(a.path) || a.path.replace(/\D/g, "") || a.path;
+        var nb = parseInt(b.path) || b.path.replace(/\D/g, "") || b.path;
+        return na - nb;
+      });
+      if (imgFiles.length) {
+        // Extract all to object URLs
+        for (var i = 0; i < imgFiles.length; i++) {
+          var blob = await imgFiles[i].file.async("blob");
+          var url = URL.createObjectURL(blob);
+          pages.push({ url: url, filename: imgFiles[i].path });
+        }
+        document.getElementById("pdfMeta").textContent = pages.length + " pages · " + type;
+        renderThumbs();
+        goToPage(0);
+        updateStatusBar();
+        toast("Loaded " + pages.length + " pages", "tg");
+        return;
+      }
+    } catch(zipErr) {}
+
+    // Fallback: treat as single image
+    var blob = new Blob([buf]);
+    var url = URL.createObjectURL(blob);
+    pages.push({ url: url, filename: name });
+    document.getElementById("pdfMeta").textContent = "1 page · " + type;
+    renderThumbs();
+    goToPage(0);
+    updateStatusBar();
+
+  } catch(e) {
+    setDot("d", "err", "DRIVE ERR");
+    toast("Load error: " + e.message, "tr");
+    document.getElementById("pdfMeta").textContent = "Error loading file";
+    document.getElementById("imgEmpty").innerHTML = "<span style='color:#d63030'>Load error: " + esc(e.message) + "</span>";
   }
 }
 
-// EXTRACTION
-function getPrompt(type){
-  var p={
-    workout:"Extract workout set data from this handwritten gym log. Return JSON array, each object: date (YYYY-MM-DD or null), session (YYYY-MM-DD Day), day (Mon/Tue/etc), exercise (name), variation (implement or empty string), set_number (int), reps (int), weight (number lbs). ONLY JSON array.",
-    injection:"Extract peptide/injection log data. Return JSON array: date (YYYY-MM-DD or null), compound, dose (number), unit (u/mg/mcg/IU), time_of_day (AM/PM/Night or null), notes. ONLY JSON array.",
-    supplement:"Extract supplement data. Return JSON array: date, name, dose, unit, time_of_day. ONLY JSON array.",
-    lab:"Extract lab results. Return JSON array: date, marker, value, unit, ref_range, status (HIGH/LOW/Normal). ONLY JSON array."
-  };
-  return p[type]||p.workout;
+// ── IMAGE VIEWER ──────────────────────────────────────────────────────
+function renderThumbs() {
+  var strip = document.getElementById("thumbStrip");
+  strip.innerHTML = "";
+  pages.forEach(function(p, i) {
+    var d = document.createElement("div");
+    d.className = "thumb" + (i === curPage ? " active" : "") + (pageStatus[i] ? " " + pageStatus[i] : "");
+    d.id = "th_" + i;
+    d.onclick = (function(n) { return function() { goToPage(n); }; })(i);
+    d.innerHTML = "<img src='" + p.url + "' loading='lazy'/><div class='thumb-num'>" + (i + 1) + "</div>";
+    strip.appendChild(d);
+  });
 }
-async function extractPage(n){
-  if(!pdfDoc)return;
-  var w=document.getElementById("pt_"+n),s=document.getElementById("ps_"+n);
-  w.classList.add("busy");s.textContent="...";
-  try{
-    var pg=await pdfDoc.getPage(n),vp=pg.getViewport({scale:2}),c=document.createElement("canvas");
-    c.width=vp.width;c.height=vp.height;
-    await pg.render({canvasContext:c.getContext("2d"),viewport:vp}).promise;
-    var b64=c.toDataURL("image/jpeg",0.85).split(",")[1];
-    var resp=await fetch("https://api.anthropic.com/v1/messages",{
-      method:"POST",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:4000,system:getPrompt(pdfType),
-        messages:[{role:"user",content:[{type:"image",source:{type:"base64",media_type:"image/jpeg",data:b64}},{type:"text",text:"Page "+n+" of "+pdfDoc.numPages}]}]})
+function goToPage(n) {
+  if (n < 0 || n >= pages.length) return;
+  // Update old thumb
+  var oldThumb = document.getElementById("th_" + curPage);
+  if (oldThumb) { oldThumb.classList.remove("active"); if (pageStatus[curPage]) oldThumb.classList.add(pageStatus[curPage]); }
+  curPage = n;
+  var p = pages[n];
+  var img = document.getElementById("mainImg");
+  img.style.display = "block";
+  img.src = p.url;
+  document.getElementById("imgEmpty").style.display = "none";
+  document.getElementById("pgLabel").textContent = (n + 1) + " / " + pages.length;
+  document.getElementById("prevBtn").disabled = n === 0;
+  document.getElementById("nextBtn").disabled = n === pages.length - 1;
+  document.getElementById("imgMeta").textContent = p.filename;
+  // Update thumb
+  var newThumb = document.getElementById("th_" + n);
+  if (newThumb) { newThumb.classList.add("active"); newThumb.scrollIntoView({ block: "nearest", inline: "center", behavior: "smooth" }); }
+  updateStatusBar();
+}
+function navPage(dir) { goToPage(curPage + dir); }
+function markPage(status) {
+  pageStatus[curPage] = (pageStatus[curPage] === status) ? null : status;
+  var th = document.getElementById("th_" + curPage);
+  if (th) { th.className = "thumb active" + (pageStatus[curPage] ? " " + pageStatus[curPage] : ""); }
+  updateStatusBar();
+  toast(status === "ok" ? "Marked verified" : "Flagged", status === "ok" ? "tg" : "ty");
+}
+function updateStatusBar() {
+  var ok = Object.values(pageStatus).filter(function(v) { return v === "ok"; }).length;
+  var flagged = Object.values(pageStatus).filter(function(v) { return v === "flagged"; }).length;
+  var cur = pageStatus[curPage];
+  document.getElementById("pgStatusText").textContent = cur ? cur.toUpperCase() : "unreviewed";
+  document.getElementById("pgStatusText").style.color = cur === "ok" ? "var(--g)" : cur === "flagged" ? "var(--r)" : "var(--dd)";
+  document.getElementById("okCount").textContent = ok ? "✓ " + ok + " verified" : "";
+  document.getElementById("flagCount").textContent = flagged ? "⚑ " + flagged + " flagged" : "";
+}
+
+// ── AIRTABLE PANEL ────────────────────────────────────────────────────
+async function refreshAtData() {
+  var date = document.getElementById("dateFilter").value;
+  if (!date) { document.getElementById("atContent").innerHTML = "<div class='empty' style='padding:30px 10px'><div class='et' style='font-size:11px'>Enter a date above</div></div>"; return; }
+  var m = cfg.types[pdfType];
+  if (!m || !m.tableID) { document.getElementById("atContent").innerHTML = "<div class='empty' style='padding:30px 10px'><div class='et' style='font-size:11px;color:var(--r)'>No table mapped for " + pdfType + "</div></div>"; return; }
+  document.getElementById("atContent").innerHTML = "<div style='padding:20px;color:var(--dd);font-size:11px;text-align:center'>Loading...</div>";
+  try {
+    var recs = await fetchAtDate(m.tableID, date);
+    renderAtPanel(recs, date, m.tableID);
+  } catch(e) {
+    document.getElementById("atContent").innerHTML = "<div style='padding:20px;color:var(--r);font-size:11px'>Error: " + esc(e.message) + "</div>";
+  }
+}
+async function fetchAtDate(tid, date) {
+  var formula = encodeURIComponent("FIND(\"" + date + "\",{Date})");
+  var url = "https://api.airtable.com/v0/" + ATB + "/" + tid + "?pageSize=100&filterByFormula=" + formula + "&sort[0][field]=Date&sort[0][direction]=asc";
+  var r = await fetch(url, { headers: { Authorization: "Bearer " + ATK } });
+  if (!r.ok) throw new Error("HTTP " + r.status);
+  var d = await r.json();
+  return d.records || [];
+}
+function renderAtPanel(recs, date, tid) {
+  if (!recs.length) {
+    document.getElementById("atContent").innerHTML = "<div class='empty' style='padding:30px 10px'><div class='et' style='font-size:11px;color:var(--r)'>No records for " + date + "</div><div class='es'>Nothing in Airtable for this date.</div></div>";
+    return;
+  }
+  var html = "<div class='sec'><div class='sech'><span class='sect sectbl'>" + date + "</span><span class='secc'>" + recs.length + " records</span></div><div style='overflow-x:auto'>";
+  // Build columns from first record
+  var cols = Object.keys(recs[0].fields).filter(function(k) { return !["id", "createdTime"].includes(k); }).slice(0, 8);
+  html += "<table class='tbl'><thead><tr>" + cols.map(function(c) { return "<th>" + esc(c) + "</th>"; }).join("") + "</tr></thead><tbody>";
+  recs.forEach(function(r) {
+    html += "<tr>" + cols.map(function(c) { return "<td>" + esc(r.fields[c] != null ? r.fields[c] : "—") + "</td>"; }).join("") + "</tr>";
+  });
+  html += "</tbody></table></div></div>";
+  document.getElementById("atContent").innerHTML = html;
+}
+
+// ── AIRTABLE LOAD TABLES ──────────────────────────────────────────────
+async function loadAtTables() {
+  try {
+    var r = await fetch("https://api.airtable.com/v0/meta/bases/" + ATB + "/tables", { headers: { Authorization: "Bearer " + ATK } });
+    var d = await r.json(); atTables = d.tables || []; setDot("a", "ok", "AT");
+    Object.keys(cfg.types).forEach(function(type) {
+      var m = cfg.types[type]; if (m.tableID) { var t = atTables.find(function(x) { return x.id === m.tableID; }); if (t) m.tableName = t.name; }
     });
-    var data=await resp.json();
-    var raw=((data.content||[]).find(function(x){return x.type==="text";})||{text:"[]"}).text;
-    raw=raw.replace(/```json\n?|```\n?/g,"").trim();
-    var parsed=[];try{parsed=JSON.parse(raw);}catch(e){}
-    if(!Array.isArray(parsed))parsed=[];
-    parsed=parsed.map(function(r){return Object.assign({},r,{_page:n,_type:pdfType});});
-    extracted=extracted.concat(parsed);
-    w.classList.remove("busy");w.classList.add("done");
-    s.textContent=parsed.length?""+parsed.length:"-";
-    updPgCount();
-    toast("Pg "+n+": "+parsed.length+" records","tg");
-  }catch(e){w.classList.remove("busy");s.textContent="!";toast("Pg "+n+" error","tr",5000);}
-}
-async function extractAll(){
-  if(!pdfDoc)return;
-  document.getElementById("extractBtn").disabled=true;
-  document.getElementById("extractBtn").textContent="Extracting...";
-  for(var i=1;i<=pdfDoc.numPages;i++){await extractPage(i);await new Promise(function(r){setTimeout(r,350);});}
-  document.getElementById("extractBtn").disabled=false;
-  document.getElementById("extractBtn").innerHTML="&#9654; Extract &amp; Compare";
-  // Auto-run compare
-  var m=cfg.types[pdfType];
-  if(m&&m.tableID)await runCompareAndSummarize(m.tableID);
-  renderExportUI();
-}
-function startExtract(){extracted=[];document.getElementById("revResults").innerHTML="";document.getElementById("aiPanel").style.display="none";extractAll();}
-function updPgCount(){var d=document.querySelectorAll(".pt.done").length;document.getElementById("pgCount").textContent=d+"/"+(pdfDoc?pdfDoc.numPages:0);}
-
-// AIRTABLE
-async function loadAtTables(){
-  try{
-    var r=await fetch("https://api.airtable.com/v0/meta/bases/"+ATB+"/tables",{headers:{Authorization:"Bearer "+ATK}});
-    var d=await r.json();atTables=d.tables||[];setDot("a","ok","AT");
-    // Update table names
-    Object.keys(cfg.types).forEach(function(type){var m=cfg.types[type];if(m.tableID){var t=atTables.find(function(x){return x.id===m.tableID;});if(t)m.tableName=t.name;}});
-  }catch(e){setDot("a","err","AT ERR");}
-}
-async function fetchAt(tid){
-  if(atCache[tid])return atCache[tid];
-  var recs=[],offset;
-  do{var url="https://api.airtable.com/v0/"+ATB+"/"+tid+"?pageSize=100"+(offset?"&offset="+offset:"");var r=await fetch(url,{headers:{Authorization:"Bearer "+ATK}});var d=await r.json();recs=recs.concat(d.records||[]);offset=d.offset;}while(offset);
-  atCache[tid]=recs;return recs;
+  } catch(e) { setDot("a", "err", "AT ERR"); }
 }
 
-// COMPARE + AI SUMMARY
-async function runCompareAndSummarize(tableID){
-  if(!extracted.length)return;
-  document.getElementById("revResults").innerHTML="<div style='padding:20px;color:var(--dd);font-size:11px'>Comparing against Airtable...</div>";
-  var atRecs=await fetchAt(tableID);
-  var atMap={};atRecs.forEach(function(r){var fp=atFP(r);if(!atMap[fp])atMap[fp]=[];atMap[fp].push(r);});
-  var results=extracted.map(function(er){var fp=exFP(er),hits=atMap[fp];if(hits&&hits.length){var diffs=findDiffs(er,hits[0]);return{er:er,at:hits[0],status:diffs.length?"diff":"match",diffs:diffs};}return{er:er,at:null,status:"missing",diffs:[]};});
-  var exFPs={};extracted.forEach(function(er){exFPs[exFP(er)]=1;});
-  var atOnly=atRecs.filter(function(r){return!exFPs[atFP(r)];});
-  renderResults(results,atOnly);
-  // AI Summary
-  await runAISummary(results,atOnly);
-}
-function atFP(r){var f=r.fields;return((f.Date||"").slice(0,10))+"|"+((f.Exercise||f.Name||f.Compound||f.Marker||"").toLowerCase())+"|"+(f["Set#"]||f.SetID||"");}
-function exFP(r){return((r.date||"").slice(0,10))+"|"+((r.exercise||r.compound||r.name||r.marker||"").toLowerCase())+"|"+(r.set_number||r.SetID||"");}
-function findDiffs(er,at){var diffs=[],map={weight:"Weight",reps:"Reps",dose:"Dose",value:"Value"};Object.keys(map).forEach(function(ek){var av=at.fields[map[ek]];if(er[ek]!=null&&av!=null&&String(er[ek])!==String(av))diffs.push({f:ek,ex:er[ek],at:av});});return diffs;}
-
-async function runAISummary(results,atOnly){
-  var panel=document.getElementById("aiPanel");
-  panel.style.display="";
-  panel.innerHTML="<div class='ai-panel'><div class='ai-panel-hdr'><span style='font-size:16px'>&#129302;</span><span class='ai-panel-title'>Claude is reviewing results...</span></div></div>";
-  var matched=results.filter(function(r){return r.status==="match";}).length;
-  var missing=results.filter(function(r){return r.status==="missing";}).length;
-  var diffs=results.filter(function(r){return r.status==="diff";}).length;
-  var missingEx=results.filter(function(r){return r.status==="missing";}).slice(0,5).map(function(r){return(r.er.date||"?")+" "+(r.er.exercise||r.er.compound||r.er.name||"");}).join(", ");
-  var diffEx=results.filter(function(r){return r.status==="diff";}).slice(0,3).map(function(r){return r.diffs.map(function(d){return(r.er.exercise||r.er.compound||"")+" "+d.f+": PDF="+d.ex+" AT="+d.at;}).join("; ");}).join(" | ");
-  var summary="PDF: "+curFile.name+" | Type: "+pdfType+" | Extracted: "+extracted.length+" records | Matched: "+matched+" | Missing from Airtable: "+missing+(missingEx?" (e.g. "+missingEx+")":"")+" | Value diffs: "+diffs+(diffEx?" (e.g. "+diffEx+")":"")+" | In AT only: "+atOnly.length;
-  try{
-    var resp=await fetch("https://api.anthropic.com/v1/messages",{
-      method:"POST",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:300,
-        messages:[{role:"user",content:"You are reviewing health data QA results. Give a 2-3 sentence summary of the data quality findings and what needs attention. Be direct and specific. Data: "+summary}]})
-    });
-    var data=await resp.json();
-    var text=((data.content||[]).find(function(x){return x.type==="text";})||{text:""}).text;
-    panel.innerHTML="<div class='ai-panel'><div class='ai-panel-hdr'><span style='font-size:16px'>&#129302;</span><span class='ai-panel-title'>Claude&#39;s Review</span></div><div class='ai-panel-body'>"+esc(text)+"</div></div>";
-  }catch(e){panel.style.display="none";}
+// ── EXPORT TAB ────────────────────────────────────────────────────────
+function renderExport() {
+  if (!pages.length) { document.getElementById("exportSummary").innerHTML = "<div class='empty'><div class='et'>No file loaded</div></div>"; return; }
+  var ok = 0, flagged = 0, unrev = 0;
+  pages.forEach(function(p, i) { var s = pageStatus[i]; if (s === "ok") ok++; else if (s === "flagged") flagged++; else unrev++; });
+  var html = "<div class='sec'><div class='sech'><span class='sect sectbl'>" + esc(curFile.name) + "</span><span class='secc'>" + pages.length + " pages</span></div>";
+  html += "<div style='padding:14px;display:flex;gap:16px'>";
+  html += "<div style='text-align:center'><div style='font-size:24px;font-weight:700;color:var(--g);font-family:var(--mono)'>" + ok + "</div><div style='font-size:10px;color:var(--d)'>Verified</div></div>";
+  html += "<div style='text-align:center'><div style='font-size:24px;font-weight:700;color:var(--r);font-family:var(--mono)'>" + flagged + "</div><div style='font-size:10px;color:var(--d)'>Flagged</div></div>";
+  html += "<div style='text-align:center'><div style='font-size:24px;font-weight:700;color:var(--dd);font-family:var(--mono)'>" + unrev + "</div><div style='font-size:10px;color:var(--d)'>Unreviewed</div></div>";
+  html += "</div></div>";
+  // Flagged pages list
+  var flaggedPages = pages.map(function(p, i) { return { i: i, p: p, s: pageStatus[i] }; }).filter(function(x) { return x.s === "flagged"; });
+  if (flaggedPages.length) {
+    html += "<div class='sec'><div class='sech'><span class='sect sectr'>Flagged Pages</span><span class='secc'>" + flaggedPages.length + "</span></div><div style='padding:10px 14px;display:flex;flex-wrap:wrap;gap:6px'>";
+    flaggedPages.forEach(function(x) { html += "<span style='font-family:var(--mono);font-size:11px;background:var(--rd);color:var(--r);padding:3px 9px;border-radius:4px'>Page " + (x.i + 1) + "</span>"; });
+    html += "</div></div>";
+  }
+  document.getElementById("exportSummary").innerHTML = html;
 }
 
-function renderResults(results,atOnly){
-  var matched=results.filter(function(r){return r.status==="match";}).length;
-  var missing=results.filter(function(r){return r.status==="missing";}).length;
-  var diffs=results.filter(function(r){return r.status==="diff";}).length;
-  var html="<div class='cards'>";
-  html+="<div class='card cardg'><div class='cv'>"+matched+"</div><div class='cl'>Matched</div></div>";
-  html+="<div class='card cardr'><div class='cv'>"+missing+"</div><div class='cl'>Missing</div></div>";
-  html+="<div class='card cardy'><div class='cv'>"+diffs+"</div><div class='cl'>Diffs</div></div>";
-  html+="<div class='card cardbl'><div class='cv'>"+atOnly.length+"</div><div class='cl'>AT Only</div></div>";
-  html+="</div>";
-  var keys=dKeys(extracted).filter(function(k){return k[0]!=="_";});
-  if(missing)html+="<div class='sec'><div class='sech'><span class='sect sectr'>Missing from Airtable</span><span class='secc'>"+missing+"</span></div><div class='tw'><table class='tbl'><thead><tr>"+keys.map(function(k){return"<th>"+k+"</th>";}).join("")+"</tr></thead><tbody>"+results.filter(function(r){return r.status==="missing";}).map(function(r){return"<tr>"+keys.map(function(k){return"<td class='tcr'>"+esc(r.er[k])+"</td>";}).join("")+"</tr>";}).join("")+"</tbody></table></div></div>";
-  if(diffs)html+="<div class='sec'><div class='sech'><span class='sect secty'>Value Mismatches</span><span class='secc'>"+diffs+"</span></div><div class='tw'><table class='tbl'><thead><tr><th>Date</th><th>Record</th><th>Field</th><th>PDF Value</th><th>Airtable Value</th></tr></thead><tbody>"+results.filter(function(r){return r.status==="diff";}).map(function(r){return r.diffs.map(function(d){return"<tr><td>"+esc(r.er.date)+"</td><td>"+esc(r.er.exercise||r.er.compound||"")+"</td><td class='tcy'>"+d.f+"</td><td class='tcy'>"+esc(d.ex)+"</td><td class='tcd'>"+esc(d.at)+"</td></tr>";}).join("");}).join("")+"</tbody></table></div>";
-  if(!missing&&!diffs&&!atOnly.length&&matched)html+="<div class='sec'><div class='sech'><span class='sect sectg'>&#10003; All "+matched+" records match perfectly</span></div></div>";
-  document.getElementById("revResults").innerHTML=html;
-}
-
-// EXPORT
-function renderExportUI(){
-  if(!extracted.length)return;
-  document.getElementById("eEmpty").style.display="none";document.getElementById("eUI").style.display="";document.getElementById("eCount").textContent=extracted.length;
-  var keys=dKeys(extracted);
-  document.getElementById("eHead").innerHTML="<tr>"+keys.map(function(k){return"<th>"+k+"</th>";}).join("")+"</tr>";
-  document.getElementById("eBody").innerHTML=extracted.slice(0,50).map(function(r){return"<tr>"+keys.map(function(k){return"<td>"+esc(r[k])+"</td>";}).join("")+"</tr>";}).join("")+(extracted.length>50?"<tr><td colspan='"+keys.length+"' class='tcd'>... "+(extracted.length-50)+" more</td></tr>":"");
-}
-function exportJSON(){dl(new Blob([JSON.stringify(extracted,null,2)],{type:"application/json"}),(curFile?curFile.name.replace(".pdf",""):"data")+"_"+today()+".json");toast("Exported","tg");}
-function exportCSV(){if(!extracted.length)return;var keys=dKeys(extracted);var rows=[keys.join(",")].concat(extracted.map(function(r){return keys.map(function(k){var v=String(r[k]||"");return v.indexOf(",")>=0?'"'+v+'"':v;}).join(",");}));dl(new Blob([rows.join("\n")],{type:"text/csv"}),(curFile?curFile.name.replace(".pdf",""):"data")+"_"+today()+".csv");toast("Exported","tg");}
-async function pushToAT(){
-  var m=cfg.types[pdfType];var tid=m?m.tableID:"";if(!tid){toast("No table mapped for "+pdfType,"tr");return;}
-  if(!confirm("Push "+extracted.length+" records to "+m.tableName+"?"))return;
-  var pushed=0,failed=0;
-  for(var i=0;i<extracted.length;i+=10){var chunk=extracted.slice(i,i+10);try{await fetch("https://api.airtable.com/v0/"+ATB+"/"+tid,{method:"POST",headers:{Authorization:"Bearer "+ATK,"Content-Type":"application/json"},body:JSON.stringify({records:chunk.map(function(r){return{fields:toAtF(r)};}),typecast:true})});pushed+=chunk.length;}catch(e){failed+=chunk.length;}await new Promise(function(r){setTimeout(r,200);});}
-  toast("Pushed "+pushed+(failed?", failed "+failed:""),pushed?"tg":"tr");
-}
-function toAtF(r){var map={date:"Date",exercise:"Exercise",variation:"Variation",set_number:"Set#",reps:"Reps",weight:"Weight",session:"Session",day:"Day",notes:"Notes",compound:"Name",dose:"Dose",unit:"Unit",time_of_day:"Time",marker:"Marker",value:"Value",ref_range:"Ref Range",status:"Status"};var out={};Object.keys(map).forEach(function(k){if(r[k]!=null&&r[k]!=="")out[map[k]]=r[k];});return out;}
-
-// SETTINGS
-function renderSettings(){
-  var types=["workout","injection","supplement","lab"];
-  document.getElementById("typeSections").innerHTML=types.map(function(type){
-    var m=cfg.types[type];
-    var chips=m.files.map(function(f,i){return"<span class='chip'><span>"+esc(f.name)+"</span><span class='chip-x' onclick='removeFile(\""+type+"\","+i+")'>&#x2715;</span></span>";}).join("");
-    chips+="<span class='chip chip-add' onclick='openPicker(\""+type+"\")'>+ Add PDFs</span>";
-    return "<div class='type-section'><div class='type-hdr'><span class='type-badge type-"+type+"'>"+type+"</span><span style='font-size:11px;color:var(--d)'>"+m.files.length+" file"+(m.files.length!==1?"s":"")+"</span></div><div class='type-body' id='chips_"+type+"'>"+chips+"</div></div>";
+// ── SETTINGS ──────────────────────────────────────────────────────────
+function renderSettings() {
+  var types = ["workout", "injection", "supplement", "lab"];
+  document.getElementById("typeSections").innerHTML = types.map(function(type) {
+    var m = cfg.types[type];
+    var chips = m.files.map(function(f, i) {
+      return "<span class='chip'><span>" + esc(f.name) + "</span><span class='chip-x' onclick='removeFile(\"" + type + "\"," + i + ")'>&#x2715;</span></span>";
+    }).join("");
+    chips += "<span class='chip chip-add' onclick='openPicker(\"" + type + "\")'>+ Add Files</span>";
+    return "<div class='type-section'><div class='type-hdr'><span class='type-badge type-" + type + "'>" + type + "</span><span style='font-size:11px;color:var(--d)'>" + m.files.length + " file" + (m.files.length !== 1 ? "s" : "") + "</span></div><div class='type-body' id='chips_" + type + "'>" + chips + "</div></div>";
   }).join("");
-  var tbody=document.getElementById("atMapBody");
-  tbody.innerHTML=types.map(function(type){
-    var m=cfg.types[type];var cur=m.tableID||"";
-    var opts="<option value=''>&#8212;</option>"+atTables.map(function(t){return"<option value='"+t.id+"'"+(t.id===cur?" selected":"")+">"+t.name+"</option>";}).join("");
-    return "<tr style='border-bottom:1px solid var(--b)'><td style='padding:8px 12px'><span class='type-badge type-"+type+"'>"+type+"</span></td><td style='padding:6px 12px'><select class='inp' style='width:100%' id='atsel_"+type+"'>"+opts+"</select></td></tr>";
+  var tbody = document.getElementById("atMapBody");
+  tbody.innerHTML = types.map(function(type) {
+    var m = cfg.types[type]; var cur = m.tableID || "";
+    var opts = "<option value=''>&#8212;</option>" + atTables.map(function(t) { return "<option value='" + t.id + "'" + (t.id === cur ? " selected" : "") + ">" + t.name + "</option>"; }).join("");
+    return "<tr style='border-bottom:1px solid var(--b)'><td style='padding:8px 12px'><span class='type-badge type-" + type + "'>" + type + "</span></td><td style='padding:6px 12px'><select class='inp' style='width:100%' id='atsel_" + type + "'>" + opts + "</select></td></tr>";
   }).join("");
 }
-function removeFile(type,idx){cfg.types[type].files.splice(idx,1);saveCfg();renderSettings();loadMappedFiles();toast("Removed","ti");}
-function saveSettings(){
-  ["workout","injection","supplement","lab"].forEach(function(type){var s=document.getElementById("atsel_"+type);if(s){cfg.types[type].tableID=s.value;var t=atTables.find(function(x){return x.id===s.value;});if(t)cfg.types[type].tableName=t.name;}});
+function removeFile(type, idx) { cfg.types[type].files.splice(idx, 1); saveCfg(); renderSettings(); loadMappedFiles(); toast("Removed", "ti"); }
+function saveSettings() {
+  ["workout", "injection", "supplement", "lab"].forEach(function(type) {
+    var s = document.getElementById("atsel_" + type); if (s) { cfg.types[type].tableID = s.value; var t = atTables.find(function(x) { return x.id === s.value; }); if (t) cfg.types[type].tableName = t.name; }
+  });
   saveCfg();
-  var el=document.getElementById("saveStatus");if(el){el.textContent="Saved "+new Date().toLocaleTimeString();setTimeout(function(){el.textContent="";},3000);}
-  toast("Saved","tg");loadMappedFiles();
+  var el = document.getElementById("saveStatus"); if (el) { el.textContent = "Saved " + new Date().toLocaleTimeString(); setTimeout(function() { el.textContent = ""; }, 3000); }
+  toast("Saved", "tg"); loadMappedFiles();
 }
-function resetAll(){if(!confirm("Reset?"))return;localStorage.removeItem("mb_pdfqa4");location.reload();}
+function resetAll() { if (!confirm("Reset all settings?")) return; localStorage.removeItem("mb_pdfqa5"); location.reload(); }
 
-// FOLDER BROWSER
-async function fetchFolderContents(folderId){
-  if(folderCache[folderId])return folderCache[folderId];
-  var qId=folderId==="root"?"'root' in parents":"'"+folderId+"' in parents";
-  var url="https://www.googleapis.com/drive/v3/files?q="+encodeURIComponent(qId+" and trashed=false")+"&fields=files(id,name,mimeType,size,modifiedTime)&pageSize=200&orderBy=folder,name";
-  var r=await fetch(url,{headers:{Authorization:"Bearer "+gTok}});
-  var d=await r.json();
-  if(d.error)throw new Error(d.error.message);
-  var items=d.files||[];
-  folderCache[folderId]=items;
-  return items;
+// ── FOLDER BROWSER ────────────────────────────────────────────────────
+async function fetchFolderContents(folderId) {
+  if (folderCache[folderId]) return folderCache[folderId];
+  var qId = folderId === "root" ? "'root' in parents" : "'" + folderId + "' in parents";
+  var url = "https://www.googleapis.com/drive/v3/files?q=" + encodeURIComponent(qId + " and trashed=false") + "&fields=files(id,name,mimeType,size,modifiedTime)&pageSize=200&orderBy=folder,name";
+  var r = await fetch(url, { headers: { Authorization: "Bearer " + gTok } });
+  var d = await r.json(); if (d.error) throw new Error(d.error.message);
+  folderCache[folderId] = d.files || []; return folderCache[folderId];
 }
-
-function openPicker(type){
-  if(!gTok){toast("Sign in first","tr");return;}
-  pickerType=type;pickerPending=[];folderStack=[];
-  document.getElementById("pickerTitle").textContent="Add PDFs \u2014 "+type;
-  document.getElementById("pickerSearch").value="";
+function openPicker(type) {
+  if (!gTok) { toast("Sign in first", "tr"); return; }
+  pickerType = type; pickerPending = []; folderStack = [];
+  document.getElementById("pickerTitle").textContent = "Add Files — " + type;
+  document.getElementById("pickerSearch").value = "";
   document.getElementById("pickerModal").classList.add("open");
-  navigateToFolder("root","My Drive");
+  navigateToFolder("root", "My Drive");
 }
-async function navigateToFolder(folderId,folderName){
-  document.getElementById("pickerList").innerHTML="<div style='padding:20px;text-align:center;color:var(--dd);font-size:11px'>Loading...</div>";
-  // Update stack
-  var existing=folderStack.findIndex(function(f){return f.id===folderId;});
-  if(existing>=0)folderStack=folderStack.slice(0,existing+1);
-  else folderStack.push({id:folderId,name:folderName});
+async function navigateToFolder(folderId, folderName) {
+  document.getElementById("pickerList").innerHTML = "<div style='padding:20px;text-align:center;color:var(--dd);font-size:11px'>Loading...</div>";
+  var existing = folderStack.findIndex(function(f) { return f.id === folderId; });
+  if (existing >= 0) folderStack = folderStack.slice(0, existing + 1); else folderStack.push({ id: folderId, name: folderName });
   renderBreadcrumb();
-  try{
-    curFolderItems=await fetchFolderContents(folderId);
-    renderPickerList(document.getElementById("pickerSearch").value);
-  }catch(e){document.getElementById("pickerList").innerHTML="<div style='padding:20px;text-align:center;color:var(--r);font-size:11px'>Error: "+esc(e.message)+"</div>";}
+  try { curFolderItems = await fetchFolderContents(folderId); renderPickerList(document.getElementById("pickerSearch").value); }
+  catch(e) { document.getElementById("pickerList").innerHTML = "<div style='padding:20px;text-align:center;color:var(--r);font-size:11px'>Error: " + esc(e.message) + "</div>"; }
 }
-function renderBreadcrumb(){
-  var bc=document.getElementById("breadcrumb");
-  bc.innerHTML=folderStack.map(function(f,i){
-    var isCur=i===folderStack.length-1;
-    return "<span class='bc-item"+(isCur?" current":"")+"'"+(isCur?"":" onclick='navigateToFolder(\""+f.id+"\",\""+esc(f.name)+"\")'")+">"+(i>0?"&#128193; ":"")+esc(f.name)+"</span>"+(isCur?"":"<span class='bc-sep'>&#8250;</span>");
+function renderBreadcrumb() {
+  document.getElementById("breadcrumb").innerHTML = folderStack.map(function(f, i) {
+    var isCur = i === folderStack.length - 1;
+    return "<span class='bc-item" + (isCur ? " current" : "") + "'" + (isCur ? "" : " onclick='navigateToFolder(\"" + f.id + "\",\"" + esc(f.name) + "\")'") + ">" + (i > 0 ? "&#128193; " : "") + esc(f.name) + "</span>" + (isCur ? "" : "<span class='bc-sep'>&#8250;</span>");
   }).join("");
 }
-function renderPickerList(filter){
-  var already=cfg.types[pickerType]?cfg.types[pickerType].files.map(function(f){return f.id;}):[];
-  var items=curFolderItems.filter(function(f){
-    if(filter&&f.name.toLowerCase().indexOf(filter.toLowerCase())<0)return false;
-    return f.mimeType===FOLDER_MIME||f.mimeType==="application/pdf";
+function renderPickerList(filter) {
+  var already = cfg.types[pickerType] ? cfg.types[pickerType].files.map(function(f) { return f.id; }) : [];
+  var items = curFolderItems.filter(function(f) {
+    if (filter && f.name.toLowerCase().indexOf(filter.toLowerCase()) < 0) return false;
+    // Allow folders, PDFs, ZIPs
+    return f.mimeType === FOLDER_MIME || f.mimeType === "application/pdf" || f.mimeType === "application/zip" || f.mimeType === "application/x-zip-compressed" || /\.(pdf|zip)$/i.test(f.name);
   });
-  if(!items.length){document.getElementById("pickerList").innerHTML="<div style='padding:20px;text-align:center;color:var(--dd);font-size:11px'>No folders or PDFs here</div>";updatePickerCount();return;}
-  var html=items.map(function(f){
-    var isFolder=f.mimeType===FOLDER_MIME;
-    var isSel=!isFolder&&pickerPending.indexOf(f.id)>=0;
-    var isAssigned=!isFolder&&already.indexOf(f.id)>=0;
-    if(isFolder){
-      return "<div class='mitem' onclick='navigateToFolder(\""+f.id+"\",\""+esc(f.name)+"\")'><div class='mitem-icon'>&#128193;</div><div class='mitem-name'>"+esc(f.name)+"</div><div class='mitem-arrow'>&#8250;</div></div>";
-    }
-    return "<div class='mitem"+(isSel?" checked":"")+(isAssigned?" disabled":"")+"' id='pfi_"+f.id+"' onclick='"+(isAssigned?"":"togglePicker(\""+f.id+"\",\""+esc(f.name)+"\")")+"'><input type='checkbox'"+(isSel?" checked":"")+(isAssigned?" disabled checked":"")+" onclick='event.stopPropagation();"+(isAssigned?"":"togglePicker(\""+f.id+"\",\""+esc(f.name)+"\")")+"' style='accent-color:var(--bl);width:15px;height:15px;flex-shrink:0;cursor:pointer'><div class='mitem-name'>"+esc(f.name)+(isAssigned?" <span style='font-size:9px;color:var(--g)'>(assigned)</span>":"")+"</div><div class='mitem-meta'>"+fmtSz(f.size)+"</div></div>";
+  if (!items.length) { document.getElementById("pickerList").innerHTML = "<div style='padding:20px;text-align:center;color:var(--dd);font-size:11px'>No files here</div>"; updatePickerCount(); return; }
+  document.getElementById("pickerList").innerHTML = items.map(function(f) {
+    var isFolder = f.mimeType === FOLDER_MIME;
+    var isSel = !isFolder && pickerPending.indexOf(f.id) >= 0;
+    var isAssigned = !isFolder && already.indexOf(f.id) >= 0;
+    if (isFolder) return "<div class='mitem' onclick='navigateToFolder(\"" + f.id + "\",\"" + esc(f.name) + "\")'><div class='mitem-icon'>&#128193;</div><div class='mitem-name'>" + esc(f.name) + "</div><div class='mitem-arrow'>&#8250;</div></div>";
+    return "<div class='mitem" + (isSel ? " checked" : "") + (isAssigned ? " disabled" : "") + "' id='pfi_" + f.id + "' onclick='" + (isAssigned ? "" : "togglePicker(\"" + f.id + "\",\"" + esc(f.name) + "\")") + "'><input type='checkbox'" + (isSel ? " checked" : "") + (isAssigned ? " disabled checked" : "") + " onclick='event.stopPropagation();" + (isAssigned ? "" : "togglePicker(\"" + f.id + "\",\"" + esc(f.name) + "\")") + "' style='accent-color:var(--bl);width:15px;height:15px;flex-shrink:0;cursor:pointer'><div class='mitem-name'>" + esc(f.name) + (isAssigned ? " <span style='font-size:9px;color:var(--g)'>(assigned)</span>" : "") + "</div><div class='mitem-meta'>" + fmtSz(f.size) + "</div></div>";
   }).join("");
-  document.getElementById("pickerList").innerHTML=html;
   updatePickerCount();
 }
-function togglePicker(id,name){
-  var already=cfg.types[pickerType]?cfg.types[pickerType].files.map(function(f){return f.id;}):[];
-  if(already.indexOf(id)>=0)return;
-  var idx=pickerPending.indexOf(id);
-  if(idx>=0)pickerPending.splice(idx,1);else pickerPending.push(id);
-  var el=document.getElementById("pfi_"+id);if(el)el.classList.toggle("checked",pickerPending.indexOf(id)>=0);
-  var cb=el?el.querySelector("input"):null;if(cb)cb.checked=pickerPending.indexOf(id)>=0;
+function togglePicker(id, name) {
+  var already = cfg.types[pickerType] ? cfg.types[pickerType].files.map(function(f) { return f.id; }) : [];
+  if (already.indexOf(id) >= 0) return;
+  var idx = pickerPending.indexOf(id);
+  if (idx >= 0) pickerPending.splice(idx, 1); else pickerPending.push(id);
+  var el = document.getElementById("pfi_" + id); if (el) el.classList.toggle("checked", pickerPending.indexOf(id) >= 0);
+  var cb = el ? el.querySelector("input") : null; if (cb) cb.checked = pickerPending.indexOf(id) >= 0;
   updatePickerCount();
 }
-function filterItems(){renderPickerList(document.getElementById("pickerSearch").value);}
-function updatePickerCount(){document.getElementById("pickerSelCount").textContent=pickerPending.length+" selected";}
-function closePickerModal(){document.getElementById("pickerModal").classList.remove("open");pickerType=null;pickerPending=[];}
-function confirmPicker(){
-  if(!pickerPending.length){toast("No files selected","tr");return;}
-  pickerPending.forEach(function(id){
-    var f=curFolderItems.find(function(x){return x.id===id;})||{id:id,name:id};
-    cfg.types[pickerType].files.push({id:f.id,name:f.name});
+function filterItems() { renderPickerList(document.getElementById("pickerSearch").value); }
+function updatePickerCount() { document.getElementById("pickerSelCount").textContent = pickerPending.length + " selected"; }
+function closePickerModal() { document.getElementById("pickerModal").classList.remove("open"); pickerType = null; pickerPending = []; }
+function confirmPicker() {
+  if (!pickerPending.length) { toast("No files selected", "tr"); return; }
+  pickerPending.forEach(function(id) {
+    var f = curFolderItems.find(function(x) { return x.id === id; }) || { id: id, name: id };
+    cfg.types[pickerType].files.push({ id: f.id, name: f.name });
   });
-  saveCfg();renderSettings();loadMappedFiles();
-  toast("Added "+pickerPending.length+" file"+(pickerPending.length!==1?"s":"")+" to "+pickerType,"tg");
+  saveCfg(); renderSettings(); loadMappedFiles();
+  toast("Added " + pickerPending.length + " file" + (pickerPending.length !== 1 ? "s" : "") + " to " + pickerType, "tg");
   closePickerModal();
 }
-document.getElementById("pickerModal").addEventListener("click",function(e){if(e.target===this)closePickerModal();});
+document.getElementById("pickerModal").addEventListener("click", function(e) { if (e.target === this) closePickerModal(); });
 
-window.addEventListener("load",function(){loadCfg();loadAtTables();initAuth();});
+window.addEventListener("load", function() { loadCfg(); loadAtTables(); initAuth(); });
 </script>
 </body>
 </html>
