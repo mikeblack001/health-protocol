@@ -5,311 +5,310 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>MB Health — PDF QA</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<script src="https://accounts.google.com/gsi/client" async></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
-  :root {
-    --bg:#0a0a0a; --surface:#111; --surface2:#1a1a1a; --border:#2a2a2a; --border2:#3a3a3a;
-    --text:#e8e8e8; --dim:#888; --dimmer:#555;
-    --green:#00ff88; --green-d:rgba(0,255,136,.1);
-    --yellow:#ffaa00; --yellow-d:rgba(255,170,0,.1);
-    --red:#ff4444; --red-d:rgba(255,68,68,.1);
-    --blue:#4488ff; --blue-d:rgba(68,136,255,.1);
-    --purple:#cc88ff; --purple-d:rgba(204,136,255,.1);
-    --mono:'IBM Plex Mono',monospace; --sans:'IBM Plex Sans',sans-serif;
-  }
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13px;min-height:100vh}
-
-  /* HEADER */
-  .hdr{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 24px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:100}
-  .hdr-logo{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--green);letter-spacing:3px}
-  .hdr-sep{color:var(--border2)}
-  .hdr-title{font-family:var(--mono);font-size:11px;color:var(--dim);letter-spacing:2px}
-  .hdr-right{margin-left:auto;display:flex;align-items:center;gap:12px}
-  .dot{width:6px;height:6px;border-radius:50%;background:var(--dimmer)}
-  .dot.ok{background:var(--green);box-shadow:0 0 8px var(--green)}
-  .dot.err{background:var(--red);box-shadow:0 0 8px var(--red)}
-  .dot.warn{background:var(--yellow);box-shadow:0 0 6px var(--yellow)}
-  .stat-lbl{font-family:var(--mono);font-size:10px;color:var(--dim)}
-
-  /* LAYOUT */
-  .main{display:flex;height:calc(100vh - 49px)}
-
-  /* SIDEBAR */
-  .sidebar{width:260px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0}
-  .sb-hdr{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
-  .sb-hdr-title{font-family:var(--mono);font-size:10px;letter-spacing:2px;color:var(--dim);text-transform:uppercase;flex:1}
-  .sb-body{flex:1;overflow-y:auto;padding:8px}
-  .sb-footer{padding:12px;border-top:1px solid var(--border)}
-
-  .file-item{padding:9px 10px;border-radius:4px;cursor:pointer;border:1px solid transparent;margin-bottom:3px;transition:all .15s}
-  .file-item:hover{background:var(--surface2);border-color:var(--border)}
-  .file-item.active{background:var(--blue-d);border-color:var(--blue)}
-  .file-item.extracted{border-color:var(--green);background:var(--green-d)}
-  .file-name{font-family:var(--mono);font-size:10px;color:var(--text);display:block;margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .file-meta{font-family:var(--mono);font-size:9px;color:var(--dimmer)}
-  .file-badge{float:right;font-size:9px;padding:1px 5px;border-radius:3px;font-family:var(--mono)}
-  .file-badge.ok{background:var(--green-d);color:var(--green);border:1px solid var(--green)}
-  .file-badge.issues{background:var(--red-d);color:var(--red);border:1px solid var(--red)}
-
-  /* CONTENT */
-  .content{flex:1;display:flex;flex-direction:column;overflow:hidden}
-
-  /* TABS */
-  .tabs{display:flex;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0}
-  .tab{font-family:var(--mono);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;padding:12px 20px;cursor:pointer;color:var(--dim);border-bottom:2px solid transparent;transition:all .15s}
-  .tab:hover{color:var(--text)}
-  .tab.active{color:var(--green);border-bottom-color:var(--green)}
-
-  .tab-content{flex:1;overflow-y:auto;padding:20px;display:none}
-  .tab-content.active{display:block}
-
-  /* BUTTONS */
-  .btn{font-family:var(--mono);font-size:10px;letter-spacing:1px;text-transform:uppercase;padding:9px 14px;border-radius:4px;cursor:pointer;border:1px solid;transition:all .15s;display:inline-flex;align-items:center;gap:6px}
-  .btn-primary{background:var(--green);color:#000;border-color:var(--green);font-weight:600}
-  .btn-primary:hover{background:#00cc6e;box-shadow:0 0 16px rgba(0,255,136,.3)}
-  .btn-primary:disabled{background:var(--border);color:var(--dimmer);border-color:var(--border);cursor:not-allowed;box-shadow:none}
-  .btn-blue{background:transparent;color:var(--blue);border-color:var(--blue)}
-  .btn-blue:hover{background:var(--blue-d)}
-  .btn-blue:disabled{opacity:.3;cursor:not-allowed}
-  .btn-yellow{background:transparent;color:var(--yellow);border-color:var(--yellow)}
-  .btn-yellow:hover{background:var(--yellow-d)}
-  .btn-ghost{background:transparent;color:var(--dim);border-color:var(--border)}
-  .btn-ghost:hover{border-color:var(--border2);color:var(--text)}
-  .btn-danger{background:transparent;color:var(--red);border-color:var(--red)}
-  .btn-danger:hover{background:var(--red-d)}
-  .btn-full{width:100%;justify-content:center}
-
-  /* CARDS */
-  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px}
-  .card{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:12px 14px}
-  .card.green{border-color:var(--green);background:var(--green-d)}
-  .card.red{border-color:var(--red);background:var(--red-d)}
-  .card.yellow{border-color:var(--yellow);background:var(--yellow-d)}
-  .card.blue{border-color:var(--blue);background:var(--blue-d)}
-  .card-val{font-family:var(--mono);font-size:26px;font-weight:600;line-height:1;margin-bottom:4px}
-  .green .card-val{color:var(--green)} .red .card-val{color:var(--red)} .yellow .card-val{color:var(--yellow)} .blue .card-val{color:var(--blue)}
-  .card-lbl{font-family:var(--mono);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim)}
-
-  /* SECTION */
-  .section{background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-bottom:14px}
-  .section-hdr{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;background:var(--surface2)}
-  .section-title{font-family:var(--mono);font-size:10px;letter-spacing:2px;text-transform:uppercase;font-weight:600;flex:1}
-  .section-title.green{color:var(--green)} .section-title.red{color:var(--red)} .section-title.yellow{color:var(--yellow)} .section-title.blue{color:var(--blue)}
-  .section-count{font-family:var(--mono);font-size:9px;color:var(--dim);background:var(--border);padding:2px 6px;border-radius:10px}
-
-  /* TABLE */
-  .tbl-wrap{overflow-x:auto}
-  .tbl{width:100%;border-collapse:collapse;font-size:11px}
-  .tbl th{font-family:var(--mono);font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--dimmer);text-align:left;padding:7px 10px;border-bottom:1px solid var(--border);background:var(--surface2);white-space:nowrap}
-  .tbl td{padding:6px 10px;border-bottom:1px solid var(--border);font-family:var(--mono);font-size:10px;color:var(--text);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .tbl tr:last-child td{border-bottom:none}
-  .tbl tr:hover td{background:var(--surface2)}
-  .tbl td.green{color:var(--green)} .tbl td.red{color:var(--red)} .tbl td.yellow{color:var(--yellow)} .tbl td.dim{color:var(--dimmer)}
-  .tbl td.match{background:var(--green-d)} .tbl td.miss{background:var(--red-d)} .tbl td.diff{background:var(--yellow-d)}
-
-  /* PROGRESS */
-  .prog-wrap{padding:20px;display:flex;flex-direction:column;align-items:center;gap:12px}
-  .prog-lbl{font-family:var(--mono);font-size:11px;color:var(--dim)}
-  .prog-bar{width:100%;max-width:400px;height:3px;background:var(--border);border-radius:2px;overflow:hidden}
-  .prog-fill{height:100%;background:var(--green);border-radius:2px;transition:width .3s;box-shadow:0 0 8px var(--green)}
-
-  /* EMPTY */
-  .empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:60px 20px;color:var(--dimmer);text-align:center}
-  .empty-icon{font-size:36px;opacity:.3}
-  .empty-title{font-family:var(--mono);font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--dim)}
-  .empty-sub{font-size:12px;max-width:280px;line-height:1.6}
-
-  /* AUTH */
-  .auth-box{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:40px;text-align:center}
-  .auth-title{font-family:var(--mono);font-size:12px;letter-spacing:2px;text-transform:uppercase;color:var(--text)}
-  .auth-sub{font-size:11px;color:var(--dim);max-width:300px;line-height:1.7}
-
-  /* TYPE SELECTOR */
-  .type-row{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
-  .type-btn{font-family:var(--mono);font-size:10px;padding:6px 12px;border-radius:4px;cursor:pointer;border:1px solid var(--border);color:var(--dim);background:transparent;transition:all .15s}
-  .type-btn.active{border-color:var(--purple);color:var(--purple);background:var(--purple-d)}
-  .type-btn:hover:not(.active){border-color:var(--border2);color:var(--text)}
-
-  /* PAGE PREVIEW */
-  .page-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;padding:14px}
-  .page-thumb{border:1px solid var(--border);border-radius:4px;overflow:hidden;cursor:pointer;transition:all .15s;position:relative}
-  .page-thumb:hover{border-color:var(--blue)}
-  .page-thumb.done{border-color:var(--green)}
-  .page-thumb.active{border-color:var(--yellow);box-shadow:0 0 8px rgba(255,170,0,.3)}
-  .page-thumb canvas{width:100%;display:block}
-  .page-num{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.7);font-family:var(--mono);font-size:9px;color:var(--dim);padding:3px 6px;text-align:center}
-  .page-status{position:absolute;top:4px;right:4px;font-size:10px}
-
-  /* TOAST */
-  .toasts{position:fixed;bottom:20px;right:20px;display:flex;flex-direction:column;gap:6px;z-index:999}
-  .toast{font-family:var(--mono);font-size:10px;padding:9px 14px;border-radius:4px;border:1px solid;animation:tin .2s ease}
-  .toast.ok{background:rgba(0,255,136,.1);border-color:var(--green);color:var(--green)}
-  .toast.err{background:rgba(255,68,68,.1);border-color:var(--red);color:var(--red)}
-  .toast.info{background:rgba(68,136,255,.1);border-color:var(--blue);color:var(--blue)}
-  @keyframes tin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
-
-  /* MISC */
-  .toolbar{display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
-  .toolbar-sep{color:var(--border2);margin:0 4px}
-  select.inp{font-family:var(--mono);font-size:10px;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:4px;cursor:pointer}
-  select.inp:focus{outline:none;border-color:var(--blue)}
-  ::-webkit-scrollbar{width:5px;height:5px} ::-webkit-scrollbar-track{background:var(--surface)} ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
-  .ld::after{content:'...';animation:dots 1.2s steps(4,end) infinite}
-  @keyframes dots{0%,20%{content:''}40%{content:'.'}60%{content:'..'}80%,100%{content:'...'}}
-  .pill{font-family:var(--mono);font-size:9px;padding:1px 6px;border-radius:10px;display:inline-block}
-  .pill.match{background:var(--green-d);color:var(--green);border:1px solid var(--green)}
-  .pill.miss{background:var(--red-d);color:var(--red);border:1px solid var(--red)}
-  .pill.diff{background:var(--yellow-d);color:var(--yellow);border:1px solid var(--yellow)}
-  .pill.new{background:var(--blue-d);color:var(--blue);border:1px solid var(--blue)}
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+:root {
+  --bg:#0a0a0a; --s:#111; --s2:#1a1a1a; --b:#2a2a2a; --b2:#3a3a3a;
+  --t:#e8e8e8; --d:#888; --dd:#555;
+  --g:#00ff88; --gd:rgba(0,255,136,.12);
+  --y:#ffaa00; --yd:rgba(255,170,0,.12);
+  --r:#ff4444; --rd:rgba(255,68,68,.12);
+  --bl:#4488ff; --bld:rgba(68,136,255,.12);
+  --mono:'IBM Plex Mono',monospace; --sans:'IBM Plex Sans',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--t);font-family:var(--sans);font-size:13px;min-height:100vh;overflow:hidden}
+/* HEADER */
+.hdr{background:var(--s);border-bottom:1px solid var(--b);padding:13px 20px;display:flex;align-items:center;gap:12px}
+.logo{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--g);letter-spacing:3px}
+.sep{color:var(--b2)}
+.htitle{font-family:var(--mono);font-size:11px;color:var(--d);letter-spacing:2px}
+.hright{margin-left:auto;display:flex;align-items:center;gap:10px}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--dd);flex-shrink:0}
+.dot.ok{background:var(--g);box-shadow:0 0 6px var(--g)}
+.dot.err{background:var(--r);box-shadow:0 0 6px var(--r)}
+.dot.warn{background:var(--y);box-shadow:0 0 4px var(--y)}
+.dlbl{font-family:var(--mono);font-size:10px;color:var(--d)}
+/* LAYOUT */
+.main{display:flex;height:calc(100vh - 47px)}
+/* SIDEBAR */
+.sb{width:255px;background:var(--s);border-right:1px solid var(--b);display:flex;flex-direction:column;flex-shrink:0}
+.sbh{padding:12px 14px;border-bottom:1px solid var(--b);display:flex;align-items:center}
+.sbht{font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--d);text-transform:uppercase;flex:1}
+.sbb{flex:1;overflow-y:auto;padding:6px}
+.sbf{padding:10px;border-top:1px solid var(--b);display:flex;flex-direction:column;gap:6px}
+/* FILE ITEMS */
+.fi{padding:8px 10px;border-radius:4px;cursor:pointer;border:1px solid transparent;margin-bottom:2px;transition:all .12s}
+.fi:hover{background:var(--s2);border-color:var(--b)}
+.fi.active{background:var(--bld);border-color:var(--bl)}
+.fi.done{border-color:var(--g);background:var(--gd)}
+.fn{font-family:var(--mono);font-size:10px;color:var(--t);display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:2px}
+.fm{font-family:var(--mono);font-size:9px;color:var(--dd)}
+/* CONTENT */
+.content{flex:1;display:flex;flex-direction:column;min-width:0}
+/* TABS */
+.tabs{display:flex;border-bottom:1px solid var(--b);background:var(--s);flex-shrink:0}
+.tab{font-family:var(--mono);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;padding:12px 18px;cursor:pointer;color:var(--d);border-bottom:2px solid transparent;transition:all .12s;white-space:nowrap}
+.tab:hover{color:var(--t)}
+.tab.active{color:var(--g);border-bottom-color:var(--g)}
+/* TAB CONTENT */
+.tc{flex:1;overflow-y:auto;padding:18px;display:none}
+.tc.active{display:block}
+/* BUTTONS */
+.btn{font-family:var(--mono);font-size:10px;letter-spacing:1px;text-transform:uppercase;padding:8px 13px;border-radius:4px;cursor:pointer;border:1px solid;transition:all .12s;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.btn-p{background:var(--g);color:#000;border-color:var(--g);font-weight:600}
+.btn-p:hover{background:#00cc6e}
+.btn-p:disabled{background:var(--b);color:var(--dd);border-color:var(--b);cursor:not-allowed}
+.btn-b{background:transparent;color:var(--bl);border-color:var(--bl)}
+.btn-b:hover{background:var(--bld)}
+.btn-b:disabled{opacity:.3;cursor:not-allowed}
+.btn-y{background:transparent;color:var(--y);border-color:var(--y)}
+.btn-y:hover{background:var(--yd)}
+.btn-r{background:transparent;color:var(--r);border-color:var(--r)}
+.btn-r:hover{background:var(--rd)}
+.btn-gh{background:transparent;color:var(--d);border-color:var(--b)}
+.btn-gh:hover{border-color:var(--b2);color:var(--t)}
+.btn-full{width:100%;justify-content:center}
+/* CARDS */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:14px}
+.card{background:var(--s);border:1px solid var(--b);border-radius:5px;padding:11px 13px}
+.card.g{border-color:var(--g);background:var(--gd)}
+.card.r{border-color:var(--r);background:var(--rd)}
+.card.y{border-color:var(--y);background:var(--yd)}
+.card.bl{border-color:var(--bl);background:var(--bld)}
+.cv{font-family:var(--mono);font-size:24px;font-weight:600;line-height:1;margin-bottom:3px}
+.g .cv{color:var(--g)} .r .cv{color:var(--r)} .y .cv{color:var(--y)} .bl .cv{color:var(--bl)}
+.cl{font-family:var(--mono);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--d)}
+/* SECTION */
+.sec{background:var(--s);border:1px solid var(--b);border-radius:5px;overflow:hidden;margin-bottom:12px}
+.sech{padding:9px 13px;border-bottom:1px solid var(--b);display:flex;align-items:center;gap:8px;background:var(--s2)}
+.sect{font-family:var(--mono);font-size:10px;letter-spacing:2px;text-transform:uppercase;font-weight:600;flex:1}
+.sect.g{color:var(--g)} .sect.r{color:var(--r)} .sect.y{color:var(--y)} .sect.bl{color:var(--bl)}
+.secc{font-family:var(--mono);font-size:9px;color:var(--d);background:var(--b);padding:1px 6px;border-radius:8px}
+/* TABLE */
+.tw{overflow-x:auto}
+.tbl{width:100%;border-collapse:collapse;font-size:11px}
+.tbl th{font-family:var(--mono);font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--dd);text-align:left;padding:7px 10px;border-bottom:1px solid var(--b);background:var(--s2);white-space:nowrap}
+.tbl td{padding:6px 10px;border-bottom:1px solid var(--b);font-family:var(--mono);font-size:10px;color:var(--t);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:var(--s2)}
+.tbl td.g{color:var(--g)} .tbl td.r{color:var(--r)} .tbl td.y{color:var(--y)} .tbl td.d{color:var(--dd)}
+/* PAGES */
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:7px;padding:12px}
+.pt{border:1px solid var(--b);border-radius:4px;overflow:hidden;cursor:pointer;transition:all .12s;position:relative}
+.pt:hover{border-color:var(--bl)}
+.pt.done{border-color:var(--g)}
+.pt.busy{border-color:var(--y);box-shadow:0 0 6px rgba(255,170,0,.3)}
+.pt canvas{width:100%;display:block}
+.pn{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.75);font-family:var(--mono);font-size:9px;color:var(--d);padding:2px 5px;text-align:center}
+.ps{position:absolute;top:3px;right:3px;font-size:10px}
+/* FORM INPUTS */
+.inp{font-family:var(--mono);font-size:10px;background:var(--s2);border:1px solid var(--b);color:var(--t);padding:7px 10px;border-radius:4px;outline:none;transition:border .12s}
+.inp:focus{border-color:var(--bl)}
+select.inp{cursor:pointer}
+/* TOOLBAR */
+.tb{display:flex;gap:7px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+/* TYPE BUTTONS */
+.tbtn{font-family:var(--mono);font-size:10px;padding:5px 10px;border-radius:4px;cursor:pointer;border:1px solid var(--b);color:var(--d);background:transparent;transition:all .12s}
+.tbtn.active{border-color:var(--bl);color:var(--bl);background:var(--bld)}
+/* AUTH BOX */
+.abox{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:40px 20px;text-align:center}
+.atitle{font-family:var(--mono);font-size:12px;letter-spacing:2px;text-transform:uppercase}
+.asub{font-size:11px;color:var(--d);max-width:260px;line-height:1.7}
+/* EMPTY */
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;padding:50px 20px;color:var(--dd);text-align:center}
+.ei{font-size:32px;opacity:.3}
+.et{font-family:var(--mono);font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--d)}
+.es{font-size:11px;max-width:260px;line-height:1.6}
+/* PROGRESS */
+.pbw{width:100%;max-width:360px;height:3px;background:var(--b);border-radius:2px;overflow:hidden}
+.pbf{height:100%;background:var(--g);border-radius:2px;transition:width .25s;box-shadow:0 0 6px var(--g)}
+/* SETTINGS FORM */
+.srow{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--b)}
+.srow:last-child{border-bottom:none}
+.slbl{font-family:var(--mono);font-size:10px;color:var(--t);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.smeta{font-family:var(--mono);font-size:9px;color:var(--dd)}
+/* TOASTS */
+.toasts{position:fixed;bottom:18px;right:18px;display:flex;flex-direction:column;gap:5px;z-index:999}
+.toast{font-family:var(--mono);font-size:10px;padding:8px 13px;border-radius:4px;border:1px solid;animation:tin .18s ease}
+.toast.ok{background:rgba(0,255,136,.1);border-color:var(--g);color:var(--g)}
+.toast.err{background:rgba(255,68,68,.1);border-color:var(--r);color:var(--r)}
+.toast.info{background:rgba(68,136,255,.1);border-color:var(--bl);color:var(--bl)}
+@keyframes tin{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:var(--s)}
+::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
+.ld::after{content:'...';animation:dots 1.2s steps(4,end) infinite}
+@keyframes dots{0%,20%{content:''}40%{content:'.'}60%{content:'..'}80%,100%{content:'...'}}
 </style>
 </head>
 <body>
 
 <div class="hdr">
-  <span class="hdr-logo">MB</span>
-  <span class="hdr-sep">—</span>
-  <span class="hdr-title">PDF QA &amp; Verification</span>
-  <div class="hdr-right">
-    <div class="dot" id="driveDot"></div><span class="stat-lbl" id="driveLabel">DRIVE</span>
-    <span style="color:var(--dimmer)">·</span>
-    <div class="dot" id="atDot"></div><span class="stat-lbl" id="atLabel">AIRTABLE</span>
+  <span class="logo">MB</span><span class="sep">—</span>
+  <span class="htitle">PDF QA &amp; Verification</span>
+  <div class="hright">
+    <div class="dot" id="dDot"></div><span class="dlbl" id="dLbl">DRIVE</span>
+    <span style="color:var(--dd)">·</span>
+    <div class="dot" id="aDot"></div><span class="dlbl" id="aLbl">AIRTABLE</span>
   </div>
 </div>
 
 <div class="main">
-  <!-- SIDEBAR -->
-  <div class="sidebar">
-    <div class="sb-hdr">
-      <span class="sb-hdr-title">PDF Library</span>
-      <button class="btn btn-ghost" style="padding:4px 8px;font-size:9px" onclick="loadDriveFiles()">↺</button>
+  <div class="sb">
+    <div class="sbh">
+      <span class="sbht">PDF Library</span>
+      <button class="btn btn-gh" style="padding:3px 7px;font-size:9px" onclick="loadDriveFiles()" title="Refresh">↺</button>
     </div>
-    <div class="sb-body" id="fileList">
-      <div class="auth-box">
-        <div class="auth-title">Sign In Required</div>
-        <div class="auth-sub">Connect Google Drive to access your PDF library.</div>
-        <button class="btn btn-primary" onclick="signIn()">Sign in with Google</button>
+    <div class="sbb" id="fileList">
+      <div class="abox">
+        <div class="atitle">Sign In</div>
+        <div class="asub">Connect Google Drive to load your PDF library.</div>
+        <button class="btn btn-p" onclick="signIn()">Sign in with Google</button>
       </div>
     </div>
-    <div class="sb-footer" style="display:flex;flex-direction:column;gap:6px">
-      <button class="btn btn-primary btn-full" id="extractBtn" onclick="startExtraction()" disabled>▶ Extract Selected</button>
-      <button class="btn btn-blue btn-full" id="compareBtn" onclick="showTab('compare')" disabled>⇄ Compare vs Airtable</button>
+    <div class="sbf">
+      <button class="btn btn-p btn-full" id="extractBtn" onclick="startExtraction()" disabled>▶ Extract Selected</button>
+      <button class="btn btn-b btn-full" id="compareBtn" onclick="showTab('compare')" disabled>⇄ Compare vs Airtable</button>
     </div>
   </div>
 
-  <!-- CONTENT -->
   <div class="content">
     <div class="tabs">
-      <div class="tab active" onclick="showTab('extract')" id="tab-extract">Extract</div>
-      <div class="tab" onclick="showTab('compare')" id="tab-compare">Compare</div>
-      <div class="tab" onclick="showTab('export')" id="tab-export">Export</div>
-      <div class="tab" onclick="showTab('settings');renderSettingsTab()" id="tab-settings">⚙ Settings</div>
+      <div class="tab active" id="tab-extract" onclick="showTab('extract')">Extract</div>
+      <div class="tab" id="tab-compare" onclick="showTab('compare')">Compare</div>
+      <div class="tab" id="tab-export" onclick="showTab('export')">Export</div>
+      <div class="tab" id="tab-settings" onclick="showTab('settings')">⚙ Settings</div>
     </div>
 
-    <!-- EXTRACT TAB -->
-    <div class="tab-content active" id="tc-extract">
-      <div class="empty" id="extractEmpty">
-        <div class="empty-icon">⬡</div>
-        <div class="empty-title">No PDF loaded</div>
-        <div class="empty-sub">Sign in with Google, select a PDF from the library, choose its data type, then click Extract.</div>
+    <!-- EXTRACT -->
+    <div class="tc active" id="tc-extract">
+      <div class="empty" id="xEmpty">
+        <div class="ei">⬡</div>
+        <div class="et">No PDF loaded</div>
+        <div class="es">Sign in, select a PDF from the library, then click Extract.</div>
       </div>
-      <div id="extractUI" style="display:none">
-        <div class="toolbar">
-          <span style="font-family:var(--mono);font-size:11px;color:var(--dim)" id="activePdfName">—</span>
-          <span class="toolbar-sep">·</span>
-          <span style="font-family:var(--mono);font-size:10px;color:var(--dimmer)" id="activePdfPages">0 pages</span>
-          <span class="toolbar-sep">·</span>
-          <span style="font-family:var(--mono);font-size:9px;color:var(--dim)">Type:</span>
-          <div class="type-row" style="margin:0">
-            <button class="type-btn active" onclick="setType('workout',this)">Workout</button>
-            <button class="type-btn" onclick="setType('injection',this)">Injection</button>
-            <button class="type-btn" onclick="setType('supplement',this)">Supplement</button>
-            <button class="type-btn" onclick="setType('lab',this)">Lab Results</button>
-            <button class="type-btn" onclick="setType('generic',this)">Auto-detect</button>
+      <div id="xUI" style="display:none">
+        <div class="tb">
+          <span style="font-family:var(--mono);font-size:11px;color:var(--d)" id="pdfName">—</span>
+          <span style="color:var(--dd)">·</span>
+          <span style="font-family:var(--mono);font-size:10px;color:var(--dd)" id="pdfPages"></span>
+          <span style="color:var(--dd)">·</span>
+          <div style="display:flex;gap:5px" id="typeBtns">
+            <button class="tbtn active" data-type="workout" onclick="setType(this)">Workout</button>
+            <button class="tbtn" data-type="injection" onclick="setType(this)">Injection</button>
+            <button class="tbtn" data-type="supplement" onclick="setType(this)">Supplement</button>
+            <button class="tbtn" data-type="lab" onclick="setType(this)">Lab</button>
           </div>
         </div>
-
-        <!-- Page grid -->
-        <div class="section" style="margin-bottom:14px">
-          <div class="section-hdr">
-            <span class="section-title blue">Pages</span>
-            <span class="section-count" id="pagesDoneCount">0 / 0 extracted</span>
-            <button class="btn btn-ghost" style="padding:3px 8px;font-size:9px" onclick="extractAllPages()" id="extractAllBtn">Extract All Pages</button>
+        <div class="sec" style="margin-bottom:12px">
+          <div class="sech">
+            <span class="sect bl">Pages</span>
+            <span class="secc" id="pgCount">0 / 0</span>
+            <button class="btn btn-gh" style="padding:3px 8px;font-size:9px" onclick="extractAllPages()" id="xAllBtn">Extract All</button>
           </div>
-          <div class="page-grid" id="pageGrid"></div>
+          <div class="pgrid" id="pgGrid"></div>
         </div>
-
-        <!-- Extracted records -->
-        <div id="extractedSection" style="display:none">
-          <div class="cards" id="extractCards"></div>
-          <div class="section">
-            <div class="section-hdr">
-              <span class="section-title green">Extracted Records</span>
-              <span class="section-count" id="extractedCount">0</span>
-              <button class="btn btn-ghost" style="padding:3px 8px;font-size:9px" onclick="clearExtracted()">Clear</button>
+        <div id="xResults" style="display:none">
+          <div class="cards" id="xCards"></div>
+          <div class="sec">
+            <div class="sech">
+              <span class="sect g">Extracted Records</span>
+              <span class="secc" id="xCount">0</span>
+              <button class="btn btn-gh" style="padding:3px 8px;font-size:9px" onclick="clearExtracted()">Clear</button>
             </div>
-            <div class="tbl-wrap">
-              <table class="tbl" id="extractedTable">
-                <thead id="extractedHead"></thead>
-                <tbody id="extractedBody"></tbody>
-              </table>
+            <div class="tw"><table class="tbl"><thead id="xHead"></thead><tbody id="xBody"></tbody></table></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COMPARE -->
+    <div class="tc" id="tc-compare">
+      <div class="empty" id="cEmpty">
+        <div class="ei">⇄</div>
+        <div class="et">Nothing to compare</div>
+        <div class="es">Extract PDF data first, then compare against Airtable.</div>
+      </div>
+      <div id="cUI" style="display:none">
+        <div class="tb">
+          <select class="inp" id="cTable"><option value="">Select Airtable table...</option></select>
+          <button class="btn btn-p" onclick="runCompare()">Compare</button>
+          <button class="btn btn-gh" onclick="exportCompareTxt()">Export Diff</button>
+        </div>
+        <div class="cards" id="cCards"></div>
+        <div id="cResults"></div>
+      </div>
+    </div>
+
+    <!-- EXPORT -->
+    <div class="tc" id="tc-export">
+      <div class="empty" id="eEmpty">
+        <div class="ei">↓</div>
+        <div class="et">Nothing to export</div>
+        <div class="es">Extract data from a PDF first.</div>
+      </div>
+      <div id="eUI" style="display:none">
+        <div class="tb">
+          <button class="btn btn-p" onclick="exportJSON()">↓ JSON</button>
+          <button class="btn btn-b" onclick="exportCSV()">↓ CSV</button>
+          <button class="btn btn-y" onclick="pushToAirtable()">↑ Push to Airtable</button>
+        </div>
+        <div class="sec">
+          <div class="sech"><span class="sect g">Preview</span><span class="secc" id="eCount">0</span></div>
+          <div class="tw"><table class="tbl"><thead id="eHead"></thead><tbody id="eBody"></tbody></table></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="tc" id="tc-settings">
+      <div style="max-width:580px;display:flex;flex-direction:column;gap:16px">
+
+        <div class="sec">
+          <div class="sech"><span class="sect bl">Google Drive — Watched Folders</span></div>
+          <div style="padding:14px">
+            <div style="font-family:var(--mono);font-size:9px;color:var(--dd);margin-bottom:10px;line-height:1.7">
+              Scope the library to specific folders. Leave empty to show all Drive PDFs.<br>
+              Folder ID = last segment of the URL when you open a folder in Drive.
+            </div>
+            <div id="folderList"></div>
+            <div style="display:flex;gap:7px;margin-top:10px">
+              <input id="fldId" class="inp" placeholder="Folder ID from Drive URL" style="flex:2">
+              <input id="fldName" class="inp" placeholder="Label (e.g. Health PDFs)" style="flex:1">
+              <button class="btn btn-p" onclick="addFolder()">Add</button>
             </div>
           </div>
         </div>
-      </div>
-    </div>
 
-    <!-- COMPARE TAB -->
-    <div class="tab-content" id="tc-compare">
-      <div id="compareEmpty" class="empty">
-        <div class="empty-icon">⇄</div>
-        <div class="empty-title">No data to compare</div>
-        <div class="empty-sub">Extract data from a PDF first, then compare against Airtable records.</div>
-      </div>
-      <div id="compareUI" style="display:none">
-        <div class="toolbar">
-          <select class="inp" id="compareTable" onchange="runCompare()">
-            <option value="">Select Airtable table to compare against...</option>
-          </select>
-          <button class="btn btn-primary" onclick="runCompare()">Run Compare</button>
-          <button class="btn btn-ghost" onclick="exportCompare()">Export Diff</button>
-        </div>
-        <div class="cards" id="compareCards"></div>
-        <div id="compareResults"></div>
-      </div>
-    </div>
-
-    <!-- EXPORT TAB -->
-    <div class="tab-content" id="tc-export">
-      <div id="exportEmpty" class="empty">
-        <div class="empty-icon">↓</div>
-        <div class="empty-title">Nothing to export</div>
-        <div class="empty-sub">Extract data from a PDF first.</div>
-      </div>
-      <div id="exportUI" style="display:none">
-        <div class="toolbar">
-          <button class="btn btn-primary" onclick="exportJSON()">↓ Export JSON</button>
-          <button class="btn btn-blue" onclick="exportCSV()">↓ Export CSV</button>
-          <button class="btn btn-yellow" onclick="pushToAirtable()">↑ Push to Airtable</button>
-        </div>
-        <div class="section">
-          <div class="section-hdr">
-            <span class="section-title green">Preview — Extracted Data</span>
-            <span class="section-count" id="exportCount">0 records</span>
-          </div>
-          <div class="tbl-wrap">
-            <table class="tbl" id="exportTable">
-              <thead id="exportHead"></thead>
-              <tbody id="exportBody"></tbody>
+        <div class="sec">
+          <div class="sech"><span class="sect g">Default Airtable Table per PDF Type</span></div>
+          <div style="padding:8px 0">
+            <table style="width:100%;border-collapse:collapse">
+              <tbody id="tableMapRows"></tbody>
             </table>
           </div>
         </div>
+
+        <div class="sec">
+          <div class="sech"><span class="sect y">Preferences</span></div>
+          <div style="padding:14px;display:flex;flex-direction:column;gap:10px">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+              <input type="checkbox" id="prefAutoCompare" style="accent-color:var(--g)">
+              <span style="font-family:var(--mono);font-size:10px;color:var(--d)">Auto-compare after extraction</span>
+            </label>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-p" onclick="saveSettingsAndReload()">Save &amp; Reload</button>
+          <button class="btn btn-gh" onclick="resetSettings()">Reset</button>
+          <button class="btn btn-r" onclick="signOut()">Sign Out</button>
+        </div>
+
       </div>
     </div>
-
-    <!-- SETTINGS TAB -->
-    <div class="tab-content" id="tc-settings"></div>
 
   </div>
 </div>
@@ -317,840 +316,646 @@
 <div class="toasts" id="toasts"></div>
 
 <script>
-// ── CONFIG ────────────────────────────────────────────────────────────────────
-const OAUTH_CLIENT = '478191426516-94rflpalsl5ev56ptck62k5imes6jk8l.apps.googleusercontent.com';
-const DRIVE_SCOPE  = 'https://www.googleapis.com/auth/drive.readonly';
-const AT_TOKEN     = 'pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
-const AT_BASE      = 'appmHDG4TGT1xy6R6';
-const AT_META      = 'https://api.airtable.com/v0/meta/bases';
-const AT_API       = 'https://api.airtable.com/v0';
-const LS_TOKEN     = 'mb_pdf_token';
-const LS_EXPIRY    = 'mb_pdf_expiry';
-const LS_SETTINGS  = 'mb_pdf_settings';
+// ── CONSTANTS ─────────────────────────────────────────────────────────────────
+const CLIENT_ID = '478191426516-94rflpalsl5ev56ptck62k5imes6jk8l.apps.googleusercontent.com';
+const SCOPE     = 'https://www.googleapis.com/auth/drive.readonly';
+const AT_TOK    = 'pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
+const AT_BASE   = 'appmHDG4TGT1xy6R6';
+const LS_TOK    = 'mb_g_tok';
+const LS_EXP    = 'mb_g_exp';
+const LS_CFG    = 'mb_pdf_cfg';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
-let accessToken = null;
-let tokenClient = null;
-let driveFiles  = [];
-let selectedFile = null;
-let pdfDoc      = null;
-let pdfType     = 'workout';
-let extractedRecords = [];
-let allAirtableTables = [];
-let airtableRecordsCache = {};
+let gToken = null, gClient = null;
+let driveFiles = [], selFile = null, pdfDoc = null;
+let pdfType = 'workout';
+let extracted = [];
+let atTables = [], atCache = {};
 
-// Default settings — saved to localStorage
-let settings = {
-  watchedFolders: [],          // [{id, name}]
-  tableMap: {                  // pdf type → airtable table id
-    workout: '',
-    injection: '',
-    supplement: '',
-    lab: '',
-    generic: ''
-  },
-  autoCompare: true,           // auto-run compare after extraction
-  defaultFolder: ''            // last used folder id
+let cfg = {
+  folders: [],           // [{id,name}]
+  tableMap: { workout:'', injection:'', supplement:'', lab:'' },
+  autoCompare: false
 };
 
-// ── SETTINGS ─────────────────────────────────────────────────────────────────
-function loadSettings() {
-  try {
-    const s = localStorage.getItem(LS_SETTINGS);
-    if (s) settings = { ...settings, ...JSON.parse(s) };
-  } catch {}
+// ── SETTINGS ──────────────────────────────────────────────────────────────────
+function loadCfg() {
+  try { const s = localStorage.getItem(LS_CFG); if (s) cfg = {...cfg, ...JSON.parse(s)}; } catch(e){}
 }
-function saveSettings() {
-  localStorage.setItem(LS_SETTINGS, JSON.stringify(settings));
+function saveCfg() {
+  localStorage.setItem(LS_CFG, JSON.stringify(cfg));
 }
-function renderSettingsTab() {
-  const folderList = settings.watchedFolders.map((f,i) => `
-    <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">
-      <span style="font-family:var(--mono);font-size:10px;flex:1;color:var(--text)">${f.name}</span>
-      <span style="font-family:var(--mono);font-size:9px;color:var(--dimmer)">${f.id}</span>
-      <button class="btn btn-danger" style="padding:3px 8px;font-size:9px" onclick="removeFolder(${i})">✕</button>
-    </div>
-  `).join('') || '<div style="font-family:var(--mono);font-size:10px;color:var(--dimmer);padding:8px 0">No folders configured</div>';
-
-  const tableOpts = allAirtableTables.map(t=>`<option value="${t.id}">${t.name}</option>`).join('');
-  const mapRows = ['workout','injection','supplement','lab','generic'].map(type => {
-    const cur = settings.tableMap[type] || '';
-    const opts = `<option value="">—</option>` + allAirtableTables.map(t =>
-      `<option value="${t.id}"${t.id===cur?' selected':''}>${t.name}</option>`
-    ).join('');
-    return `<tr>
-      <td style="font-family:var(--mono);font-size:10px;color:var(--dim);text-transform:capitalize;padding:8px 10px;white-space:nowrap">${type}</td>
-      <td style="padding:6px 10px"><select class="inp" style="width:100%" data-type="${type}" onchange="settings.tableMap[this.dataset.type]=this.value;saveSettings()">${opts}</select></td>
-    </tr>`;
-  }).join('');
-
-  document.getElementById('tc-settings').innerHTML = `
-    <div style="max-width:600px;display:flex;flex-direction:column;gap:20px">
-
-      <div class="section">
-        <div class="section-hdr"><span class="section-title blue">Google Drive — Watched Folders</span></div>
-        <div style="padding:14px">
-          <div style="font-family:var(--mono);font-size:9px;color:var(--dimmer);margin-bottom:10px;line-height:1.6">
-            Add Google Drive folder IDs to watch. The tool will automatically list all PDFs from these folders.<br>
-            To get a folder ID: open the folder in Drive → copy the ID from the URL after /folders/
-          </div>
-          ${folderList}
-          <div style="display:flex;gap:8px;margin-top:10px">
-            <input id="newFolderId" class="inp" placeholder="Folder ID" style="flex:1;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:4px;font-family:var(--mono);font-size:10px">
-            <input id="newFolderName" class="inp" placeholder="Label (e.g. Workouts)" style="flex:1;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:4px;font-family:var(--mono);font-size:10px">
-            <button class="btn btn-primary" onclick="addFolder()">Add</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="section">
-        <div class="section-hdr"><span class="section-title green">Default Airtable Table per PDF Type</span></div>
-        <div class="tbl-wrap">
-          <table class="tbl"><thead><tr><th>PDF Type</th><th>Airtable Table</th></tr></thead>
-          <tbody>${mapRows}</tbody></table>
-        </div>
-      </div>
-
-      <div class="section">
-        <div class="section-hdr"><span class="section-title yellow">Preferences</span></div>
-        <div style="padding:14px;display:flex;flex-direction:column;gap:10px">
-          <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
-            <input type="checkbox" ${settings.autoCompare?'checked':''} onchange="settings.autoCompare=this.checked;saveSettings()" style="accent-color:var(--green)">
-            <span style="font-family:var(--mono);font-size:10px;color:var(--dim)">Auto-run compare after extraction completes</span>
-          </label>
-        </div>
-      </div>
-
-      <div style="display:flex;gap:8px">
-        <button class="btn btn-primary" onclick="saveSettings();toast('Settings saved','ok');loadDriveFiles()">Save &amp; Reload</button>
-        <button class="btn btn-ghost" onclick="if(confirm('Clear all saved settings?')){localStorage.removeItem(LS_SETTINGS);location.reload()}">Reset Defaults</button>
-        <button class="btn btn-danger" onclick="signOut()">Sign Out of Google</button>
-      </div>
-    </div>
-  `;
-  // select values set inline above
+function resetSettings() {
+  if (!confirm('Reset all settings?')) return;
+  localStorage.removeItem(LS_CFG);
+  location.reload();
 }
 
-function addFolder() {
-  const id = document.getElementById('newFolderId').value.trim();
-  const name = document.getElementById('newFolderName').value.trim() || id;
-  if (!id) { toast('Enter a folder ID','err'); return; }
-  settings.watchedFolders.push({ id, name });
-  saveSettings();
-  renderSettingsTab();
-  toast('Folder added','ok');
-}
-function removeFolder(idx) {
-  settings.watchedFolders.splice(idx, 1);
-  saveSettings();
-  renderSettingsTab();
-}
-
-// ── AUTH ──────────────────────────────────────────────────────────────────────
-function saveToken(token, expiresIn = 3600) {
-  localStorage.setItem(LS_TOKEN, token);
-  localStorage.setItem(LS_EXPIRY, Date.now() + (expiresIn - 60) * 1000); // 60s buffer
-}
-function loadToken() {
-  const token = localStorage.getItem(LS_TOKEN);
-  const expiry = parseInt(localStorage.getItem(LS_EXPIRY) || '0');
-  if (token && Date.now() < expiry) return token;
-  return null;
-}
-function clearToken() {
-  localStorage.removeItem(LS_TOKEN);
-  localStorage.removeItem(LS_EXPIRY);
-}
-function signOut() {
-  clearToken();
-  accessToken = null;
-  setDot('drive','','DRIVE');
-  document.getElementById('fileList').innerHTML = `
-    <div class="auth-box">
-      <div class="auth-title">Signed Out</div>
-      <button class="btn btn-primary" onclick="signIn()">Sign in with Google</button>
-    </div>`;
-  toast('Signed out','info');
-}
-
-function initAuth() {
-  if (typeof google === 'undefined') { setTimeout(initAuth, 500); return; }
-
-  // Check for stored valid token first
-  const stored = loadToken();
-  if (stored) {
-    accessToken = stored;
-    setDot('drive','ok','DRIVE ✓');
-    loadDriveFiles();
+function renderFolderList() {
+  const el = document.getElementById('folderList');
+  if (!cfg.folders.length) {
+    el.innerHTML = '<div style="font-family:var(--mono);font-size:10px;color:var(--dd);padding:4px 0">No folders — showing all Drive PDFs</div>';
     return;
   }
-
-  tokenClient = google.accounts.oauth2.initTokenClient({
-    client_id: OAUTH_CLIENT,
-    scope: DRIVE_SCOPE,
-    callback: async (resp) => {
-      if (resp.error) { toast('Auth failed: ' + resp.error, 'err'); return; }
-      accessToken = resp.access_token;
-      saveToken(resp.access_token, resp.expires_in || 3600);
-      setDot('drive','ok','DRIVE ✓');
-      await loadDriveFiles();
-    }
-  });
-
-  // Show sign-in UI only if no stored token
-  document.getElementById('fileList').innerHTML = `
-    <div class="auth-box">
-      <div class="auth-title">Sign In Required</div>
-      <div class="auth-sub">Connect Google Drive to access your PDF library.</div>
-      <button class="btn btn-primary" onclick="signIn()">Sign in with Google</button>
-    </div>`;
-}
-
-function signIn() {
-  if (tokenClient) {
-    tokenClient.requestAccessToken({ prompt: '' }); // '' = no consent screen if already granted
-  } else {
-    initAuth();
-    setTimeout(() => tokenClient?.requestAccessToken({ prompt: '' }), 600);
-  }
-}
-
-// ── HELPERS ───────────────────────────────────────────────────────────────────
-function toast(msg, type='info', ms=3500) {
-  const c = document.getElementById('toasts');
-  const t = document.createElement('div');
-  t.className = `toast ${type}`;
-  t.textContent = msg;
-  c.appendChild(t);
-  setTimeout(() => t.remove(), ms);
-}
-function setDot(which, state, label) {
-  document.getElementById(which+'Dot').className = 'dot ' + (state==='ok'?'ok':state==='err'?'err':'warn');
-  document.getElementById(which+'Label').textContent = label;
-}
-function showTab(name) {
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-  document.getElementById('tab-'+name).classList.add('active');
-  document.getElementById('tc-'+name).classList.add('active');
-}
-function setType(type, btn) {
-  document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  pdfType = type;
-}
-function canvasToBase64(canvas) {
-  return canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
-}
-
-// ── DRIVE ─────────────────────────────────────────────────────────────────────
-async function loadDriveFiles() {
-  if (!accessToken) return;
-  setDot('drive','warn','LOADING...');
-  try {
-    let q = "mimeType='application/pdf'";
-    if (settings.watchedFolders.length > 0) {
-      const folderClauses = settings.watchedFolders.map(f => `'${f.id}' in parents`).join(' or ');
-      q += ` and (${folderClauses})`;
-    }
-    const url = 'https://www.googleapis.com/drive/v3/files?q=' + encodeURIComponent(q) + '&fields=files(id,name,size,modifiedTime)&pageSize=100&orderBy=modifiedTime%20desc';
-    const r = await fetch(url, { headers: { Authorization: 'Bearer ' + accessToken } });
-    const d = await r.json();
-    if (d.error) throw new Error(d.error.message);
-    driveFiles = d.files || [];
-    setDot('drive','ok','DRIVE ✓');
-    renderFileList();
-  } catch(e) {
-    setDot('drive','err','DRIVE ERR');
-    toast('Drive error: ' + e.message, 'err');
-    clearToken();
-  }
-}
-
-function renderFileList() {
-  const list = document.getElementById('fileList');
-  if (!driveFiles.length) {
-    list.innerHTML = '<div class="empty" style="padding:30px"><div class="empty-title">No PDFs found</div><div class="empty-sub">Upload PDFs to your Google Drive to get started.</div></div>';
-    return;
-  }
-  list.innerHTML = driveFiles.map(f => `
-    <div class="file-item" id="fi_${f.id}" onclick="selectFile('${f.id}')">
-      <span class="file-name">📄 ${f.name}</span>
-      <span class="file-meta">${formatSize(f.size)} · ${formatDate(f.modifiedTime)}</span>
+  el.innerHTML = cfg.folders.map((f,i) => `
+    <div class="srow">
+      <span class="slbl">${f.name}</span>
+      <span class="smeta">${f.id.slice(0,20)}...</span>
+      <button class="btn btn-r" style="padding:2px 7px;font-size:9px" onclick="removeFolder(${i})">✕</button>
     </div>
   `).join('');
 }
-function formatSize(bytes) {
-  if (!bytes) return '—';
-  const kb = parseInt(bytes)/1024;
-  return kb > 1024 ? (kb/1024).toFixed(1)+'MB' : Math.round(kb)+'KB';
+
+function renderTableMapRows() {
+  const tbody = document.getElementById('tableMapRows');
+  const types = ['workout','injection','supplement','lab'];
+  tbody.innerHTML = types.map(type => {
+    const opts = atTables.map(t =>
+      '<option value="' + t.id + '"' + (t.id === cfg.tableMap[type] ? ' selected' : '') + '>' + t.name + '</option>'
+    ).join('');
+    return '<tr>' +
+      '<td style="font-family:var(--mono);font-size:10px;color:var(--d);padding:7px 14px;text-transform:capitalize;white-space:nowrap">' + type + '</td>' +
+      '<td style="padding:5px 10px"><select class="inp" style="width:100%" id="tm_' + type + '" onchange="cfg.tableMap[\'' + type + '\']=this.value"><option value="">—</option>' + opts + '</select></td>' +
+    '</tr>';
+  }).join('');
 }
-function formatDate(iso) {
+
+function renderSettingsUI() {
+  renderFolderList();
+  renderTableMapRows();
+  const ac = document.getElementById('prefAutoCompare');
+  if (ac) ac.checked = cfg.autoCompare;
+}
+
+function addFolder() {
+  const id = document.getElementById('fldId').value.trim();
+  const name = document.getElementById('fldName').value.trim() || id.slice(0,12);
+  if (!id) { toast('Enter a folder ID', 'err'); return; }
+  cfg.folders.push({id, name});
+  renderFolderList();
+  document.getElementById('fldId').value = '';
+  document.getElementById('fldName').value = '';
+  toast('Folder added — click Save & Reload', 'info');
+}
+
+function removeFolder(i) {
+  cfg.folders.splice(i, 1);
+  renderFolderList();
+}
+
+function saveSettingsAndReload() {
+  const ac = document.getElementById('prefAutoCompare');
+  if (ac) cfg.autoCompare = ac.checked;
+  // Read table map selects
+  ['workout','injection','supplement','lab'].forEach(type => {
+    const sel = document.getElementById('tm_' + type);
+    if (sel) cfg.tableMap[type] = sel.value;
+  });
+  saveCfg();
+  toast('Saved', 'ok');
+  setTimeout(() => loadDriveFiles(), 500);
+}
+
+// ── AUTH ──────────────────────────────────────────────────────────────────────
+function saveTok(tok, exp) {
+  localStorage.setItem(LS_TOK, tok);
+  localStorage.setItem(LS_EXP, Date.now() + (exp - 60) * 1000);
+}
+function loadTok() {
+  const t = localStorage.getItem(LS_TOK);
+  const e = parseInt(localStorage.getItem(LS_EXP) || '0');
+  return (t && Date.now() < e) ? t : null;
+}
+function clearTok() {
+  localStorage.removeItem(LS_TOK);
+  localStorage.removeItem(LS_EXP);
+}
+
+function initAuth() {
+  if (typeof google === 'undefined') { setTimeout(initAuth, 300); return; }
+  // Try stored token first
+  const stored = loadTok();
+  if (stored) {
+    gToken = stored;
+    setDot('d', 'ok', 'DRIVE ✓');
+    loadDriveFiles();
+    return;
+  }
+  // Set up token client
+  gClient = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: SCOPE,
+    callback: resp => {
+      if (resp.error) { toast('Auth error: ' + resp.error, 'err'); return; }
+      gToken = resp.access_token;
+      saveTok(resp.access_token, resp.expires_in || 3600);
+      setDot('d', 'ok', 'DRIVE ✓');
+      loadDriveFiles();
+    }
+  });
+  // Show sign-in UI
+  document.getElementById('fileList').innerHTML =
+    '<div class="abox"><div class="atitle">Sign In</div>' +
+    '<div class="asub">Connect Google Drive to load your health PDFs.</div>' +
+    '<button class="btn btn-p" onclick="signIn()">Sign in with Google</button></div>';
+}
+
+function signIn() {
+  if (!gClient) {
+    gClient = google.accounts.oauth2.initTokenClient({
+      client_id: CLIENT_ID, scope: SCOPE,
+      callback: resp => {
+        if (resp.error) { toast('Auth error: ' + resp.error, 'err'); return; }
+        gToken = resp.access_token;
+        saveTok(resp.access_token, resp.expires_in || 3600);
+        setDot('d', 'ok', 'DRIVE ✓');
+        loadDriveFiles();
+      }
+    });
+  }
+  gClient.requestAccessToken({ prompt: '' });
+}
+
+function signOut() {
+  clearTok(); gToken = null;
+  setDot('d', '', 'DRIVE');
+  document.getElementById('fileList').innerHTML =
+    '<div class="abox"><div class="atitle">Signed Out</div>' +
+    '<button class="btn btn-p" onclick="signIn()">Sign in again</button></div>';
+  toast('Signed out', 'info');
+}
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+function toast(msg, type='info', ms=3200) {
+  const c = document.getElementById('toasts');
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.textContent = msg;
+  c.appendChild(el);
+  setTimeout(() => el.remove(), ms);
+}
+function setDot(which, state, label) {
+  const dot = document.getElementById(which + 'Dot');
+  const lbl = document.getElementById(which + 'Lbl');
+  dot.className = 'dot' + (state === 'ok' ? ' ok' : state === 'err' ? ' err' : state === 'warn' ? ' warn' : '');
+  lbl.textContent = label;
+}
+function esc(v) {
+  if (v == null) return '';
+  return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function showTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tc').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  document.getElementById('tc-' + name).classList.add('active');
+  if (name === 'settings') renderSettingsUI();
+}
+function setType(btn) {
+  document.querySelectorAll('.tbtn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  pdfType = btn.dataset.type;
+  // Auto-apply table map
+  const mapped = cfg.tableMap[pdfType];
+  if (mapped) { const s = document.getElementById('cTable'); if (s) s.value = mapped; }
+}
+function displayKeys(records) {
+  const skip = new Set(['_page','_src','_type']);
+  const all = new Set();
+  records.forEach(r => Object.keys(r).filter(k => !skip.has(k)).forEach(k => all.add(k)));
+  return Array.from(all).slice(0, 10);
+}
+function fmtSize(b) {
+  if (!b) return '—';
+  const k = parseInt(b) / 1024;
+  return k > 1024 ? (k/1024).toFixed(1) + 'MB' : Math.round(k) + 'KB';
+}
+function fmtDate(iso) {
   if (!iso) return '—';
   return new Date(iso).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'2-digit'});
 }
 
-async function selectFile(fileId) {
-  document.querySelectorAll('.file-item').forEach(el => el.classList.remove('active'));
-  document.getElementById('fi_'+fileId)?.classList.add('active');
-  selectedFile = driveFiles.find(f => f.id === fileId);
-  if (!selectedFile) return;
-
-  document.getElementById('extractEmpty').style.display = 'none';
-  document.getElementById('extractUI').style.display = '';
-  document.getElementById('activePdfName').textContent = selectedFile.name;
-  document.getElementById('activePdfPages').textContent = 'Loading...';
-  document.getElementById('extractBtn').disabled = true;
-  document.getElementById('pageGrid').innerHTML = '<div class="prog-wrap"><div class="prog-lbl ld">Loading PDF</div></div>';
-  document.getElementById('extractedSection').style.display = 'none';
-
-  // Auto-detect type from filename
-  const nm = selectedFile.name.toLowerCase();
-  if (nm.includes('inject') || nm.includes('peptide')) setTypeByName('injection');
-  else if (nm.includes('workout') || nm.includes('sets')) setTypeByName('workout');
-  else if (nm.includes('lab') || nm.includes('blood')) setTypeByName('lab');
-  else if (nm.includes('supp')) setTypeByName('supplement');
-
+// ── DRIVE ─────────────────────────────────────────────────────────────────────
+async function loadDriveFiles() {
+  if (!gToken) return;
+  setDot('d', 'warn', 'LOADING...');
   try {
-    const resp = await fetch(
-      `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
-      { headers: { Authorization: `Bearer ${accessToken}` } }
-    );
-    const arrayBuf = await resp.arrayBuffer();
-    pdfDoc = await pdfjsLib.getDocument({ data: arrayBuf }).promise;
-    const numPages = pdfDoc.numPages;
-    document.getElementById('activePdfPages').textContent = numPages + ' pages';
-    document.getElementById('pagesDoneCount').textContent = `0 / ${numPages} extracted`;
-    document.getElementById('extractBtn').disabled = false;
-    await renderPageGrid(pdfDoc);
+    let q = "mimeType='application/pdf' and trashed=false";
+    if (cfg.folders.length > 0) {
+      const fc = cfg.folders.map(f => "'" + f.id + "' in parents").join(' or ');
+      q += ' and (' + fc + ')';
+    }
+    const url = 'https://www.googleapis.com/drive/v3/files?q=' + encodeURIComponent(q)
+      + '&fields=files(id,name,size,modifiedTime)&pageSize=100&orderBy=modifiedTime%20desc';
+    const r = await fetch(url, { headers: { Authorization: 'Bearer ' + gToken } });
+    const d = await r.json();
+    if (d.error) { throw new Error(d.error.message); }
+    driveFiles = d.files || [];
+    setDot('d', 'ok', 'DRIVE ✓');
+    renderFileList();
   } catch(e) {
-    toast('Failed to load PDF: ' + e.message, 'err');
-    document.getElementById('activePdfPages').textContent = 'Error';
+    setDot('d', 'err', 'ERR');
+    clearTok();
+    toast('Drive: ' + e.message, 'err', 6000);
   }
 }
 
-function setTypeByName(type) {
-  pdfType = type;
-  applyTableMapFromSettings();
-  document.querySelectorAll('.type-btn').forEach(b => {
-    b.classList.toggle('active', b.textContent.toLowerCase() === type);
-  });
+function renderFileList() {
+  const el = document.getElementById('fileList');
+  if (!driveFiles.length) {
+    el.innerHTML = '<div class="empty" style="padding:24px"><div class="et">No PDFs found</div><div class="es">Check folder settings or upload PDFs to Drive.</div></div>';
+    return;
+  }
+  el.innerHTML = driveFiles.map(f =>
+    '<div class="fi" id="fi_' + f.id + '" onclick="selectFile(\'' + f.id + '\')">' +
+    '<span class="fn">📄 ' + esc(f.name) + '</span>' +
+    '<span class="fm">' + fmtSize(f.size) + ' · ' + fmtDate(f.modifiedTime) + '</span>' +
+    '</div>'
+  ).join('');
 }
 
-async function renderPageGrid(doc) {
-  const grid = document.getElementById('pageGrid');
+// ── LOAD & RENDER PDF ─────────────────────────────────────────────────────────
+async function selectFile(id) {
+  document.querySelectorAll('.fi').forEach(el => el.classList.remove('active'));
+  document.getElementById('fi_' + id)?.classList.add('active');
+  selFile = driveFiles.find(f => f.id === id);
+  if (!selFile) return;
+
+  document.getElementById('xEmpty').style.display = 'none';
+  document.getElementById('xUI').style.display = '';
+  document.getElementById('xResults').style.display = 'none';
+  document.getElementById('pdfName').textContent = selFile.name;
+  document.getElementById('pdfPages').textContent = 'Loading...';
+  document.getElementById('extractBtn').disabled = true;
+  document.getElementById('pgGrid').innerHTML = '<div style="padding:16px;font-family:var(--mono);font-size:10px;color:var(--dd)" class="ld">Loading</div>';
+
+  // Auto-detect type
+  const nm = selFile.name.toLowerCase();
+  let detectedType = 'workout';
+  if (nm.includes('inject') || nm.includes('peptide')) detectedType = 'injection';
+  else if (nm.includes('lab') || nm.includes('blood')) detectedType = 'lab';
+  else if (nm.includes('supp')) detectedType = 'supplement';
+  document.querySelectorAll('.tbtn').forEach(b => {
+    b.classList.toggle('active', b.dataset.type === detectedType);
+  });
+  pdfType = detectedType;
+
+  // Apply table map
+  const mapped = cfg.tableMap[pdfType];
+  if (mapped) { const s = document.getElementById('cTable'); if (s) s.value = mapped; }
+
+  try {
+    const resp = await fetch('https://www.googleapis.com/drive/v3/files/' + id + '?alt=media',
+      { headers: { Authorization: 'Bearer ' + gToken } });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const buf = await resp.arrayBuffer();
+    pdfDoc = await pdfjsLib.getDocument({ data: buf }).promise;
+    document.getElementById('pdfPages').textContent = pdfDoc.numPages + ' pages';
+    document.getElementById('pgCount').textContent = '0 / ' + pdfDoc.numPages;
+    document.getElementById('extractBtn').disabled = false;
+    renderPageGrid();
+  } catch(e) {
+    toast('Failed to load PDF: ' + e.message, 'err');
+    document.getElementById('pdfPages').textContent = 'Error';
+  }
+}
+
+async function renderPageGrid() {
+  const grid = document.getElementById('pgGrid');
   grid.innerHTML = '';
-  for (let i = 1; i <= doc.numPages; i++) {
+  for (let i = 1; i <= pdfDoc.numPages; i++) {
     const wrap = document.createElement('div');
-    wrap.className = 'page-thumb';
-    wrap.id = `pg_${i}`;
+    wrap.className = 'pt'; wrap.id = 'pt_' + i;
     wrap.onclick = () => extractPage(i);
-    wrap.innerHTML = `<canvas id="pgc_${i}"></canvas><div class="page-num">Pg ${i}</div><div class="page-status" id="pgs_${i}"></div>`;
+    wrap.innerHTML = '<canvas id="pc_' + i + '"></canvas><div class="pn">Pg ' + i + '</div><div class="ps" id="ps_' + i + '"></div>';
     grid.appendChild(wrap);
-    // Render thumbnail
-    const page = await doc.getPage(i);
-    const viewport = page.getViewport({ scale: 0.3 });
-    const canvas = document.getElementById(`pgc_${i}`);
-    canvas.width = viewport.width;
-    canvas.height = viewport.height;
-    await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+    const page = await pdfDoc.getPage(i);
+    const vp = page.getViewport({ scale: 0.3 });
+    const c = document.getElementById('pc_' + i);
+    c.width = vp.width; c.height = vp.height;
+    await page.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise;
   }
 }
 
 // ── EXTRACTION ────────────────────────────────────────────────────────────────
-function getExtractionPrompt(type) {
-  const prompts = {
-    workout: `You are extracting structured workout data from a handwritten gym log page.
-Return a JSON array of set records. Each object must have:
-- date: string YYYY-MM-DD (null if not visible)
-- session: string "YYYY-MM-DD Day" (e.g. "2024-10-28 Mon")
-- day: session type abbreviation (Mon/Tue/Wed/Thu/Fri/Sat/Sun or Push/Pull/Legs/Arms/Shoulders/Cardio)
-- exercise: exact exercise name as written
-- variation: implement or variation noted (e.g. "DBs", "Rope 1/2", "EZ-Bar", "Cable - 2 Hand") — empty string if none
-- set_number: integer
-- reps: integer (0 if not readable)
-- weight: number in lbs (0 if bodyweight or not readable)
-- notes: any notes on the set (empty string if none)
-Skip illegible sets. Return ONLY valid JSON array, no markdown, no explanation.`,
-
-    injection: `You are extracting structured peptide/injection log data from a handwritten log page.
-Return a JSON array. Each object must have:
-- date: string YYYY-MM-DD (null if not visible)
-- compound: peptide or compound name as written
-- dose: number (numeric value only)
-- unit: unit string (e.g. "u", "mg", "mcg", "IU")
-- time_of_day: "AM", "PM", or "Night" (null if not noted)
-- route: "SQ", "IM", "oral", or null
-- notes: any notes (empty string if none)
-Return ONLY valid JSON array, no markdown, no explanation.`,
-
-    supplement: `You are extracting structured supplement log data from a handwritten page.
-Return a JSON array. Each object must have:
-- date: string YYYY-MM-DD (null if not visible)
-- name: supplement name
-- dose: number
-- unit: string (mg, mcg, g, caps, etc.)
-- time_of_day: "AM", "PM", "Pre-WO", "Night", or null
-- notes: empty string if none
-Return ONLY valid JSON array, no markdown, no explanation.`,
-
-    lab: `You are extracting structured lab result data from a document page.
-Return a JSON array. Each object must have:
-- date: string YYYY-MM-DD (null if not visible)
-- marker: test name
-- value: number or string result
-- unit: string unit (ng/dL, mg/L, etc.)
-- ref_range: reference range as string (e.g. "264-916") or null
-- status: "HIGH", "LOW", "Normal", or null
-Return ONLY valid JSON array, no markdown, no explanation.`,
-
-    generic: `You are extracting all structured data from this document page.
-Identify the data type (workout, injection, lab, supplement, or other).
-Return a JSON object with:
-- type: detected data type string
-- records: array of extracted records (use fields appropriate to the detected type)
-Each record must include a "date" field (YYYY-MM-DD or null).
-Return ONLY valid JSON object, no markdown, no explanation.`
+function getPrompt(type) {
+  const p = {
+    workout: 'Extract workout set data from this handwritten gym log page. Return a JSON array where each object has: date (YYYY-MM-DD or null), session ("YYYY-MM-DD Day"), day (e.g. Mon/Tue/Push/Pull), exercise (name as written), variation (implement: DBs/Rope 1/2/EZ-Bar/etc, or empty string), set_number (integer), reps (integer), weight (number in lbs, 0 if bodyweight). Skip illegible sets. Return ONLY valid JSON array, no markdown.',
+    injection: 'Extract peptide/injection log data from this page. Return a JSON array where each object has: date (YYYY-MM-DD or null), compound (name as written), dose (number), unit (u/mg/mcg/IU), time_of_day (AM/PM/Night or null), notes (empty string if none). Return ONLY valid JSON array, no markdown.',
+    supplement: 'Extract supplement log data. Return JSON array: date (YYYY-MM-DD), name, dose (number), unit (mg/mcg/g/caps), time_of_day (AM/PM/Night/Pre-WO). Return ONLY valid JSON array, no markdown.',
+    lab: 'Extract lab results. Return JSON array: date (YYYY-MM-DD), marker, value, unit, ref_range (string or null), status (HIGH/LOW/Normal/null). Return ONLY valid JSON array, no markdown.'
   };
-  return prompts[type] || prompts.generic;
+  return p[type] || p.workout;
 }
 
 async function extractPage(pageNum) {
   if (!pdfDoc) return;
-  const statusEl = document.getElementById(`pgs_${pageNum}`);
-  const wrap = document.getElementById(`pg_${pageNum}`);
-  wrap.classList.add('active');
-  statusEl.textContent = '⏳';
-
+  const wrap = document.getElementById('pt_' + pageNum);
+  const stat = document.getElementById('ps_' + pageNum);
+  wrap.classList.add('busy');
+  stat.textContent = '⏳';
   try {
-    // Render at higher resolution for Claude
     const page = await pdfDoc.getPage(pageNum);
-    const viewport = page.getViewport({ scale: 2.0 });
-    const canvas = document.createElement('canvas');
-    canvas.width = viewport.width;
-    canvas.height = viewport.height;
-    await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
-    const b64 = canvasToBase64(canvas);
+    const vp = page.getViewport({ scale: 2.0 });
+    const c = document.createElement('canvas');
+    c.width = vp.width; c.height = vp.height;
+    await page.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise;
+    const b64 = c.toDataURL('image/jpeg', 0.85).split(',')[1];
 
-    // Call Claude API
     const resp = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 4000,
-        system: getExtractionPrompt(pdfType),
-        messages: [{
-          role: 'user',
-          content: [{
-            type: 'image',
-            source: { type: 'base64', media_type: 'image/jpeg', data: b64 }
-          }, {
-            type: 'text',
-            text: `Extract all data from this page. Page ${pageNum} of ${pdfDoc.numPages}. PDF name: "${selectedFile?.name}".`
-          }]
-        }]
+        system: getPrompt(pdfType),
+        messages: [{ role: 'user', content: [
+          { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: b64 } },
+          { type: 'text', text: 'Page ' + pageNum + ' of ' + pdfDoc.numPages + '. PDF: ' + (selFile?.name||'') }
+        ]}]
       })
     });
-
     const data = await resp.json();
-    const raw = data.content?.find(c => c.type === 'text')?.text || '[]';
-    let parsed;
-    try {
-      const clean = raw.replace(/```json\n?|```\n?/g, '').trim();
-      parsed = JSON.parse(clean);
-    } catch {
-      parsed = [];
-    }
-
-    // Normalize generic type
-    if (pdfType === 'generic' && parsed && parsed.records) parsed = parsed.records;
+    let raw = data.content?.find(c => c.type === 'text')?.text || '[]';
+    raw = raw.replace(/```json\n?|```\n?/g,'').trim();
+    let parsed = [];
+    try { parsed = JSON.parse(raw); } catch(e) { parsed = []; }
     if (!Array.isArray(parsed)) parsed = [];
-
-    // Tag each record with source info
-    parsed = parsed.map(r => ({ ...r, _page: pageNum, _source: selectedFile?.name, _type: pdfType }));
-
-    // Add to global records
-    extractedRecords.push(...parsed);
-
-    wrap.classList.remove('active');
+    parsed = parsed.map(r => ({ ...r, _page: pageNum, _src: selFile?.name, _type: pdfType }));
+    extracted.push(...parsed);
+    wrap.classList.remove('busy');
     wrap.classList.add('done');
-    statusEl.textContent = parsed.length > 0 ? `✓${parsed.length}` : '—';
-
-    updatePageCount();
-    renderExtractedTable();
-    toast(`Page ${pageNum}: ${parsed.length} record${parsed.length!==1?'s':''} extracted`, 'ok');
+    stat.textContent = parsed.length > 0 ? '✓' + parsed.length : '—';
+    updatePgCount();
+    renderExtracted();
+    toast('Pg ' + pageNum + ': ' + parsed.length + ' records', 'ok');
   } catch(e) {
-    wrap.classList.remove('active');
-    statusEl.textContent = '✗';
-    toast(`Page ${pageNum} error: ${e.message}`, 'err', 5000);
+    wrap.classList.remove('busy');
+    stat.textContent = '✗';
+    toast('Pg ' + pageNum + ' error: ' + e.message, 'err', 5000);
   }
 }
 
 async function extractAllPages() {
   if (!pdfDoc) return;
-  document.getElementById('extractAllBtn').disabled = true;
+  document.getElementById('xAllBtn').disabled = true;
   for (let i = 1; i <= pdfDoc.numPages; i++) {
     await extractPage(i);
-    await new Promise(r => setTimeout(r, 400)); // throttle
+    await new Promise(r => setTimeout(r, 350));
   }
-  document.getElementById('extractAllBtn').disabled = false;
+  document.getElementById('xAllBtn').disabled = false;
   document.getElementById('compareBtn').disabled = false;
-  applyTableMapFromSettings();
   renderExportUI();
-  if (settings.autoCompare) { showTab('compare'); runCompare(); }
+  if (cfg.autoCompare && cfg.tableMap[pdfType]) {
+    const s = document.getElementById('cTable');
+    if (s) s.value = cfg.tableMap[pdfType];
+    showTab('compare');
+    runCompare();
+  }
 }
 
 async function startExtraction() {
-  if (!pdfDoc) return;
-  extractedRecords = [];
+  extracted = [];
+  document.getElementById('xResults').style.display = 'none';
   await extractAllPages();
 }
 
-function updatePageCount() {
-  const done = document.querySelectorAll('.page-thumb.done').length;
-  const total = pdfDoc ? pdfDoc.numPages : 0;
-  document.getElementById('pagesDoneCount').textContent = `${done} / ${total} extracted`;
+function updatePgCount() {
+  const done = document.querySelectorAll('.pt.done').length;
+  document.getElementById('pgCount').textContent = done + ' / ' + (pdfDoc?.numPages || 0);
 }
 
-// ── RENDER EXTRACTED ──────────────────────────────────────────────────────────
-function renderExtractedTable() {
-  if (!extractedRecords.length) return;
-  document.getElementById('extractedSection').style.display = '';
-  document.getElementById('extractedCount').textContent = extractedRecords.length + ' records';
-
-  const keys = getDisplayKeys(extractedRecords);
-  const thead = document.getElementById('extractedHead');
-  const tbody = document.getElementById('extractedBody');
-
-  thead.innerHTML = `<tr>${keys.map(k=>`<th>${k}</th>`).join('')}</tr>`;
-  tbody.innerHTML = extractedRecords.map(r =>
-    `<tr>${keys.map(k => `<td title="${escHtml(r[k])}">${escHtml(r[k])}</td>`).join('')}</tr>`
+function renderExtracted() {
+  if (!extracted.length) return;
+  document.getElementById('xResults').style.display = '';
+  document.getElementById('xCount').textContent = extracted.length;
+  const keys = displayKeys(extracted);
+  document.getElementById('xHead').innerHTML = '<tr>' + keys.map(k => '<th>' + k + '</th>').join('') + '</tr>';
+  document.getElementById('xBody').innerHTML = extracted.map(r =>
+    '<tr>' + keys.map(k => '<td title="' + esc(r[k]) + '">' + esc(r[k]) + '</td>').join('') + '</tr>'
   ).join('');
-
-  // Cards
-  document.getElementById('extractCards').innerHTML = `
-    <div class="card blue"><div class="card-val">${extractedRecords.length}</div><div class="card-lbl">Records</div></div>
-    <div class="card green"><div class="card-val">${new Set(extractedRecords.map(r=>r.date).filter(Boolean)).size}</div><div class="card-lbl">Unique Dates</div></div>
-    <div class="card blue"><div class="card-val">${pdfDoc?.numPages||0}</div><div class="card-lbl">Pages</div></div>
-  `;
-}
-
-function getDisplayKeys(records) {
-  const skip = ['_page','_source','_type'];
-  const all = new Set();
-  records.forEach(r => Object.keys(r).filter(k=>!skip.includes(k)).forEach(k=>all.add(k)));
-  return Array.from(all).slice(0, 10);
-}
-
-function escHtml(v) {
-  if (v === undefined || v === null) return '';
-  return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  document.getElementById('xCards').innerHTML =
+    '<div class="card bl"><div class="cv">' + extracted.length + '</div><div class="cl">Records</div></div>' +
+    '<div class="card g"><div class="cv">' + new Set(extracted.map(r=>r.date).filter(Boolean)).size + '</div><div class="cl">Dates</div></div>' +
+    '<div class="card bl"><div class="cv">' + (pdfDoc?.numPages||0) + '</div><div class="cl">Pages</div></div>';
 }
 
 function clearExtracted() {
-  extractedRecords = [];
-  document.getElementById('extractedSection').style.display = 'none';
-  document.querySelectorAll('.page-thumb').forEach(el => el.classList.remove('done'));
-  document.querySelectorAll('.page-status').forEach(el => el.textContent = '');
-  updatePageCount();
+  extracted = [];
+  document.getElementById('xResults').style.display = 'none';
+  document.querySelectorAll('.pt').forEach(el => el.classList.remove('done'));
+  document.querySelectorAll('[id^="ps_"]').forEach(el => el.textContent = '');
+  updatePgCount();
 }
 
 // ── AIRTABLE ──────────────────────────────────────────────────────────────────
-async function loadAirtableTables() {
+async function loadAtTables() {
   try {
-    const r = await fetch(`${AT_META}/${AT_BASE}/tables`, {
-      headers: { Authorization: `Bearer ${AT_TOKEN}` }
-    });
+    const r = await fetch('https://api.airtable.com/v0/meta/bases/' + AT_BASE + '/tables',
+      { headers: { Authorization: 'Bearer ' + AT_TOK } });
     const d = await r.json();
-    allAirtableTables = d.tables || [];
-    setDot('at','ok','AIRTABLE ✓');
-
-    const sel = document.getElementById('compareTable');
-    allAirtableTables.forEach(t => {
+    atTables = d.tables || [];
+    setDot('a', 'ok', 'AT ✓');
+    const sel = document.getElementById('cTable');
+    atTables.forEach(t => {
       const o = document.createElement('option');
-      o.value = t.id;
-      o.textContent = t.name;
+      o.value = t.id; o.textContent = t.name;
       sel.appendChild(o);
     });
-  } catch(e) {
-    setDot('at','err','AT ERR');
-  }
+  } catch(e) { setDot('a', 'err', 'AT ERR'); }
 }
 
-async function fetchAirtableTable(tableId) {
-  if (airtableRecordsCache[tableId]) return airtableRecordsCache[tableId];
+async function fetchAtTable(tableId) {
+  if (atCache[tableId]) return atCache[tableId];
   let records = [], offset;
   do {
-    const url = `${AT_API}/${AT_BASE}/${tableId}?pageSize=100${offset?'&offset='+offset:''}`;
-    const r = await fetch(url, { headers: { Authorization: `Bearer ${AT_TOKEN}` } });
+    const url = 'https://api.airtable.com/v0/' + AT_BASE + '/' + tableId + '?pageSize=100' + (offset ? '&offset=' + offset : '');
+    const r = await fetch(url, { headers: { Authorization: 'Bearer ' + AT_TOK } });
     const d = await r.json();
-    records.push(...(d.records||[]));
+    records.push(...(d.records || []));
     offset = d.offset;
-  } while(offset);
-  airtableRecordsCache[tableId] = records;
+  } while (offset);
+  atCache[tableId] = records;
   return records;
 }
 
 // ── COMPARE ───────────────────────────────────────────────────────────────────
 async function runCompare() {
-  if (!extractedRecords.length) { toast('No extracted data to compare','err'); return; }
-  const tableId = document.getElementById('compareTable').value;
-  if (!tableId) { toast('Select an Airtable table first','err'); return; }
-
+  if (!extracted.length) { toast('No extracted data', 'err'); return; }
+  const tableId = document.getElementById('cTable').value;
+  if (!tableId) { toast('Select a table first', 'err'); return; }
   showTab('compare');
-  document.getElementById('compareEmpty').style.display = 'none';
-  document.getElementById('compareUI').style.display = '';
-  document.getElementById('compareResults').innerHTML = '<div class="prog-wrap"><div class="prog-lbl ld">Loading Airtable records</div></div>';
+  document.getElementById('cEmpty').style.display = 'none';
+  document.getElementById('cUI').style.display = '';
+  document.getElementById('cResults').innerHTML = '<div style="padding:20px;font-family:var(--mono);font-size:11px;color:var(--d)" class="ld">Loading Airtable records</div>';
 
-  const atRecords = await fetchAirtableTable(tableId);
-  const table = allAirtableTables.find(t=>t.id===tableId);
+  const atRecs = await fetchAtTable(tableId);
+  const table = atTables.find(t => t.id === tableId);
 
-  // Build fingerprint map for AT records
   const atMap = {};
-  atRecords.forEach(r => {
-    const fp = buildAtFingerprint(r, table);
+  atRecs.forEach(r => {
+    const fp = atFP(r);
     if (!atMap[fp]) atMap[fp] = [];
     atMap[fp].push(r);
   });
 
-  // Compare each extracted record
-  const results = extractedRecords.map(er => {
-    const fp = buildExtractedFingerprint(er, table);
-    const matches = atMap[fp];
-    if (matches && matches.length > 0) {
-      const m = matches[0];
-      const diffs = findDiffs(er, m);
-      return { extracted: er, airtable: m, status: diffs.length > 0 ? 'diff' : 'match', diffs };
+  const results = extracted.map(er => {
+    const fp = exFP(er);
+    const hits = atMap[fp];
+    if (hits && hits.length) {
+      const diffs = findDiffs(er, hits[0]);
+      return { er, at: hits[0], status: diffs.length ? 'diff' : 'match', diffs };
     }
-    return { extracted: er, airtable: null, status: 'missing', diffs: [] };
+    return { er, at: null, status: 'missing', diffs: [] };
   });
 
-  // Also find AT records not in extracted
-  const extractedFps = new Set(extractedRecords.map(er => buildExtractedFingerprint(er, table)));
-  const extra = atRecords.filter(r => {
-    const fp = buildAtFingerprint(r, table);
-    return !extractedFps.has(fp);
-  });
+  const exFPs = new Set(extracted.map(er => exFP(er)));
+  const atOnly = atRecs.filter(r => !exFPs.has(atFP(r)));
 
-  renderCompareResults(results, extra, table);
+  renderCompare(results, atOnly);
 }
 
-function buildAtFingerprint(record, table) {
-  // Use date + a key identifier
-  const fields = record.fields;
-  const date = fields['Date'] || fields['date'] || '';
-  const name = fields['Exercise'] || fields['Name'] || fields['Compound'] || fields['Marker'] || '';
-  const setNum = fields['Set#'] || fields['SetID'] || '';
-  return [String(date).slice(0,10), String(name).toLowerCase(), String(setNum)].join('|');
+function atFP(r) {
+  const f = r.fields;
+  const date = (f['Date'] || '').slice(0,10);
+  const name = (f['Exercise'] || f['Name'] || f['Compound'] || f['Marker'] || '').toLowerCase();
+  const num  = String(f['Set#'] || f['SetID'] || '');
+  return date + '|' + name + '|' + num;
 }
-
-function buildExtractedFingerprint(record, table) {
-  const date = record.date || record.Date || '';
-  const name = record.exercise || record.compound || record.name || record.marker || '';
-  const setNum = record.set_number || record.SetID || '';
-  return [String(date).slice(0,10), String(name).toLowerCase(), String(setNum)].join('|');
+function exFP(r) {
+  const date = (r.date || '').slice(0,10);
+  const name = (r.exercise || r.compound || r.name || r.marker || '').toLowerCase();
+  const num  = String(r.set_number || r.SetID || '');
+  return date + '|' + name + '|' + num;
 }
-
-function findDiffs(extracted, atRecord) {
+function findDiffs(er, atRec) {
   const diffs = [];
-  const fieldMap = { weight:'Weight', reps:'Reps', dose:'Dose', value:'Value' };
-  Object.entries(fieldMap).forEach(([ek, ak]) => {
-    const ev = extracted[ek], av = atRecord.fields[ak];
-    if (ev !== undefined && av !== undefined && String(ev) !== String(av)) {
-      diffs.push({ field: ek, extracted: ev, airtable: av });
-    }
+  const map = { weight:'Weight', reps:'Reps', dose:'Dose', value:'Value' };
+  Object.entries(map).forEach(([ek, ak]) => {
+    const ev = er[ek], av = atRec.fields[ak];
+    if (ev != null && av != null && String(ev) !== String(av))
+      diffs.push({ field: ek, ex: ev, at: av });
   });
   return diffs;
 }
 
-function renderCompareResults(results, extra, table) {
+function renderCompare(results, atOnly) {
   const matched = results.filter(r=>r.status==='match').length;
   const missing = results.filter(r=>r.status==='missing').length;
   const diffs   = results.filter(r=>r.status==='diff').length;
 
-  document.getElementById('compareCards').innerHTML = `
-    <div class="card green"><div class="card-val">${matched}</div><div class="card-lbl">Matched</div></div>
-    <div class="card red"><div class="card-val">${missing}</div><div class="card-lbl">Missing in AT</div></div>
-    <div class="card yellow"><div class="card-val">${diffs}</div><div class="card-lbl">Value Diffs</div></div>
-    <div class="card blue"><div class="card-val">${extra.length}</div><div class="card-lbl">AT Only</div></div>
-  `;
+  document.getElementById('cCards').innerHTML =
+    '<div class="card g"><div class="cv">' + matched + '</div><div class="cl">Matched</div></div>' +
+    '<div class="card r"><div class="cv">' + missing + '</div><div class="cl">Missing in AT</div></div>' +
+    '<div class="card y"><div class="cv">' + diffs + '</div><div class="cl">Mismatches</div></div>' +
+    '<div class="card bl"><div class="cv">' + atOnly.length + '</div><div class="cl">AT Only</div></div>';
 
   const html = [];
-  const keys = getDisplayKeys(extractedRecords).filter(k=>!k.startsWith('_'));
+  const keys = displayKeys(extracted).filter(k => !k.startsWith('_'));
 
-  // Missing records
   if (missing > 0) {
-    html.push(`
-      <div class="section">
-        <div class="section-hdr"><span class="section-title red">Missing from Airtable</span><span class="section-count">${missing}</span></div>
-        <div class="tbl-wrap"><table class="tbl">
-          <thead><tr>${keys.map(k=>`<th>${k}</th>`).join('')}</tr></thead>
-          <tbody>${results.filter(r=>r.status==='missing').map(r=>`
-            <tr>${keys.map(k=>`<td class="miss">${escHtml(r.extracted[k])}</td>`).join('')}</tr>
-          `).join('')}</tbody>
-        </table></div>
-      </div>
-    `);
+    html.push('<div class="sec"><div class="sech"><span class="sect r">Missing from Airtable</span><span class="secc">' + missing + '</span></div><div class="tw"><table class="tbl"><thead><tr>' + keys.map(k=>'<th>'+k+'</th>').join('') + '</tr></thead><tbody>' +
+      results.filter(r=>r.status==='missing').map(r => '<tr>' + keys.map(k=>'<td class="r">'+esc(r.er[k])+'</td>').join('') + '</tr>').join('') +
+    '</tbody></table></div></div>');
   }
-
-  // Diffs
   if (diffs > 0) {
-    html.push(`
-      <div class="section">
-        <div class="section-hdr"><span class="section-title yellow">Value Mismatches</span><span class="section-count">${diffs}</span></div>
-        <div class="tbl-wrap"><table class="tbl">
-          <thead><tr><th>Date</th><th>Record</th><th>Field</th><th>PDF Value</th><th>Airtable Value</th></tr></thead>
-          <tbody>${results.filter(r=>r.status==='diff').map(r=>
-            r.diffs.map(d=>`
-              <tr>
-                <td>${escHtml(r.extracted.date)}</td>
-                <td>${escHtml(r.extracted.exercise||r.extracted.compound||r.extracted.name||'')}</td>
-                <td class="yellow">${d.field}</td>
-                <td class="yellow">${escHtml(d.extracted)}</td>
-                <td class="dim">${escHtml(d.airtable)}</td>
-              </tr>
-            `).join('')
-          ).join('')}</tbody>
-        </table></div>
-      </div>
-    `);
+    html.push('<div class="sec"><div class="sech"><span class="sect y">Value Mismatches</span><span class="secc">' + diffs + '</span></div><div class="tw"><table class="tbl"><thead><tr><th>Date</th><th>Record</th><th>Field</th><th>PDF</th><th>Airtable</th></tr></thead><tbody>' +
+      results.filter(r=>r.status==='diff').map(r =>
+        r.diffs.map(d => '<tr><td>'+esc(r.er.date)+'</td><td>'+esc(r.er.exercise||r.er.compound||r.er.name||'')+'</td><td class="y">'+d.field+'</td><td class="y">'+esc(d.ex)+'</td><td class="d">'+esc(d.at)+'</td></tr>').join('')
+      ).join('') +
+    '</tbody></table></div></div>');
   }
-
-  // AT-only records
-  if (extra.length > 0) {
-    const atKeys = Object.keys(extra[0].fields).slice(0, 6);
-    html.push(`
-      <div class="section">
-        <div class="section-hdr"><span class="section-title blue">In Airtable Only (not in PDF)</span><span class="section-count">${extra.length}</span></div>
-        <div class="tbl-wrap"><table class="tbl">
-          <thead><tr>${atKeys.map(k=>`<th>${k}</th>`).join('')}</tr></thead>
-          <tbody>${extra.map(r=>`
-            <tr>${atKeys.map(k=>`<td class="dim">${escHtml(r.fields[k])}</td>`).join('')}</tr>
-          `).join('')}</tbody>
-        </table></div>
-      </div>
-    `);
+  if (atOnly.length > 0) {
+    const ak = Object.keys(atOnly[0].fields).slice(0,6);
+    html.push('<div class="sec"><div class="sech"><span class="sect bl">In Airtable Only</span><span class="secc">' + atOnly.length + '</span></div><div class="tw"><table class="tbl"><thead><tr>'+ak.map(k=>'<th>'+k+'</th>').join('')+'</tr></thead><tbody>' +
+      atOnly.map(r => '<tr>' + ak.map(k => '<td class="d">'+esc(r.fields[k])+'</td>').join('') + '</tr>').join('') +
+    '</tbody></table></div></div>');
   }
-
-  // All matched (summary)
-  if (matched > 0 && missing === 0 && diffs === 0) {
-    html.push(`<div class="section"><div class="section-hdr"><span class="section-title green">✓ All ${matched} records match Airtable perfectly</span></div></div>`);
+  if (!missing && !diffs && !atOnly.length && matched > 0) {
+    html.push('<div class="sec"><div class="sech"><span class="sect g">✓ All ' + matched + ' records match Airtable perfectly</span></div></div>');
   }
-
-  document.getElementById('compareResults').innerHTML = html.join('') || '<div class="empty"><div class="empty-title">No issues found</div></div>';
+  document.getElementById('cResults').innerHTML = html.join('') || '<div class="empty"><div class="et">No issues</div></div>';
 }
 
 // ── EXPORT ────────────────────────────────────────────────────────────────────
 function renderExportUI() {
-  if (!extractedRecords.length) return;
-  document.getElementById('exportEmpty').style.display = 'none';
-  document.getElementById('exportUI').style.display = '';
-  document.getElementById('exportCount').textContent = extractedRecords.length + ' records';
-
-  const keys = getDisplayKeys(extractedRecords);
-  document.getElementById('exportHead').innerHTML = `<tr>${keys.map(k=>`<th>${k}</th>`).join('')}</tr>`;
-  document.getElementById('exportBody').innerHTML = extractedRecords.slice(0,50).map(r=>
-    `<tr>${keys.map(k=>`<td>${escHtml(r[k])}</td>`).join('')}</tr>`
-  ).join('') + (extractedRecords.length>50?`<tr><td colspan="${keys.length}" class="dim">... ${extractedRecords.length-50} more records</td></tr>`:'');
+  if (!extracted.length) return;
+  document.getElementById('eEmpty').style.display = 'none';
+  document.getElementById('eUI').style.display = '';
+  document.getElementById('eCount').textContent = extracted.length;
+  const keys = displayKeys(extracted);
+  document.getElementById('eHead').innerHTML = '<tr>' + keys.map(k=>'<th>'+k+'</th>').join('') + '</tr>';
+  const preview = extracted.slice(0,50);
+  document.getElementById('eBody').innerHTML = preview.map(r =>
+    '<tr>' + keys.map(k => '<td>' + esc(r[k]) + '</td>').join('') + '</tr>'
+  ).join('') + (extracted.length > 50 ? '<tr><td colspan="'+keys.length+'" class="d">...'+( extracted.length-50)+' more</td></tr>' : '');
 }
 
 function exportJSON() {
-  const blob = new Blob([JSON.stringify(extractedRecords, null, 2)], { type: 'application/json' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `${selectedFile?.name?.replace('.pdf','') || 'extracted'}_${new Date().toISOString().slice(0,10)}.json`;
-  a.click();
+  const blob = new Blob([JSON.stringify(extracted, null, 2)], {type:'application/json'});
+  dl(blob, (selFile?.name?.replace('.pdf','') || 'extracted') + '_' + today() + '.json');
   toast('JSON exported', 'ok');
 }
-
 function exportCSV() {
-  if (!extractedRecords.length) return;
-  const keys = getDisplayKeys(extractedRecords);
-  const rows = [keys.join(','), ...extractedRecords.map(r => keys.map(k => {
-    const v = r[k] ?? '';
-    return String(v).includes(',') ? `"${v}"` : v;
-  }).join(','))];
-  const blob = new Blob([rows.join('\n')], { type: 'text/csv' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `${selectedFile?.name?.replace('.pdf','') || 'extracted'}_${new Date().toISOString().slice(0,10)}.csv`;
-  a.click();
+  if (!extracted.length) return;
+  const keys = displayKeys(extracted);
+  const rows = [keys.join(','), ...extracted.map(r =>
+    keys.map(k => { const v = String(r[k]??''); return v.includes(',') ? '"'+v+'"' : v; }).join(',')
+  )];
+  dl(new Blob([rows.join('\n')], {type:'text/csv'}), (selFile?.name?.replace('.pdf','') || 'extracted') + '_' + today() + '.csv');
   toast('CSV exported', 'ok');
 }
-
-function exportCompare() {
-  const results = document.getElementById('compareResults').innerText;
-  const blob = new Blob([results], { type: 'text/plain' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `compare_diff_${new Date().toISOString().slice(0,10)}.txt`;
-  a.click();
+function exportCompareTxt() {
+  dl(new Blob([document.getElementById('cResults').innerText], {type:'text/plain'}), 'diff_' + today() + '.txt');
 }
+function dl(blob, name) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = name; a.click();
+}
+function today() { return new Date().toISOString().slice(0,10); }
 
 async function pushToAirtable() {
-  const tableId = document.getElementById('compareTable').value;
-  if (!tableId) { toast('Select an Airtable table first on the Compare tab','err'); return; }
-
-  const missing = extractedRecords.filter(r => {
-    // simplified: check if we have compare results
-    return true; // push all for now, let user confirm
-  });
-
-  const confirmed = confirm(`Push ${extractedRecords.length} extracted records to Airtable? This will create new records.`);
-  if (!confirmed) return;
-
-  toast('Pushing to Airtable...', 'info', 8000);
+  const tableId = document.getElementById('cTable').value;
+  if (!tableId) { toast('Select Airtable table on Compare tab first', 'err'); return; }
+  if (!confirm('Push ' + extracted.length + ' records to Airtable?')) return;
   let pushed = 0, failed = 0;
-  const chunks = [];
-  for (let i = 0; i < extractedRecords.length; i += 10) chunks.push(extractedRecords.slice(i,i+10));
-
-  for (const chunk of chunks) {
+  for (let i = 0; i < extracted.length; i += 10) {
+    const chunk = extracted.slice(i, i+10);
     try {
-      await fetch(`${AT_API}/${AT_BASE}/${tableId}`, {
+      await fetch('https://api.airtable.com/v0/' + AT_BASE + '/' + tableId, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${AT_TOKEN}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ records: chunk.map(r => ({ fields: toAirtableFields(r) })), typecast: true })
+        headers: { Authorization: 'Bearer ' + AT_TOK, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ records: chunk.map(r => ({ fields: toAtFields(r) })), typecast: true })
       });
       pushed += chunk.length;
     } catch { failed += chunk.length; }
-    await new Promise(res => setTimeout(res, 200));
+    await new Promise(r => setTimeout(r, 200));
   }
-  toast(`Pushed ${pushed} records${failed?`, ${failed} failed`:''}`, pushed>0?'ok':'err');
+  toast('Pushed ' + pushed + (failed ? ', failed ' + failed : ''), pushed > 0 ? 'ok' : 'err');
 }
 
-function toAirtableFields(r) {
-  const out = {};
-  const fieldMap = {
+function toAtFields(r) {
+  const map = {
     date:'Date', exercise:'Exercise', variation:'Variation',
     set_number:'Set#', reps:'Reps', weight:'Weight',
     session:'Session', day:'Day', notes:'Notes',
     compound:'Name', dose:'Dose', unit:'Unit', time_of_day:'Time',
     marker:'Marker', value:'Value', ref_range:'Ref Range', status:'Status'
   };
-  Object.entries(fieldMap).forEach(([k,v]) => {
-    if (r[k] !== undefined && r[k] !== null && r[k] !== '') out[v] = r[k];
+  const out = {};
+  Object.entries(map).forEach(([k,v]) => {
+    if (r[k] != null && r[k] !== '') out[v] = r[k];
   });
   return out;
 }
 
-// ── AUTO-SELECT TABLE FROM SETTINGS ──────────────────────────────────────────
-function applyTableMapFromSettings() {
-  const mapped = settings.tableMap[pdfType];
-  if (mapped) {
-    const sel = document.getElementById('compareTable');
-    if (sel) sel.value = mapped;
-  }
-}
-
 // ── INIT ──────────────────────────────────────────────────────────────────────
 window.addEventListener('load', async () => {
-  loadSettings();
-  await loadAirtableTables();
+  loadCfg();
+  await loadAtTables();
   initAuth();
-  renderSettingsTab();
 });
 </script>
 </body>
