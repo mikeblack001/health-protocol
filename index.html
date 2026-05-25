@@ -2488,7 +2488,7 @@ async function loadInjAudit() {
   try {
     let records = [], offset = null;
     do {
-      let url = 'https://api.airtable.com/v0/' + BASE + '/tblBvEaLkGGipnOFc?pageSize=100'
+      let url = 'https://api.airtable.com/v0/' + BASE + '/tblBvEaLkGGipnOFc?pageSize=100&returnFieldsByFieldId=true'
         + '&fields[]=' + F_NAME + '&fields[]=' + F_SITE + '&fields[]=' + F_DATE + '&fields[]=' + F_NOTE
         + '&sort[0][field]=' + F_DATE + '&sort[0][direction]=asc';
       if (offset) url += '&offset=' + encodeURIComponent(offset);
