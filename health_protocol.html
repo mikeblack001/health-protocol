@@ -1485,7 +1485,7 @@ async function loadTrackerWeekData(mondayISO) {
       if (box) applyState(box, site);
     });
     // Load metrics (sleep/deep/duration) from DailyLog
-    const dlUrl = `https://api.airtable.com/v0/${BASE}/${TABLES.dailyLog}?filterByFormula=${encodeURIComponent(`IS_SAME({Date},"${mondayISO}","day")`)}&fields[]=fldAatoFJQPQwbVhQ`;
+    const dlUrl = `https://api.airtable.com/v0/${BASE}/${TABLES.dailyLog}?filterByFormula=${encodeURIComponent('IS_SAME({Date},"' + mondayISO + '","day")')}&fields[]=fldAatoFJQPQwbVhQ`;
     const dlRes = await fetch(dlUrl, { headers: { Authorization: `Bearer ${TOKEN}` } });
     const dlJson = await dlRes.json();
     const dlRec = (dlJson.records||[])[0];
