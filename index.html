@@ -265,21 +265,13 @@
 }
 .pmeta td, .pmeta-cell {
   background: #ebf2ff;
-  padding: 5px 8px;
+  padding: 6px 8px;
   font-size: 10px;
   border: 1px solid #bfdbfe;
   vertical-align: middle;
-  height: 26px;
+  height: 32px;
 }
 .pmeta-val { font-weight: 600; }
-.psleep-row td {
-  background: #ebf2ff;
-  padding: 4px 8px;
-  font-size: 10px;
-  border: 1px solid #bfdbfe;
-  vertical-align: bottom;
-  height: 28px;
-}
 .psleep-line {
   display: inline-block;
   border-bottom: 1.5px solid #1a56db;
@@ -299,14 +291,14 @@
   text-align: center;
 }
 .pcol-hdr th.pex-name, .pcol-hdr th.pex-var { text-align: left; }
-.pex td { border: 1px solid #ccc; padding: 6px 5px; vertical-align: middle; height: 22px; }
+.pex td { border: 1px solid #ccc; padding: 7px 5px; vertical-align: middle; height: 28px; }
 .pex-name { font-weight: 600; font-size: 11px; word-break: break-word; }
 .pex-var  { font-size: 9px; color: #555; word-break: break-word; }
 .pset     { text-align: center; color: #999; font-size: 9px; background: #fafafa; }
 .preps, .pwt { text-align: center; }
-.pnotes td { border: 1px solid #ccc; padding: 6px 8px; background: #fafafa; height: 20px; }
-.pnotes-label { font-weight: 700; font-size: 10px; white-space: nowrap; }
-.pnotes-val   { font-size: 9px; color: #aaa; }
+.pnotes td { border: 1px solid #ccc; padding: 8px; background: #fafafa; height: 48px; vertical-align: top; }
+.pnotes-label { font-weight: 700; font-size: 10px; white-space: nowrap; color: #555; }
+.pnotes-val   { font-size: 9px; color: #ccc; }
 
 @media screen {
   .print-page { border: 1px solid #ddd; padding: 16px; border-radius: 6px; background: white; }
@@ -419,7 +411,6 @@
         <button class="drop-item" onclick="navDrop('databrowser','nav-tools')" style="color:var(--accent);font-weight:600">📊 Data Browser</button>
         <div class="drop-divider"></div>
         <button class="drop-item" onclick="window.open('https://mikeblack001.github.io/health-protocol/pdf_qa.html','_blank')" style="color:var(--accent);font-weight:600">📄 Data Accuracy Check</button>
-        <button class="drop-item" onclick="navDrop('injaudit','nav-tools')" style="color:var(--accent);font-weight:600">📋 Injection Log Audit</button>
       </div>
     </div>
   </div>
@@ -927,15 +918,6 @@
       <button class="filter-btn" onclick="showAddChangeModal()" style="margin-left:auto;background:var(--accent);color:#fff;border-color:var(--accent)">+ Log Change</button>
     </div>
     <div id="changes-content"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
-  </div>
-
-  <div id="view-injaudit" class="view">
-    <div class="filter-bar">
-      <span style="font-size:13px;font-weight:500;color:var(--text)">Injection Log Audit</span>
-      <span id="injaudit-status" style="font-size:11px;color:var(--muted)">Loading...</span>
-    </div>
-    <div id="injaudit-nav" style="display:flex;gap:4px;flex-wrap:wrap;padding:8px 12px;border-bottom:1px solid var(--border)"></div>
-    <div id="injaudit-content" style="padding:12px;overflow:auto"></div>
   </div>
 
 <!-- ADD PRICING MODAL -->
@@ -2469,7 +2451,6 @@ function showView(name, e) {
   if (name === 'purchases') loadPurchases();
   if (name === 'labs') loadLabs();
   if (name === 'changes') loadChanges();
-  if (name === 'injaudit') loadInjAudit();
   if (name === 'workouts') {
     document.getElementById('workout-date').value = new Date().toISOString().split('T')[0];
   }
@@ -3512,6 +3493,24 @@ function dbExportCSV() {
   URL.revokeObjectURL(url);
 }
 
+function shortenVar(v) {
+  // If starts with a weight (e.g. "35lbs Smith Machine", "45lb Olympic") → keep only the weight
+  const wtMatch = v.match(/^(\d+\s*lbs?)\s+.+/i);
+  if (wtMatch) return wtMatch[1];
+  // Abbreviate known implements
+  return v
+    .replace('Smith Machine', 'SM')
+    .replace('Lat Machine', 'Lat M')
+    .replace('High Cable', 'Hi Cbl')
+    .replace('2 Hand Cables', '2H')
+    .replace('Cables (2:1)', 'Cable')
+    .replace('EZ Bar (15lbs)', 'EZ 15lb')
+    .replace('EZ-Bar', 'EZ')
+    .replace(' 1/2', '')
+    .replace('Bodyweight', 'BW')
+    .trim();
+}
+
 function buildWeeklyPrintHTML(monday) {
   const days = [
     { label: 'Monday - Push',           key: 'Monday - Push',           offset: 0 },
@@ -3528,7 +3527,9 @@ function buildWeeklyPrintHTML(monday) {
 
     let exRows = '';
     exercises.forEach(ex => {
-      const varStr = ex.variations && ex.variations.length ? ex.variations.join(' -- ') : '';
+      const varStr = ex.variations && ex.variations.length
+        ? ex.variations.map(shortenVar).join(' / ')
+        : '';
       const nameStr = ex.note ? ex.name + ' ' + ex.note : ex.name;
       exRows += `<tr class="pex">
         <td class="pex-name">${nameStr}</td>
@@ -3541,7 +3542,7 @@ function buildWeeklyPrintHTML(monday) {
 
     return `<table class="ptable">
       <colgroup>
-        <col style="width:22%"><col style="width:20%">
+        <col style="width:22%"><col style="width:18%">
         <col style="width:3%"><col style="width:6%"><col style="width:9%">
         <col style="width:3%"><col style="width:6%"><col style="width:9%">
         <col style="width:3%"><col style="width:6%"><col style="width:9%">
@@ -3550,18 +3551,8 @@ function buildWeeklyPrintHTML(monday) {
         <tr><th colspan="11" class="pday-hdr">${day.label}</th></tr>
         <tr class="pmeta">
           <td colspan="2" class="pmeta-cell">Date: <span class="pmeta-val">${dateStr}</span></td>
-          <td colspan="9" class="pmeta-cell" style="text-align:right">Duration: <span class="psleep-line" style="width:70px"></span></td>
-        </tr>
-        <tr class="psleep-row">
-          <td colspan="3" style="background:#ebf2ff;border:1px solid #bfdbfe;padding:5px 8px;font-size:10px;height:30px;vertical-align:bottom">
-            Sleep (hrs): <span class="psleep-line" style="width:90px"></span>
-          </td>
-          <td colspan="4" style="background:#ebf2ff;border:1px solid #bfdbfe;padding:5px 8px;font-size:10px;height:30px;vertical-align:bottom">
-            Deep Sleep (min): <span class="psleep-line" style="width:90px"></span>
-          </td>
-          <td colspan="4" style="background:#ebf2ff;border:1px solid #bfdbfe;padding:5px 8px;font-size:10px;height:30px;vertical-align:bottom">
-            Notes: <span class="psleep-line" style="width:120px"></span>
-          </td>
+          <td colspan="3" class="pmeta-cell">Sleep: <span class="psleep-line" style="width:60px"></span> &nbsp; Deep: <span class="psleep-line" style="width:60px"></span></td>
+          <td colspan="6" class="pmeta-cell" style="text-align:right">Duration: <span class="psleep-line" style="width:70px"></span></td>
         </tr>
         <tr class="pcol-hdr">
           <th class="pex-name">Exercise</th>
@@ -3573,6 +3564,10 @@ function buildWeeklyPrintHTML(monday) {
       </thead>
       <tbody>
         ${exRows}
+        <tr class="pnotes">
+          <td class="pnotes-label">Notes:</td>
+          <td colspan="10" class="pnotes-val"></td>
+        </tr>
       </tbody>
     </table>`;
   }
