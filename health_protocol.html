@@ -1334,19 +1334,18 @@ function renderTracker(weekNum) {
 
   function dayCell(compound, dayIdx, bg) {
     const active = TRACKER_SCHEDULE[compound];
-    if (active && !active.includes(dayIdx)) {
-      return `<td style="background:${INACTIVE};border:1px solid #000;width:44px"></td>`;
-    }
+    const isActive = !active || active.includes(dayIdx);
     const dayDate = new Date(monday); dayDate.setDate(monday.getDate() + dayIdx);
     const dateStr = dayDate.toISOString().split('T')[0];
-    return `<td style="background:${bg};border:1px solid #000;width:44px;text-align:center;padding:2px">
-      <div class="check-box" data-compound="${compound}" data-day="${dayIdx}" data-date="${dateStr}" onclick="
+    const cellBg = isActive ? bg : INACTIVE;
+    return `<td style="background:${cellBg};border:1px solid #000;width:44px;text-align:center;padding:2px">
+      <div class="check-box" data-compound="${compound}" data-day="${dayIdx}" data-date="${dateStr}" data-scheduled="${isActive?'1':'0'}" onclick="
         var s=this.dataset.s||'0';
         var next=s==='0'||s==='✓'?'L':s==='L'?'R':s==='R'?'S':s==='S'?'N':'0';
         this.dataset.s=next; this.textContent=next==='0'?'':next;
         var c=next==='L'?['#dbeafe','#2563eb','#1d4ed8']:next==='R'?['#fef3c7','#d97706','#92400e']:next==='S'?['#fee2e2','#dc2626','#dc2626']:next==='N'?['#e5e7eb','#6b7280','#6b7280']:['','#888',''];
         this.style.background=c[0];this.style.borderColor=c[1];this.style.color=c[2];
-      " style="margin:0 auto;border:1.5px solid #888"></div></td>`;
+      " style="margin:0 auto;border:1.5px solid ${isActive?'#888':'#bbb'};opacity:${isActive?'1':'0.6'}"></div></td>`;
   }
 
   function vialBtns(name) {
