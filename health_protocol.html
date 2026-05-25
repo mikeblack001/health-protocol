@@ -3706,6 +3706,7 @@ function buildWeeklyPrintHTML(monday) {
     if (viewId === 'purchases') loadPurchases();
     if (viewId === 'labs') loadLabs();
     if (viewId === 'changes') loadChanges();
+    if (viewId === 'injaudit') loadInjAudit();
     if (viewId === 'workouts') document.getElementById('workout-date').value = new Date().toISOString().split('T')[0];
     if (viewId === 'goals') loadGoals();
     if (viewId === 'profile') loadProfileView();
