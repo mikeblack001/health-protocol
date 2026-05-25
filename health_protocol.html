@@ -5760,6 +5760,9 @@ function diffInjections(pdfEntries, atRecords) {
 
 // ── RENDER ────────────────────────────────────────────────────────────
 function renderVerifyResults(rows, startDate, endDate) {
+  _lastDiffRows = rows;
+  _lastDiffStart = startDate;
+  _lastDiffEnd = endDate;
   verifyRowData = rows;
   var resEl = document.getElementById("verifyResults");
   var ok = rows.filter(function(r){ return r.status==="ok"; }).length;
@@ -5767,9 +5770,14 @@ function renderVerifyResults(rows, startDate, endDate) {
   var missing = rows.filter(function(r){ return r.status==="missing"; }).length;
   var extra = rows.filter(function(r){ return r.status==="extra"; }).length;
   var runDate = new Date().toLocaleString();
+  var sorted = rows.slice().sort(function(a,b){
+    var d = (a.date||"").localeCompare(b.date||"") || (a.compound||"").localeCompare(b.compound||"");
+    return _diffSort === 'asc' ? d : -d;
+  });
   var html = "<div style='display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px'>";
   html += "<span style='font-size:10px;color:var(--dd);font-family:var(--mono)'>Run: "+runDate+" · "+startDate+" → "+endDate+"</span>";
   html += "<div style='display:flex;gap:6px'>";
+  html += "<button class='btn bg-btn' style='font-size:10px;padding:4px 10px' onclick='toggleDiffSort()'>&#8597; " + (_diffSort==='asc'?'Oldest first':'Newest first') + "</button>";
   html += "<button class='btn bg-btn' style='font-size:10px;padding:4px 10px' onclick='backToExtracted()'>&#8592; Back to Extracted</button>";
   html += "<button class='btn bg-btn' style='font-size:10px;padding:4px 10px' onclick='copyForClaude()'>&#128203; Send to Claude</button>";
   html += "</div></div>";
@@ -5781,7 +5789,7 @@ function renderVerifyResults(rows, startDate, endDate) {
     html += "<th style=\'padding:7px 10px;text-align:left;font-size:9px;letter-spacing:1.2px;text-transform:uppercase;font-family:var(--mono);color:var(--d);border-bottom:1px solid var(--b)\'>" + h + "</th>";
   });
   html += "</tr></thead><tbody>";
-  rows.forEach(function(r, idx) {
+  sorted.forEach(function(r, idx) {
     var bg = r.status==="missing" ? "background:var(--rd)" : r.status==="extra" ? "background:var(--bld)" : r.status==="wrong" ? "background:var(--yd)" : "";
     var p = r.pdf || {}, a = r.at || {};
     html += "<tr style=\'" + bg + "\'>";
@@ -5835,7 +5843,11 @@ async function fixRecord(recId, idx) {
 }
 
 var _verifySort = 'asc';
+var _diffSort = 'asc';
 var _verifyExtracted = [];
+var _lastDiffRows = [];
+var _lastDiffStart = '';
+var _lastDiffEnd = '';
 
 function renderExtractedForClaude(entries, startDate, endDate, batchSummary) {
   _verifyExtracted = entries;
@@ -5877,6 +5889,11 @@ function renderExtractedForClaude(entries, startDate, endDate, batchSummary) {
   }
 
   resEl.innerHTML = buildTable(getSorted());
+}
+
+function toggleDiffSort() {
+  _diffSort = _diffSort === 'asc' ? 'desc' : 'asc';
+  if (_lastDiffRows.length) renderVerifyResults(_lastDiffRows, _lastDiffStart, _lastDiffEnd);
 }
 
 function toggleVerifySort() {
