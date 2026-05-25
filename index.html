@@ -7,6 +7,9 @@
 <meta http-equiv="pragma" content="no-cache">
 <title>Health Protocol</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
 <style>
   :root {
@@ -337,6 +340,161 @@
 
   @page { size: letter portrait; margin: 0.4in 0.4in 0.4in 0.4in; }
 }
+/* ── PDF QA VIEW ──────────────────────────────────────────────────── */
+#view-pdfqa.active {
+  position: fixed; top: 56px; left: 0; right: 0; bottom: 0;
+  display: flex !important; z-index: 50; background: #f5f6f8;
+  flex-direction: column; overflow: hidden;
+}
+.pdfqa-root {
+  --bg:#f5f6f8; --s:#fff; --s2:#f0f1f4; --b:#e2e4e9; --b2:#cdd0d8;
+  --t:#1a1a1a; --d:#5a6070; --dd:#9aa0ad;
+  --g:#00a855; --gd:rgba(0,168,85,.1); --gb:#007a3d;
+  --r:#d63030; --rd:rgba(214,48,48,.1);
+  --y:#c47800; --yd:rgba(196,120,0,.1);
+  --bl:#2255cc; --bld:rgba(34,85,204,.1);
+  --mono:'IBM Plex Mono',monospace;
+  display:flex; flex-direction:column; flex:1; overflow:hidden;
+  background:var(--bg); color:var(--t); font-family:'IBM Plex Sans',sans-serif; font-size:13px;
+}
+.pdfqa-root *{box-sizing:border-box;margin:0;padding:0}
+.pdfqa-root .page{display:flex;flex-direction:column;height:100vh;overflow:hidden}
+.pdfqa-root .hdr{background:var(--s);border-bottom:1px solid var(--b);padding:12px 20px;display:flex;align-items:center;gap:12px;flex-shrink:0;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.pdfqa-root .logo{color:var(--g);font-weight:700;letter-spacing:2px;font-size:12px;font-family:var(--mono)}
+.pdfqa-root .htitle{color:var(--d);font-size:11px;font-family:var(--mono);letter-spacing:1px}
+.pdfqa-root .hright{margin-left:auto;display:flex;align-items:center;gap:10px}
+.pdfqa-root .dot{width:7px;height:7px;border-radius:50%;background:var(--dd)}
+.pdfqa-root .dot.ok{background:var(--g)}.pdfqa-root .dot.err{background:var(--r)}.pdfqa-root .dot.warn{background:var(--y)}
+.pdfqa-root .dlbl{font-size:10px;color:var(--d);font-family:var(--mono)}
+.pdfqa-root .body{display:flex;flex:1;overflow:hidden}
+/* SIDEBAR */
+.pdfqa-root .sb{width:220px;background:var(--s);border-right:1px solid var(--b);display:flex;flex-direction:column;flex-shrink:0}
+.pdfqa-root .sbh{padding:10px 14px;border-bottom:1px solid var(--b);display:flex;align-items:center;background:var(--s2)}
+.pdfqa-root .sbht{font-size:9px;letter-spacing:2px;color:var(--d);text-transform:uppercase;flex:1;font-family:var(--mono)}
+.pdfqa-root .sbb{flex:1;overflow-y:auto;padding:6px}
+.pdfqa-root .fi{padding:9px 10px;border-radius:5px;cursor:pointer;border:1px solid transparent;margin-bottom:2px;transition:all .12s}
+.pdfqa-root .fi:hover{background:var(--s2);border-color:var(--b)}
+.pdfqa-root .fi.active{background:var(--bld);border-color:var(--bl)}
+.pdfqa-root .fn{font-size:11px;color:var(--t);display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:2px;font-weight:500}
+.pdfqa-root .fm{font-size:9px;color:var(--dd);font-family:var(--mono)}
+.pdfqa-root .ftype{font-size:9px;font-family:var(--mono);padding:1px 6px;border-radius:3px;display:inline-block;margin-bottom:3px;font-weight:600;text-transform:capitalize}
+.pdfqa-root .ft-workout{background:#e8f5ef;color:var(--g)}.pdfqa-root .ft-injection{background:#fff3e8;color:var(--y)}
+.pdfqa-root .ft-supplement{background:#e8eeff;color:var(--bl)}.pdfqa-root .ft-lab{background:#fde8e8;color:var(--r)}
+.pdfqa-root .grp-hdr{padding:6px 10px 3px;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dd);font-family:var(--mono);margin-top:6px}
+/* MAIN PANEL */
+.pdfqa-root .panel{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.pdfqa-root .tabs{display:flex;border-bottom:1px solid var(--b);background:var(--s);flex-shrink:0}
+.pdfqa-root .tab{font-size:11px;padding:11px 18px;cursor:pointer;color:var(--d);border-bottom:2px solid transparent;transition:all .12s;font-weight:500}
+.pdfqa-root .tab:hover{color:var(--t)}.pdfqa-root .tab.active{color:var(--bl);border-bottom-color:var(--bl);font-weight:600}
+.pdfqa-root .tc{flex:1;overflow:hidden;display:none;flex-direction:column}
+.pdfqa-root .tc.active{display:flex}
+/* REVIEW SPLIT VIEW */
+.pdfqa-root .rev-wrap{flex:1;display:flex;overflow:hidden}
+/* LEFT — IMAGE VIEWER */
+.pdfqa-root .img-panel{width:50%;border-right:1px solid var(--b);display:flex;flex-direction:column;overflow:hidden;background:#1a1a1a}
+.pdfqa-root .img-toolbar{background:#111;padding:8px 12px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.pdfqa-root .img-nav{display:flex;align-items:center;gap:6px}
+.pdfqa-root .navbtn{background:#333;color:#ccc;border:1px solid #444;border-radius:4px;padding:4px 10px;cursor:pointer;font-size:11px;font-family:var(--mono);transition:background .1s}
+.pdfqa-root .navbtn:hover{background:#444;color:#fff}.pdfqa-root .navbtn:disabled{opacity:.3;cursor:not-allowed}
+.pdfqa-root .pg-label{font-size:11px;color:#aaa;font-family:var(--mono);min-width:60px;text-align:center}
+.pdfqa-root .img-meta{margin-left:auto;font-size:10px;color:#666;font-family:var(--mono)}
+.pdfqa-root .img-scroll{flex:1;overflow:auto;display:flex;align-items:flex-start;justify-content:center;padding:12px}
+.pdfqa-root .img-scroll img{max-width:100%;height:auto;display:block;box-shadow:0 4px 20px rgba(0,0,0,.4)}
+.pdfqa-root .img-empty{flex:1;display:flex;align-items:center;justify-content:center;color:#555;font-size:12px;font-family:var(--mono);flex-direction:column;gap:10px}
+/* THUMB STRIP */
+.pdfqa-root .thumb-strip{height:90px;border-top:1px solid #333;display:flex;overflow-x:auto;background:#111;flex-shrink:0;gap:4px;padding:6px}
+.pdfqa-root .thumb{width:60px;height:76px;flex-shrink:0;border:2px solid #333;border-radius:3px;overflow:hidden;cursor:pointer;position:relative;background:#222}
+.pdfqa-root .thumb:hover{border-color:#666}.pdfqa-root .thumb.active{border-color:#2255cc}
+.pdfqa-root .thumb.ok{border-color:#00a855}.pdfqa-root .thumb.flagged{border-color:#d63030}
+.pdfqa-root .thumb img{width:100%;height:100%;object-fit:cover}
+.pdfqa-root .thumb-num{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.7);color:#aaa;font-size:8px;text-align:center;padding:1px;font-family:var(--mono)}
+.pdfqa-root .thumb.active .thumb-num{color:#fff}
+/* RIGHT — AIRTABLE PANEL */
+.pdfqa-root .at-panel{width:50%;display:flex;flex-direction:column;overflow:hidden;background:var(--s)}
+.pdfqa-root .at-toolbar{padding:10px 14px;border-bottom:1px solid var(--b);display:flex;align-items:center;gap:8px;flex-shrink:0;background:var(--s2)}
+.pdfqa-root .at-toolbar-title{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--d);font-family:var(--mono);flex:1}
+.pdfqa-root .at-scroll{flex:1;overflow-y:auto;padding:10px}
+.pdfqa-root .date-row{display:flex;align-items:center;gap:6px;margin-bottom:10px}
+.pdfqa-root .date-inp{font-family:var(--mono);font-size:11px;background:var(--s);border:1px solid var(--b);color:var(--t);padding:6px 9px;border-radius:5px;outline:none;width:130px}
+.pdfqa-root .date-inp:focus{border-color:var(--bl)}
+.pdfqa-root .btn{font-size:11px;padding:6px 12px;border-radius:5px;cursor:pointer;border:1px solid;display:inline-flex;align-items:center;gap:5px;font-family:inherit;font-weight:500;transition:all .12s;white-space:nowrap}
+.pdfqa-root .bp{background:var(--g);color:#fff;border-color:var(--g)}.pdfqa-root .bp:hover{background:var(--gb)}
+.pdfqa-root .bp:disabled{background:var(--dd);border-color:var(--dd);cursor:not-allowed}
+.pdfqa-root .bb{background:transparent;color:var(--bl);border-color:var(--bl)}.pdfqa-root .bb:hover{background:var(--bld)}
+.pdfqa-root .bb:disabled{opacity:.4;cursor:not-allowed}
+.pdfqa-root .by{background:transparent;color:var(--y);border-color:var(--y)}.pdfqa-root .by:hover{background:var(--yd)}
+.pdfqa-root .br{background:transparent;color:var(--r);border-color:var(--r)}.pdfqa-root .br:hover{background:var(--rd)}
+.pdfqa-root .bg-btn{background:transparent;color:var(--d);border-color:var(--b)}.pdfqa-root .bg-btn:hover{border-color:var(--b2);color:var(--t)}
+/* STATUS BADGES */
+.pdfqa-root .badge{font-size:9px;padding:2px 7px;border-radius:10px;font-family:var(--mono);font-weight:600;display:inline-block}
+.pdfqa-root .badge-ok{background:var(--gd);color:var(--g)}.pdfqa-root .badge-miss{background:var(--rd);color:var(--r)}
+.pdfqa-root .badge-flag{background:var(--yd);color:var(--y)}
+/* TABLE */
+.pdfqa-root .tbl{width:100%;border-collapse:collapse;font-size:11px}
+.pdfqa-root .tbl th{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--d);text-align:left;padding:6px 10px;border-bottom:1px solid var(--b);background:var(--s2);white-space:nowrap;font-family:var(--mono)}
+.pdfqa-root .tbl td{padding:5px 10px;border-bottom:1px solid var(--b);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pdfqa-root .tbl tr:last-child td{border-bottom:none}.pdfqa-root .tbl tr:hover td{background:var(--s2)}
+.pdfqa-root .tcg{color:var(--g)}.pdfqa-root .tcr{color:var(--r)}.pdfqa-root .tcy{color:var(--y)}.pdfqa-root .tcd{color:var(--dd)}
+.pdfqa-root .sec{background:var(--s);border:1px solid var(--b);border-radius:6px;overflow:hidden;margin-bottom:10px}
+.pdfqa-root .sech{padding:8px 12px;border-bottom:1px solid var(--b);display:flex;align-items:center;gap:8px;background:var(--s2)}
+.pdfqa-root .sect{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;font-weight:600;flex:1;font-family:var(--mono)}
+.pdfqa-root .sectg{color:var(--g)}.pdfqa-root .sectr{color:var(--r)}.pdfqa-root .secty{color:var(--y)}.pdfqa-root .sectbl{color:var(--bl)}
+.pdfqa-root .secc{font-size:10px;color:var(--d);background:var(--b);padding:1px 7px;border-radius:10px;font-family:var(--mono)}
+/* PAGE STATUS ROW */
+.pdfqa-root .pg-status-bar{padding:8px 14px;border-top:1px solid var(--b);display:flex;align-items:center;gap:8px;background:var(--s);flex-shrink:0;font-size:11px}
+/* SETTINGS */
+.pdfqa-root .type-section{margin-bottom:14px;border:1px solid var(--b);border-radius:6px;overflow:hidden}
+.pdfqa-root .type-hdr{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--s2);border-bottom:1px solid var(--b)}
+.pdfqa-root .type-badge{font-size:11px;font-family:var(--mono);padding:3px 10px;border-radius:4px;font-weight:600;text-transform:capitalize}
+.pdfqa-root .type-workout{background:#e8f5ef;color:var(--g)}.pdfqa-root .type-injection{background:#fff3e8;color:var(--y)}
+.pdfqa-root .type-supplement{background:#e8eeff;color:var(--bl)}.pdfqa-root .type-lab{background:#fde8e8;color:var(--r)}
+.pdfqa-root .type-body{padding:10px 14px;display:flex;flex-wrap:wrap;gap:5px;align-items:center;min-height:42px}
+.pdfqa-root .chip{font-size:10px;font-family:var(--mono);padding:3px 8px 3px 10px;border-radius:12px;background:var(--s2);border:1px solid var(--b);color:var(--t);display:inline-flex;align-items:center;gap:4px;max-width:220px}
+.pdfqa-root .chip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pdfqa-root .chip-x{cursor:pointer;color:var(--dd);flex-shrink:0;font-size:12px;line-height:1}.pdfqa-root .chip-x:hover{color:var(--r)}
+.pdfqa-root .chip-add{background:transparent;border-style:dashed;color:var(--bl);cursor:pointer}.pdfqa-root .chip-add:hover{background:var(--bld)}
+.pdfqa-root .inp{font-family:var(--mono);font-size:11px;background:#fff;border:1px solid var(--b);color:var(--t);padding:7px 10px;border-radius:5px;outline:none}
+.pdfqa-root .inp:focus{border-color:var(--bl);box-shadow:0 0 0 3px var(--bld)}
+.pdfqa-root select.inp{cursor:pointer}
+/* MODAL */
+.pdfqa-root .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:200;display:none;align-items:center;justify-content:center}
+.pdfqa-root .modal-bg.open{display:flex}
+.pdfqa-root .modal{background:#fff;border-radius:8px;width:540px;max-width:95vw;height:600px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 8px 40px rgba(0,0,0,.2)}
+.pdfqa-root .mhdr{padding:14px 18px;border-bottom:1px solid var(--b);flex-shrink:0}
+.pdfqa-root .mhdr-top{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.pdfqa-root .mhdr-title{font-size:14px;font-weight:600;flex:1}
+.pdfqa-root .breadcrumb{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.pdfqa-root .bc-item{font-size:11px;color:var(--bl);cursor:pointer;font-family:var(--mono);padding:2px 5px;border-radius:3px}
+.pdfqa-root .bc-item:hover{background:var(--bld)}.pdfqa-root .bc-item.current{color:var(--t);cursor:default;font-weight:600}.pdfqa-root .bc-item.current:hover{background:transparent}
+.pdfqa-root .bc-sep{font-size:10px;color:var(--dd)}
+.pdfqa-root .msearch{padding:8px 14px;border-bottom:1px solid var(--b);flex-shrink:0}
+.pdfqa-root .msearch input{width:100%;font-family:var(--mono);font-size:11px;background:var(--s2);border:1px solid var(--b);color:var(--t);padding:7px 10px;border-radius:5px;outline:none}
+.pdfqa-root .msearch input:focus{border-color:var(--bl)}
+.pdfqa-root .mlist{flex:1;overflow-y:auto;padding:6px}
+.pdfqa-root .mitem{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:5px;cursor:pointer;transition:background .1s;user-select:none}
+.pdfqa-root .mitem:hover{background:var(--s2)}.pdfqa-root .mitem.checked{background:var(--bld)}.pdfqa-root .mitem.disabled{opacity:.5;cursor:not-allowed}
+.pdfqa-root .mitem-icon{font-size:16px;flex-shrink:0;width:22px;text-align:center}
+.pdfqa-root .mitem-name{font-size:11px;color:var(--t);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
+.pdfqa-root .mitem-meta{font-size:9px;color:var(--dd);font-family:var(--mono);flex-shrink:0}
+.pdfqa-root .mitem-arrow{font-size:11px;color:var(--dd);flex-shrink:0}
+.pdfqa-root .mftr{padding:12px 16px;border-top:1px solid var(--b);display:flex;align-items:center;gap:8px;flex-shrink:0}
+.pdfqa-root .mftr-count{font-size:11px;color:var(--d);flex:1;font-family:var(--mono)}
+/* MISC */
+.pdfqa-root .abox{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:40px;text-align:center}
+.pdfqa-root .atitle{font-size:13px;font-weight:600}.pdfqa-root .asub{font-size:12px;color:var(--d);max-width:240px;line-height:1.6}
+.pdfqa-root .empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:50px 20px;text-align:center}
+.pdfqa-root .ei{font-size:32px;opacity:.2}.pdfqa-root .et{font-size:12px;font-weight:600;color:var(--d)}.pdfqa-root .es{font-size:11px;color:var(--dd);max-width:240px;line-height:1.6}
+.pdfqa-root .toasts{position:fixed;bottom:18px;right:18px;display:flex;flex-direction:column;gap:6px;z-index:9999}
+.pdfqa-root .toast{font-size:11px;padding:9px 14px;border-radius:6px;border:1px solid;box-shadow:0 2px 8px rgba(0,0,0,.12)}
+.pdfqa-root .tg{background:#f0faf5;border-color:var(--g);color:var(--g)}
+.pdfqa-root .tr{background:#fdf0f0;border-color:var(--r);color:var(--r)}
+.pdfqa-root .ti{background:#f0f3ff;border-color:var(--bl);color:var(--bl)}
+.pdfqa-root .ty{background:#fff8f0;border-color:var(--y);color:var(--y)}
+.pdfqa-root ::-webkit-scrollbar{width:5px;height:5px}.pdfqa-root ::-webkit-scrollbar-track{background:var(--s2)}.pdfqa-root ::-webkit-scrollbar-thumb{background:var(--b2);border-radius:3px}
+/* EXPORT TAB */
+.pdfqa-root .tc-scroll{overflow-y:auto;padding:20px;flex:1}
+
+
 </style>
 </head>
 <body>
@@ -397,7 +555,7 @@
         <div class="drop-divider"></div>
         <button class="drop-item" onclick="navDrop('databrowser','nav-tools')" style="color:var(--accent);font-weight:600">📊 Data Browser</button>
         <div class="drop-divider"></div>
-        <button class="drop-item" onclick="window.open('https://mikeblack001.github.io/health-protocol/verify2.html','_self')" style="color:var(--accent);font-weight:600">📄 Data Accuracy Check</button>
+        <button class="drop-item" onclick="navDrop('pdfqa','nav-tools')" style="color:var(--accent);font-weight:600">📄 Data Accuracy Check</button>
         <button class="drop-item" onclick="navDrop('injaudit','nav-tools')" style="color:var(--accent);font-weight:600">📋 Injection Log Audit</button>
         <div class="drop-divider"></div>
         <button class="drop-item" onclick="openWeeklyPrint()" style="color:var(--accent);font-weight:600">🖨 Weekly Workout Print</button>
@@ -918,6 +1076,193 @@
     <div id="injaudit-nav" style="display:flex;gap:4px;flex-wrap:wrap;padding:8px 12px;border-bottom:1px solid var(--border)"></div>
     <div id="injaudit-content" style="padding:16px;overflow-x:auto;width:100%"></div>
   </div>
+
+  <div id="view-pdfqa" class="view">
+  <div class="pdfqa-root">
+    <!-- MINI STATUS BAR -->
+    <div class="hdr" style="padding:8px 20px;flex-shrink:0">
+      <span class="logo">MB</span><span style="color:var(--b2)">&#8212;</span>
+      <span class="htitle">PDF QA &amp; VERIFICATION</span>
+      <div class="hright">
+        <div class="dot" id="dDot"></div><span class="dlbl" id="dLbl">DRIVE</span>
+        <span style="color:var(--dd)">&#183;</span>
+        <div class="dot" id="aDot"></div><span class="dlbl" id="aLbl">AIRTABLE</span>
+      </div>
+    </div>
+    <!-- BODY -->
+    <div class="body">
+      <!-- SIDEBAR -->
+      <div class="sb">
+        <div class="sbh">
+          <span class="sbht">Library</span>
+          <button class="btn bg-btn" style="padding:3px 8px;font-size:9px" onclick="loadMappedFiles()">&#8635;</button>
+        </div>
+        <div class="sbb" id="fileList">
+          <div class="abox" style="padding:24px">
+            <div class="atitle">Connect Drive</div>
+            <div class="asub">Sign in to load your PDF library.</div>
+            <button class="btn bp" onclick="signIn()">Sign in with Google</button>
+          </div>
+        </div>
+      </div>
+      <!-- MAIN PANEL -->
+      <div class="panel">
+        <div class="tabs">
+          <div class="tab active" id="tab-review" onclick="showTab('review')">Review</div>
+          <div class="tab" id="tab-export" onclick="showTab('export')">Export</div>
+          <div class="tab" id="tab-verify" onclick="showTab('verify')">&#9889; Verify</div>
+          <div class="tab" id="tab-settings" onclick="showTab('settings')">&#9881; Settings</div>
+        </div>
+        <!-- REVIEW TAB -->
+        <div class="tc active" id="tc-review">
+          <div class="empty" id="revEmpty" style="flex:1">
+            <div class="ei">&#128196;</div>
+            <div class="et">Select a file from the library</div>
+            <div class="es">Choose a workout, injection, or lab PDF from the sidebar to begin review.</div>
+          </div>
+          <div id="revUI" style="display:none;flex:1;flex-direction:column;overflow:hidden" class="tc active">
+            <div style="padding:8px 14px;border-bottom:1px solid var(--b);display:flex;align-items:center;gap:10px;flex-shrink:0;background:var(--s)">
+              <div style="flex:1">
+                <span style="font-size:12px;font-weight:600" id="pdfName">&#8212;</span>
+                <span style="font-size:10px;color:var(--dd);font-family:var(--mono);margin-left:10px" id="pdfMeta"></span>
+              </div>
+              <div id="pgStatusBadges" style="display:flex;gap:5px"></div>
+            </div>
+            <div class="rev-wrap">
+              <div class="img-panel">
+                <div class="img-toolbar">
+                  <div class="img-nav">
+                    <button class="navbtn" id="prevBtn" onclick="navPage(-1)" disabled>&#8592;</button>
+                    <span class="pg-label" id="pgLabel">&#8212; / &#8212;</span>
+                    <button class="navbtn" id="nextBtn" onclick="navPage(1)" disabled>&#8594;</button>
+                  </div>
+                  <div style="margin-left:8px;display:flex;gap:6px">
+                    <button class="navbtn" onclick="markPage('ok')" id="markOkBtn" title="Mark Verified">&#10003;</button>
+                    <button class="navbtn" onclick="markPage('flagged')" id="markFlagBtn" title="Flag Issue">&#9873;</button>
+                    <button class="navbtn" id="extractBtn" onclick="extractCurrentPage()" style="background:#00a855;color:#fff;border-color:#00a855">&#8659; Extract Page</button>
+                    <button class="navbtn" onclick="sendToClaude()" style="background:#2255cc;color:#fff;border-color:#2255cc">&#8595; Download</button>
+                  </div>
+                  <div class="img-meta" id="imgMeta"></div>
+                </div>
+                <div class="img-scroll" id="imgScroll">
+                  <div class="img-empty" id="imgEmpty">
+                    <span style="font-size:28px">&#128247;</span>
+                    <span>Loading pages...</span>
+                  </div>
+                  <img id="mainImg" style="display:none" alt="Page"/>
+                </div>
+                <div class="thumb-strip" id="thumbStrip"></div>
+              </div>
+              <div class="at-panel">
+                <div class="at-toolbar">
+                  <span class="at-toolbar-title">Airtable &#8212; <span id="atTableLabel" style="color:var(--bl)">Sets</span></span>
+                  <span id="atStatusLabel" style="font-size:10px;color:var(--dd);font-family:var(--mono)"></span>
+                  <button class="btn bg-btn" style="padding:3px 9px;font-size:10px" onclick="refreshAtData()" id="atRefreshBtn">&#8635; Load</button>
+                </div>
+                <div id="injAuditNav" style="display:none;flex-wrap:wrap;gap:3px;padding:8px 12px;border-bottom:1px solid var(--b);flex-shrink:0;overflow-y:auto;max-height:100px"></div>
+                <div class="at-scroll" id="atScroll">
+                  <div class="date-row">
+                    <input type="date" class="date-inp" id="dateFilter" onchange="refreshAtData()" placeholder="YYYY-MM-DD"/>
+                    <span style="font-size:10px;color:var(--dd);font-family:var(--mono)">filter date</span>
+                  </div>
+                  <div id="atContent">
+                    <div class="empty" style="padding:30px 10px">
+                      <div class="et" style="font-size:11px">Set a date to load Airtable records</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="pg-status-bar">
+                  <span style="font-family:var(--mono);font-size:10px;color:var(--d)">Page status:</span>
+                  <span id="pgStatusText" style="font-family:var(--mono);font-size:10px;color:var(--dd)">&#8212;</span>
+                  <div style="margin-left:auto;display:flex;gap:6px">
+                    <span id="okCount" style="font-size:10px;font-family:var(--mono);color:var(--g)"></span>
+                    <span id="flagCount" style="font-size:10px;font-family:var(--mono);color:var(--r)"></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- EXPORT TAB -->
+        <div class="tc" id="tc-export">
+          <div class="tc-scroll">
+            <p style="font-size:12px;color:var(--d);line-height:1.6;margin-bottom:16px">Mark pages verified (&#10003;) or flagged (&#9873;) in the Review tab.</p>
+            <div id="exportSummary"><div class="empty"><div class="et">No file loaded</div></div></div>
+          </div>
+        </div>
+        <!-- VERIFY TAB -->
+        <div class="tc" id="tc-verify">
+          <div class="tc-scroll">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+              <div style="flex:1">
+                <div style="font-size:13px;font-weight:600;margin-bottom:3px">Protocol Verification</div>
+                <div style="font-size:11px;color:var(--d)">Verifies every injection entry in the PDF against the Airtable Injection Log.</div>
+              </div>
+              <button class="btn bp" id="runVerifyBtn" onclick="runVerification()" style="white-space:nowrap;padding:8px 18px">&#9889; Run Verify</button>
+            </div>
+            <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
+              <label style="font-size:11px;color:var(--d);display:flex;align-items:center;gap:6px">
+                <select id="verifyPages" style="padding:4px 8px;font-size:11px;border:1px solid var(--b);border-radius:4px;background:var(--s2);color:var(--t)">
+                  <option value="4">Last 4 pages</option>
+                  <option value="6">Last 6 pages</option>
+                  <option value="10">Last 10 pages</option>
+                  <option value="all" selected>All pages</option>
+                </select>
+                to analyze
+              </label>
+            </div>
+            <div id="verifyStatus" style="font-size:11px;color:var(--d);font-family:var(--mono);margin-bottom:12px;min-height:18px"></div>
+            <div id="verifyResults"></div>
+          </div>
+        </div>
+        <!-- SETTINGS TAB -->
+        <div class="tc" id="tc-settings">
+          <div class="tc-scroll">
+            <p style="font-size:12px;color:var(--d);margin-bottom:16px;line-height:1.6">Assign Drive files (ZIP or PDF) to each type. Use <strong>+ Add Files</strong> to browse your Drive.</p>
+            <div id="typeSections"></div>
+            <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--b)">
+              <div style="font-size:12px;font-weight:600;margin-bottom:10px">Airtable Table Mapping</div>
+              <table style="width:100%;border-collapse:collapse;background:var(--s);border:1px solid var(--b);border-radius:6px;overflow:hidden">
+                <thead><tr>
+                  <th style="font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--d);text-align:left;padding:8px 12px;border-bottom:1px solid var(--b);background:var(--s2);font-family:var(--mono)">Type</th>
+                  <th style="font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--d);text-align:left;padding:8px 12px;border-bottom:1px solid var(--b);background:var(--s2);font-family:var(--mono)">Airtable Table</th>
+                </tr></thead>
+                <tbody id="atMapBody"></tbody>
+              </table>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:16px">
+              <button class="btn bp" onclick="saveSettings()">&#10003; Save Settings</button>
+              <button class="btn bg-btn" onclick="signOut()">Sign Out</button>
+              <button class="btn br" onclick="resetAll()">Reset All</button>
+            </div>
+            <div style="margin-top:8px;font-size:11px;color:var(--g);font-family:var(--mono)" id="saveStatus"></div>
+          </div>
+        </div>
+      </div><!-- /panel -->
+    </div><!-- /body -->
+    <!-- FOLDER BROWSER MODAL -->
+    <div class="modal-bg" id="pickerModal">
+      <div class="modal">
+        <div class="mhdr">
+          <div class="mhdr-top">
+            <div class="mhdr-title" id="pickerTitle">Add Files</div>
+            <button class="btn bg-btn" style="padding:4px 9px;font-size:11px" onclick="closePickerModal()">&#x2715;</button>
+          </div>
+          <div class="breadcrumb" id="breadcrumb"></div>
+        </div>
+        <div class="msearch"><input type="text" id="pickerSearch" placeholder="Search..." oninput="filterItems()"></div>
+        <div class="mlist" id="pickerList"></div>
+        <div class="mftr">
+          <span class="mftr-count" id="pickerSelCount">0 selected</span>
+          <button class="btn bg-btn" onclick="closePickerModal()">Cancel</button>
+          <button class="btn bp" onclick="confirmPicker()">Add Selected</button>
+        </div>
+      </div>
+    </div>
+    <!-- TOASTS -->
+    <div class="toasts" id="toasts"></div>
+  </div><!-- /pdfqa-root -->
+  </div><!-- /view-pdfqa -->
 
 <!-- ADD PRICING MODAL -->
 <!-- BULK EDIT PRICING MODAL -->
@@ -3746,6 +4091,7 @@ function buildWeeklyPrintHTML(monday) {
     if (viewId === 'suppvendors') loadSuppVendors();
   if (viewId === 'suppvendors') loadSuppVendors();
     if (viewId === 'workout-suggestions') loadWorkoutSuggestions();
+    if (viewId === 'pdfqa') initPdfQA();
     if (viewId === 'databrowser') { _dbAllRows = []; _dbColumns = []; document.getElementById('db-collection').value = ''; document.getElementById('db-search').value = ''; document.getElementById('db-count').textContent = ''; document.getElementById('db-content').innerHTML = '<div style="padding:40px;text-align:center;color:var(--muted);font-size:14px">Select a collection above to view all records</div>'; }
     closeAllDrops();
   }
@@ -4496,6 +4842,1019 @@ function renderSuppVendors() {
     </div>`).join('');
 }
 
+// ── PDF QA & VERIFICATION ─────────────────────────────────────────────
+var _pdfqaInited = false;
+function initPdfQA() {
+  if (_pdfqaInited) return;
+  _pdfqaInited = true;
+  if (typeof pdfjsLib !== "undefined") {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+  }
+  // Attach picker modal click-outside handler
+  var pm = document.getElementById("pickerModal");
+  if (pm) pm.addEventListener("click", function(e) { if (e.target === this) closePickerModal(); });
+  loadCfg();
+  loadAtTables();
+  initAuth();
+}
+
+// ── CONFIG ───────────────────────────────────────────────────────────
+var GCI = "478191426516-94rflpalsl5ev56ptck62k5imes6jk8l.apps.googleusercontent.com";
+var GSC = "https://www.googleapis.com/auth/drive.readonly";
+var FOLDER_MIME = "application/vnd.google-apps.folder";
+var WORKER_URL = "https://anthropic-proxy.mikeblack01.workers.dev";
+
+function getPrompt(type) {
+  var p = {
+    workout: "Extract workout set data from this handwritten gym log. Return ONLY a JSON array, each object: {date, session, day, exercise, variation, set_number, reps, weight}. date=YYYY-MM-DD, session='YYYY-MM-DD Day', day=Mon/Tue/etc, weight=number lbs. No explanation.",
+    injection: "Extract peptide/injection log data. Return ONLY a JSON array: [{date, compound, dose, unit, time_of_day, notes}]. date=YYYY-MM-DD. No explanation.",
+    supplement: "Extract supplement data. Return ONLY a JSON array: [{date, name, dose, unit, time_of_day}]. No explanation.",
+    lab: "Extract lab results. Return ONLY a JSON array: [{date, marker, value, unit, ref_range, status}]. No explanation."
+  };
+  return p[type] || p.workout;
+}
+
+async function extractCurrentPage() {
+  toast("Starting extract... pages=" + pages.length + " cur=" + curPage, "ti", 5000);
+  if (!pages[curPage]) { toast("No page loaded (pages=" + pages.length + ")", "tr", 5000); return; }
+  var btn = document.getElementById("extractBtn");
+  btn.disabled = true; btn.textContent = "Extracting...";
+  try {
+    var b64 = pages[curPage].url.split(",")[1];
+    var resp = await fetch(WORKER_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-6", max_tokens: 4000,
+        system: getPrompt(pdfType),
+        messages: [{ role: "user", content: [
+          { type: "image", source: { type: "base64", media_type: "image/jpeg", data: b64 } },
+          { type: "text", text: "Page " + (curPage+1) + " of " + pages.length }
+        ]}]
+      })
+    });
+    var data = await resp.json();
+    var raw = ((data.content || []).find(function(x) { return x.type === "text"; }) || {text:"[]"}).text;
+    raw = raw.replace(/```json\n?|```\n?/g, "").trim();
+    var parsed = []; try { parsed = JSON.parse(raw); } catch(e) {}
+    if (!Array.isArray(parsed)) parsed = [];
+    renderExtracted(parsed);
+    markPage("ok");
+    toast("Extracted " + parsed.length + " records", "tg");
+  } catch(e) { toast("Extract error: " + e.message, "tr"); }
+  btn.disabled = false; btn.textContent = "\u21e9 Extract Page";
+}
+
+function renderExtracted(records) {
+  var existing = document.getElementById("extractedPanel");
+  if (existing) existing.remove();
+  if (!records.length) return;
+  var keys = Object.keys(records[0]).filter(function(k){return k[0]!=="\_";}).slice(0,8);
+  var html = "<div class='sec' id='extractedPanel' style='margin-top:10px'><div class='sech'><span class='sect sectg'>Extracted — Page "+(curPage+1)+"</span><span class='secc'>"+records.length+"</span></div><div style='overflow-x:auto'><table class='tbl'><thead><tr>"+keys.map(function(k){return"<th>"+k+"</th>";}).join("")+"</tr></thead><tbody>";
+  records.forEach(function(r){html+="<tr>"+keys.map(function(k){return"<td>"+esc(r[k]!=null?r[k]:"\u2014")+"</td>";}).join("")+"</tr>";});
+  html+="</tbody></table></div></div>";
+  document.getElementById("atScroll").insertAdjacentHTML("beforeend", html);
+}
+// Set pdf.js worker
+
+
+// ── STATE ─────────────────────────────────────────────────────────────
+var gTok = null, gCli = null;
+var curFile = null, pdfType = "workout";
+var pages = []; // {url, filename, text}
+var curPage = 0;
+var pageStatus = {}; // page index → 'ok'|'flagged'|null
+var atTables = [], atCache = {};
+var pdfDocRef = null; // keep pdf.js doc ref for text extraction
+var pickerType = null, pickerPending = [], folderStack = [], folderCache = {}, curFolderItems = [];
+
+var cfg = {
+  types: {
+    workout:    { files: [], tableID: "tblKDqjy5RzqaJvjr", tableName: "Sets (Workout)" },
+    injection:  { files: [], tableID: "tblBvEaLkGGipnOFc", tableName: "Injection Log" },
+    supplement: { files: [], tableID: "tblSnkc0Gu2BzGACP", tableName: "Supplements" },
+    lab:        { files: [], tableID: "tbl3200yJid6fXaOp", tableName: "Bloodwork / Labs" }
+  }
+};
+
+// ── UTILS ─────────────────────────────────────────────────────────────
+function toast(msg, cls, ms) {
+  var c = document.getElementById("toasts"), el = document.createElement("div");
+  el.className = "toast " + (cls || "ti"); el.textContent = msg;
+  c.appendChild(el); setTimeout(function() { el.remove(); }, ms || 3000);
+}
+function setDot(w, s, l) {
+  var d = document.getElementById(w + "Dot"), lb = document.getElementById(w + "Lbl");
+  d.className = "dot" + (s === "ok" ? " ok" : s === "err" ? " err" : s === "warn" ? " warn" : "");
+  lb.textContent = l;
+}
+function esc(v) { if (v == null) return ""; return String(v).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+function fmtSz(b) { if (!b) return ""; var k = parseInt(b) / 1024; return k > 1024 ? (k / 1024).toFixed(1) + "MB" : Math.round(k) + "KB"; }
+function showTab(name) {
+  document.querySelectorAll(".tab").forEach(function(t) { t.classList.remove("active"); });
+  document.querySelectorAll(".tc").forEach(function(t) { t.classList.remove("active"); });
+  document.getElementById("tab-" + name).classList.add("active");
+  document.getElementById("tc-" + name).classList.add("active");
+  if (name === "settings") renderSettings();
+  if (name === "export") renderExport();
+  if (name === "verify") { /* no init needed */ }
+}
+
+// ── CONFIG PERSISTENCE ────────────────────────────────────────────────
+function loadCfg() {
+  try {
+    var s = localStorage.getItem("mb_pdfqa4");
+    if (s) { var p = JSON.parse(s); if (p.types) Object.keys(p.types).forEach(function(k) { if (cfg.types[k]) cfg.types[k] = Object.assign({}, cfg.types[k], p.types[k]); }); }
+  } catch(e) {}
+}
+function saveCfg() { localStorage.setItem("mb_pdfqa4", JSON.stringify(cfg)); }
+function loadTok() { var t = localStorage.getItem("mb_pdfqat"), e = parseInt(localStorage.getItem("mb_pdfqae") || 0); return (t && Date.now() < e) ? t : null; }
+function saveTok(t, exp) { localStorage.setItem("mb_pdfqat", t); localStorage.setItem("mb_pdfqae", Date.now() + (exp - 60) * 1000); }
+function clearTok() { localStorage.removeItem("mb_pdfqat"); localStorage.removeItem("mb_pdfqae"); }
+
+// ── AUTH ──────────────────────────────────────────────────────────────
+function initAuth() {
+  // Check for token returned from Google redirect
+  var hash = window.location.hash;
+  if (hash) {
+    var params = {};
+    hash.slice(1).split("&").forEach(function(p) { var kv = p.split("="); params[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1] || ""); });
+    if (params.access_token) {
+      gTok = params.access_token;
+      saveTok(params.access_token, parseInt(params.expires_in) || 3600);
+      history.replaceState(null, "", window.location.pathname);
+      setDot("d", "ok", "DRIVE"); loadMappedFiles(); return;
+    }
+  }
+  // Use stored token if valid
+  var stored = loadTok();
+  if (stored) { gTok = stored; setDot("d", "ok", "DRIVE"); loadMappedFiles(); return; }
+  setDot("d", "", "DRIVE");
+}
+function signIn() {
+  // Same-window redirect — no popup
+  var redirect = window.location.href.split("#")[0].split("?")[0];
+  window.location.href = "https://accounts.google.com/o/oauth2/v2/auth" +
+    "?client_id=" + encodeURIComponent(GCI) +
+    "&redirect_uri=" + encodeURIComponent(redirect) +
+    "&response_type=token" +
+    "&scope=" + encodeURIComponent(GSC);
+}
+function signOut() {
+  clearTok(); gTok = null; setDot("d", "", "DRIVE");
+  document.getElementById("fileList").innerHTML = "<div class='abox'><div class='atitle'>Signed Out</div><button class='btn bp' onclick='signIn()'>Sign in with Google</button></div>";
+  toast("Signed out", "ti");
+}
+
+// ── SIDEBAR FILE LIST ─────────────────────────────────────────────────
+async function loadMappedFiles() {
+  if (!gTok) { signIn(); return; }
+  var allMapped = [];
+  Object.keys(cfg.types).forEach(function(type) {
+    cfg.types[type].files.forEach(function(f) { allMapped.push({ type: type, id: f.id, name: f.name }); });
+  });
+  if (!allMapped.length) {
+    setDot("d", "ok", "DRIVE");
+    document.getElementById("fileList").innerHTML = "<div class='empty'><div class='et'>No files mapped</div><div class='es'>Go to Settings to assign files.</div></div>";
+    return;
+  }
+  setDot("d", "ok", "DRIVE");
+  renderSidebarFiles(allMapped);
+}
+function renderSidebarFiles(files) {
+  var types = ["workout", "injection", "supplement", "lab"], html = "";
+  types.forEach(function(type) {
+    var group = files.filter(function(f) { return f.type === type; });
+    if (!group.length) return;
+    html += "<div class='grp-hdr'>" + type + "</div>";
+    group.forEach(function(f) {
+      html += "<div class='fi' id='fi_" + f.id + "' onclick='selFile(\"" + f.id + "\",\"" + esc(f.name) + "\",\"" + type + "\")'>";
+      html += "<span class='ftype ft-" + type + "'>" + type + "</span>";
+      html += "<span class='fn'>" + esc(f.name) + "</span></div>";
+    });
+  });
+  document.getElementById("fileList").innerHTML = html || "<div class='empty'><div class='et'>No files</div></div>";
+}
+
+// ── SELECT FILE & LOAD ZIP ────────────────────────────────────────────
+async function selFile(id, name, type) {
+  document.querySelectorAll(".fi").forEach(function(e) { e.classList.remove("active"); });
+  var fi = document.getElementById("fi_" + id); if (fi) fi.classList.add("active");
+  curFile = { id: id, name: name }; pdfType = type;
+  pages = []; curPage = 0; pageStatus = {};
+  document.getElementById("revEmpty").style.display = "none";
+  document.getElementById("revUI").style.display = "flex";
+  document.getElementById("pdfName").textContent = name;
+  document.getElementById("pdfMeta").textContent = "Loading...";
+  document.getElementById("thumbStrip").innerHTML = "";
+  document.getElementById("mainImg").style.display = "none";
+  document.getElementById("imgEmpty").style.display = "flex";
+  document.getElementById("imgEmpty").innerHTML = "<span style='font-size:28px'>&#8635;</span><span id='dbgStatus'>Downloading file...</span>";
+  document.getElementById("dateFilter").value = "";
+  showTab("review");
+  var m = cfg.types[type];
+  document.getElementById("atTableLabel").textContent = m.tableName || type;
+  if (type === "injection") {
+    document.getElementById("dateFilter").closest(".date-row").style.display = "none";
+    document.getElementById("atRefreshBtn").style.display = "none";
+    document.getElementById("injAuditNav").style.display = "none";
+    document.getElementById("atContent").innerHTML = "<div class='empty' style='padding:20px 10px'><div class='et' style='font-size:11px'>Use ⚡ Verify tab to run verification</div><div class='es'>Or <a href='#' onclick=\"loadInjAuditPanel();return false\" style=\"color:var(--bl)\">load audit grid</a> for manual review.</div></div>";
+  } else {
+    document.getElementById("dateFilter").closest(".date-row").style.display = "flex";
+    document.getElementById("atRefreshBtn").style.display = "";
+    document.getElementById("injAuditNav").style.display = "none";
+    document.getElementById("atContent").innerHTML = "<div class='empty' style='padding:30px 10px'><div class='et' style='font-size:11px'>Set a date to load records</div></div>";
+  }
+
+  try {
+    setDot("d", "warn", "LOADING");
+    var resp = await fetch("https://www.googleapis.com/drive/v3/files/" + id + "?alt=media", { headers: { Authorization: "Bearer " + gTok } });
+    if (!resp.ok) throw new Error("HTTP " + resp.status);
+    var buf = await resp.arrayBuffer();
+    setDot("d", "ok", "DRIVE");
+    function dbg(msg) { var el = document.getElementById("dbgStatus"); if (el) el.textContent = msg; }
+    dbg("Downloaded " + (buf.byteLength/1024).toFixed(0) + "KB. Detecting format...");
+
+    var loaded = false;
+
+    // 1. Try JSZip (ZIP of images)
+    try {
+      var zip = await JSZip.loadAsync(buf);
+      var imgFiles = [];
+      zip.forEach(function(path, file) { if (!file.dir && /\.(jpe?g|png|gif|webp)$/i.test(path)) imgFiles.push({ path: path, file: file }); });
+      imgFiles.sort(function(a, b) {
+        var na = parseInt(a.path.replace(/\D/g,""),10), nb = parseInt(b.path.replace(/\D/g,""),10);
+        return (!isNaN(na) && !isNaN(nb)) ? na - nb : a.path.localeCompare(b.path);
+      });
+      if (imgFiles.length) {
+        for (var i = 0; i < imgFiles.length; i++) {
+          dbg("Extracting image " + (i+1) + "/" + imgFiles.length);
+          var b64 = await imgFiles[i].file.async("base64");
+          var ext = imgFiles[i].path.split(".").pop().toLowerCase();
+          var mime = ext === "png" ? "image/png" : ext === "gif" ? "image/gif" : "image/jpeg";
+          pages.push({ url: "data:" + mime + ";base64," + b64, filename: imgFiles[i].path });
+        }
+        loaded = true;
+      }
+    } catch(e) { dbg("Not a ZIP. Trying PDF..."); }
+
+    // 2. Try pdf.js (real PDF)
+    if (!loaded) {
+      try {
+        if (typeof pdfjsLib === "undefined") throw new Error("pdf.js not loaded");
+        dbg("Loading PDF with pdf.js...");
+        var pdfDoc = await pdfjsLib.getDocument({ data: buf }).promise;
+        dbg("PDF loaded. Rendering " + pdfDoc.numPages + " pages...");
+        pdfDocRef = pdfDoc;
+        for (var p = 1; p <= pdfDoc.numPages; p++) {
+          dbg("Rendering page " + p + "/" + pdfDoc.numPages);
+          var page = await pdfDoc.getPage(p);
+          var vp = page.getViewport({ scale: 2.0 });
+          var canvas = document.createElement("canvas");
+          canvas.width = vp.width; canvas.height = vp.height;
+          await page.render({ canvasContext: canvas.getContext("2d"), viewport: vp }).promise;
+          // Extract text for auto-date detection
+          var textContent = await page.getTextContent();
+          var pageText = textContent.items.map(function(i) { return i.str; }).join(" ");
+          pages.push({ url: canvas.toDataURL("image/jpeg", 0.9), filename: "page_" + p + ".jpg", text: pageText });
+        }
+        loaded = true;
+      } catch(e) { dbg("PDF error: " + e.message); }
+    }
+
+    if (loaded) {
+      document.getElementById("pdfMeta").textContent = pages.length + " pages · " + type;
+      renderThumbs(); goToPage(0); updateStatusBar();
+      toast("Loaded " + pages.length + " pages", "tg");
+    } else {
+      dbg("Failed to load file. Check console for details.");
+      toast("Could not load file", "tr");
+    }
+
+  } catch(e) {
+    setDot("d", "err", "DRIVE ERR");
+    toast("Load error: " + e.message, "tr");
+    document.getElementById("pdfMeta").textContent = "Error loading file";
+    document.getElementById("imgEmpty").innerHTML = "<span style='color:#d63030'>Load error: " + esc(e.message) + "</span>";
+  }
+}
+
+// ── IMAGE VIEWER ──────────────────────────────────────────────────────
+function renderThumbs() {
+  var strip = document.getElementById("thumbStrip");
+  strip.innerHTML = "";
+  pages.forEach(function(p, i) {
+    var d = document.createElement("div");
+    d.className = "thumb" + (i === curPage ? " active" : "") + (pageStatus[i] ? " " + pageStatus[i] : "");
+    d.id = "th_" + i;
+    d.onclick = (function(n) { return function() { goToPage(n); }; })(i);
+    d.innerHTML = "<img src='" + p.url + "' loading='lazy'/><div class='thumb-num'>" + (i + 1) + "</div>";
+    strip.appendChild(d);
+  });
+}
+function goToPage(n) {
+  if (n < 0 || n >= pages.length) return;
+  var oldThumb = document.getElementById("th_" + curPage);
+  if (oldThumb) { oldThumb.classList.remove("active"); if (pageStatus[curPage]) oldThumb.classList.add(pageStatus[curPage]); }
+  curPage = n;
+  var p = pages[n];
+  var img = document.getElementById("mainImg");
+  img.style.display = "block"; img.src = p.url;
+  document.getElementById("imgEmpty").style.display = "none";
+  document.getElementById("pgLabel").textContent = (n + 1) + " / " + pages.length;
+  document.getElementById("prevBtn").disabled = n === 0;
+  document.getElementById("nextBtn").disabled = n === pages.length - 1;
+  document.getElementById("imgMeta").textContent = p.filename;
+  var newThumb = document.getElementById("th_" + n);
+  if (newThumb) { newThumb.classList.add("active"); newThumb.scrollIntoView({ block: "nearest", inline: "center", behavior: "smooth" }); }
+  // Auto-detect date from extracted text
+  if (p.text) {
+    var detected = extractDateFromText(p.text);
+    if (detected) {
+      document.getElementById("dateFilter").value = detected;
+      refreshAtData();
+    }
+  }
+  updateStatusBar();
+}
+
+function extractDateFromText(text) {
+  // Try ISO date: 2025-01-15
+  var iso = text.match(/\b(20\d{2})[-\/](0?[1-9]|1[0-2])[-\/](0?[1-9]|[12]\d|3[01])\b/);
+  if (iso) return iso[1] + "-" + iso[2].padStart(2,"0") + "-" + iso[3].padStart(2,"0");
+  // Try MM/DD/YYYY
+  var mdy = text.match(/\b(0?[1-9]|1[0-2])[\/\-](0?[1-9]|[12]\d|3[01])[\/\-](20\d{2})\b/);
+  if (mdy) return mdy[3] + "-" + mdy[1].padStart(2,"0") + "-" + mdy[2].padStart(2,"0");
+  // Try "Month DD, YYYY" or "Month YYYY"
+  var months = {january:"01",february:"02",march:"03",april:"04",may:"05",june:"06",july:"07",august:"08",september:"09",october:"10",november:"11",december:"12"};
+  var mlong = text.toLowerCase().match(/\b(january|february|march|april|may|june|july|august|september|october|november|december)\s+(\d{1,2})?,?\s*(20\d{2})/);
+  if (mlong) {
+    var m = months[mlong[1]], d = mlong[2] ? mlong[2].padStart(2,"0") : "01", y = mlong[3];
+    return y + "-" + m + "-" + d;
+  }
+  return null;
+}
+
+function sendToClaude() {
+  if (!pages[curPage]) return;
+  // Download current page as JPEG for uploading to Claude chat
+  var a = document.createElement("a");
+  a.href = pages[curPage].url;
+  a.download = "page_" + (curPage+1) + "_" + (curFile ? curFile.name.replace(".pdf","") : "doc") + ".jpg";
+  a.click();
+  toast("Downloaded — upload this image to Claude chat", "ti", 5000);
+}
+function navPage(dir) { goToPage(curPage + dir); }
+function markPage(status) {
+  pageStatus[curPage] = (pageStatus[curPage] === status) ? null : status;
+  var th = document.getElementById("th_" + curPage);
+  if (th) { th.className = "thumb active" + (pageStatus[curPage] ? " " + pageStatus[curPage] : ""); }
+  updateStatusBar();
+  toast(status === "ok" ? "Marked verified" : "Flagged", status === "ok" ? "tg" : "ty");
+}
+function updateStatusBar() {
+  var ok = Object.values(pageStatus).filter(function(v) { return v === "ok"; }).length;
+  var flagged = Object.values(pageStatus).filter(function(v) { return v === "flagged"; }).length;
+  var cur = pageStatus[curPage];
+  document.getElementById("pgStatusText").textContent = cur ? cur.toUpperCase() : "unreviewed";
+  document.getElementById("pgStatusText").style.color = cur === "ok" ? "var(--g)" : cur === "flagged" ? "var(--r)" : "var(--dd)";
+  document.getElementById("okCount").textContent = ok ? "✓ " + ok + " verified" : "";
+  document.getElementById("flagCount").textContent = flagged ? "⚑ " + flagged + " flagged" : "";
+}
+
+// ── AIRTABLE PANEL ────────────────────────────────────────────────────
+async function refreshAtData() {
+  var date = document.getElementById("dateFilter").value;
+  if (!date) { document.getElementById("atContent").innerHTML = "<div class='empty' style='padding:30px 10px'><div class='et' style='font-size:11px'>Enter a date above</div></div>"; return; }
+  var m = cfg.types[pdfType];
+  if (!m || !m.tableID) { document.getElementById("atContent").innerHTML = "<div class='empty' style='padding:30px 10px'><div class='et' style='font-size:11px;color:var(--r)'>No table mapped for " + pdfType + "</div></div>"; return; }
+  document.getElementById("atContent").innerHTML = "<div style='padding:20px;color:var(--dd);font-size:11px;text-align:center'>Loading...</div>";
+  try {
+    if (pdfType === "injection") {
+      // Load full week (Mon-Sun) for injection type
+      var d = new Date(date + "T00:00:00");
+      var day = d.getDay();
+      var mon = new Date(d); mon.setDate(d.getDate() - ((day+6)%7));
+      var sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+      var fmt = function(dt) { return dt.toISOString().slice(0,10); };
+      var recs = await fetchAtInjectionWeek(fmt(mon), fmt(sun));
+      renderInjectionPanel(recs, fmt(mon), fmt(sun));
+    } else {
+      var recs = await fetchAtDate(m.tableID, date);
+      renderAtPanel(recs, date, m.tableID);
+    }
+  } catch(e) {
+    document.getElementById("atContent").innerHTML = "<div style='padding:20px;color:var(--r);font-size:11px'>Error: " + esc(e.message) + "</div>";
+  }
+}
+async function fetchAtInjectionWeek(startDate, endDate) {
+  var formula = encodeURIComponent("AND({fldhYEtLEGA4VxvvO}>='"+startDate+"',{fldhYEtLEGA4VxvvO}<='"+endDate+"')");
+  var url = "https://api.airtable.com/v0/" + BASE + "/tblBvEaLkGGipnOFc?pageSize=100&returnFieldsByFieldId=true&filterByFormula=" + formula + "&sort[0][field]=fldhYEtLEGA4VxvvO&sort[0][direction]=asc";
+  var r = await fetch(url, { headers: { Authorization: "Bearer " + TOKEN } });
+  if (!r.ok) throw new Error("HTTP " + r.status);
+  var d = await r.json();
+  return d.records || [];
+}
+function renderInjectionPanel(recs, startDate, endDate) {
+  if (!recs.length) {
+    document.getElementById("atContent").innerHTML = "<div class='empty' style='padding:30px 10px'><div class='et' style='font-size:11px;color:var(--r)'>No records for week of " + startDate + "</div></div>";
+    return;
+  }
+  var html = "<div class='sec'><div class='sech'><span class='sect sectbl'>Week of " + startDate + "</span><span class='secc'>" + recs.length + "</span></div><div style='overflow-x:auto'>";
+  html += "<table class='tbl'><thead><tr><th>Date</th><th>Compound</th><th>Dose</th><th>Side</th><th>TOD</th><th>Notes</th></tr></thead><tbody>";
+  recs.forEach(function(r) {
+    var f = r.fields || {};
+    html += "<tr>";
+    html += "<td>" + esc(f["fldhYEtLEGA4VxvvO"]||"—") + "</td>";
+    html += "<td style='font-weight:500'>" + esc((f["fldwVFyizH4mBANBa"]||{}).name||"—") + "</td>";
+    html += "<td>" + esc(f["fld8d8mtRapfaIyqL"]||"—") + "</td>";
+    html += "<td>" + esc((f["fldHDlJY8FpAvK018"]||{}).name||"—") + "</td>";
+    html += "<td>" + esc((f["fldIdzew4Jd0qO4Uc"]||{}).name||"—") + "</td>";
+    html += "<td style='font-size:10px;color:var(--d)'>" + esc(f["Notes"]||"") + "</td>";
+    html += "</tr>";
+  });
+  html += "</tbody></table></div></div>";
+  document.getElementById("atContent").innerHTML = html;
+}
+async function fetchAtDate(tid, date) {
+  var formula = encodeURIComponent("FIND(\"" + date + "\",{Date})");
+  var url = "https://api.airtable.com/v0/" + BASE + "/" + tid + "?pageSize=100&filterByFormula=" + formula + "&sort[0][field]=Date&sort[0][direction]=asc";
+  var r = await fetch(url, { headers: { Authorization: "Bearer " + TOKEN } });
+  if (!r.ok) throw new Error("HTTP " + r.status);
+  var d = await r.json();
+  return d.records || [];
+}
+function renderAtPanel(recs, date, tid) {
+  if (!recs.length) {
+    document.getElementById("atContent").innerHTML = "<div class='empty' style='padding:30px 10px'><div class='et' style='font-size:11px;color:var(--r)'>No records for " + date + "</div><div class='es'>Nothing in Airtable for this date.</div></div>";
+    return;
+  }
+  var html = "<div class='sec'><div class='sech'><span class='sect sectbl'>" + date + "</span><span class='secc'>" + recs.length + " records</span></div><div style='overflow-x:auto'>";
+  var cols = Object.keys(recs[0].fields).filter(function(k) { return !["id", "createdTime"].includes(k); }).slice(0, 8);
+  html += "<table class='tbl'><thead><tr>" + cols.map(function(c) { return "<th>" + esc(c) + "</th>"; }).join("") + "</tr></thead><tbody>";
+  recs.forEach(function(r) {
+    html += "<tr>" + cols.map(function(c) { return "<td>" + esc(r.fields[c] != null ? r.fields[c] : "—") + "</td>"; }).join("") + "</tr>";
+  });
+  html += "</tbody></table></div></div>";
+  document.getElementById("atContent").innerHTML = html;
+}
+
+// ── AIRTABLE LOAD TABLES ──────────────────────────────────────────────
+async function loadAtTables() {
+  try {
+    var r = await fetch("https://api.airtable.com/v0/meta/bases/" + BASE + "/tables", { headers: { Authorization: "Bearer " + TOKEN } });
+    var d = await r.json(); atTables = d.tables || []; setDot("a", "ok", "AT");
+    Object.keys(cfg.types).forEach(function(type) {
+      var m = cfg.types[type]; if (m.tableID) { var t = atTables.find(function(x) { return x.id === m.tableID; }); if (t) m.tableName = t.name; }
+    });
+  } catch(e) { setDot("a", "err", "AT ERR"); }
+}
+
+// ── EXPORT TAB ────────────────────────────────────────────────────────
+function renderExport() {
+  if (!pages.length) { document.getElementById("exportSummary").innerHTML = "<div class='empty'><div class='et'>No file loaded</div></div>"; return; }
+  var ok = 0, flagged = 0, unrev = 0;
+  pages.forEach(function(p, i) { var s = pageStatus[i]; if (s === "ok") ok++; else if (s === "flagged") flagged++; else unrev++; });
+  var html = "<div class='sec'><div class='sech'><span class='sect sectbl'>" + esc(curFile.name) + "</span><span class='secc'>" + pages.length + " pages</span></div>";
+  html += "<div style='padding:14px;display:flex;gap:16px'>";
+  html += "<div style='text-align:center'><div style='font-size:24px;font-weight:700;color:var(--g);font-family:var(--mono)'>" + ok + "</div><div style='font-size:10px;color:var(--d)'>Verified</div></div>";
+  html += "<div style='text-align:center'><div style='font-size:24px;font-weight:700;color:var(--r);font-family:var(--mono)'>" + flagged + "</div><div style='font-size:10px;color:var(--d)'>Flagged</div></div>";
+  html += "<div style='text-align:center'><div style='font-size:24px;font-weight:700;color:var(--dd);font-family:var(--mono)'>" + unrev + "</div><div style='font-size:10px;color:var(--d)'>Unreviewed</div></div>";
+  html += "</div></div>";
+  // Flagged pages list
+  var flaggedPages = pages.map(function(p, i) { return { i: i, p: p, s: pageStatus[i] }; }).filter(function(x) { return x.s === "flagged"; });
+  if (flaggedPages.length) {
+    html += "<div class='sec'><div class='sech'><span class='sect sectr'>Flagged Pages</span><span class='secc'>" + flaggedPages.length + "</span></div><div style='padding:10px 14px;display:flex;flex-wrap:wrap;gap:6px'>";
+    flaggedPages.forEach(function(x) { html += "<span style='font-family:var(--mono);font-size:11px;background:var(--rd);color:var(--r);padding:3px 9px;border-radius:4px'>Page " + (x.i + 1) + "</span>"; });
+    html += "</div></div>";
+  }
+  document.getElementById("exportSummary").innerHTML = html;
+}
+
+// ── SETTINGS ──────────────────────────────────────────────────────────
+function renderSettings() {
+  var types = ["workout", "injection", "supplement", "lab"];
+  document.getElementById("typeSections").innerHTML = types.map(function(type) {
+    var m = cfg.types[type];
+    var chips = m.files.map(function(f, i) {
+      return "<span class='chip'><span>" + esc(f.name) + "</span><span class='chip-x' onclick='removeFile(\"" + type + "\"," + i + ")'>&#x2715;</span></span>";
+    }).join("");
+    chips += "<span class='chip chip-add' onclick='openPicker(\"" + type + "\")'>+ Add Files</span>";
+    return "<div class='type-section'><div class='type-hdr'><span class='type-badge type-" + type + "'>" + type + "</span><span style='font-size:11px;color:var(--d)'>" + m.files.length + " file" + (m.files.length !== 1 ? "s" : "") + "</span></div><div class='type-body' id='chips_" + type + "'>" + chips + "</div></div>";
+  }).join("");
+  var tbody = document.getElementById("atMapBody");
+  tbody.innerHTML = types.map(function(type) {
+    var m = cfg.types[type]; var cur = m.tableID || "";
+    var opts = "<option value=''>&#8212;</option>" + atTables.map(function(t) { return "<option value='" + t.id + "'" + (t.id === cur ? " selected" : "") + ">" + t.name + "</option>"; }).join("");
+    return "<tr style='border-bottom:1px solid var(--b)'><td style='padding:8px 12px'><span class='type-badge type-" + type + "'>" + type + "</span></td><td style='padding:6px 12px'><select class='inp' style='width:100%' id='atsel_" + type + "'>" + opts + "</select></td></tr>";
+  }).join("");
+}
+function removeFile(type, idx) { cfg.types[type].files.splice(idx, 1); saveCfg(); renderSettings(); loadMappedFiles(); toast("Removed", "ti"); }
+function saveSettings() {
+  ["workout", "injection", "supplement", "lab"].forEach(function(type) {
+    var s = document.getElementById("atsel_" + type); if (s) { cfg.types[type].tableID = s.value; var t = atTables.find(function(x) { return x.id === s.value; }); if (t) cfg.types[type].tableName = t.name; }
+  });
+  saveCfg();
+  var el = document.getElementById("saveStatus"); if (el) { el.textContent = "Saved " + new Date().toLocaleTimeString(); setTimeout(function() { el.textContent = ""; }, 3000); }
+  toast("Saved", "tg"); loadMappedFiles();
+}
+function resetAll() { if (!confirm("Reset all settings?")) return; localStorage.removeItem("mb_pdfqa4"); location.reload(); }
+
+// ── FOLDER BROWSER ────────────────────────────────────────────────────
+async function fetchFolderContents(folderId) {
+  if (folderCache[folderId]) return folderCache[folderId];
+  var qId = folderId === "root" ? "'root' in parents" : "'" + folderId + "' in parents";
+  var url = "https://www.googleapis.com/drive/v3/files?q=" + encodeURIComponent(qId + " and trashed=false") + "&fields=files(id,name,mimeType,size,modifiedTime)&pageSize=200&orderBy=folder,name";
+  var r = await fetch(url, { headers: { Authorization: "Bearer " + gTok } });
+  var d = await r.json(); if (d.error) throw new Error(d.error.message);
+  folderCache[folderId] = d.files || []; return folderCache[folderId];
+}
+function openPicker(type) {
+  if (!gTok) { toast("Sign in first", "tr"); return; }
+  pickerType = type; pickerPending = []; folderStack = [];
+  document.getElementById("pickerTitle").textContent = "Add Files — " + type;
+  document.getElementById("pickerSearch").value = "";
+  document.getElementById("pickerModal").classList.add("open");
+  navigateToFolder("root", "My Drive");
+}
+async function navigateToFolder(folderId, folderName) {
+  document.getElementById("pickerList").innerHTML = "<div style='padding:20px;text-align:center;color:var(--dd);font-size:11px'>Loading...</div>";
+  var existing = folderStack.findIndex(function(f) { return f.id === folderId; });
+  if (existing >= 0) folderStack = folderStack.slice(0, existing + 1); else folderStack.push({ id: folderId, name: folderName });
+  renderBreadcrumb();
+  try { curFolderItems = await fetchFolderContents(folderId); renderPickerList(document.getElementById("pickerSearch").value); }
+  catch(e) { document.getElementById("pickerList").innerHTML = "<div style='padding:20px;text-align:center;color:var(--r);font-size:11px'>Error: " + esc(e.message) + "</div>"; }
+}
+function renderBreadcrumb() {
+  document.getElementById("breadcrumb").innerHTML = folderStack.map(function(f, i) {
+    var isCur = i === folderStack.length - 1;
+    return "<span class='bc-item" + (isCur ? " current" : "") + "'" + (isCur ? "" : " onclick='navigateToFolder(\"" + f.id + "\",\"" + esc(f.name) + "\")'") + ">" + (i > 0 ? "&#128193; " : "") + esc(f.name) + "</span>" + (isCur ? "" : "<span class='bc-sep'>&#8250;</span>");
+  }).join("");
+}
+function renderPickerList(filter) {
+  var already = cfg.types[pickerType] ? cfg.types[pickerType].files.map(function(f) { return f.id; }) : [];
+  var items = curFolderItems.filter(function(f) {
+    if (filter && f.name.toLowerCase().indexOf(filter.toLowerCase()) < 0) return false;
+    // Allow folders, PDFs, ZIPs
+    return f.mimeType === FOLDER_MIME || f.mimeType === "application/pdf" || f.mimeType === "application/zip" || f.mimeType === "application/x-zip-compressed" || /\.(pdf|zip)$/i.test(f.name);
+  });
+  if (!items.length) { document.getElementById("pickerList").innerHTML = "<div style='padding:20px;text-align:center;color:var(--dd);font-size:11px'>No files here</div>"; updatePickerCount(); return; }
+  document.getElementById("pickerList").innerHTML = items.map(function(f) {
+    var isFolder = f.mimeType === FOLDER_MIME;
+    var isSel = !isFolder && pickerPending.indexOf(f.id) >= 0;
+    var isAssigned = !isFolder && already.indexOf(f.id) >= 0;
+    if (isFolder) return "<div class='mitem' onclick='navigateToFolder(\"" + f.id + "\",\"" + esc(f.name) + "\")'><div class='mitem-icon'>&#128193;</div><div class='mitem-name'>" + esc(f.name) + "</div><div class='mitem-arrow'>&#8250;</div></div>";
+    return "<div class='mitem" + (isSel ? " checked" : "") + (isAssigned ? " disabled" : "") + "' id='pfi_" + f.id + "' onclick='" + (isAssigned ? "" : "togglePicker(\"" + f.id + "\",\"" + esc(f.name) + "\")") + "'><input type='checkbox'" + (isSel ? " checked" : "") + (isAssigned ? " disabled checked" : "") + " onclick='event.stopPropagation();" + (isAssigned ? "" : "togglePicker(\"" + f.id + "\",\"" + esc(f.name) + "\")") + "' style='accent-color:var(--bl);width:15px;height:15px;flex-shrink:0;cursor:pointer'><div class='mitem-name'>" + esc(f.name) + (isAssigned ? " <span style='font-size:9px;color:var(--g)'>(assigned)</span>" : "") + "</div><div class='mitem-meta'>" + fmtSz(f.size) + "</div></div>";
+  }).join("");
+  updatePickerCount();
+}
+function togglePicker(id, name) {
+  var already = cfg.types[pickerType] ? cfg.types[pickerType].files.map(function(f) { return f.id; }) : [];
+  if (already.indexOf(id) >= 0) return;
+  var idx = pickerPending.indexOf(id);
+  if (idx >= 0) pickerPending.splice(idx, 1); else pickerPending.push(id);
+  var el = document.getElementById("pfi_" + id); if (el) el.classList.toggle("checked", pickerPending.indexOf(id) >= 0);
+  var cb = el ? el.querySelector("input") : null; if (cb) cb.checked = pickerPending.indexOf(id) >= 0;
+  updatePickerCount();
+}
+function filterItems() { renderPickerList(document.getElementById("pickerSearch").value); }
+function updatePickerCount() { document.getElementById("pickerSelCount").textContent = pickerPending.length + " selected"; }
+function closePickerModal() { document.getElementById("pickerModal").classList.remove("open"); pickerType = null; pickerPending = []; }
+function confirmPicker() {
+  if (!pickerPending.length) { toast("No files selected", "tr"); return; }
+  pickerPending.forEach(function(id) {
+    var f = curFolderItems.find(function(x) { return x.id === id; }) || { id: id, name: id };
+    cfg.types[pickerType].files.push({ id: f.id, name: f.name });
+  });
+  saveCfg(); renderSettings(); loadMappedFiles();
+  toast("Added " + pickerPending.length + " file" + (pickerPending.length !== 1 ? "s" : "") + " to " + pickerType, "tg");
+  closePickerModal();
+}
+// pickerModal listener attached in initPdfQA()
+
+// pdfqa init — called from navDrop
+
+// ── VERIFY TAB v4 ────────────────────────────────────────────────────
+var CANONICAL_COMPOUNDS = [
+  "Testosterone","Deca (Nandrolone)","NAD+","LipoMinoMix","Tesamorelin",
+  "Tirzepatide","Anavar (Oxandrolone)","Winstrol (Stanozolol)","BPC-157",
+  "TB-500","CJC-1295 No DAC","Ipamorelin","GHK-Cu","Mots-C","SS-31",
+  "Retatrutide","Selank","DSIP","KPV","Melanotan II (MT2)","Semax",
+  "Cagrilintide","Epitalon","Glutathione","Sermorelin","PT-141",
+  "IGF-1 LR3","MK-677","HGH"
+];
+
+var verifyRowData = [];
+var BATCH_SIZE = 4;
+
+function vStatus(msg, cls) {
+  var el = document.getElementById("verifyStatus");
+  if (!el) return;
+  el.textContent = msg;
+  el.style.color = cls === "err" ? "var(--r)" : cls === "ok" ? "var(--g)" : "var(--d)";
+}
+
+// ── CLAUDE CALL ───────────────────────────────────────────────────────
+async function callClaudePages(pageIndices, prompt) {
+  var imgBlocks = [];
+  pageIndices.forEach(function(i) {
+    imgBlocks.push({ type: "image", source: { type: "base64", media_type: "image/jpeg", data: pages[i].url.split(",")[1] } });
+    imgBlocks.push({ type: "text", text: "Page " + (i+1) + " of " + pages.length });
+  });
+  var resp = await fetch(WORKER_URL, {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 4000,
+      messages: [{ role: "user", content: imgBlocks.concat([{ type: "text", text: prompt }]) }] })
+  });
+  if (!resp.ok) throw new Error("Worker HTTP " + resp.status);
+  var data = await resp.json();
+  if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
+  var raw = ((data.content || []).find(function(x) { return x.type === "text"; }) || {text:"[]"}).text;
+  return raw.replace(/```json\n?|```\n?/g, "").trim();
+}
+
+// ── AIRTABLE FETCH ────────────────────────────────────────────────────
+async function loadActivePeptides() {
+  document.getElementById("atContent").innerHTML = "<div style='padding:16px;color:var(--dd);font-size:11px;text-align:center'>Loading peptides...</div>";
+  try {
+    var url = "https://api.airtable.com/v0/" + BASE + "/tblMs6YRdP4wkndUp?pageSize=100&returnFieldsByFieldId=true";
+    var r = await fetch(url, { headers: { Authorization: "Bearer " + TOKEN } });
+    var d = await r.json();
+    var recs = (d.records || []).filter(function(rec) {
+      return ((rec.fields || {})["fldeCBOtYYp6BtAfh"] || {}).name === "Active";
+    }).sort(function(a,b){
+      var na = (a.fields["fld9J0U5iSDzyaaun"]||{}).name||"";
+      var nb = (b.fields["fld9J0U5iSDzyaaun"]||{}).name||"";
+      return na.localeCompare(nb) || ((a.fields["fldeH5uyKXDFPZbHK"]||"").localeCompare(b.fields["fldeH5uyKXDFPZbHK"]||""));
+    });
+    var html = "<div style='padding:8px 0'>";
+    var curTOD = "";
+    recs.forEach(function(rec) {
+      var f = rec.fields || {};
+      var name = f["fldeH5uyKXDFPZbHK"] || "?";
+      var dose = f["fldN7WOCx7ETJwmrB"] || "—";
+      var tod = (f["fld9J0U5iSDzyaaun"]||{}).name || "";
+      var freq = (f["fldyExNQXycfMjd1S"]||{}).name || "";
+      if (tod !== curTOD) {
+        curTOD = tod;
+        html += "<div style='padding:4px 14px 2px;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--dd);font-family:var(--mono);margin-top:6px'>" + esc(tod) + "</div>";
+      }
+      html += "<div style='display:flex;align-items:center;padding:5px 14px;border-bottom:1px solid var(--b)'>";
+      html += "<div style='flex:1;font-size:11px;font-weight:500'>" + esc(name) + "</div>";
+      html += "<div style='font-size:10px;font-family:var(--mono);color:var(--d)'>" + esc(dose) + "</div>";
+      html += "</div>";
+    });
+    html += "</div>";
+    document.getElementById("atContent").innerHTML = html;
+  } catch(e) {
+    document.getElementById("atContent").innerHTML = "<div style='padding:16px;color:var(--r);font-size:11px'>Error: " + esc(e.message) + "</div>";
+  }
+}
+
+var injAuditData = null; // cache loaded audit
+
+async function loadInjAuditPanel() {
+  var statusEl = document.getElementById("atStatusLabel");
+  var navEl = document.getElementById("injAuditNav");
+  var contentEl = document.getElementById("atContent");
+  if (injAuditData) { renderInjAuditNav(injAuditData, navEl, contentEl); return; }
+  statusEl.textContent = "Loading...";
+  var ALIAS = {"trt":"Testosterone","cjc-1295":"CJC-1295 No DAC","cjc 1295":"CJC-1295 No DAC","cag":"Cagrilintide","epithalon":"Epitalon","epithalone":"Epitalon","deca (nano)":"Deca (Nandrolone)","deca nano":"Deca (Nandrolone)","melanotan ii":"Melanotan II (MT2)","melanotan 2":"Melanotan II (MT2)","mots c":"Mots-C","ss 31":"SS-31","anavar":"Anavar (Oxandrolone)","stanozolal":"Winstrol (Stanozolol)","stanozolol":"Winstrol (Stanozolol)"};
+  var nrm = function(s){ return (s||"").toLowerCase().trim().replace(/ +/g," "); };
+  var res = function(raw){ return ALIAS[nrm(raw)] || raw; };
+  function getMon(dateStr) {
+    var d = new Date(dateStr + "T12:00:00");
+    var diff = d.getDay() === 0 ? -6 : 1 - d.getDay();
+    var m = new Date(d); m.setDate(d.getDate() + diff);
+    return m.toISOString().split("T")[0];
+  }
+  try {
+    var records = [], offset = null;
+    do {
+      var url = "https://api.airtable.com/v0/" + BASE + "/tblBvEaLkGGipnOFc?pageSize=100&fields[]=Date&fields[]=Compound&fields[]=Site&fields[]=Notes&sort[0][field]=Date&sort[0][direction]=asc" + (offset ? "&offset=" + encodeURIComponent(offset) : "");
+      var r = await fetch(url, { headers: { Authorization: "Bearer " + TOKEN } });
+      var j = await r.json();
+      if (j.error) throw new Error(j.error.message);
+      records = records.concat(j.records || []);
+      offset = j.offset;
+      statusEl.textContent = records.length + " records...";
+    } while (offset);
+    var weeks = {};
+    records.forEach(function(rec) {
+      var f = rec.fields, date = f["Date"];
+      if (!date) return;
+      var compound = res(f["Compound"] || ""), mon = getMon(date);
+      if (!weeks[mon]) weeks[mon] = {};
+      var key = compound + "|" + date;
+      if (!weeks[mon][key]) weeks[mon][key] = [];
+      weeks[mon][key].push({ site: f["Site"] || "", note: f["Notes"] || "" });
+    });
+    injAuditData = weeks;
+    var sortedWeeks = Object.keys(weeks).sort();
+    statusEl.textContent = records.length + " · " + sortedWeeks.length + " wks";
+    renderInjAuditNav(weeks, navEl, contentEl);
+  } catch(e) {
+    statusEl.textContent = "Error: " + e.message;
+    contentEl.innerHTML = "<div style='padding:16px;color:var(--r);font-size:11px'>" + esc(e.message) + "</div>";
+  }
+}
+
+function renderInjAuditNav(weeks, navEl, contentEl) {
+  var sortedWeeks = Object.keys(weeks).sort();
+  navEl.innerHTML = "";
+  var DAYS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+  sortedWeeks.forEach(function(mon) {
+    var btn = document.createElement("button");
+    var parts = mon.split("-"); btn.textContent = parts[1]+"/"+parts[2]+"/"+parts[0].slice(2);
+    btn.style.cssText = "padding:4px 10px;border:1px solid var(--b);border-radius:4px;cursor:pointer;font-size:11px;font-family:var(--mono);background:var(--s);color:var(--t);flex-shrink:0";
+    btn.onclick = function() {
+      navEl.querySelectorAll("button").forEach(function(b){ b.style.background="var(--s)"; b.style.color="var(--t)"; });
+      btn.style.background="var(--bl)"; btn.style.color="#fff";
+      showInjWeek(mon, weeks[mon], DAYS, contentEl);
+    };
+    navEl.appendChild(btn);
+    btn._weekKey = mon;
+  });
+  // Auto-select most recent week
+  var btns = navEl.querySelectorAll("button");
+  if (btns.length) btns[btns.length-1].click();
+}
+
+function showInjWeek(mon, weekData, DAYS, contentEl) {
+  var monDate = new Date(mon + "T12:00:00");
+  var dates = [];
+  for (var i = 0; i < 7; i++) { var d = new Date(monDate); d.setDate(monDate.getDate()+i); dates.push(d.toISOString().split("T")[0]); }
+  var compounds = [];
+  var seen = {};
+  Object.keys(weekData).forEach(function(k){ var c=k.split("|")[0]; if(!seen[c]){seen[c]=1;compounds.push(c);} });
+  compounds.sort();
+  var NIGHT = {"CJC-1295 No DAC":1,"Ipamorelin":1,"DSIP":1,"KPV":1,"Epitalon":1,"Selank":1,"BPC-157":1};
+  var secOf = function(c){ return NIGHT[c] ? "Night" : "Morning"; };
+  var CC = {"L":"#dbeafe","R":"#fef3c7","S":"#fee2e2","X":"#f3f4f6","N":"#e5e7eb"};
+  var TC = {"L":"#1d4ed8","R":"#92400e","S":"#dc2626","X":"#6b7280","N":"#9ca3af"};
+  function cell(entries) {
+    if (!entries||!entries.length) return "<td style='border:1px solid #ccc;min-width:48px'></td>";
+    var s = entries[0].site;
+    if (!s) return "<td style='border:1px solid #ccc;min-width:48px;text-align:center;background:#f9fafb;font-size:11px;color:#ccc'>·</td>";
+    return "<td style='border:1px solid #ccc;min-width:48px;text-align:center;padding:5px 2px;background:"+(CC[s]||"#dcfce7")+";font-size:13px;font-weight:700;color:"+(TC[s]||"#15803d")+"'>"+s+"</td>";
+  }
+  var html = "<table style='border-collapse:collapse;font-size:12px;width:100%'><thead><tr>";
+  html += "<th style='text-align:left;padding:5px 10px;border:1px solid #999;min-width:160px;background:#e5e7eb;font-size:11px'>Compound</th>";
+  DAYS.forEach(function(d,i){ var p=dates[i].split("-"); html += "<th style='padding:3px 5px;border:1px solid #999;text-align:center;background:#e5e7eb;font-size:10px;min-width:48px'>"+d+"<br><span style='font-weight:400;font-size:9px'>"+p[1]+"/"+p[2]+"</span></th>"; });
+  html += "<th style='border:1px solid #999;background:#e5e7eb;padding:3px 6px;font-size:10px'>Notes</th></tr></thead><tbody>";
+  ["Morning","Night"].forEach(function(section) {
+    html += "<tr><td colspan='"+(DAYS.length+2)+"' style='background:#374151;color:#fff;padding:4px 10px;font-size:11px;font-weight:600;border:1px solid #555'>"+section+"</td></tr>";
+    compounds.filter(function(c){ return secOf(c)===section; }).forEach(function(c) {
+      html += "<tr><td style='padding:4px 10px;border:1px solid #ccc;font-size:11px;font-weight:500;background:#f9fafb;white-space:nowrap'>"+esc(c)+"</td>";
+      dates.forEach(function(date){ html += cell(weekData[c+"|"+date]); });
+      var notes = [];
+      var seen = {};
+      dates.forEach(function(date){ (weekData[c+"|"+date]||[]).forEach(function(e){ if(e.note&&!seen[e.note]){seen[e.note]=1;notes.push(e.note);} }); });
+      html += "<td style='padding:4px 6px;border:1px solid #ccc;font-size:10px;color:#666'>"+esc(notes.join("; "))+"</td></tr>";
+    });
+  });
+  html += "</tbody></table>";
+  contentEl.innerHTML = html;
+}
+
+async function fetchAtPagedURL(url) {
+  var records = [], offset = null;
+  do {
+    var u = url + (offset ? "&offset=" + offset : "");
+    var r = await fetch(u, { headers: { Authorization: "Bearer " + TOKEN } });
+    if (!r.ok) throw new Error("AT HTTP " + r.status);
+    var d = await r.json();
+    records = records.concat(d.records || []);
+    offset = d.offset || null;
+  } while (offset);
+  return records;
+}
+
+async function fetchAtInjections(startDate, endDate) {
+  var formula = encodeURIComponent("AND({fldhYEtLEGA4VxvvO}>='"+startDate+"',{fldhYEtLEGA4VxvvO}<='"+endDate+"')");
+  var url = "https://api.airtable.com/v0/" + BASE + "/tblBvEaLkGGipnOFc?pageSize=100&returnFieldsByFieldId=true&filterByFormula=" + formula;
+  var recs = await fetchAtPagedURL(url);
+  return recs.map(function(rec) {
+    var f = rec.fields || {};
+    return {
+      id: rec.id,
+      date: f["fldhYEtLEGA4VxvvO"] || "",
+      compound: (f["fldwVFyizH4mBANBa"] || {}).name || "",
+      dose: f["fld8d8mtRapfaIyqL"] || "",
+      side: (f["fldHDlJY8FpAvK018"] || {}).name || "",
+      tod: (f["fldIdzew4Jd0qO4Uc"] || {}).name || "",
+      notes: f["Notes"] || f["fldNotes"] || ""
+    };
+  });
+}
+
+// ── INJECTION VERIFY ─────────────────────────────────────────────────
+var INJ_PROMPT = "You are reading a handwritten peptide injection tracking log. Each page has multiple weekly grids.\n\nEach week grid:\n- Header: \'Week X - Monday Date: M/DD\' (gives Monday date)\n- Columns: Mon, Tue, Wed, Thurs, Fri, Sat, Sun\n- Rows: compound name + dose (e.g. \'Tesamorelin - 15 units\')\n- Sections: Morning and Night\n- Cell values: L (left), R (right), S (skipped), blank (not taken)\n\nFor EVERY non-blank cell extract:\n- date: YYYY-MM-DD. Mon=Monday date, Tue=+1 day, Wed=+2, Thurs=+3, Fri=+4, Sat=+5, Sun=+6. Infer year from context (pages span 2024-2026).\n- compound: map row label to CLOSEST name from this list ONLY: CANONICAL_PLACEHOLDER\n- dose: from row label. If annotated with newer dose, use annotation.\n- side: L, R, S, or X\n- time_of_day: Morning or Night\n- notes: any handwritten notes for that row/week (new vial, dose change, start date, etc.)\n\nSkip blank cells. Return ONLY valid JSON array. No markdown.";
+
+async function runInjectionVerification(pageIndices) {
+  var batches = [];
+  for (var b = 0; b < pageIndices.length; b += BATCH_SIZE) batches.push(pageIndices.slice(b, b + BATCH_SIZE));
+  var prompt = INJ_PROMPT.replace("CANONICAL_PLACEHOLDER", CANONICAL_COMPOUNDS.join(", "));
+  var allEntries = [];
+  for (var bi = 0; bi < batches.length; bi++) {
+    vStatus("Extracting batch " + (bi+1) + "/" + batches.length + " (pages " + (batches[bi][0]+1) + "-" + (batches[bi][batches[bi].length-1]+1) + ")...");
+    var raw = await callClaudePages(batches[bi], prompt);
+    var parsed = [];
+    try { parsed = JSON.parse(raw); } catch(e) { parsed = []; }
+    if (Array.isArray(parsed)) allEntries = allEntries.concat(parsed);
+  }
+  if (!allEntries.length) { vStatus("No entries found — try selecting All pages", "err"); return; }
+  // Get date range
+  var dates = allEntries.map(function(e){ return e.date; }).filter(Boolean).sort();
+  var startDate = dates[0], endDate = dates[dates.length-1];
+  vStatus("Done — " + allEntries.length + " entries · " + startDate + " to " + endDate, "ok");
+  renderExtractedForClaude(allEntries, startDate, endDate);
+}
+
+// ── WORKOUT VERIFY (stub) ─────────────────────────────────────────────
+async function runWorkoutVerification(pageIndices) {
+  vStatus("Workout verification coming soon", "err");
+}
+
+// ── DIFF ──────────────────────────────────────────────────────────────
+function diffInjections(pdfEntries, atRecords) {
+  // Build AT lookup: date+compound → record
+  var atMap = {};
+  atRecords.forEach(function(r) {
+    var key = r.date + "|" + r.compound.toLowerCase().trim();
+    if (!atMap[key]) atMap[key] = [];
+    atMap[key].push(r);
+  });
+  var usedAtIds = new Set();
+  var rows = [];
+  // Check each PDF entry
+  pdfEntries.forEach(function(p) {
+    if (!p.date || !p.compound) return;
+    var key = p.date + "|" + p.compound.toLowerCase().trim();
+    var matches = atMap[key] || [];
+    if (!matches.length) {
+      rows.push({ status: "missing", date: p.date, compound: p.compound,
+        pdf: { dose: p.dose, side: p.side, tod: p.time_of_day, notes: p.notes },
+        at: null, issues: ["Missing in AT"] });
+    } else {
+      var at = matches[0];
+      usedAtIds.add(at.id);
+      var issues = [];
+      if (p.side && at.side && p.side !== at.side) issues.push("Side: PDF=" + p.side + " AT=" + at.side);
+      if (p.time_of_day && at.tod && p.time_of_day !== at.tod) issues.push("TOD: PDF=" + p.time_of_day + " AT=" + at.tod);
+      if (p.notes && !at.notes) issues.push("Notes missing in AT: " + p.notes);
+      var status = issues.length ? "wrong" : "ok";
+      rows.push({ status: status, date: p.date, compound: p.compound,
+        pdf: { dose: p.dose, side: p.side, tod: p.time_of_day, notes: p.notes },
+        at: { id: at.id, dose: at.dose, side: at.side, tod: at.tod, notes: at.notes },
+        issues: issues });
+    }
+  });
+  // Flag AT records not matched by PDF (extra)
+  atRecords.forEach(function(r) {
+    if (!usedAtIds.has(r.id)) {
+      rows.push({ status: "extra", date: r.date, compound: r.compound,
+        pdf: null,
+        at: { id: r.id, dose: r.dose, side: r.side, tod: r.tod, notes: r.notes },
+        issues: ["In AT but not in PDF"] });
+    }
+  });
+  // Sort by date then compound
+  rows.sort(function(a,b){ return (a.date+a.compound).localeCompare(b.date+b.compound); });
+  return rows;
+}
+
+// ── RENDER ────────────────────────────────────────────────────────────
+function renderVerifyResults(rows, startDate, endDate) {
+  verifyRowData = rows;
+  var resEl = document.getElementById("verifyResults");
+  var ok = rows.filter(function(r){ return r.status==="ok"; }).length;
+  var wrong = rows.filter(function(r){ return r.status==="wrong"; }).length;
+  var missing = rows.filter(function(r){ return r.status==="missing"; }).length;
+  var extra = rows.filter(function(r){ return r.status==="extra"; }).length;
+  var runDate = new Date().toLocaleString();
+  var html = "<div style=\'display:flex;align-items:center;justify-content:space-between;margin-bottom:12px\'>";
+  html += "<span style=\'font-size:10px;color:var(--dd);font-family:var(--mono)\'>Run: "+runDate+" · "+startDate+" → "+endDate+"</span>";
+  html += "<button class=\'btn bg-btn\' style=\'font-size:10px;padding:4px 10px\' onclick=\'copyForClaude()\'>&#128203; Send to Claude</button></div>";
+  html += "<div style=\'display:flex;gap:20px;margin-bottom:14px;padding:12px 16px;background:var(--s);border:1px solid var(--b);border-radius:6px\'>";
+  html += stat(ok,"Match","var(--g)") + stat(wrong,"Wrong","var(--y)") + stat(missing,"Missing","var(--r)") + stat(extra,"Extra","var(--bl)");
+  html += "</div>";
+  html += "<div style=\'overflow-x:auto\'><table class=\'tbl\' style=\'width:100%;font-size:11px\'><thead><tr style=\'background:var(--s2)\'>";
+  ["Date","Compound","PDF Side","PDF Dose","PDF TOD","AT Side","AT Dose","AT TOD","Notes","Issues",""].forEach(function(h){
+    html += "<th style=\'padding:7px 10px;text-align:left;font-size:9px;letter-spacing:1.2px;text-transform:uppercase;font-family:var(--mono);color:var(--d);border-bottom:1px solid var(--b)\'>" + h + "</th>";
+  });
+  html += "</tr></thead><tbody>";
+  rows.forEach(function(r, idx) {
+    var bg = r.status==="missing" ? "background:var(--rd)" : r.status==="extra" ? "background:var(--bld)" : r.status==="wrong" ? "background:var(--yd)" : "";
+    var p = r.pdf || {}, a = r.at || {};
+    html += "<tr style=\'" + bg + "\'>";
+    html += td(r.date);
+    html += "<td style=\'padding:6px 10px;font-weight:600\'>" + esc(r.compound) + "</td>";
+    html += tdMono(p.side||"—"); html += tdMono(p.dose||"—"); html += tdMono(p.tod||"—");
+    html += tdMono(a.side||"—"); html += tdMono(a.dose||"—"); html += tdMono(a.tod||"—");
+    html += "<td style=\'padding:6px 10px;font-size:10px;color:var(--d);max-width:160px\'>" + esc((p.notes||a.notes||"")) + "</td>";
+    var ic = r.status==="ok"?"color:var(--g)":r.status==="missing"?"color:var(--r)":r.status==="extra"?"color:var(--bl)":"color:var(--y)";
+    html += "<td style=\'padding:6px 10px;font-size:10px;"+ic+"\'>" + esc(r.issues.join("; ")||"✓") + "</td>";
+    // Action cell
+    var act = "";
+    if (r.status === "missing") act = "<button class=\'btn bg-btn\' style=\'font-size:9px;padding:3px 8px\' onclick=\'flagMissing("+idx+")\''>Flag</button>";
+    if (r.status === "wrong" && a.id) act = "<button class=\'btn bg-btn\' style=\'font-size:9px;padding:3px 8px\' onclick=\'fixRecord(\""+a.id+"\","+idx+")\''>Fix AT</button>";
+    html += "<td style=\'padding:6px 8px\'>" + act + "</td>";
+    html += "</tr>";
+  });
+  html += "</tbody></table></div>";
+  resEl.innerHTML = html.replace(/\\'/g, "'");
+}
+
+function stat(n,label,color) {
+  return "<div style=\'text-align:center\'><div style=\'font-size:22px;font-weight:700;color:"+color+";font-family:var(--mono)\'>"+n+"</div><div style=\'font-size:10px;color:var(--d)\'>"+label+"</div></div>";
+}
+function td(v) { return "<td style=\'padding:6px 10px;font-family:var(--mono);font-size:10px\'>" + esc(v||"—") + "</td>"; }
+function tdMono(v) { return "<td style=\'padding:6px 10px;font-family:var(--mono)\'>" + esc(v||"—") + "</td>"; }
+
+function flagMissing(idx) {
+  var r = verifyRowData[idx];
+  if (!r) return;
+  var msg = "MISSING INJECTION RECORD:\nDate: " + r.date + "\nCompound: " + r.compound + "\nPDF Side: " + (r.pdf&&r.pdf.side||"") + "\nPDF Dose: " + (r.pdf&&r.pdf.dose||"") + "\nPDF TOD: " + (r.pdf&&r.pdf.tod||"") + "\nNotes: " + (r.pdf&&r.pdf.notes||"");
+  if (typeof sendPrompt === "function") sendPrompt(msg);
+  else { navigator.clipboard.writeText(msg); toast("Copied", "ti"); }
+}
+
+async function fixRecord(recId, idx) {
+  var r = verifyRowData[idx];
+  if (!r || !r.pdf) return;
+  var fields = {};
+  if (r.pdf.side && r.at.side !== r.pdf.side) fields["fldHDlJY8FpAvK018"] = r.pdf.side;
+  if (r.pdf.tod && r.at.tod !== r.pdf.tod) fields["fldIdzew4Jd0qO4Uc"] = r.pdf.tod;
+  if (r.pdf.notes) fields["Notes"] = r.pdf.notes;
+  if (!Object.keys(fields).length) { toast("Nothing to fix", "ti"); return; }
+  try {
+    var url = "https://api.airtable.com/v0/" + BASE + "/tblBvEaLkGGipnOFc/" + recId;
+    var resp = await fetch(url, { method: "PATCH", headers: { Authorization: "Bearer " + TOKEN, "Content-Type": "application/json" }, body: JSON.stringify({fields: fields}) });
+    if (!resp.ok) throw new Error("HTTP " + resp.status);
+    toast("Fixed", "tg");
+    document.querySelector("#verifyResults tbody tr:nth-child(" + (idx+1) + ")").style.background = "var(--gd)";
+  } catch(e) { toast("Fix failed: " + e.message, "tr"); }
+}
+
+function renderExtractedForClaude(entries, startDate, endDate) {
+  verifyRowData = entries;
+  var resEl = document.getElementById("verifyResults");
+  var html = "<div style='display:flex;align-items:center;justify-content:space-between;margin-bottom:12px'>";
+  html += "<span style='font-size:11px;color:var(--dd);font-family:var(--mono)'>Extracted: " + entries.length + " entries · " + startDate + " → " + endDate + "</span>";
+  html += "<button class='btn bp' style='font-size:11px;padding:6px 16px' onclick='copyForClaude()'>&#128203; Send to Claude</button></div>";
+  html += "<div style='overflow-x:auto'><table class='tbl' style='width:100%;font-size:11px'><thead><tr style='background:var(--s2)'>";
+  ["Date","Compound","Dose","Side","TOD","Notes"].forEach(function(h){
+    html += "<th style='padding:7px 10px;text-align:left;font-size:9px;letter-spacing:1.2px;text-transform:uppercase;font-family:var(--mono);color:var(--d);border-bottom:1px solid var(--b)'>" + h + "</th>";
+  });
+  html += "</tr></thead><tbody>";
+  entries.forEach(function(e) {
+    html += "<tr><td style='padding:5px 10px;font-family:var(--mono);font-size:10px'>" + esc(e.date||"—") + "</td>";
+    html += "<td style='padding:5px 10px;font-weight:500'>" + esc(e.compound||"—") + "</td>";
+    html += "<td style='padding:5px 10px;font-family:var(--mono)'>" + esc(e.dose||"—") + "</td>";
+    html += "<td style='padding:5px 10px;font-family:var(--mono)'>" + esc(e.side||"—") + "</td>";
+    html += "<td style='padding:5px 10px;font-family:var(--mono)'>" + esc(e.time_of_day||"—") + "</td>";
+    html += "<td style='padding:5px 10px;font-size:10px;color:var(--d)'>" + esc(e.notes||"") + "</td></tr>";
+  });
+  html += "</tbody></table></div>";
+  resEl.innerHTML = html;
+}
+
+function copyForClaude() {
+  if (!verifyRowData.length) { toast("Run Verify first", "tr"); return; }
+  var txt = "PDF INJECTION LOG EXTRACTION\nRun: " + new Date().toLocaleString() + "\n";
+  txt += "Total entries: " + verifyRowData.length + "\n\n";
+  verifyRowData.forEach(function(e) {
+    txt += e.date + " | " + (e.compound||"?") + " | dose=" + (e.dose||"?") + " | side=" + (e.side||"?") + " | tod=" + (e.time_of_day||"?") + (e.notes?" | notes="+e.notes:"") + "\n";
+  });
+  if (typeof sendPrompt === "function") sendPrompt(txt);
+  else navigator.clipboard.writeText(txt).then(function(){ toast("Copied — paste to Claude", "tg", 4000); });
+}
+
+// ── MAIN RUN ──────────────────────────────────────────────────────────
+async function runVerification() {
+  var btn = document.getElementById("runVerifyBtn");
+  var resEl = document.getElementById("verifyResults");
+  resEl.innerHTML = "";
+  if (!pages.length) { vStatus("No PDF loaded", "err"); return; }
+  btn.disabled = true; btn.textContent = "Running...";
+  try {
+    var pageVal = document.getElementById("verifyPages").value;
+    var startIdx = (pageVal === "all") ? 0 : Math.max(0, pages.length - (parseInt(pageVal)||4));
+    var pageIndices = [];
+    for (var i = startIdx; i < pages.length; i++) pageIndices.push(i);
+    vStatus("Starting verification — " + pageIndices.length + " pages · type: " + pdfType);
+    if (pdfType === "injection") await runInjectionVerification(pageIndices);
+    else if (pdfType === "workout") await runWorkoutVerification(pageIndices);
+    else vStatus("Select a PDF type (injection/workout) from Settings", "err");
+  } catch(e) {
+    vStatus("Error: " + e.message, "err");
+    console.error(e);
+  }
+  btn.disabled = false; btn.textContent = "⚡ Run Verify";
+}
+
+
 </script>
 
 <!-- ADD PURCHASE MODAL -->
@@ -4670,6 +6029,6 @@ function renderSuppVendors() {
 </div>
 </body>
 </html>
-<!-- cache bust Sun May 24 2026 -->
+<!-- cache bust Mon May 26 2026 — pdfqa merged -->
 
 
