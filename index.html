@@ -3279,10 +3279,11 @@ function printTracker() {
   const activeM = MORNING_ORDER.filter(n => pepMap[n]).length;
   const activeN = NIGHT_ORDER.filter(n => pepMap[n]).length;
   const totalRows = activeM + activeN + 3; // +3 sleep rows
-  const weekH = 340; // px available per week (letter 0.2in margins, 2 weeks/page)
-  const fixedH = 82; // headers + section headers + separators
-  const rowH = Math.max(14, Math.min(22, Math.floor((weekH - fixedH) / totalRows)));
-  const sleepH = Math.max(16, Math.min(26, rowH + 3));
+  // Letter @96dpi = 1056px, 0.2in margins (38px×2) = 980px, 2 weeks + 14px gap = 483px each
+  const weekH = 476;
+  const fixedH = 68; // week header + day headers + 2 section headers + 2 separators
+  const rowH = Math.max(18, Math.min(32, Math.floor((weekH - fixedH) / totalRows)));
+  const sleepH = Math.max(22, Math.min(36, rowH + 4));
 
   function rows(order, bg) {
     return order.map(name => {
