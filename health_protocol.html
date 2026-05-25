@@ -3282,12 +3282,8 @@ function printTracker() {
   const activeM = MORNING_ORDER.filter(n => pepMap[n]).length;
   const activeN = NIGHT_ORDER.filter(n => pepMap[n]).length;
   const totalRows = activeM + activeN;
-  // Letter 980px usable, 2 weeks + 14px gap → 483px each
-  // fixedH accounts for headers + section headers + separators + sleep row extra
-  // target rowH ~22px for 17 rows
-  const weekH = 470;
-  const fixedH = 82;
-  const rowH = Math.max(16, Math.min(30, Math.floor((weekH - fixedH) / totalRows)));
+  // Row height: CSS auto-sizes rows to fill the page — no JS calc needed
+  const rowH = 'auto';
 
   function rows(order, bg) {
     return order.map(name => {
@@ -3331,7 +3327,7 @@ function printTracker() {
   function weekTable(weekNum) {
     const mondayStr = getMonday(weekNum - 1);
     return `
-    <table style="width:100%;border-collapse:collapse;margin-top:${weekNum>1?'14px':'0'};border:2px solid #000;table-layout:fixed;font-size:8pt">
+    <table style="width:100%;border-collapse:collapse;margin-top:0;border:2px solid #000;table-layout:fixed;font-size:8pt">
     <colgroup><col style="width:34%">${DAYS.map(()=>'<col style="width:6%">').join('')}<col style="width:24%"></colgroup>
     <tbody>
     <tr>
@@ -3355,12 +3351,16 @@ function printTracker() {
   const html = `<!DOCTYPE html><html><head><title></title>
   <style>
     @page { size: portrait letter; margin: 0.2in; }
-    body { font-family: Calibri, Arial, sans-serif; margin: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; color-adjust: exact; }
-    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
-    .page-break { page-break-after: always; }
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; height: 100%; font-family: Calibri, Arial, sans-serif; }
+    .pg { height: calc(100vh - 0.4in); display: flex; flex-direction: column; gap: 18px; page-break-after: always; }
+    .pg:last-child { page-break-after: auto; }
+    .wk { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+    .wk table { flex: 1; width: 100%; border-collapse: collapse; table-layout: fixed; }
+    .wk table tbody { height: 100%; }
   </style></head><body>
-  <div class="page-break">${weekTable(1)}${weekTable(2)}</div>
-  <div>${weekTable(3)}${weekTable(4)}</div>
+  <div class="pg"><div class="wk">${weekTable(1)}</div><div class="wk">${weekTable(2)}</div></div>
+  <div class="pg"><div class="wk">${weekTable(3)}</div><div class="wk">${weekTable(4)}</div></div>
   
 <!-- ADD SUPP CHANGE MODAL -->
 <div class="modal-overlay" id="add-supp-change-modal" onclick="if(event.target===this)hideAddSuppChangeModal()" style="display:none">
