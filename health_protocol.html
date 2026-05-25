@@ -4995,8 +4995,8 @@ function initAuth() {
   setDot("d", "", "DRIVE");
 }
 function signIn() {
-  // Same-window redirect — no popup
-  var redirect = window.location.href.split("#")[0].split("?")[0];
+  // Always redirect via verify2.html — it's the authorized OAuth URI
+  var redirect = "https://mikeblack001.github.io/health-protocol/verify2.html";
   window.location.href = "https://accounts.google.com/o/oauth2/v2/auth" +
     "?client_id=" + encodeURIComponent(GCI) +
     "&redirect_uri=" + encodeURIComponent(redirect) +

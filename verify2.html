@@ -485,8 +485,14 @@ function initAuth() {
     var params = {};
     hash.slice(1).split("&").forEach(function(p) { var kv = p.split("="); params[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1] || ""); });
     if (params.access_token) {
-      gTok = params.access_token;
       saveTok(params.access_token, parseInt(params.expires_in) || 3600);
+      // If we came from health_protocol.html, bounce back there
+      var ref = document.referrer || "";
+      if (ref.indexOf("health_protocol") >= 0 || ref.indexOf("index.html") >= 0 || ref === "") {
+        window.location.href = "https://mikeblack001.github.io/health-protocol/health_protocol.html";
+        return;
+      }
+      gTok = params.access_token;
       history.replaceState(null, "", window.location.pathname);
       setDot("d", "ok", "DRIVE"); loadMappedFiles(); return;
     }
