@@ -191,6 +191,7 @@ select.inp{cursor:pointer}
     <div class="tabs">
       <div class="tab active" id="tab-review" onclick="showTab('review')">Review</div>
       <div class="tab" id="tab-export" onclick="showTab('export')">Export</div>
+      <div class="tab" id="tab-verify" onclick="showTab('verify')">&#9889; Verify</div>
       <div class="tab" id="tab-settings" onclick="showTab('settings')">&#9881; Settings</div>
     </div>
 
@@ -279,6 +280,27 @@ select.inp{cursor:pointer}
         <div id="exportSummary">
           <div class="empty"><div class="et">No file loaded</div></div>
         </div>
+      </div>
+    </div>
+
+    <!-- VERIFY TAB -->
+    <div class="tc" id="tc-verify">
+      <div class="tc-scroll">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:600;margin-bottom:3px">Protocol Verification</div>
+            <div style="font-size:11px;color:var(--d)">Extracts current protocol from the last 4 PDF pages, pulls Airtable Peptides, and diffs compound-by-compound.</div>
+          </div>
+          <button class="btn bp" id="runVerifyBtn" onclick="runVerification()" style="white-space:nowrap;padding:8px 18px">&#9889; Run Verify</button>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap" id="verifyControls">
+          <label style="font-size:11px;color:var(--d);display:flex;align-items:center;gap:6px">
+            <input type="number" id="verifyPages" value="4" min="1" max="10" style="width:44px;padding:4px 6px;font-size:11px;border:1px solid var(--b);border-radius:4px;background:var(--s2);color:var(--t)">
+            pages from end to analyze
+          </label>
+        </div>
+        <div id="verifyStatus" style="font-size:11px;color:var(--d);font-family:var(--mono);margin-bottom:12px;min-height:18px"></div>
+        <div id="verifyResults"></div>
       </div>
     </div>
 
@@ -433,6 +455,7 @@ function showTab(name) {
   document.getElementById("tc-" + name).classList.add("active");
   if (name === "settings") renderSettings();
   if (name === "export") renderExport();
+  if (name === "verify") { /* no init needed */ }
 }
 
 // ── CONFIG PERSISTENCE ────────────────────────────────────────────────
@@ -862,6 +885,167 @@ function confirmPicker() {
 document.getElementById("pickerModal").addEventListener("click", function(e) { if (e.target === this) closePickerModal(); });
 
 window.addEventListener("load", function() { loadCfg(); loadAtTables(); initAuth(); });
+
+// ── VERIFY TAB ────────────────────────────────────────────────────────
+function vStatus(msg, cls) {
+  var el = document.getElementById("verifyStatus");
+  el.textContent = msg;
+  el.style.color = cls === "err" ? "var(--r)" : cls === "ok" ? "var(--g)" : "var(--d)";
+}
+
+async function runVerification() {
+  var btn = document.getElementById("runVerifyBtn");
+  var resEl = document.getElementById("verifyResults");
+  resEl.innerHTML = "";
+  if (!pages.length) { vStatus("No PDF loaded — load an injection PDF first", "err"); return; }
+  btn.disabled = true; btn.textContent = "Running...";
+  vStatus("Step 1/3 — Sending last pages to Claude...");
+  try {
+    var numPages = parseInt(document.getElementById("verifyPages").value) || 4;
+    var startIdx = Math.max(0, pages.length - numPages);
+    var imgBlocks = [];
+    for (var i = startIdx; i < pages.length; i++) {
+      imgBlocks.push({ type: "image", source: { type: "base64", media_type: "image/jpeg", data: pages[i].url.split(",")[1] } });
+      imgBlocks.push({ type: "text", text: "Page " + (i+1) + " of " + pages.length });
+    }
+    var prompt = "You are reading the last pages of a handwritten peptide/injection tracking log. These pages show weekly grids with compound names printed as row headers.\n\nTask: From the most recent printed template (the page with typed/printed compound names in a structured table — NOT blank future weeks), extract every compound listed.\n\nFor each compound return:\n- name: exact compound name as printed (e.g. 'TRT (Testosterone)', 'Tesamorelin', 'CJC-1295 No DAC')\n- dose_units: dose shown on the template row label (e.g. '75 units', '15 units', '5u'). If dose changed (shown with annotation), use the MOST RECENT annotated value.\n- time_of_day: 'Morning' or 'Night' based on section heading\n- notes: any handwritten notes visible (e.g. 'Finished', 'Starting 5/21', dose change annotations)\n\nAlso note if any compound has a handwritten annotation suggesting it is FINISHED, STOPPED, or PAUSED.\n\nReturn ONLY a valid JSON array. No explanation, no markdown.";
+    var resp = await fetch(WORKER_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-6", max_tokens: 2000,
+        messages: [{ role: "user", content: imgBlocks.concat([{ type: "text", text: prompt }]) }]
+      })
+    });
+    var data = await resp.json();
+    var raw = ((data.content || []).find(function(x) { return x.type === "text"; }) || {text:"[]"}).text;
+    raw = raw.replace(/```json\n?|```\n?/g, "").trim();
+    var pdfProtocol = [];
+    try { pdfProtocol = JSON.parse(raw); } catch(e) { vStatus("Claude parse error: " + e.message, "err"); btn.disabled=false; btn.textContent="⚡ Run Verify"; return; }
+    if (!Array.isArray(pdfProtocol)) { vStatus("Unexpected Claude response format", "err"); btn.disabled=false; btn.textContent="⚡ Run Verify"; return; }
+    vStatus("Step 2/3 — Fetching Airtable Peptides...");
+    var atRecords = await fetchAllPeptides();
+    vStatus("Step 3/3 — Comparing...");
+    renderVerifyDiff(pdfProtocol, atRecords);
+    vStatus("Done — " + pdfProtocol.length + " PDF compounds, " + atRecords.length + " Airtable records", "ok");
+  } catch(e) {
+    vStatus("Error: " + e.message, "err");
+  }
+  btn.disabled = false; btn.textContent = "⚡ Run Verify";
+}
+
+async function fetchAllPeptides() {
+  var url = "https://api.airtable.com/v0/" + ATB + "/tblMs6YRdP4wkndUp?pageSize=100";
+  var r = await fetch(url, { headers: { Authorization: "Bearer " + ATK } });
+  if (!r.ok) throw new Error("Airtable HTTP " + r.status);
+  var d = await r.json();
+  return (d.records || []).map(function(rec) {
+    var f = rec.cellValuesByFieldId || rec.fields || {};
+    // Field IDs from project schema
+    var name = f["fldeH5uyKXDFPZbHK"] || "";
+    var dose = f["fldN7WOCx7ETJwmrB"] || "";
+    var status = (f["fldeCBOtYYp6BtAfh"] || {}).name || f["fldeCBOtYYp6BtAfh"] || "";
+    var tod = (f["fld9J0U5iSDzyaaun"] || {}).name || f["fld9J0U5iSDzyaaun"] || "";
+    var freq = (f["fldyExNQXycfMjd1S"] || {}).name || f["fldyExNQXycfMjd1S"] || "";
+    var notes = f["fld3I1yzis1GsIDig"] || "";
+    return { name: name, dose: dose, status: status, tod: tod, freq: freq, notes: notes };
+  }).filter(function(r) { return r.name; });
+}
+
+function normalizeName(n) {
+  return n.toLowerCase()
+    .replace(/\s*\([^)]*\)/g, "") // remove parentheticals
+    .replace(/[^a-z0-9]/g, "")    // strip non-alphanumeric
+    .replace(/nandrolone/g, "deca")
+    .replace(/testosterone/g, "trt")
+    .replace(/oxandrolone/g, "anavar")
+    .replace(/stanozolol/g, "winstrol")
+    .replace(/melanotan2/g, "mt2")
+    .replace(/melanotanii/g, "mt2");
+}
+
+function matchPeptide(pdfName, atList) {
+  var pn = normalizeName(pdfName);
+  return atList.find(function(a) {
+    var an = normalizeName(a.name);
+    return an === pn || an.includes(pn) || pn.includes(an);
+  });
+}
+
+function renderVerifyDiff(pdfProtocol, atRecords) {
+  var resEl = document.getElementById("verifyResults");
+  var matched = new Set();
+  var rows = [];
+
+  // For each PDF compound, find Airtable match
+  pdfProtocol.forEach(function(p) {
+    var at = matchPeptide(p.name, atRecords);
+    var issues = [];
+    var rowClass = "ok";
+    if (!at) {
+      rowClass = "warn";
+      issues.push("Not found in Airtable");
+    } else {
+      matched.add(normalizeName(at.name));
+      // Check status
+      var isFinished = p.notes && /finish|stop|done|paused/i.test(p.notes);
+      if (isFinished && at.status === "Active") {
+        rowClass = "err"; issues.push("PDF: FINISHED — AT status: Active");
+      }
+      if (!isFinished && at.status === "Paused") {
+        rowClass = "err"; issues.push("PDF: on template — AT status: Paused");
+      }
+    }
+    rows.push({ source: "pdf", compound: p.name, pdfDose: p.dose_units || "—", pdfTOD: p.time_of_day || "—", pdfNotes: p.notes || "", atName: at ? at.name : "—", atDose: at ? at.dose : "—", atStatus: at ? at.status : "—", atTOD: at ? at.tod : "—", issues: issues, rowClass: rowClass });
+  });
+
+  // Find Airtable Active/On-order compounds NOT in PDF
+  atRecords.forEach(function(a) {
+    if (a.status === "Deferred") return;
+    var an = normalizeName(a.name);
+    if (!matched.has(an)) {
+      var isPaused = a.status === "Paused";
+      rows.push({ source: "at", compound: a.name, pdfDose: "—", pdfTOD: "—", pdfNotes: "", atName: a.name, atDose: a.dose, atStatus: a.status, atTOD: a.tod, issues: isPaused ? [] : ["Active in AT — not on PDF template"], rowClass: isPaused ? "ok" : "warn" });
+    }
+  });
+
+  // Stats
+  var errs = rows.filter(function(r){ return r.rowClass === "err"; }).length;
+  var warns = rows.filter(function(r){ return r.rowClass === "warn"; }).length;
+  var oks = rows.filter(function(r){ return r.rowClass === "ok"; }).length;
+
+  var html = "<div style='display:flex;gap:16px;margin-bottom:16px;padding:12px;background:var(--s);border:1px solid var(--b);border-radius:6px'>";
+  html += "<div style='text-align:center'><div style='font-size:22px;font-weight:700;color:var(--g);font-family:var(--mono)'>"+oks+"</div><div style='font-size:10px;color:var(--d)'>Match</div></div>";
+  html += "<div style='text-align:center'><div style='font-size:22px;font-weight:700;color:var(--y);font-family:var(--mono)'>"+warns+"</div><div style='font-size:10px;color:var(--d)'>Warning</div></div>";
+  html += "<div style='text-align:center'><div style='font-size:22px;font-weight:700;color:var(--r);font-family:var(--mono)'>"+errs+"</div><div style='font-size:10px;color:var(--d)'>Mismatch</div></div>";
+  html += "</div>";
+
+  html += "<div style='overflow-x:auto'><table class='tbl' style='width:100%;font-size:11px'>";
+  html += "<thead><tr style='background:var(--s2)'>";
+  ["Source","Compound","PDF Dose","PDF TOD","AT Dose","AT Status","AT TOD","Issues"].forEach(function(h){
+    html += "<th style='padding:7px 10px;text-align:left;font-size:9px;letter-spacing:1.2px;text-transform:uppercase;font-family:var(--mono);color:var(--d);border-bottom:1px solid var(--b)'>"+h+"</th>";
+  });
+  html += "</tr></thead><tbody>";
+
+  rows.forEach(function(r) {
+    var bg = r.rowClass === "err" ? "background:var(--rd)" : r.rowClass === "warn" ? "background:var(--yd)" : "";
+    html += "<tr style='" + bg + "'>";
+    html += "<td style='padding:6px 10px;font-family:var(--mono);font-size:9px;color:var(--d)'>" + esc(r.source.toUpperCase()) + "</td>";
+    html += "<td style='padding:6px 10px;font-weight:600'>" + esc(r.compound) + "</td>";
+    html += "<td style='padding:6px 10px;font-family:var(--mono)'>" + esc(r.pdfDose) + "</td>";
+    html += "<td style='padding:6px 10px;font-family:var(--mono)'>" + esc(r.pdfTOD) + "</td>";
+    html += "<td style='padding:6px 10px;font-family:var(--mono)'>" + esc(r.atDose) + "</td>";
+    var sc = r.atStatus === "Active" ? "color:var(--g)" : r.atStatus === "Paused" ? "color:var(--d)" : "color:var(--y)";
+    html += "<td style='padding:6px 10px;font-family:var(--mono);" + sc + "'>" + esc(r.atStatus) + "</td>";
+    html += "<td style='padding:6px 10px;font-family:var(--mono)'>" + esc(r.atTOD) + "</td>";
+    var issueColor = r.rowClass === "err" ? "color:var(--r)" : r.rowClass === "warn" ? "color:var(--y)" : "color:var(--g)";
+    html += "<td style='padding:6px 10px;font-size:10px;" + issueColor + "'>" + esc(r.issues.join("; ") || "✓") + "</td>";
+    html += "</tr>";
+  });
+  html += "</tbody></table></div>";
+  resEl.innerHTML = html;
+}
+
 </script>
 </body>
 </html>
