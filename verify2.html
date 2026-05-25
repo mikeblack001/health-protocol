@@ -1172,13 +1172,8 @@ async function runInjectionVerification(pageIndices) {
   // Get date range
   var dates = allEntries.map(function(e){ return e.date; }).filter(Boolean).sort();
   var startDate = dates[0], endDate = dates[dates.length-1];
-  vStatus("Fetching AT Injection Log (" + startDate + " to " + endDate + ")...");
-  var atRecords = await fetchAtInjections(startDate, endDate);
-  vStatus("Comparing " + allEntries.length + " PDF entries vs " + atRecords.length + " AT records...");
-  var rows = diffInjections(allEntries, atRecords);
-  renderVerifyResults(rows, startDate, endDate);
-  var issues = rows.filter(function(r){ return r.status !== "ok"; }).length;
-  vStatus("Done — " + allEntries.length + " PDF entries · " + atRecords.length + " AT records · " + issues + " issues", "ok");
+  vStatus("Done — " + allEntries.length + " entries · " + startDate + " to " + endDate, "ok");
+  renderExtractedForClaude(allEntries, startDate, endDate);
 }
 
 // ── WORKOUT VERIFY (stub) ─────────────────────────────────────────────
@@ -1307,16 +1302,35 @@ async function fixRecord(recId, idx) {
   } catch(e) { toast("Fix failed: " + e.message, "tr"); }
 }
 
+function renderExtractedForClaude(entries, startDate, endDate) {
+  verifyRowData = entries;
+  var resEl = document.getElementById("verifyResults");
+  var html = "<div style='display:flex;align-items:center;justify-content:space-between;margin-bottom:12px'>";
+  html += "<span style='font-size:11px;color:var(--dd);font-family:var(--mono)'>Extracted: " + entries.length + " entries · " + startDate + " → " + endDate + "</span>";
+  html += "<button class='btn bp' style='font-size:11px;padding:6px 16px' onclick='copyForClaude()'>&#128203; Send to Claude</button></div>";
+  html += "<div style='overflow-x:auto'><table class='tbl' style='width:100%;font-size:11px'><thead><tr style='background:var(--s2)'>";
+  ["Date","Compound","Dose","Side","TOD","Notes"].forEach(function(h){
+    html += "<th style='padding:7px 10px;text-align:left;font-size:9px;letter-spacing:1.2px;text-transform:uppercase;font-family:var(--mono);color:var(--d);border-bottom:1px solid var(--b)'>" + h + "</th>";
+  });
+  html += "</tr></thead><tbody>";
+  entries.forEach(function(e) {
+    html += "<tr><td style='padding:5px 10px;font-family:var(--mono);font-size:10px'>" + esc(e.date||"—") + "</td>";
+    html += "<td style='padding:5px 10px;font-weight:500'>" + esc(e.compound||"—") + "</td>";
+    html += "<td style='padding:5px 10px;font-family:var(--mono)'>" + esc(e.dose||"—") + "</td>";
+    html += "<td style='padding:5px 10px;font-family:var(--mono)'>" + esc(e.side||"—") + "</td>";
+    html += "<td style='padding:5px 10px;font-family:var(--mono)'>" + esc(e.time_of_day||"—") + "</td>";
+    html += "<td style='padding:5px 10px;font-size:10px;color:var(--d)'>" + esc(e.notes||"") + "</td></tr>";
+  });
+  html += "</tbody></table></div>";
+  resEl.innerHTML = html;
+}
+
 function copyForClaude() {
   if (!verifyRowData.length) { toast("Run Verify first", "tr"); return; }
-  var issues = verifyRowData.filter(function(r){ return r.status !== "ok"; });
-  var txt = "INJECTION LOG VERIFICATION\nRun: " + new Date().toLocaleString() + "\n";
-  txt += "Issues: " + issues.length + " / " + verifyRowData.length + " total\n\n";
-  issues.forEach(function(r) {
-    txt += "[" + r.status.toUpperCase() + "] " + r.date + " · " + r.compound + "\n";
-    if (r.pdf) txt += "  PDF: side=" + (r.pdf.side||"?") + " dose=" + (r.pdf.dose||"?") + " tod=" + (r.pdf.tod||"?") + (r.pdf.notes?" notes="+r.pdf.notes:"") + "\n";
-    if (r.at) txt += "  AT:  side=" + (r.at.side||"?") + " dose=" + (r.at.dose||"?") + " tod=" + (r.at.tod||"?") + (r.at.notes?" notes="+r.at.notes:"") + " id=" + (r.at.id||"?") + "\n";
-    txt += "  Issues: " + r.issues.join("; ") + "\n\n";
+  var txt = "PDF INJECTION LOG EXTRACTION\nRun: " + new Date().toLocaleString() + "\n";
+  txt += "Total entries: " + verifyRowData.length + "\n\n";
+  verifyRowData.forEach(function(e) {
+    txt += e.date + " | " + (e.compound||"?") + " | dose=" + (e.dose||"?") + " | side=" + (e.side||"?") + " | tod=" + (e.time_of_day||"?") + (e.notes?" | notes="+e.notes:"") + "\n";
   });
   if (typeof sendPrompt === "function") sendPrompt(txt);
   else navigator.clipboard.writeText(txt).then(function(){ toast("Copied — paste to Claude", "tg", 4000); });
