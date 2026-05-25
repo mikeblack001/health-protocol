@@ -398,7 +398,7 @@
         <div class="drop-divider"></div>
         <button class="drop-item" onclick="navDrop('databrowser','nav-tools')" style="color:var(--accent);font-weight:600">📊 Data Browser</button>
         <div class="drop-divider"></div>
-        <button class="drop-item" onclick="window.open('https://mikeblack001.github.io/health-protocol/verify.html','_self')" style="color:var(--accent);font-weight:600">📄 Data Accuracy Check</button>
+        <button class="drop-item" onclick="window.open('https://mikeblack001.github.io/health-protocol/pdf_qa.html','_blank')" style="color:var(--accent);font-weight:600">📄 Data Accuracy Check</button>
         <button class="drop-item" onclick="navDrop('injaudit','nav-tools')" style="color:var(--accent);font-weight:600">📋 Injection Log Audit</button>
         <div class="drop-divider"></div>
         <button class="drop-item" onclick="openWeeklyPrint()" style="color:var(--accent);font-weight:600">🖨 Weekly Workout Print</button>
@@ -3281,7 +3281,7 @@ function printTracker() {
   // Dynamic row height — adapts to active compound count automatically
   const activeM = MORNING_ORDER.filter(n => pepMap[n]).length;
   const activeN = NIGHT_ORDER.filter(n => pepMap[n]).length;
-  const totalRows = activeM + activeN + 3; // +3 sleep rows
+  const totalRows = activeM + activeN;
   // Letter 980px usable, 2 weeks + 14px gap → 483px each
   // fixedH accounts for headers + section headers + separators + sleep row extra
   // target rowH ~22px for 17 rows
@@ -3349,8 +3349,7 @@ function printTracker() {
     <tr><td colspan="9" style="height:4px;background-color:#ddd!important;border:1px solid #000"></td></tr>
     <tr><td colspan="9" style="background-color:${WEEK_BLUE}!important;color:#fff!important;font-weight:bold;padding:2px 5px;font-size:7.5pt">🌙 Night</td></tr>
     ${rows(NIGHT_ORDER, NIGHT_BG)}
-    <tr><td colspan="9" style="height:3px;background-color:#ccc!important;border:1px solid #000"></td></tr>
-    ${sleepRows()}
+
     </tbody></table>`;
   }
 
