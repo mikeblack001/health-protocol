@@ -395,9 +395,19 @@ function clearTok() { localStorage.removeItem("mb_pdfqat"); localStorage.removeI
 // ── AUTH ──────────────────────────────────────────────────────────────
 function initAuth() {
   if (typeof google === "undefined") { setTimeout(initAuth, 300); return; }
+  // Always init the client and attempt silent token refresh
+  gCli = google.accounts.oauth2.initTokenClient({
+    client_id: GCI, scope: GSC,
+    callback: function(r) {
+      if (r.error) { setDot("d", "err", "DRIVE"); return; }
+      gTok = r.access_token; saveTok(r.access_token, r.expires_in || 3600);
+      setDot("d", "ok", "DRIVE"); loadMappedFiles();
+    }
+  });
   var stored = loadTok();
-  if (stored) { gTok = stored; setDot("d", "ok", "DRIVE"); loadMappedFiles(); return; }
-  setDot("d", "", "DRIVE");
+  if (stored) { gTok = stored; setDot("d", "ok", "DRIVE"); loadMappedFiles(); }
+  // Always request silently — no popup if already authorized
+  gCli.requestAccessToken({ prompt: "" });
 }
 function signIn() {
   if (!gCli) gCli = google.accounts.oauth2.initTokenClient({
