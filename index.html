@@ -667,7 +667,7 @@
           <label style="font-size:11px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:0.6px;display:block;margin-bottom:4px">Week Starting</label>
           <input type="date" id="print-week-date" style="padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface)" onchange="renderPrintSheet()">
         </div>
-        <button onclick="window.print()" style="padding:8px 16px;background:var(--accent);color:#000;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;margin-top:18px">Print</button>
+        <button onclick="printWorkout()" style="padding:8px 16px;background:var(--accent);color:#000;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;margin-top:18px">Print</button>
         <span style="font-size:11px;color:var(--muted);margin-top:18px">Or use Cmd+P / Ctrl+P</span>
       </div>
       <div id="print-sheet-preview"></div>
@@ -4651,7 +4651,7 @@ function renderSuppVendors() {
       <div style="display:flex;gap:10px;align-items:center">
         <label style="font-size:11px;color:var(--muted)">Week of Monday:</label>
         <input type="date" id="modal-print-date" style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:'DM Mono',monospace;color:var(--text);background:var(--surface2)" onchange="renderModalPrintSheet()">
-        <button onclick="window.print()" style="padding:6px 14px;background:var(--accent);color:#000;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer">Print</button>
+        <button onclick="printWorkout()" style="padding:6px 14px;background:var(--accent);color:#000;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer">Print</button>
         <button onclick="document.getElementById('weekly-print-modal').style.display='none'" style="padding:6px 12px;background:var(--surface2);color:var(--muted);border:1px solid var(--border);border-radius:6px;font-size:12px;cursor:pointer">&#x2715; Close</button>
       </div>
     </div>
