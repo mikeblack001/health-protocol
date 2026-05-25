@@ -554,21 +554,12 @@ async function selFile(id, name, type) {
   document.getElementById("imgEmpty").style.display = "flex";
   document.getElementById("imgEmpty").innerHTML = "<span style='font-size:28px'>&#8635;</span><span id='dbgStatus'>Downloading file...</span>";
   document.getElementById("dateFilter").value = "";
+  document.getElementById("dateFilter").closest(".date-row").style.display = "flex";
+  document.getElementById("atRefreshBtn").style.display = "";
   showTab("review");
   var m = cfg.types[type];
-  // Injection: Active Peptides panel; others: date filter
-  if (type === "injection") {
-    document.getElementById("dateFilter").closest(".date-row").style.display = "none";
-    document.getElementById("atRefreshBtn").style.display = "none";
-    document.getElementById("atTableLabel").textContent = "Active Peptides";
-    document.getElementById("atContent").innerHTML = "<div style='padding:16px;color:var(--dd);font-size:11px;text-align:center'>Loading...</div>";
-    loadActivePeptides();
-  } else {
-    document.getElementById("dateFilter").closest(".date-row").style.display = "flex";
-    document.getElementById("atRefreshBtn").style.display = "";
-    document.getElementById("atTableLabel").textContent = m.tableName || type;
-    document.getElementById("atContent").innerHTML = "<div class='empty' style='padding:30px 10px'><div class='et' style='font-size:11px'>Set a date to load Airtable records</div></div>";
-  }
+  document.getElementById("atTableLabel").textContent = m.tableName || type;
+  document.getElementById("atContent").innerHTML = "<div class='empty' style='padding:30px 10px'><div class='et' style='font-size:11px'>Set a date to load records</div></div>";
 
   try {
     setDot("d", "warn", "LOADING");
@@ -734,11 +725,51 @@ async function refreshAtData() {
   if (!m || !m.tableID) { document.getElementById("atContent").innerHTML = "<div class='empty' style='padding:30px 10px'><div class='et' style='font-size:11px;color:var(--r)'>No table mapped for " + pdfType + "</div></div>"; return; }
   document.getElementById("atContent").innerHTML = "<div style='padding:20px;color:var(--dd);font-size:11px;text-align:center'>Loading...</div>";
   try {
-    var recs = await fetchAtDate(m.tableID, date);
-    renderAtPanel(recs, date, m.tableID);
+    if (pdfType === "injection") {
+      // Load full week (Mon-Sun) for injection type
+      var d = new Date(date + "T00:00:00");
+      var day = d.getDay();
+      var mon = new Date(d); mon.setDate(d.getDate() - ((day+6)%7));
+      var sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+      var fmt = function(dt) { return dt.toISOString().slice(0,10); };
+      var recs = await fetchAtInjectionWeek(fmt(mon), fmt(sun));
+      renderInjectionPanel(recs, fmt(mon), fmt(sun));
+    } else {
+      var recs = await fetchAtDate(m.tableID, date);
+      renderAtPanel(recs, date, m.tableID);
+    }
   } catch(e) {
     document.getElementById("atContent").innerHTML = "<div style='padding:20px;color:var(--r);font-size:11px'>Error: " + esc(e.message) + "</div>";
   }
+}
+async function fetchAtInjectionWeek(startDate, endDate) {
+  var formula = encodeURIComponent("AND({fldhYEtLEGA4VxvvO}>='"+startDate+"',{fldhYEtLEGA4VxvvO}<='"+endDate+"')");
+  var url = "https://api.airtable.com/v0/" + ATB + "/tblBvEaLkGGipnOFc?pageSize=100&returnFieldsByFieldId=true&filterByFormula=" + formula + "&sort[0][field]=fldhYEtLEGA4VxvvO&sort[0][direction]=asc";
+  var r = await fetch(url, { headers: { Authorization: "Bearer " + ATK } });
+  if (!r.ok) throw new Error("HTTP " + r.status);
+  var d = await r.json();
+  return d.records || [];
+}
+function renderInjectionPanel(recs, startDate, endDate) {
+  if (!recs.length) {
+    document.getElementById("atContent").innerHTML = "<div class='empty' style='padding:30px 10px'><div class='et' style='font-size:11px;color:var(--r)'>No records for week of " + startDate + "</div></div>";
+    return;
+  }
+  var html = "<div class='sec'><div class='sech'><span class='sect sectbl'>Week of " + startDate + "</span><span class='secc'>" + recs.length + "</span></div><div style='overflow-x:auto'>";
+  html += "<table class='tbl'><thead><tr><th>Date</th><th>Compound</th><th>Dose</th><th>Side</th><th>TOD</th><th>Notes</th></tr></thead><tbody>";
+  recs.forEach(function(r) {
+    var f = r.fields || {};
+    html += "<tr>";
+    html += "<td>" + esc(f["fldhYEtLEGA4VxvvO"]||"—") + "</td>";
+    html += "<td style='font-weight:500'>" + esc((f["fldwVFyizH4mBANBa"]||{}).name||"—") + "</td>";
+    html += "<td>" + esc(f["fld8d8mtRapfaIyqL"]||"—") + "</td>";
+    html += "<td>" + esc((f["fldHDlJY8FpAvK018"]||{}).name||"—") + "</td>";
+    html += "<td>" + esc((f["fldIdzew4Jd0qO4Uc"]||{}).name||"—") + "</td>";
+    html += "<td style='font-size:10px;color:var(--d)'>" + esc(f["Notes"]||"") + "</td>";
+    html += "</tr>";
+  });
+  html += "</tbody></table></div></div>";
+  document.getElementById("atContent").innerHTML = html;
 }
 async function fetchAtDate(tid, date) {
   var formula = encodeURIComponent("FIND(\"" + date + "\",{Date})");
@@ -754,7 +785,6 @@ function renderAtPanel(recs, date, tid) {
     return;
   }
   var html = "<div class='sec'><div class='sech'><span class='sect sectbl'>" + date + "</span><span class='secc'>" + recs.length + " records</span></div><div style='overflow-x:auto'>";
-  // Build columns from first record
   var cols = Object.keys(recs[0].fields).filter(function(k) { return !["id", "createdTime"].includes(k); }).slice(0, 8);
   html += "<table class='tbl'><thead><tr>" + cols.map(function(c) { return "<th>" + esc(c) + "</th>"; }).join("") + "</tr></thead><tbody>";
   recs.forEach(function(r) {
