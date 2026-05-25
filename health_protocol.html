@@ -2467,7 +2467,7 @@ async function loadInjAudit() {
   navEl.innerHTML = '';
   contentEl.innerHTML = '';
   // Field IDs: Compound=fldwVFyizH4mBANBa (select), Site=fldHDlJY8FpAvK018 (select), Date=fldhYEtLEGA4VxvvO, Notes=fldt9vYT8Tm37Gf3k
-  const F_NAME = 'fldwVFyizH4mBANBa', F_SITE = 'fldHDlJY8FpAvK018', F_DATE = 'fldhYEtLEGA4VxvvO', F_NOTE = 'fldt9vYT8Tm37Gf3k';
+  // Field names match existing app usage (see tracker fetch)
   const ALIAS_INJ = {
     'trt':'Testosterone (TRT)', 'testosterone':'Testosterone (TRT)',
     'cjc-1295':'CJC-1295 No DAC', 'cjc 1295':'CJC-1295 No DAC',
@@ -2491,9 +2491,9 @@ async function loadInjAudit() {
   try {
     let records = [], offset = null;
     do {
-      let url = 'https://api.airtable.com/v0/' + BASE + '/tblBvEaLkGGipnOFc?pageSize=100&returnFieldsByFieldId=true'
-        + '&fields[]=' + F_NAME + '&fields[]=' + F_SITE + '&fields[]=' + F_DATE + '&fields[]=' + F_NOTE
-        + '&sort[0][field]=' + F_DATE + '&sort[0][direction]=asc';
+      let url = 'https://api.airtable.com/v0/' + BASE + '/tblBvEaLkGGipnOFc?pageSize=100'
+        + '&fields[]=Date&fields[]=Compound&fields[]=Site&fields[]=Notes'
+        + '&sort[0][field]=Date&sort[0][direction]=asc';
       if (offset) url += '&offset=' + encodeURIComponent(offset);
       const r = await fetch(url, { headers: { Authorization: 'Bearer ' + TOKEN } });
       const j = await r.json();
@@ -2505,16 +2505,14 @@ async function loadInjAudit() {
     const weeks = {};
     records.forEach(rec => {
       const f = rec.fields;
-      const date = f[F_DATE];
+      const date = f['Date'];
       if (!date) return;
-      const rawName = typeof f[F_NAME] === 'object' ? (f[F_NAME]||{}).name : (f[F_NAME]||'');
-      const compound = res(rawName);
+      const compound = res(f['Compound'] || '');
       const mon = getMon(date);
       if (!weeks[mon]) weeks[mon] = {};
       const key = compound + '|' + date;
       if (!weeks[mon][key]) weeks[mon][key] = [];
-      const rawSite = typeof f[F_SITE] === 'object' ? (f[F_SITE]||{}).name : (f[F_SITE]||'');
-      weeks[mon][key].push({ site: rawSite, note: f[F_NOTE] || '' });
+      weeks[mon][key].push({ site: f['Site'] || '', note: f['Notes'] || '' });
     });
     const DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
     const sortedWeeks = Object.keys(weeks).sort();
