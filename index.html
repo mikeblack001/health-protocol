@@ -2465,17 +2465,28 @@ async function loadInjAudit() {
   contentEl.innerHTML = '';
   // Field IDs: Compound=fldwVFyizH4mBANBa (select), Site=fldHDlJY8FpAvK018 (select), Date=fldhYEtLEGA4VxvvO, Notes=fldt9vYT8Tm37Gf3k
   // Field names match existing app usage (see tracker fetch)
+  // Canonical names sourced from Peptides table (fldeH5uyKXDFPZbHK)
   const ALIAS_INJ = {
-    'trt':'Testosterone (TRT)', 'testosterone':'Testosterone (TRT)',
+    // TRT
+    'trt':'Testosterone', 'testosterone (trt)':'Testosterone',
+    // CJC variants
     'cjc-1295':'CJC-1295 No DAC', 'cjc 1295':'CJC-1295 No DAC',
-    'cjc-1295 no dac':'CJC-1295 No DAC',
-    'cag':'Cagrilintide', 'epithalon':'Epitalon',
+    // Cagrilintide
+    'cag':'Cagrilintide',
+    // Epitalon spelling variants
+    'epithalon':'Epitalon',
+    // Deca variants
     'deca nano':'Deca (Nano)', 'deca':'Deca (Nano)',
-    'melanotan 2':'Melanotan II', 'mt-2':'Melanotan II',
-    'melanotan ii (mt2)':'Melanotan II',
-    'mots c':'Mots-C', 'mots-c':'Mots-C',
-    'ss 31':'SS-31', 'ss-31':'SS-31',
+    // Melanotan
+    'melanotan 2':'Melanotan II', 'mt-2':'Melanotan II', 'melanotan ii (mt2)':'Melanotan II',
+    // Mots-C
+    'mots c':'Mots-C',
+    // SS-31
+    'ss 31':'SS-31',
+    // Misc typos / old names
     'bpc 157':'BPC-157', 'tb 500':'TB-500',
+    'anavar (oxandrolone)':'Anavar',
+    'stanozolal':'Stanozolol',
   };
   const nrm = s => (s||'').toLowerCase().trim().replace(/ +/g,' ');
   const res = raw => ALIAS_INJ[nrm(raw)] || raw;
