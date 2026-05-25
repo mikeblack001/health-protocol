@@ -3259,7 +3259,12 @@ async function saveAddChange() {
 
 
 async function printTracker() {
-  // Always fetch fresh from Airtable so dose changes are reflected immediately
+  // Open window immediately (must be sync/direct user gesture — before any await)
+  const w = window.open('','_blank','width=900,height=700');
+  if (!w) { alert('Popup blocked — allow popups for this site'); return; }
+  w.document.write('<html><body style="font-family:Calibri,Arial,sans-serif;padding:40px;text-align:center"><p>Loading latest protocol data...</p></body></html>');
+
+  // Now fetch fresh from Airtable so dose changes are always reflected
   let activePeps;
   try {
     const res = await fetch(`https://api.airtable.com/v0/${BASE}/${TABLES.peptides}?pageSize=100`, {
@@ -3268,7 +3273,6 @@ async function printTracker() {
     const json = await res.json();
     activePeps = (json.records || []).filter(r => getField(r,'Status') === 'Active');
   } catch(e) {
-    // Fallback to cached data if fetch fails
     activePeps = data.peptides.filter(r => getField(r,'Status') === 'Active');
   }
   const pepMap = {};
@@ -3394,7 +3398,7 @@ async function printTracker() {
 </div>
 </body></html>`;
 
-  const w = window.open('','_blank','width=900,height=700');
+  w.document.open();
   w.document.write(html);
   w.document.close();
   setTimeout(() => w.print(), 800);
