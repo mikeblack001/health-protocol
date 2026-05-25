@@ -2992,37 +2992,48 @@ function printTracker() {
       const dose = getField(r,'Dose');
       const label = dose ? `${name}<br><span style="font-size:7pt;color:#555">${dose}</span>` : name;
       const active = TRACKER_SCHEDULE[name] || [0,1,2,3,4,5,6];
-      let tr = `<tr><td style="background-color:${bg}!important;border:1px solid #000;padding:4px 5px;height:34px;vertical-align:middle">${label}</td>`;
+      let tr = `<tr><td style="background-color:${bg}!important;border:1px solid #000;padding:3px 5px;height:22px;vertical-align:middle">${label}</td>`;
       for (let d=0; d<7; d++) {
         tr += active.includes(d)
-          ? `<td style="background-color:${bg}!important;border:1px solid #000;height:34px;"></td>`
-          : `<td style="background-color:${INACTIVE}!important;border:1px solid #000;height:34px;"></td>`;
+          ? `<td style="background-color:${bg}!important;border:1px solid #000;height:22px;"></td>`
+          : `<td style="background-color:${INACTIVE}!important;border:1px solid #000;height:22px;"></td>`;
       }
-      tr += `<td style="background-color:${bg}!important;border:1px solid #000;height:34px;"></td></tr>`;
+      tr += `<td style="background-color:${bg}!important;border:1px solid #000;height:22px;"></td></tr>`;
       return tr;
     }).join('');
   }
 
+  const SLEEP_BG = '#F0F0F0';
+  function sleepRows() {
+    return ['Sleep (hrs)', 'Deep Sleep (min)', 'Duration (min)'].map(label =>
+      `<tr><td style="background-color:${SLEEP_BG}!important;border:1px solid #000;padding:3px 5px;height:20px;font-style:italic;font-size:7.5pt;color:#333">${label}</td>` +
+      DAYS.map(() => `<td style="background-color:${SLEEP_BG}!important;border:1px solid #000;height:20px;"></td>`).join('') +
+      `<td style="background-color:${SLEEP_BG}!important;border:1px solid #000;height:20px;"></td></tr>`
+    ).join('');
+  }
+
   function weekTable(weekNum) {
     return `
-    <table style="width:100%;border-collapse:collapse;margin-top:${weekNum>1?'10px':'0'};border:2px solid #000">
+    <table style="width:100%;border-collapse:collapse;margin-top:${weekNum>1?'8px':'0'};border:2px solid #000">
       <tr>
-        <td style="background-color:#1B4332!important;color:#fff!important;font-weight:bold;font-size:9pt;padding:5px 8px;width:70px;white-space:nowrap">Week ${weekNum}</td>
-        <td style="background-color:#fff!important;border-left:2px solid #000;font-size:9pt;padding:5px 8px;color:#000">Monday Date: _____________________________</td>
+        <td style="background-color:#1B4332!important;color:#fff!important;font-weight:bold;font-size:9pt;padding:4px 8px;width:70px;white-space:nowrap">Week ${weekNum}</td>
+        <td style="background-color:#fff!important;border-left:2px solid #000;font-size:9pt;padding:4px 8px;color:#000">Monday Date: _____________________________</td>
       </tr>
     </table>
-    <table style="width:100%;border-collapse:collapse;font-size:8.5pt;table-layout:fixed;border:2px solid #000;border-top:none">
+    <table style="width:100%;border-collapse:collapse;font-size:8pt;table-layout:fixed;border:2px solid #000;border-top:none">
     <colgroup><col style="width:34%">${DAYS.map(()=>'<col style="width:6%">').join('')}<col style="width:24%"></colgroup>
     <thead><tr style="background-color:#D9D9D9!important">
-      <th style="border:1px solid #000;padding:3px 5px;text-align:left">Medication</th>
-      ${DAYS.map(d=>`<th style="border:1px solid #000;padding:3px 2px;text-align:center">${d}</th>`).join('')}
-      <th style="border:1px solid #000;padding:3px 5px;text-align:left">Notes</th>
+      <th style="border:1px solid #000;padding:2px 5px;text-align:left">Medication</th>
+      ${DAYS.map(d=>`<th style="border:1px solid #000;padding:2px;text-align:center">${d}</th>`).join('')}
+      <th style="border:1px solid #000;padding:2px 5px;text-align:left">Notes</th>
     </tr></thead><tbody>
-    <tr><td colspan="9" style="background-color:#E8A838!important;color:#fff!important;font-weight:bold;padding:4px 6px;font-size:8.5pt">☀ Morning</td></tr>
+    <tr><td colspan="9" style="background-color:#E8A838!important;color:#fff!important;font-weight:bold;padding:3px 6px;font-size:8pt">☀ Morning</td></tr>
     ${rows(MORNING_ORDER, MORN_BG)}
-    <tr><td colspan="9" style="height:10px;background-color:#e8e8e8!important;border:1px solid #000"></td></tr>
-    <tr><td colspan="9" style="background-color:#4A6FA5!important;color:#fff!important;font-weight:bold;padding:4px 6px;font-size:8.5pt">🌙 Night</td></tr>
+    <tr><td colspan="9" style="height:6px;background-color:#e8e8e8!important;border:1px solid #000"></td></tr>
+    <tr><td colspan="9" style="background-color:#4A6FA5!important;color:#fff!important;font-weight:bold;padding:3px 6px;font-size:8pt">🌙 Night</td></tr>
     ${rows(NIGHT_ORDER, NIGHT_BG)}
+    <tr><td colspan="9" style="height:4px;background-color:#ccc!important;border:1px solid #000"></td></tr>
+    ${sleepRows()}
     </tbody></table>`;
   }
 
