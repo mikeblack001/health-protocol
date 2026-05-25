@@ -226,6 +226,7 @@ select.inp{cursor:pointer}
               <div style="margin-left:8px;display:flex;gap:6px">
                 <button class="navbtn" onclick="markPage('ok')" id="markOkBtn" title="Mark Verified">&#10003;</button>
                 <button class="navbtn" onclick="markPage('flagged')" id="markFlagBtn" title="Flag Issue">&#9873;</button>
+                <button class="navbtn" onclick="sendToClaude()" title="Download page to send to Claude" style="background:#2255cc;color:#fff;border-color:#2255cc">&#8595; Send to Claude</button>
               </div>
               <div class="img-meta" id="imgMeta"></div>
             </div>
@@ -343,10 +344,11 @@ if (typeof pdfjsLib !== "undefined") pdfjsLib.GlobalWorkerOptions.workerSrc = "h
 // ── STATE ─────────────────────────────────────────────────────────────
 var gTok = null, gCli = null;
 var curFile = null, pdfType = "workout";
-var pages = []; // {url, filename}
+var pages = []; // {url, filename, text}
 var curPage = 0;
 var pageStatus = {}; // page index → 'ok'|'flagged'|null
 var atTables = [], atCache = {};
+var pdfDocRef = null; // keep pdf.js doc ref for text extraction
 var pickerType = null, pickerPending = [], folderStack = [], folderCache = {}, curFolderItems = [];
 
 var cfg = {
@@ -518,6 +520,7 @@ async function selFile(id, name, type) {
         dbg("Loading PDF with pdf.js...");
         var pdfDoc = await pdfjsLib.getDocument({ data: buf }).promise;
         dbg("PDF loaded. Rendering " + pdfDoc.numPages + " pages...");
+        pdfDocRef = pdfDoc;
         for (var p = 1; p <= pdfDoc.numPages; p++) {
           dbg("Rendering page " + p + "/" + pdfDoc.numPages);
           var page = await pdfDoc.getPage(p);
@@ -525,7 +528,10 @@ async function selFile(id, name, type) {
           var canvas = document.createElement("canvas");
           canvas.width = vp.width; canvas.height = vp.height;
           await page.render({ canvasContext: canvas.getContext("2d"), viewport: vp }).promise;
-          pages.push({ url: canvas.toDataURL("image/jpeg", 0.9), filename: "page_" + p + ".jpg" });
+          // Extract text for auto-date detection
+          var textContent = await page.getTextContent();
+          var pageText = textContent.items.map(function(i) { return i.str; }).join(" ");
+          pages.push({ url: canvas.toDataURL("image/jpeg", 0.9), filename: "page_" + p + ".jpg", text: pageText });
         }
         loaded = true;
       } catch(e) { dbg("PDF error: " + e.message); }
@@ -563,23 +569,55 @@ function renderThumbs() {
 }
 function goToPage(n) {
   if (n < 0 || n >= pages.length) return;
-  // Update old thumb
   var oldThumb = document.getElementById("th_" + curPage);
   if (oldThumb) { oldThumb.classList.remove("active"); if (pageStatus[curPage]) oldThumb.classList.add(pageStatus[curPage]); }
   curPage = n;
   var p = pages[n];
   var img = document.getElementById("mainImg");
-  img.style.display = "block";
-  img.src = p.url;
+  img.style.display = "block"; img.src = p.url;
   document.getElementById("imgEmpty").style.display = "none";
   document.getElementById("pgLabel").textContent = (n + 1) + " / " + pages.length;
   document.getElementById("prevBtn").disabled = n === 0;
   document.getElementById("nextBtn").disabled = n === pages.length - 1;
   document.getElementById("imgMeta").textContent = p.filename;
-  // Update thumb
   var newThumb = document.getElementById("th_" + n);
   if (newThumb) { newThumb.classList.add("active"); newThumb.scrollIntoView({ block: "nearest", inline: "center", behavior: "smooth" }); }
+  // Auto-detect date from extracted text
+  if (p.text) {
+    var detected = extractDateFromText(p.text);
+    if (detected) {
+      document.getElementById("dateFilter").value = detected;
+      refreshAtData();
+    }
+  }
   updateStatusBar();
+}
+
+function extractDateFromText(text) {
+  // Try ISO date: 2025-01-15
+  var iso = text.match(/\b(20\d{2})[-\/](0?[1-9]|1[0-2])[-\/](0?[1-9]|[12]\d|3[01])\b/);
+  if (iso) return iso[1] + "-" + iso[2].padStart(2,"0") + "-" + iso[3].padStart(2,"0");
+  // Try MM/DD/YYYY
+  var mdy = text.match(/\b(0?[1-9]|1[0-2])[\/\-](0?[1-9]|[12]\d|3[01])[\/\-](20\d{2})\b/);
+  if (mdy) return mdy[3] + "-" + mdy[1].padStart(2,"0") + "-" + mdy[2].padStart(2,"0");
+  // Try "Month DD, YYYY" or "Month YYYY"
+  var months = {january:"01",february:"02",march:"03",april:"04",may:"05",june:"06",july:"07",august:"08",september:"09",october:"10",november:"11",december:"12"};
+  var mlong = text.toLowerCase().match(/\b(january|february|march|april|may|june|july|august|september|october|november|december)\s+(\d{1,2})?,?\s*(20\d{2})/);
+  if (mlong) {
+    var m = months[mlong[1]], d = mlong[2] ? mlong[2].padStart(2,"0") : "01", y = mlong[3];
+    return y + "-" + m + "-" + d;
+  }
+  return null;
+}
+
+function sendToClaude() {
+  if (!pages[curPage]) return;
+  // Download current page as JPEG for uploading to Claude chat
+  var a = document.createElement("a");
+  a.href = pages[curPage].url;
+  a.download = "page_" + (curPage+1) + "_" + (curFile ? curFile.name.replace(".pdf","") : "doc") + ".jpg";
+  a.click();
+  toast("Downloaded — upload this image to Claude chat", "ti", 5000);
 }
 function navPage(dir) { goToPage(curPage + dir); }
 function markPage(status) {
