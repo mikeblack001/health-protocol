@@ -3528,7 +3528,7 @@ function buildWeeklyPrintHTML(monday) {
 
     return `<table class="ptable">
       <colgroup>
-        <col style="width:22%"><col style="width:18%">
+        <col style="width:18%"><col style="width:12%">
         <col style="width:3%"><col style="width:6%"><col style="width:9%">
         <col style="width:3%"><col style="width:6%"><col style="width:9%">
         <col style="width:3%"><col style="width:6%"><col style="width:9%">
@@ -3536,10 +3536,10 @@ function buildWeeklyPrintHTML(monday) {
       <thead>
         <tr><th colspan="11" class="pday-hdr">${day.label}</th></tr>
         <tr class="pmeta">
-          <td colspan="2" class="pmeta-cell">Date: <span class="pmeta-val">${dateStr}</span></td>
-          <td colspan="2" class="pmeta-cell" style="font-size:10px;white-space:nowrap">Sleep: <span style="font-family:monospace;color:#333">________</span></td>
-          <td colspan="2" class="pmeta-cell" style="font-size:10px;white-space:nowrap">Deep: <span style="font-family:monospace;color:#333">________</span></td>
-          <td colspan="5" class="pmeta-cell" style="text-align:right;font-size:10px;white-space:nowrap">Duration: <span style="font-family:monospace;color:#333">____________</span></td>
+          <td colspan="2" class="pmeta-cell" style="white-space:nowrap">Date: <span class="pmeta-val">${dateStr}</span></td>
+          <td colspan="3" class="pmeta-cell" style="font-size:10px;white-space:nowrap">Sleep: <span style="font-family:monospace;color:#333">___________</span></td>
+          <td colspan="3" class="pmeta-cell" style="font-size:10px;white-space:nowrap">Deep: <span style="font-family:monospace;color:#333">___________</span></td>
+          <td colspan="3" class="pmeta-cell" style="text-align:right;font-size:10px;white-space:nowrap">Duration: <span style="font-family:monospace;color:#333">___________</span></td>
         </tr>
         <tr class="pcol-hdr">
           <th class="pex-name">Exercise</th>
