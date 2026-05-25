@@ -1077,6 +1077,191 @@
     <div id="injaudit-content" style="padding:16px;overflow-x:auto;width:100%"></div>
   </div>
 
+  <div id="view-pdfqa" class="view">
+  <div class="pdfqa-root">
+    <div class="hdr" style="padding:8px 20px;flex-shrink:0">
+      <span class="logo">MB</span><span style="color:var(--b2)">&#8212;</span>
+      <span class="htitle">PDF QA &amp; VERIFICATION</span>
+      <div class="hright">
+        <div class="dot" id="dDot"></div><span class="dlbl" id="dLbl">DRIVE</span>
+        <span style="color:var(--dd)">&#183;</span>
+        <div class="dot" id="aDot"></div><span class="dlbl" id="aLbl">AIRTABLE</span>
+      </div>
+    </div>
+    <div class="body">
+      <div class="sb">
+        <div class="sbh">
+          <span class="sbht">Library</span>
+          <button class="btn bg-btn" style="padding:3px 8px;font-size:9px" onclick="loadMappedFiles()">&#8635;</button>
+        </div>
+        <div class="sbb" id="fileList">
+          <div class="abox" style="padding:24px">
+            <div class="atitle">Connect Drive</div>
+            <div class="asub">Sign in to load your PDF library.</div>
+            <button class="btn bp" onclick="signIn()">Sign in with Google</button>
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="tabs">
+          <div class="tab active" id="tab-review" onclick="showTab('review')">Review</div>
+          <div class="tab" id="tab-export" onclick="showTab('export')">Export</div>
+          <div class="tab" id="tab-verify" onclick="showTab('verify')">&#9889; Verify</div>
+          <div class="tab" id="tab-settings" onclick="showTab('settings')">&#9881; Settings</div>
+        </div>
+        <div class="tc active" id="tc-review">
+          <div class="empty" id="revEmpty" style="flex:1">
+            <div class="ei">&#128196;</div>
+            <div class="et">Select a file from the library</div>
+            <div class="es">Choose a workout, injection, or lab PDF from the sidebar to begin review.</div>
+          </div>
+          <div id="revUI" style="display:none;flex:1;flex-direction:column;overflow:hidden" class="tc active">
+            <div style="padding:8px 14px;border-bottom:1px solid var(--b);display:flex;align-items:center;gap:10px;flex-shrink:0;background:var(--s)">
+              <div style="flex:1">
+                <span style="font-size:12px;font-weight:600" id="pdfName">&#8212;</span>
+                <span style="font-size:10px;color:var(--dd);font-family:var(--mono);margin-left:10px" id="pdfMeta"></span>
+              </div>
+              <div id="pgStatusBadges" style="display:flex;gap:5px"></div>
+            </div>
+            <div class="rev-wrap">
+              <div class="img-panel">
+                <div class="img-toolbar">
+                  <div class="img-nav">
+                    <button class="navbtn" id="prevBtn" onclick="navPage(-1)" disabled>&#8592;</button>
+                    <span class="pg-label" id="pgLabel">&#8212; / &#8212;</span>
+                    <button class="navbtn" id="nextBtn" onclick="navPage(1)" disabled>&#8594;</button>
+                  </div>
+                  <div style="margin-left:8px;display:flex;gap:6px">
+                    <button class="navbtn" onclick="markPage('ok')" id="markOkBtn" title="Mark Verified">&#10003;</button>
+                    <button class="navbtn" onclick="markPage('flagged')" id="markFlagBtn" title="Flag Issue">&#9873;</button>
+                    <button class="navbtn" id="extractBtn" onclick="extractCurrentPage()" style="background:#00a855;color:#fff;border-color:#00a855">&#8659; Extract Page</button>
+                    <button class="navbtn" onclick="sendToClaude()" style="background:#2255cc;color:#fff;border-color:#2255cc">&#8595; Download</button>
+                  </div>
+                  <div class="img-meta" id="imgMeta"></div>
+                </div>
+                <div class="img-scroll" id="imgScroll">
+                  <div class="img-empty" id="imgEmpty">
+                    <span style="font-size:28px">&#128247;</span>
+                    <span>Loading pages...</span>
+                  </div>
+                  <img id="mainImg" style="display:none" alt="Page"/>
+                </div>
+                <div class="thumb-strip" id="thumbStrip"></div>
+              </div>
+              <div class="at-panel">
+                <div class="at-toolbar">
+                  <span class="at-toolbar-title">Airtable &#8212; <span id="atTableLabel" style="color:var(--bl)">Sets</span></span>
+                  <span id="atStatusLabel" style="font-size:10px;color:var(--dd);font-family:var(--mono)"></span>
+                  <button class="btn bg-btn" style="padding:3px 9px;font-size:10px" onclick="refreshAtData()" id="atRefreshBtn">&#8635; Load</button>
+                </div>
+                <div id="injAuditNav" style="display:none;flex-wrap:wrap;gap:3px;padding:8px 12px;border-bottom:1px solid var(--b);flex-shrink:0;overflow-y:auto;max-height:100px"></div>
+                <div class="at-scroll" id="atScroll">
+                  <div class="date-row">
+                    <input type="date" class="date-inp" id="dateFilter" onchange="refreshAtData()" placeholder="YYYY-MM-DD"/>
+                    <span style="font-size:10px;color:var(--dd);font-family:var(--mono)">filter date</span>
+                  </div>
+                  <div id="atContent">
+                    <div class="empty" style="padding:30px 10px">
+                      <div class="et" style="font-size:11px">Set a date to load Airtable records</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="pg-status-bar">
+                  <span style="font-family:var(--mono);font-size:10px;color:var(--d)">Page status:</span>
+                  <span id="pgStatusText" style="font-family:var(--mono);font-size:10px;color:var(--dd)">&#8212;</span>
+                  <div style="margin-left:auto;display:flex;gap:6px">
+                    <span id="okCount" style="font-size:10px;font-family:var(--mono);color:var(--g)"></span>
+                    <span id="flagCount" style="font-size:10px;font-family:var(--mono);color:var(--r)"></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="tc" id="tc-export">
+          <div class="tc-scroll">
+            <p style="font-size:12px;color:var(--d);line-height:1.6;margin-bottom:16px">Mark pages verified (&#10003;) or flagged (&#9873;) in the Review tab.</p>
+            <div id="exportSummary"><div class="empty"><div class="et">No file loaded</div></div></div>
+          </div>
+        </div>
+        <div class="tc" id="tc-verify">
+          <div class="tc-scroll">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+              <div style="flex:1">
+                <div style="font-size:13px;font-weight:600;margin-bottom:3px">Protocol Verification</div>
+                <div style="font-size:11px;color:var(--d)">Verifies every injection entry in the PDF against the Airtable Injection Log.</div>
+              </div>
+              <button class="btn bp" id="runVerifyBtn" onclick="runVerification()" style="white-space:nowrap;padding:8px 18px">&#9889; Run Verify</button>
+            </div>
+            <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
+              <label style="font-size:11px;color:var(--d);display:flex;align-items:center;gap:6px">
+                <select id="verifyPages" style="padding:4px 8px;font-size:11px;border:1px solid var(--b);border-radius:4px;background:var(--s2);color:var(--t)">
+                  <option value="4">Last 4 pages</option>
+                  <option value="6">Last 6 pages</option>
+                  <option value="10">Last 10 pages</option>
+                  <option value="all" selected>All pages</option>
+                </select>
+                to analyze
+              </label>
+              <label style="font-size:11px;color:var(--d);display:flex;align-items:center;gap:6px">
+                Model:
+                <select id="verifyModel" style="padding:4px 8px;font-size:11px;border:1px solid var(--b);border-radius:4px;background:var(--s2);color:var(--t)">
+                  <option value="claude-haiku-4-5-20251001" selected>Haiku 4.5 — fast</option>
+                  <option value="claude-sonnet-4-6">Sonnet 4.6 — accurate</option>
+                </select>
+              </label>
+            </div>
+            <div id="verifyStatus" style="font-size:11px;color:var(--d);font-family:var(--mono);margin-bottom:12px;min-height:18px"></div>
+            <div id="verifyResults"></div>
+          </div>
+        </div>
+        <div class="tc" id="tc-settings">
+          <div class="tc-scroll">
+            <p style="font-size:12px;color:var(--d);margin-bottom:16px;line-height:1.6">Assign Drive files (ZIP or PDF) to each type. Use <strong>+ Add Files</strong> to browse your Drive.</p>
+            <div id="typeSections"></div>
+            <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--b)">
+              <div style="font-size:12px;font-weight:600;margin-bottom:10px">Airtable Table Mapping</div>
+              <table style="width:100%;border-collapse:collapse;background:var(--s);border:1px solid var(--b);border-radius:6px;overflow:hidden">
+                <thead><tr>
+                  <th style="font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--d);text-align:left;padding:8px 12px;border-bottom:1px solid var(--b);background:var(--s2);font-family:var(--mono)">Type</th>
+                  <th style="font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--d);text-align:left;padding:8px 12px;border-bottom:1px solid var(--b);background:var(--s2);font-family:var(--mono)">Airtable Table</th>
+                </tr></thead>
+                <tbody id="atMapBody"></tbody>
+              </table>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:16px">
+              <button class="btn bp" onclick="saveSettings()">&#10003; Save Settings</button>
+              <button class="btn bg-btn" onclick="signOut()">Sign Out</button>
+              <button class="btn br" onclick="resetAll()">Reset All</button>
+            </div>
+            <div style="margin-top:8px;font-size:11px;color:var(--g);font-family:var(--mono)" id="saveStatus"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-bg" id="pickerModal">
+      <div class="modal">
+        <div class="mhdr">
+          <div class="mhdr-top">
+            <div class="mhdr-title" id="pickerTitle">Add Files</div>
+            <button class="btn bg-btn" style="padding:4px 9px;font-size:11px" onclick="closePickerModal()">&#x2715;</button>
+          </div>
+          <div class="breadcrumb" id="breadcrumb"></div>
+        </div>
+        <div class="msearch"><input type="text" id="pickerSearch" placeholder="Search..." oninput="filterItems()"></div>
+        <div class="mlist" id="pickerList"></div>
+        <div class="mftr">
+          <span class="mftr-count" id="pickerSelCount">0 selected</span>
+          <button class="btn bg-btn" onclick="closePickerModal()">Cancel</button>
+          <button class="btn bp" onclick="confirmPicker()">Add Selected</button>
+        </div>
+      </div>
+    </div>
+    <div class="toasts" id="toasts"></div>
+  </div>
+  </div>
+
+
 
 <!-- ADD PRICING MODAL -->
 <!-- BULK EDIT PRICING MODAL -->
@@ -6055,6 +6240,6 @@ async function runVerification() {
 </div>
 </body>
 </html>
-<!-- cache bust Mon May 26 2026 — fix blank verify -->
+<!-- cache bust Mon May 26 2026 — restore pdfqa view -->
 
 
