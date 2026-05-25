@@ -419,6 +419,7 @@
         <button class="drop-item" onclick="navDrop('databrowser','nav-tools')" style="color:var(--accent);font-weight:600">📊 Data Browser</button>
         <div class="drop-divider"></div>
         <button class="drop-item" onclick="window.open('https://mikeblack001.github.io/health-protocol/pdf_qa.html','_blank')" style="color:var(--accent);font-weight:600">📄 Data Accuracy Check</button>
+        <button class="drop-item" onclick="navDrop('injaudit','nav-tools')" style="color:var(--accent);font-weight:600">📋 Injection Log Audit</button>
       </div>
     </div>
   </div>
@@ -926,6 +927,15 @@
       <button class="filter-btn" onclick="showAddChangeModal()" style="margin-left:auto;background:var(--accent);color:#fff;border-color:var(--accent)">+ Log Change</button>
     </div>
     <div id="changes-content"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
+  </div>
+
+  <div id="view-injaudit" class="view">
+    <div class="filter-bar">
+      <span style="font-size:13px;font-weight:500;color:var(--text)">Injection Log Audit</span>
+      <span id="injaudit-status" style="font-size:11px;color:var(--muted)">Loading...</span>
+    </div>
+    <div id="injaudit-nav" style="display:flex;gap:4px;flex-wrap:wrap;padding:8px 12px;border-bottom:1px solid var(--border)"></div>
+    <div id="injaudit-content" style="padding:12px;overflow:auto"></div>
   </div>
 
 <!-- ADD PRICING MODAL -->
@@ -2459,6 +2469,7 @@ function showView(name, e) {
   if (name === 'purchases') loadPurchases();
   if (name === 'labs') loadLabs();
   if (name === 'changes') loadChanges();
+  if (name === 'injaudit') loadInjAudit();
   if (name === 'workouts') {
     document.getElementById('workout-date').value = new Date().toISOString().split('T')[0];
   }
