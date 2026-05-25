@@ -3285,10 +3285,9 @@ function printTracker() {
   // Letter 980px usable, 2 weeks + 14px gap → 483px each
   // fixedH accounts for headers + section headers + separators + sleep row extra
   // target rowH ~22px for 17 rows
-  const weekH = 390;
+  const weekH = 470;
   const fixedH = 82;
-  const rowH = Math.max(12, Math.min(20, Math.floor((weekH - fixedH) / totalRows)));
-  const sleepH = rowH + 4;
+  const rowH = Math.max(16, Math.min(30, Math.floor((weekH - fixedH) / totalRows)));
 
   function rows(order, bg) {
     return order.map(name => {
