@@ -913,7 +913,7 @@
       <span id="injaudit-status" style="font-size:11px;color:var(--muted)">Loading...</span>
     </div>
     <div id="injaudit-nav" style="display:flex;gap:4px;flex-wrap:wrap;padding:8px 12px;border-bottom:1px solid var(--border)"></div>
-    <div id="injaudit-content" style="padding:12px;overflow:auto"></div>
+    <div id="injaudit-content" style="padding:16px;overflow-x:auto;width:100%"></div>
   </div>
 
 <!-- ADD PRICING MODAL -->
@@ -2516,7 +2516,7 @@ async function loadInjAudit() {
     statusEl.textContent = records.length + ' records across ' + sortedWeeks.length + ' weeks';
     sortedWeeks.forEach(mon => {
       const btn = document.createElement('button');
-      btn.textContent = mon.slice(5);
+      const [yr,mo,dy] = mon.split('-'); btn.textContent = mo+'/'+dy+'/'+yr.slice(2);
       btn.style.cssText = 'padding:3px 8px;border:1px solid var(--border);border-radius:4px;cursor:pointer;font-size:10px;background:var(--surface);color:var(--text);margin:1px';
       btn.onclick = () => {
         navEl.querySelectorAll('button').forEach(b => { b.style.background='var(--surface)'; b.style.color='var(--text)'; });
@@ -2542,21 +2542,21 @@ function showAuditWeek(mon, weekData, DAYS) {
   const CC = { 'L':'#dbeafe','R':'#fef3c7','S':'#fee2e2','N':'#e5e7eb' };
   const TC = { 'L':'#1d4ed8','R':'#92400e','S':'#dc2626','N':'#6b7280' };
   function cell(entries) {
-    if (!entries || !entries.length) return '<td style="border:1px solid #ccc;width:44px"></td>';
+    if (!entries || !entries.length) return '<td style="border:1px solid #ccc;min-width:52px"></td>';
     const s = entries[0].site;
-    return '<td style="border:1px solid #ccc;width:44px;text-align:center;background:' + (CC[s]||'#dcfce7') + ';font-size:11px;font-weight:700;color:' + (TC[s]||'#15803d') + '">' + (s||'?') + '</td>';
+    return '<td style="border:1px solid #ccc;min-width:52px;text-align:center;padding:6px 2px;background:' + (CC[s]||'#dcfce7') + ';font-size:13px;font-weight:700;color:' + (TC[s]||'#15803d') + '">' + (s||'?') + '</td>';
   }
-  let html = '<table style="border-collapse:collapse;font-size:11px"><thead><tr>';
-  html += '<th style="text-align:left;padding:4px 8px;border:1px solid #999;min-width:160px;background:#e5e7eb;font-size:10px">Compound</th>';
-  DAYS.forEach((d,i) => { html += '<th style="padding:4px 6px;border:1px solid #999;text-align:center;background:#e5e7eb;font-size:9px">' + d + '<br><span style="font-weight:400">' + dates[i].slice(5) + '</span></th>'; });
+  let html = '<table style="border-collapse:collapse;font-size:13px;width:100%"><thead><tr>';
+  html += '<th style="text-align:left;padding:6px 12px;border:1px solid #999;min-width:180px;background:#e5e7eb;font-size:12px">Compound</th>';
+  DAYS.forEach((d,i) => { const [y,m,dy2] = dates[i].split('-'); html += '<th style="padding:4px 6px;border:1px solid #999;text-align:center;background:#e5e7eb;font-size:10px;min-width:52px">' + d + '<br><span style="font-weight:400;font-size:9px">' + m+'/'+dy2+'/'+y.slice(2) + '</span></th>'; });
   html += '<th style="border:1px solid #999;background:#e5e7eb;padding:4px 8px;font-size:10px">Notes</th></tr></thead><tbody>';
   ['Morning','Night'].forEach(section => {
-    html += '<tr><td colspan="9" style="background:#374151;color:#fff;padding:3px 8px;font-size:10px;font-weight:600;border:1px solid #555">' + (section==='Morning'?'Morning':'Night') + '</td></tr>';
+    html += '<tr><td colspan="' + (DAYS.length+2) + '" style="background:#374151;color:#fff;padding:5px 12px;font-size:12px;font-weight:600;border:1px solid #555">' + (section==='Morning'?'Morning':'Night') + '</td></tr>';
     compounds.filter(c => sectionOf(c) === section).forEach(c => {
-      html += '<tr><td style="padding:3px 8px;border:1px solid #ccc;font-size:10px;font-weight:500;background:#f9fafb;white-space:nowrap">' + c + '</td>';
+      html += '<tr><td style="padding:5px 12px;border:1px solid #ccc;font-size:12px;font-weight:500;background:#f9fafb;white-space:nowrap">' + c + '</td>';
       dates.forEach(date => { html += cell(weekData[c+'|'+date]); });
       const notes = [...new Set(dates.flatMap(date => (weekData[c+'|'+date]||[]).map(e=>e.note).filter(Boolean)))];
-      html += '<td style="padding:3px 8px;border:1px solid #ccc;font-size:9px;color:#666">' + notes.join('; ') + '</td></tr>';
+      html += '<td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#666">' + notes.join('; ') + '</td></tr>';
     });
   });
   html += '</tbody></table>';
