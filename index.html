@@ -3314,24 +3314,37 @@ function printTracker() {
     ).join('');
   }
 
+  // Generate Monday date for each week offset from today's Monday
+  function getMonday(offset) {
+    const d = new Date();
+    const day = d.getDay(); // 0=Sun, 1=Mon...
+    const diff = (day === 0 ? -6 : 1 - day); // days to Monday
+    d.setDate(d.getDate() + diff + (offset * 7));
+    return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  }
+
+  const WEEK_BLUE = '#1a56db';   // matches workout print
+  const MORN_HDR  = '#E8A838';   // amber
+
   function weekTable(weekNum) {
+    const mondayStr = getMonday(weekNum - 1);
     return `
     <table style="width:100%;border-collapse:collapse;margin-top:${weekNum>1?'14px':'0'};border:2px solid #000;table-layout:fixed;font-size:8pt">
     <colgroup><col style="width:34%">${DAYS.map(()=>'<col style="width:6%">').join('')}<col style="width:24%"></colgroup>
     <tbody>
     <tr>
-      <td style="background-color:#1B4332!important;color:#fff!important;font-weight:bold;font-size:8.5pt;padding:3px 6px;border:1px solid #000">Week ${weekNum}</td>
-      <td colspan="8" style="background-color:#fff!important;border:1px solid #000;font-size:8.5pt;padding:3px 6px;color:#000">Monday Date: _________________________________</td>
+      <td style="background-color:${WEEK_BLUE}!important;color:#fff!important;font-weight:bold;font-size:8.5pt;padding:3px 6px;border:1px solid #000">Week ${weekNum}</td>
+      <td colspan="8" style="background-color:#fff!important;border:1px solid #000;font-size:8.5pt;padding:3px 6px;color:#000">Monday: <strong>${mondayStr}</strong></td>
     </tr>
     <tr style="background-color:#D9D9D9!important">
       <th style="border:1px solid #000;padding:2px 4px;text-align:left;font-size:7.5pt">Medication</th>
       ${DAYS.map(d=>`<th style="border:1px solid #000;padding:2px 1px;text-align:center;font-size:7.5pt">${d}</th>`).join('')}
       <th style="border:1px solid #000;padding:2px 4px;text-align:left;font-size:7.5pt">Notes</th>
     </tr>
-    <tr><td colspan="9" style="background-color:#E8A838!important;color:#fff!important;font-weight:bold;padding:2px 5px;font-size:7.5pt">☀ Morning</td></tr>
+    <tr><td colspan="9" style="background-color:${MORN_HDR}!important;color:#fff!important;font-weight:bold;padding:2px 5px;font-size:7.5pt">☀ Morning</td></tr>
     ${rows(MORNING_ORDER, MORN_BG)}
     <tr><td colspan="9" style="height:4px;background-color:#ddd!important;border:1px solid #000"></td></tr>
-    <tr><td colspan="9" style="background-color:#4A6FA5!important;color:#fff!important;font-weight:bold;padding:2px 5px;font-size:7.5pt">🌙 Night</td></tr>
+    <tr><td colspan="9" style="background-color:${WEEK_BLUE}!important;color:#fff!important;font-weight:bold;padding:2px 5px;font-size:7.5pt">🌙 Night</td></tr>
     ${rows(NIGHT_ORDER, NIGHT_BG)}
     <tr><td colspan="9" style="height:3px;background-color:#ccc!important;border:1px solid #000"></td></tr>
     ${sleepRows()}
