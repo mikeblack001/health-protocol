@@ -1930,7 +1930,8 @@ function renderTracker(weekNum) {
 
   function dayCell(compound, dayIdx, bg) {
     const active = TRACKER_SCHEDULE[compound];
-    const isActive = !active || active.includes(dayIdx);
+    // In historical mode, don't gray out days — injection log is the ground truth
+    const isActive = trackerHistoricalData || !active || active.includes(dayIdx);
     const dayDate = new Date(monday); dayDate.setDate(monday.getDate() + dayIdx);
     const dateStr = dayDate.toISOString().split('T')[0];
     const cellBg = isActive ? bg : INACTIVE;
