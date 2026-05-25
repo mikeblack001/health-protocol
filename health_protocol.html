@@ -265,21 +265,13 @@
 }
 .pmeta td, .pmeta-cell {
   background: #ebf2ff;
-  padding: 5px 8px;
+  padding: 6px 8px;
   font-size: 10px;
   border: 1px solid #bfdbfe;
   vertical-align: middle;
-  height: 26px;
+  height: 32px;
 }
 .pmeta-val { font-weight: 600; }
-.psleep-row td {
-  background: #ebf2ff;
-  padding: 4px 8px;
-  font-size: 10px;
-  border: 1px solid #bfdbfe;
-  vertical-align: bottom;
-  height: 28px;
-}
 .psleep-line {
   display: inline-block;
   border-bottom: 1.5px solid #1a56db;
@@ -299,14 +291,14 @@
   text-align: center;
 }
 .pcol-hdr th.pex-name, .pcol-hdr th.pex-var { text-align: left; }
-.pex td { border: 1px solid #ccc; padding: 6px 5px; vertical-align: middle; height: 22px; }
+.pex td { border: 1px solid #ccc; padding: 7px 5px; vertical-align: middle; height: 28px; }
 .pex-name { font-weight: 600; font-size: 11px; word-break: break-word; }
 .pex-var  { font-size: 9px; color: #555; word-break: break-word; }
 .pset     { text-align: center; color: #999; font-size: 9px; background: #fafafa; }
 .preps, .pwt { text-align: center; }
-.pnotes td { border: 1px solid #ccc; padding: 6px 8px; background: #fafafa; height: 20px; }
-.pnotes-label { font-weight: 700; font-size: 10px; white-space: nowrap; }
-.pnotes-val   { font-size: 9px; color: #aaa; }
+.pnotes td { border: 1px solid #ccc; padding: 8px; background: #fafafa; height: 48px; vertical-align: top; }
+.pnotes-label { font-weight: 700; font-size: 10px; white-space: nowrap; color: #555; }
+.pnotes-val   { font-size: 9px; color: #ccc; }
 
 @media screen {
   .print-page { border: 1px solid #ddd; padding: 16px; border-radius: 6px; background: white; }
@@ -419,7 +411,6 @@
         <button class="drop-item" onclick="navDrop('databrowser','nav-tools')" style="color:var(--accent);font-weight:600">📊 Data Browser</button>
         <div class="drop-divider"></div>
         <button class="drop-item" onclick="window.open('https://mikeblack001.github.io/health-protocol/pdf_qa.html','_blank')" style="color:var(--accent);font-weight:600">📄 Data Accuracy Check</button>
-        <button class="drop-item" onclick="navDrop('injaudit','nav-tools')" style="color:var(--accent);font-weight:600">📋 Injection Log Audit</button>
       </div>
     </div>
   </div>
@@ -929,14 +920,7 @@
     <div id="changes-content"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
   </div>
 
-  <div id="view-injaudit" class="view">
-    <div class="filter-bar">
-      <span style="font-size:13px;font-weight:500;color:var(--text)">Injection Log Audit</span>
-      <span id="injaudit-status" style="font-size:11px;color:var(--muted)">Loading...</span>
-    </div>
-    <div id="injaudit-nav" style="display:flex;gap:4px;flex-wrap:wrap;padding:8px 12px;border-bottom:1px solid var(--border)"></div>
-    <div id="injaudit-content" style="padding:12px;overflow:auto"></div>
-  </div>
+<!-- ADD PRICING MODAL -->
 <!-- BULK EDIT PRICING MODAL -->
 <div class="modal-overlay" id="bulk-pricing-modal" onclick="if(event.target===this)hideBulkEdit()" style="align-items:flex-start;padding-top:40px">
   <div class="modal-box" style="width:600px;max-width:96vw;max-height:80vh;display:flex;flex-direction:column">
@@ -2469,139 +2453,9 @@ function showView(name, e) {
   if (name === 'purchases') loadPurchases();
   if (name === 'labs') loadLabs();
   if (name === 'changes') loadChanges();
-  if (name === 'injaudit') loadInjAudit();
   if (name === 'workouts') {
     document.getElementById('workout-date').value = new Date().toISOString().split('T')[0];
   }
-}
-
-
-async function loadInjAudit() {
-  const statusEl = document.getElementById('injaudit-status');
-  const navEl = document.getElementById('injaudit-nav');
-  const contentEl = document.getElementById('injaudit-content');
-  statusEl.textContent = 'Loading...';
-  navEl.innerHTML = '';
-  contentEl.innerHTML = '<div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div>';
-
-  const INJ_ALIAS = {
-    'trt':'Testosterone (TRT)','testosterone':'Testosterone (TRT)',
-    'cjc-1295':'CJC-1295 No DAC','cjc 1295':'CJC-1295 No DAC',
-    'cag':'Cagrilintide','epithalon':'Epitalon',
-    'deca nano':'Deca (Nano)','deca':'Deca (Nano)',
-    'melanotan 2':'Melanotan II','mt-2':'Melanotan II',
-    'melanotan ii (mt2)':'Melanotan II',
-    'mots c':'Mots-C','ss 31':'SS-31',
-    'bpc 157':'BPC-157','tb 500':'TB-500',
-  };
-  const normC = s => (s||'').toLowerCase().trim().replace(/\s+/g,' ');
-  function resolveC(raw) { return INJ_ALIAS[normC(raw)] || raw; }
-
-  function getMonday(dateStr) {
-    const d = new Date(dateStr+'T12:00:00');
-    const diff = d.getDay()===0?-6:1-d.getDay();
-    const m = new Date(d); m.setDate(d.getDate()+diff);
-    return m.toISOString().split('T')[0];
-  }
-
-  try {
-    let records=[], offset=null;
-    do {
-      let url=`https://api.airtable.com/v0/${BASE}/tblBvEaLkGGipnOFc?pageSize=100&fields[]=Name&fields[]=Site&fields[]=Date&fields[]=Notes&sort[0][field]=Date&sort[0][direction]=asc`;
-      if(offset) url+='&offset='+encodeURIComponent(offset);
-      const res=await fetch(url,{headers:{Authorization:`Bearer ${TOKEN}`}});
-      const j=await res.json();
-      if(j.error) throw new Error(j.error.message);
-      records=records.concat(j.records||[]);
-      offset=j.offset;
-      statusEl.textContent=`Loading... ${records.length} records`;
-    } while(offset);
-
-    // Group by week then compound+date
-    const weeks={};
-    records.forEach(r=>{
-      const f=r.fields;
-      const date=f['Date'];
-      if(!date) return;
-      const compound=resolveC(f['Name']||'unknown');
-      const mon=getMonday(date);
-      if(!weeks[mon]) weeks[mon]={};
-      const key=compound+'|'+date;
-      if(!weeks[mon][key]) weeks[mon][key]=[];
-      weeks[mon][key].push({site:f['Site']||'✓',note:f['Notes']||''});
-    });
-
-    const DAYS=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-    const sortedWeeks=Object.keys(weeks).sort();
-    statusEl.textContent=`${records.length} records | ${sortedWeeks.length} weeks`;
-
-    // Nav buttons
-    sortedWeeks.forEach(mon=>{
-      const btn=document.createElement('button');
-      btn.textContent=mon.slice(5);
-      btn.style.cssText='padding:3px 8px;border:1px solid var(--border);border-radius:4px;cursor:pointer;font-size:10px;background:var(--surface);color:var(--text)';
-      btn.onclick=()=>{
-        navEl.querySelectorAll('button').forEach(b=>b.style.background='var(--surface)');
-        btn.style.background='var(--accent)';btn.style.color='#fff';
-        showAuditWeek(mon,weeks[mon],DAYS);
-      };
-      navEl.appendChild(btn);
-    });
-
-    // Show most recent week
-    if(sortedWeeks.length){
-      const lastBtn=navEl.querySelectorAll('button')[sortedWeeks.length-1];
-      lastBtn.click();
-    }
-  } catch(e) {
-    statusEl.textContent='Error: '+e.message;
-    contentEl.innerHTML='';
-  }
-}
-
-function showAuditWeek(mon, weekData, DAYS) {
-  const el=document.getElementById('injaudit-content');
-  const monDate=new Date(mon+'T12:00:00');
-  const dates=[];
-  for(let i=0;i<7;i++){const d=new Date(monDate);d.setDate(monDate.getDate()+i);dates.push(d.toISOString().split('T')[0]);}
-
-  const compounds=[...new Set(Object.keys(weekData).map(k=>k.split('|')[0]))].sort();
-
-  const MORNING=['Testosterone (TRT)','Deca (Nano)','NAD+','Retatrutide','Cagrilintide','Tesamorelin','GHK-Cu','Melanotan II','Tirzepatide','Semax','SS-31','Mots-C','BPC-157','TB-500','LipoMinoMix'];
-  const NIGHT=['CJC-1295 No DAC','Ipamorelin','DSIP','KPV','Epitalon','Selank','BPC-157 (night)'];
-  const sectionOf=c=>NIGHT.includes(c)?'Night':'Morning';
-
-  const COLORS={'L':'#dbeafe','R':'#fef3c7','S':'#fee2e2','N':'#e5e7eb','✓':'#dcfce7'};
-
-  function cell(entries) {
-    if(!entries||!entries.length) return '<td style="border:1px solid #ccc;width:44px"></td>';
-    const s=entries[0].site;
-    const bg=COLORS[s]||COLORS['✓'];
-    return `<td style="border:1px solid #ccc;width:44px;text-align:center;background:${bg};font-size:11px;font-weight:700">${s}</td>`;
-  }
-
-  let html=`<table style="border-collapse:collapse;font-size:11px;width:100%">`;
-  html+=`<thead><tr><th style="text-align:left;padding:4px 8px;border:1px solid #999;min-width:160px;background:#e5e7eb">Compound</th>`;
-  DAYS.forEach((d,i)=>html+=`<th style="padding:4px;border:1px solid #999;text-align:center;width:44px;background:#e5e7eb">${d}<br><span style="font-weight:400;font-size:8px">${dates[i].slice(5)}</span></th>`);
-  html+=`<th style="border:1px solid #999;text-align:left;padding:4px 8px;background:#e5e7eb">Notes</th></tr></thead><tbody>`;
-
-  ['Morning','Night'].forEach(section=>{
-    html+=`<tr><td colspan="9" style="background:#374151;color:#fff;padding:3px 8px;font-size:10px;font-weight:600;border:1px solid #555">${section==='Morning'?'★':'🌙'} ${section}</td></tr>`;
-    const sectionCompounds=compounds.filter(c=>sectionOf(c)===section);
-    sectionCompounds.forEach(compound=>{
-      html+=`<tr><td style="padding:3px 8px;border:1px solid #ccc;font-size:10px;font-weight:500;background:#f9fafb">${compound}</td>`;
-      dates.forEach(date=>{
-        html+=cell(weekData[compound+'|'+date]);
-      });
-      // Notes
-      const notes=[...new Set(dates.flatMap(d=>(weekData[compound+'|'+d]||[]).map(e=>e.note).filter(Boolean)))];
-      html+=`<td style="padding:3px 8px;border:1px solid #ccc;font-size:9px;color:#666">${notes.join('; ')}</td>`;
-      html+='</tr>';
-    });
-  });
-
-  html+='</tbody></table>';
-  el.innerHTML=html;
 }
 
 async function saveLog() {
@@ -3641,6 +3495,24 @@ function dbExportCSV() {
   URL.revokeObjectURL(url);
 }
 
+function shortenVar(v) {
+  // If starts with a weight (e.g. "35lbs Smith Machine", "45lb Olympic") → keep only the weight
+  const wtMatch = v.match(/^(\d+\s*lbs?)\s+.+/i);
+  if (wtMatch) return wtMatch[1];
+  // Abbreviate known implements
+  return v
+    .replace('Smith Machine', 'SM')
+    .replace('Lat Machine', 'Lat M')
+    .replace('High Cable', 'Hi Cbl')
+    .replace('2 Hand Cables', '2H')
+    .replace('Cables (2:1)', 'Cable')
+    .replace('EZ Bar (15lbs)', 'EZ 15lb')
+    .replace('EZ-Bar', 'EZ')
+    .replace(' 1/2', '')
+    .replace('Bodyweight', 'BW')
+    .trim();
+}
+
 function buildWeeklyPrintHTML(monday) {
   const days = [
     { label: 'Monday - Push',           key: 'Monday - Push',           offset: 0 },
@@ -3657,7 +3529,9 @@ function buildWeeklyPrintHTML(monday) {
 
     let exRows = '';
     exercises.forEach(ex => {
-      const varStr = ex.variations && ex.variations.length ? ex.variations.join(' -- ') : '';
+      const varStr = ex.variations && ex.variations.length
+        ? ex.variations.map(shortenVar).join(' / ')
+        : '';
       const nameStr = ex.note ? ex.name + ' ' + ex.note : ex.name;
       exRows += `<tr class="pex">
         <td class="pex-name">${nameStr}</td>
@@ -3670,7 +3544,7 @@ function buildWeeklyPrintHTML(monday) {
 
     return `<table class="ptable">
       <colgroup>
-        <col style="width:22%"><col style="width:20%">
+        <col style="width:22%"><col style="width:18%">
         <col style="width:3%"><col style="width:6%"><col style="width:9%">
         <col style="width:3%"><col style="width:6%"><col style="width:9%">
         <col style="width:3%"><col style="width:6%"><col style="width:9%">
@@ -3679,18 +3553,8 @@ function buildWeeklyPrintHTML(monday) {
         <tr><th colspan="11" class="pday-hdr">${day.label}</th></tr>
         <tr class="pmeta">
           <td colspan="2" class="pmeta-cell">Date: <span class="pmeta-val">${dateStr}</span></td>
-          <td colspan="9" class="pmeta-cell" style="text-align:right">Duration: <span class="psleep-line" style="width:70px"></span></td>
-        </tr>
-        <tr class="psleep-row">
-          <td colspan="3" style="background:#ebf2ff;border:1px solid #bfdbfe;padding:5px 8px;font-size:10px;height:30px;vertical-align:bottom">
-            Sleep (hrs): <span class="psleep-line" style="width:90px"></span>
-          </td>
-          <td colspan="4" style="background:#ebf2ff;border:1px solid #bfdbfe;padding:5px 8px;font-size:10px;height:30px;vertical-align:bottom">
-            Deep Sleep (min): <span class="psleep-line" style="width:90px"></span>
-          </td>
-          <td colspan="4" style="background:#ebf2ff;border:1px solid #bfdbfe;padding:5px 8px;font-size:10px;height:30px;vertical-align:bottom">
-            Notes: <span class="psleep-line" style="width:120px"></span>
-          </td>
+          <td colspan="3" class="pmeta-cell">Sleep: <span class="psleep-line" style="width:60px"></span> &nbsp; Deep: <span class="psleep-line" style="width:60px"></span></td>
+          <td colspan="6" class="pmeta-cell" style="text-align:right">Duration: <span class="psleep-line" style="width:70px"></span></td>
         </tr>
         <tr class="pcol-hdr">
           <th class="pex-name">Exercise</th>
@@ -3702,6 +3566,10 @@ function buildWeeklyPrintHTML(monday) {
       </thead>
       <tbody>
         ${exRows}
+        <tr class="pnotes">
+          <td class="pnotes-label">Notes:</td>
+          <td colspan="10" class="pnotes-val"></td>
+        </tr>
       </tbody>
     </table>`;
   }
