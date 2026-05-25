@@ -838,11 +838,7 @@
 
   <div id="view-tracker" class="view">
     <div id="tracker-content"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
-    <div id="tracker-metrics" style="display:none;margin-top:4px;border:2px solid #000;border-radius:0 0 8px 8px;background:#f5f5f5;overflow:hidden">
-      <div style="background:#374151;color:#fff;font-weight:600;padding:4px 10px;font-size:11px;letter-spacing:1px;text-transform:uppercase">📊 Daily Metrics</div>
-      <table id="metrics-table" style="width:100%;border-collapse:collapse;font-size:13px"></table>
-    </div>
-    <div id="tracker-legend" style="display:none;margin-top:8px;display:flex;gap:10px;font-size:11px;font-family:'DM Mono',monospace;flex-wrap:wrap">
+    <div id="tracker-legend" style="margin-top:8px;display:flex;gap:10px;font-size:11px;font-family:'DM Mono',monospace;flex-wrap:wrap">
       <span style="background:#dbeafe;border:1px solid #2563eb;color:#1d4ed8;padding:2px 8px;border-radius:4px">L = Left</span>
       <span style="background:#fef3c7;border:1px solid #d97706;color:#92400e;padding:2px 8px;border-radius:4px">R = Right</span>
       <span style="background:#f3e8ff;border:1px solid #9333ea;color:#7e22ce;padding:2px 8px;border-radius:4px">Abd = Abdomen</span>
@@ -1973,8 +1969,8 @@ function renderTracker(weekNum) {
       const name = getField(r,'Compound');
       html += `<tr>
         <td style="padding:5px 10px;border:1px solid #000;background:${MORN_BG}">
-          <div style="font-weight:600;font-size:12px">${name}</div>
-          <div style="font-size:11px;color:var(--muted)">${getField(r,'Dose')}</div>
+          <div style="font-weight:700;font-size:13px;line-height:1.3;color:var(--text)">${name}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:1px">${[getField(r,'Dose'), getField(r,'Frequency')].filter(Boolean).join(' · ')}</div>
         </td>
         ${days.map((_,i) => dayCell(name, i, MORN_BG)).join('')}
         ${vialBtns(name)}
@@ -1993,8 +1989,8 @@ function renderTracker(weekNum) {
       const name = getField(r,'Compound');
       html += `<tr>
         <td style="padding:5px 10px;border:1px solid #000;background:${NIGHT_BG}">
-          <div style="font-weight:600;font-size:12px">${name}</div>
-          <div style="font-size:11px;color:var(--muted)">${getField(r,'Dose')}</div>
+          <div style="font-weight:700;font-size:13px;line-height:1.3;color:var(--text)">${name}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:1px">${[getField(r,'Dose'), getField(r,'Frequency')].filter(Boolean).join(' · ')}</div>
         </td>
         ${days.map((_,i) => dayCell(name, i, NIGHT_BG)).join('')}
         ${vialBtns(name)}
@@ -2009,14 +2005,8 @@ function renderTracker(weekNum) {
   html += `</tbody></table></div>`;
   document.getElementById('tracker-content').innerHTML = html;
 
-  // Populate static metrics section
-  const metricsDef = [
-    { label: 'Sleep (hrs)',      key: 'sleep', step: '0.5', placeholder: '7.5' },
-    { label: 'Deep Sleep (min)', key: 'deep',  step: '1',   placeholder: '45'  },
-    { label: 'Duration (min)',   key: 'dur',   step: '5',   placeholder: '60'  },
-  ];
-  const mTable = document.getElementById('metrics-table');
-  if (mTable) {
+  // metrics removed
+  if (false) {
     const hdr = `<tr><td style="padding:5px 10px;border:1px solid #ccc;background:#e5e5e5;font-size:11px;font-weight:600;min-width:200px">Metric</td>${days.map(d=>`<td style="text-align:center;padding:5px 4px;border:1px solid #ccc;background:#e5e5e5;width:44px;font-size:11px;font-weight:600">${d}</td>`).join('')}<td style="border:1px solid #ccc;background:#e5e5e5"></td><td style="border:1px solid #ccc;background:#e5e5e5"></td></tr>`;
     let rows = hdr;
     metricsDef.forEach(f => {
@@ -2148,14 +2138,7 @@ async function loadTrackerWeekData(mondayISO) {
     if (dlRec) {
       const pepLog = dlRec.fields['fldAatoFJQPQwbVhQ'] || '';
       pepLog.split(', ').forEach(entry => {
-        if (entry.startsWith('METRIC|')) {
-          const rest = entry.slice(7);
-          const parts = rest.split(':');
-          if (parts.length < 3) return;
-          const key = parts[0]; const date = parts[1]; const val = parts[2];
-          const inp = document.querySelector(`input[data-sleepkey="${key}"][data-date="${date}"]`);
-          if (inp) inp.value = val;
-        } else if (entry.startsWith('NOTE|')) {
+        if (entry.startsWith('NOTE|')) {
           const rest = entry.slice(5);
           const ci = rest.indexOf(':');
           if (ci === -1) return;
@@ -2198,10 +2181,6 @@ async function saveTrackerWeek(mondayISO) {
   const noteInputs = document.querySelectorAll('input[data-type="notes"]');
   noteInputs.forEach(n => {
     if (n.value.trim()) entries.push(`NOTE|${n.dataset.compound}:${n.value.trim()}`);
-  });
-  // Save metrics
-  document.querySelectorAll('input[data-sleepkey]').forEach(inp => {
-    if (inp.value.trim()) entries.push(`METRIC|${inp.dataset.sleepkey}:${inp.dataset.date}:${inp.value.trim()}`);
   });
   if (!entries.length) { alert('Nothing to save — mark some injections first.'); return; }
   try {
