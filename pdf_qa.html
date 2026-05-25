@@ -952,18 +952,41 @@ async function fetchAllPeptides() {
     var tod = (f["fld9J0U5iSDzyaaun"] || {}).name || f["fld9J0U5iSDzyaaun"] || "";
     var freq = (f["fldyExNQXycfMjd1S"] || {}).name || f["fldyExNQXycfMjd1S"] || "";
     var notes = f["fld3I1yzis1GsIDig"] || "";
-    return { name: name, dose: dose, status: status, tod: tod, freq: freq, notes: notes };
+    return { name: name, dose: dose, status: status, tod: tod, freq: freq, notes: notes, recId: rec.id };
   }).filter(function(r) { return r.name; });
 }
 
-function copyVerifyResults() {
-  var rows = document.querySelectorAll("#verifyResults tbody tr");
-  var lines = ["Compound | PDF Dose | PDF TOD | AT Dose | AT Status | AT TOD | Issues"];
-  rows.forEach(function(r) {
-    var cells = r.querySelectorAll("td");
-    if (cells.length >= 8) lines.push([cells[1],cells[2],cells[3],cells[4],cells[5],cells[6],cells[7]].map(function(c){return c.innerText.trim();}).join(" | "));
+var verifyRowData = []; // global store for send-to-claude
+
+function copyForClaude() {
+  if (!verifyRowData.length) { toast("Run Verify first", "tr"); return; }
+  var issues = verifyRowData.filter(function(r){ return r.rowClass !== "ok"; });
+  var ok = verifyRowData.filter(function(r){ return r.rowClass === "ok"; });
+  var txt = "PEPTIDE VERIFICATION RESULTS\n";
+  txt += "Run: " + new Date().toLocaleString() + "\n";
+  txt += "PDF: " + (curFile ? curFile.name : "—") + "\n\n";
+  txt += "ISSUES (" + issues.length + "):\n";
+  issues.forEach(function(r){
+    txt += "  [" + r.rowClass.toUpperCase() + "] " + r.compound;
+    txt += " | PDF: " + r.pdfDose + " " + r.pdfTOD;
+    txt += " | AT: " + r.atDose + " " + r.atStatus + " " + r.atTOD;
+    txt += " | " + r.issues.join("; ") + "\n";
   });
-  navigator.clipboard.writeText(lines.join("\n")).then(function(){ toast("Copied to clipboard", "tg"); });
+  txt += "\nMATCHED OK (" + ok.length + "):\n";
+  ok.forEach(function(r){ txt += "  ✓ " + r.compound + "\n"; });
+  navigator.clipboard.writeText(txt).then(function(){ toast("Copied — paste to Claude", "tg", 4000); });
+}
+
+async function updateAtStatus(recId, newStatus, btnEl) {
+  if (typeof btnEl === "string") btnEl = null;
+  try {
+    var url = "https://api.airtable.com/v0/" + ATB + "/tblMs6YRdP4wkndUp/" + recId;
+    var body = { fields: { "fldeCBOtYYp6BtAfh": newStatus } };
+    var r = await fetch(url, { method: "PATCH", headers: { Authorization: "Bearer " + ATK, "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    toast("Updated to " + newStatus, "tg");
+    if (btnEl && btnEl.closest) btnEl.closest("tr").style.background = "var(--gd)";
+  } catch(e) { toast("Update failed: " + e.message, "tr"); }
 }
 
 function normalizeName(n) {
@@ -990,6 +1013,7 @@ function renderVerifyDiff(pdfProtocol, atRecords) {
   var resEl = document.getElementById("verifyResults");
   var matched = new Set();
   var rows = [];
+  verifyRowData = [];
 
   // For each PDF compound, find Airtable match
   pdfProtocol.forEach(function(p) {
@@ -1011,7 +1035,7 @@ function renderVerifyDiff(pdfProtocol, atRecords) {
         rowClass = "err"; issues.push("PDF: on template — AT status: Paused");
       }
     }
-    rows.push({ source: "pdf", compound: p.name, pdfDose: p.dose_units || "—", pdfTOD: p.time_of_day || "—", pdfNotes: p.notes || "", atName: at ? at.name : "—", atDose: at ? at.dose : "—", atStatus: at ? at.status : "—", atTOD: at ? at.tod : "—", issues: issues, rowClass: rowClass });
+    rows.push({ source: "pdf", compound: p.name, pdfDose: p.dose_units || "—", pdfTOD: p.time_of_day || "—", pdfNotes: p.notes || "", atName: at ? at.name : "—", atDose: at ? at.dose : "—", atStatus: at ? at.status : "—", atTOD: at ? at.tod : "—", atRecId: at ? at.recId : null, issues: issues, rowClass: rowClass });
   });
 
   // Find Airtable Active/On-order compounds NOT in PDF
@@ -1020,17 +1044,18 @@ function renderVerifyDiff(pdfProtocol, atRecords) {
     var an = normalizeName(a.name);
     if (!matched.has(an)) {
       var isPaused = a.status === "Paused";
-      rows.push({ source: "at", compound: a.name, pdfDose: "—", pdfTOD: "—", pdfNotes: "", atName: a.name, atDose: a.dose, atStatus: a.status, atTOD: a.tod, issues: isPaused ? [] : ["Active in AT — not on PDF template"], rowClass: isPaused ? "ok" : "warn" });
+      rows.push({ source: "at", compound: a.name, pdfDose: "—", pdfTOD: "—", pdfNotes: "", atName: a.name, atDose: a.dose, atStatus: a.status, atTOD: a.tod, atRecId: a.recId, issues: isPaused ? [] : ["Active in AT — not on PDF template"], rowClass: isPaused ? "ok" : "warn" });
     }
   });
 
+  verifyRowData = rows; // store globally for copy
   // Stats
   var errs = rows.filter(function(r){ return r.rowClass === "err"; }).length;
   var warns = rows.filter(function(r){ return r.rowClass === "warn"; }).length;
   var oks = rows.filter(function(r){ return r.rowClass === "ok"; }).length;
 
   var runDate = new Date().toLocaleString();
-  var html = "<div style='display:flex;align-items:center;justify-content:space-between;margin-bottom:10px'><span style='font-size:10px;color:var(--dd);font-family:var(--mono)'>Run: " + runDate + "</span><button class='btn bg-btn' style='font-size:10px;padding:4px 10px' onclick='copyVerifyResults()'>&#128203; Copy Summary</button></div>";
+  var html = "<div style='display:flex;align-items:center;justify-content:space-between;margin-bottom:10px'><span style='font-size:10px;color:var(--dd);font-family:var(--mono)'>Run: " + runDate + "</span><button class='btn bg-btn' style='font-size:10px;padding:4px 10px' onclick='copyForClaude()'>&#128203; Send to Claude</button></div>";
   html += "<div style='display:flex;gap:16px;margin-bottom:16px;padding:12px;background:var(--s);border:1px solid var(--b);border-radius:6px'>";
   html += "<div style='text-align:center'><div style='font-size:22px;font-weight:700;color:var(--g);font-family:var(--mono)'>"+oks+"</div><div style='font-size:10px;color:var(--d)'>Match</div></div>";
   html += "<div style='text-align:center'><div style='font-size:22px;font-weight:700;color:var(--y);font-family:var(--mono)'>"+warns+"</div><div style='font-size:10px;color:var(--d)'>Warning</div></div>";
@@ -1039,7 +1064,7 @@ function renderVerifyDiff(pdfProtocol, atRecords) {
 
   html += "<div style='overflow-x:auto'><table class='tbl' style='width:100%;font-size:11px'>";
   html += "<thead><tr style='background:var(--s2)'>";
-  ["Source","Compound","PDF Dose","PDF TOD","AT Dose","AT Status","AT TOD","Issues"].forEach(function(h){
+  ["Source","Compound","PDF Dose","PDF TOD","AT Dose","AT Status","AT TOD","Issues",""].forEach(function(h){
     html += "<th style='padding:7px 10px;text-align:left;font-size:9px;letter-spacing:1.2px;text-transform:uppercase;font-family:var(--mono);color:var(--d);border-bottom:1px solid var(--b)'>"+h+"</th>";
   });
   html += "</tr></thead><tbody>";
@@ -1057,6 +1082,16 @@ function renderVerifyDiff(pdfProtocol, atRecords) {
     html += "<td style='padding:6px 10px;font-family:var(--mono)'>" + esc(r.atTOD) + "</td>";
     var issueColor = r.rowClass === "err" ? "color:var(--r)" : r.rowClass === "warn" ? "color:var(--y)" : "color:var(--g)";
     html += "<td style='padding:6px 10px;font-size:10px;" + issueColor + "'>" + esc(r.issues.join("; ") || "✓") + "</td>";
+    // Action cell
+    var actionHtml = "";
+    if (r.rowClass !== "ok" && r.atRecId) {
+      if (r.atStatus === "Paused" && r.source === "pdf") {
+        actionHtml = "<button class='btn bg-btn' style='font-size:9px;padding:3px 8px' onclick=\"updateAtStatus('" + r.atRecId + "','Active','this')\" >→ Set Active</button>";
+      } else if (r.atStatus === "Active" && r.source === "at") {
+        actionHtml = "<button class='btn bg-btn' style='font-size:9px;padding:3px 8px' onclick=\"updateAtStatus('" + r.atRecId + "','Paused','this')\" >→ Set Paused</button>";
+      }
+    }
+    html += "<td style='padding:6px 8px'>" + actionHtml + "</td>";
     html += "</tr>";
   });
   html += "</tbody></table></div>";
