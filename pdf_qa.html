@@ -577,7 +577,7 @@ async function selFile(id, name, type) {
     try {
       var zip = await JSZip.loadAsync(buf);
       var imgFiles = [];
-      zip.forEach(function(path, file) { if (!file.dir) imgFiles.push({ path: path, file: file }); });
+      zip.forEach(function(path, file) { if (!file.dir && /\.(jpe?g|png|gif|webp)$/i.test(path)) imgFiles.push({ path: path, file: file }); });
       imgFiles.sort(function(a, b) {
         var na = parseInt(a.path.replace(/\D/g,""),10), nb = parseInt(b.path.replace(/\D/g,""),10);
         return (!isNaN(na) && !isNaN(nb)) ? na - nb : a.path.localeCompare(b.path);
