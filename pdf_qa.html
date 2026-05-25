@@ -3,220 +3,205 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MB Health — PDF QA</title>
+<title>MB PDF QA</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
-:root {
-  --bg:#0a0a0a; --s:#111; --s2:#1a1a1a; --b:#2a2a2a; --b2:#3a3a3a;
-  --t:#e8e8e8; --d:#888; --dd:#555;
-  --g:#00ff88; --gd:rgba(0,255,136,.12);
-  --y:#ffaa00; --yd:rgba(255,170,0,.12);
-  --r:#ff4444; --rd:rgba(255,68,68,.12);
-  --bl:#4488ff; --bld:rgba(68,136,255,.12);
-  --mono:'IBM Plex Mono',monospace; --sans:'IBM Plex Sans',sans-serif;
-}
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--t);font-family:var(--sans);font-size:13px;min-height:100vh;overflow:hidden}
-/* HEADER */
-.hdr{background:var(--s);border-bottom:1px solid var(--b);padding:13px 20px;display:flex;align-items:center;gap:12px}
-.logo{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--g);letter-spacing:3px}
-.sep{color:var(--b2)}
-.htitle{font-family:var(--mono);font-size:11px;color:var(--d);letter-spacing:2px}
-.hright{margin-left:auto;display:flex;align-items:center;gap:10px}
-.dot{width:6px;height:6px;border-radius:50%;background:var(--dd);flex-shrink:0}
-.dot.ok{background:var(--g);box-shadow:0 0 6px var(--g)}
-.dot.err{background:var(--r);box-shadow:0 0 6px var(--r)}
-.dot.warn{background:var(--y);box-shadow:0 0 4px var(--y)}
-.dlbl{font-family:var(--mono);font-size:10px;color:var(--d)}
+html,body{height:100%;background:#0a0a0a;color:#e8e8e8;font-family:'IBM Plex Mono',monospace;font-size:12px}
+:root{--g:#00ff88;--r:#ff4444;--y:#ffaa00;--bl:#4488ff;--s:#111;--s2:#1a1a1a;--b:#2a2a2a;--b2:#3a3a3a;--d:#888;--dd:#555}
 /* LAYOUT */
-.main{display:flex;height:calc(100vh - 47px)}
+.page{display:flex;flex-direction:column;height:100vh;overflow:hidden}
+.hdr{background:var(--s);border-bottom:1px solid var(--b);padding:12px 18px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.logo{color:var(--g);font-weight:600;letter-spacing:3px;font-size:11px}
+.htitle{color:var(--d);letter-spacing:2px;font-size:11px}
+.hright{margin-left:auto;display:flex;align-items:center;gap:8px}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--dd)}
+.dot.ok{background:var(--g);box-shadow:0 0 6px var(--g)}
+.dot.err{background:var(--r)}
+.dlbl{font-size:10px;color:var(--d)}
+.body{display:flex;flex:1;overflow:hidden}
 /* SIDEBAR */
-.sb{width:255px;background:var(--s);border-right:1px solid var(--b);display:flex;flex-direction:column;flex-shrink:0}
-.sbh{padding:12px 14px;border-bottom:1px solid var(--b);display:flex;align-items:center}
-.sbht{font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--d);text-transform:uppercase;flex:1}
+.sb{width:240px;background:var(--s);border-right:1px solid var(--b);display:flex;flex-direction:column;flex-shrink:0}
+.sbh{padding:10px 12px;border-bottom:1px solid var(--b);display:flex;align-items:center}
+.sbht{font-size:9px;letter-spacing:2px;color:var(--d);text-transform:uppercase;flex:1}
 .sbb{flex:1;overflow-y:auto;padding:6px}
-.sbf{padding:10px;border-top:1px solid var(--b);display:flex;flex-direction:column;gap:6px}
+.sbf{padding:8px;border-top:1px solid var(--b);display:flex;flex-direction:column;gap:5px}
 /* FILE ITEMS */
-.fi{padding:8px 10px;border-radius:4px;cursor:pointer;border:1px solid transparent;margin-bottom:2px;transition:all .12s}
+.fi{padding:8px 9px;border-radius:3px;cursor:pointer;border:1px solid transparent;margin-bottom:2px}
 .fi:hover{background:var(--s2);border-color:var(--b)}
-.fi.active{background:var(--bld);border-color:var(--bl)}
-.fi.done{border-color:var(--g);background:var(--gd)}
-.fn{font-family:var(--mono);font-size:10px;color:var(--t);display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:2px}
-.fm{font-family:var(--mono);font-size:9px;color:var(--dd)}
-/* CONTENT */
-.content{flex:1;display:flex;flex-direction:column;min-width:0}
+.fi.active{background:rgba(68,136,255,.1);border-color:var(--bl)}
+.fi.done{border-color:var(--g);background:rgba(0,255,136,.07)}
+.fn{font-size:10px;color:#e8e8e8;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:2px}
+.fm{font-size:9px;color:var(--dd)}
+/* CONTENT PANEL */
+.panel{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
 /* TABS */
 .tabs{display:flex;border-bottom:1px solid var(--b);background:var(--s);flex-shrink:0}
-.tab{font-family:var(--mono);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;padding:12px 18px;cursor:pointer;color:var(--d);border-bottom:2px solid transparent;transition:all .12s;white-space:nowrap}
-.tab:hover{color:var(--t)}
+.tab{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;padding:11px 16px;cursor:pointer;color:var(--d);border-bottom:2px solid transparent}
+.tab:hover{color:#e8e8e8}
 .tab.active{color:var(--g);border-bottom-color:var(--g)}
 /* TAB CONTENT */
-.tc{flex:1;overflow-y:auto;padding:18px;display:none}
+.tc{flex:1;overflow-y:auto;padding:16px;display:none}
 .tc.active{display:block}
 /* BUTTONS */
-.btn{font-family:var(--mono);font-size:10px;letter-spacing:1px;text-transform:uppercase;padding:8px 13px;border-radius:4px;cursor:pointer;border:1px solid;transition:all .12s;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
-.btn-p{background:var(--g);color:#000;border-color:var(--g);font-weight:600}
-.btn-p:hover{background:#00cc6e}
-.btn-p:disabled{background:var(--b);color:var(--dd);border-color:var(--b);cursor:not-allowed}
-.btn-b{background:transparent;color:var(--bl);border-color:var(--bl)}
-.btn-b:hover{background:var(--bld)}
-.btn-b:disabled{opacity:.3;cursor:not-allowed}
-.btn-y{background:transparent;color:var(--y);border-color:var(--y)}
-.btn-y:hover{background:var(--yd)}
-.btn-r{background:transparent;color:var(--r);border-color:var(--r)}
-.btn-r:hover{background:var(--rd)}
-.btn-gh{background:transparent;color:var(--d);border-color:var(--b)}
-.btn-gh:hover{border-color:var(--b2);color:var(--t)}
-.btn-full{width:100%;justify-content:center}
-/* CARDS */
-.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:14px}
-.card{background:var(--s);border:1px solid var(--b);border-radius:5px;padding:11px 13px}
-.card.g{border-color:var(--g);background:var(--gd)}
-.card.r{border-color:var(--r);background:var(--rd)}
-.card.y{border-color:var(--y);background:var(--yd)}
-.card.bl{border-color:var(--bl);background:var(--bld)}
-.cv{font-family:var(--mono);font-size:24px;font-weight:600;line-height:1;margin-bottom:3px}
-.g .cv{color:var(--g)} .r .cv{color:var(--r)} .y .cv{color:var(--y)} .bl .cv{color:var(--bl)}
-.cl{font-family:var(--mono);font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--d)}
+.btn{font-size:10px;letter-spacing:1px;text-transform:uppercase;padding:7px 12px;border-radius:3px;cursor:pointer;border:1px solid;display:inline-flex;align-items:center;gap:5px;font-family:inherit}
+.bp{background:var(--g);color:#000;border-color:var(--g);font-weight:600}
+.bp:hover{background:#00cc6e}
+.bp:disabled{background:var(--b);color:var(--dd);border-color:var(--b);cursor:not-allowed}
+.bb{background:transparent;color:var(--bl);border-color:var(--bl)}
+.bb:hover{background:rgba(68,136,255,.1)}
+.bb:disabled{opacity:.3;cursor:not-allowed}
+.by{background:transparent;color:var(--y);border-color:var(--y)}
+.by:hover{background:rgba(255,170,0,.1)}
+.br{background:transparent;color:var(--r);border-color:var(--r)}
+.br:hover{background:rgba(255,68,68,.1)}
+.bg{background:transparent;color:var(--d);border-color:var(--b)}
+.bg:hover{border-color:var(--b2);color:#e8e8e8}
+.bfull{width:100%;justify-content:center}
 /* SECTION */
-.sec{background:var(--s);border:1px solid var(--b);border-radius:5px;overflow:hidden;margin-bottom:12px}
-.sech{padding:9px 13px;border-bottom:1px solid var(--b);display:flex;align-items:center;gap:8px;background:var(--s2)}
-.sect{font-family:var(--mono);font-size:10px;letter-spacing:2px;text-transform:uppercase;font-weight:600;flex:1}
-.sect.g{color:var(--g)} .sect.r{color:var(--r)} .sect.y{color:var(--y)} .sect.bl{color:var(--bl)}
-.secc{font-family:var(--mono);font-size:9px;color:var(--d);background:var(--b);padding:1px 6px;border-radius:8px}
+.sec{background:var(--s);border:1px solid var(--b);border-radius:4px;overflow:hidden;margin-bottom:10px}
+.sech{padding:8px 12px;border-bottom:1px solid var(--b);display:flex;align-items:center;gap:7px;background:var(--s2)}
+.sect{font-size:9px;letter-spacing:2px;text-transform:uppercase;font-weight:600;flex:1}
+.sectg{color:var(--g)} .sectr{color:var(--r)} .secty{color:var(--y)} .sectbl{color:var(--bl)}
+.secc{font-size:9px;color:var(--d);background:var(--b);padding:1px 6px;border-radius:8px}
 /* TABLE */
 .tw{overflow-x:auto}
-.tbl{width:100%;border-collapse:collapse;font-size:11px}
-.tbl th{font-family:var(--mono);font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--dd);text-align:left;padding:7px 10px;border-bottom:1px solid var(--b);background:var(--s2);white-space:nowrap}
-.tbl td{padding:6px 10px;border-bottom:1px solid var(--b);font-family:var(--mono);font-size:10px;color:var(--t);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tbl{width:100%;border-collapse:collapse;font-size:10px}
+.tbl th{font-size:8px;letter-spacing:1.5px;text-transform:uppercase;color:var(--dd);text-align:left;padding:6px 9px;border-bottom:1px solid var(--b);background:var(--s2);white-space:nowrap}
+.tbl td{padding:5px 9px;border-bottom:1px solid var(--b);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tbl tr:last-child td{border-bottom:none}
 .tbl tr:hover td{background:var(--s2)}
-.tbl td.g{color:var(--g)} .tbl td.r{color:var(--r)} .tbl td.y{color:var(--y)} .tbl td.d{color:var(--dd)}
-/* PAGES */
-.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:7px;padding:12px}
-.pt{border:1px solid var(--b);border-radius:4px;overflow:hidden;cursor:pointer;transition:all .12s;position:relative}
+.tcg{color:var(--g)} .tcr{color:var(--r)} .tcy{color:var(--y)} .tcd{color:var(--dd)}
+/* PAGES GRID */
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:6px;padding:10px}
+.pt{border:1px solid var(--b);border-radius:3px;overflow:hidden;cursor:pointer;position:relative}
 .pt:hover{border-color:var(--bl)}
 .pt.done{border-color:var(--g)}
-.pt.busy{border-color:var(--y);box-shadow:0 0 6px rgba(255,170,0,.3)}
+.pt.busy{border-color:var(--y)}
 .pt canvas{width:100%;display:block}
-.pn{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.75);font-family:var(--mono);font-size:9px;color:var(--d);padding:2px 5px;text-align:center}
-.ps{position:absolute;top:3px;right:3px;font-size:10px}
+.pnum{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.7);font-size:8px;color:var(--d);padding:2px 4px;text-align:center}
+.pstat{position:absolute;top:3px;right:3px;font-size:10px}
+/* SETTINGS FORM */
+.sfrow{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--b)}
+.sfrow:last-child{border-bottom:none}
+.sflbl{font-size:10px;color:#e8e8e8;flex:1;overflow:hidden;text-overflow:ellipsis}
+.sfmeta{font-size:9px;color:var(--dd)}
 /* FORM INPUTS */
-.inp{font-family:var(--mono);font-size:10px;background:var(--s2);border:1px solid var(--b);color:var(--t);padding:7px 10px;border-radius:4px;outline:none;transition:border .12s}
+.inp{font-family:inherit;font-size:10px;background:var(--s2);border:1px solid var(--b);color:#e8e8e8;padding:7px 9px;border-radius:3px;outline:none}
 .inp:focus{border-color:var(--bl)}
 select.inp{cursor:pointer}
 /* TOOLBAR */
-.tb{display:flex;gap:7px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+.tb{display:flex;gap:6px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
 /* TYPE BUTTONS */
-.tbtn{font-family:var(--mono);font-size:10px;padding:5px 10px;border-radius:4px;cursor:pointer;border:1px solid var(--b);color:var(--d);background:transparent;transition:all .12s}
-.tbtn.active{border-color:var(--bl);color:var(--bl);background:var(--bld)}
+.tbtn{font-family:inherit;font-size:10px;padding:5px 9px;border-radius:3px;cursor:pointer;border:1px solid var(--b);color:var(--d);background:transparent}
+.tbtn.active{border-color:var(--bl);color:var(--bl);background:rgba(68,136,255,.1)}
+/* CARDS */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:7px;margin-bottom:12px}
+.card{background:var(--s);border:1px solid var(--b);border-radius:4px;padding:10px 12px}
+.cardg{border-color:var(--g);background:rgba(0,255,136,.08)}
+.cardr{border-color:var(--r);background:rgba(255,68,68,.08)}
+.cardy{border-color:var(--y);background:rgba(255,170,0,.08)}
+.cardbl{border-color:var(--bl);background:rgba(68,136,255,.08)}
+.cv{font-size:22px;font-weight:600;line-height:1;margin-bottom:3px}
+.cardg .cv{color:var(--g)} .cardr .cv{color:var(--r)} .cardy .cv{color:var(--y)} .cardbl .cv{color:var(--bl)}
+.cl{font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--d)}
 /* AUTH BOX */
-.abox{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:40px 20px;text-align:center}
-.atitle{font-family:var(--mono);font-size:12px;letter-spacing:2px;text-transform:uppercase}
-.asub{font-size:11px;color:var(--d);max-width:260px;line-height:1.7}
+.abox{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:40px;text-align:center}
+.atitle{font-size:11px;letter-spacing:2px;text-transform:uppercase}
+.asub{font-size:10px;color:var(--d);max-width:240px;line-height:1.7}
 /* EMPTY */
-.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;padding:50px 20px;color:var(--dd);text-align:center}
-.ei{font-size:32px;opacity:.3}
-.et{font-family:var(--mono);font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--d)}
-.es{font-size:11px;max-width:260px;line-height:1.6}
-/* PROGRESS */
-.pbw{width:100%;max-width:360px;height:3px;background:var(--b);border-radius:2px;overflow:hidden}
-.pbf{height:100%;background:var(--g);border-radius:2px;transition:width .25s;box-shadow:0 0 6px var(--g)}
-/* SETTINGS FORM */
-.srow{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--b)}
-.srow:last-child{border-bottom:none}
-.slbl{font-family:var(--mono);font-size:10px;color:var(--t);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
-.smeta{font-family:var(--mono);font-size:9px;color:var(--dd)}
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:48px 20px;color:var(--dd);text-align:center}
+.ei{font-size:30px;opacity:.25}
+.et{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--d)}
+.es{font-size:10px;max-width:240px;line-height:1.6}
 /* TOASTS */
-.toasts{position:fixed;bottom:18px;right:18px;display:flex;flex-direction:column;gap:5px;z-index:999}
-.toast{font-family:var(--mono);font-size:10px;padding:8px 13px;border-radius:4px;border:1px solid;animation:tin .18s ease}
-.toast.ok{background:rgba(0,255,136,.1);border-color:var(--g);color:var(--g)}
-.toast.err{background:rgba(255,68,68,.1);border-color:var(--r);color:var(--r)}
-.toast.info{background:rgba(68,136,255,.1);border-color:var(--bl);color:var(--bl)}
-@keyframes tin{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+.toasts{position:fixed;bottom:16px;right:16px;display:flex;flex-direction:column;gap:5px;z-index:9999}
+.toast{font-size:10px;padding:8px 12px;border-radius:3px;border:1px solid}
+.tg{background:rgba(0,255,136,.1);border-color:var(--g);color:var(--g)}
+.tr{background:rgba(255,68,68,.1);border-color:var(--r);color:var(--r)}
+.ti{background:rgba(68,136,255,.1);border-color:var(--bl);color:var(--bl)}
 ::-webkit-scrollbar{width:4px;height:4px}
 ::-webkit-scrollbar-track{background:var(--s)}
 ::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
-.ld::after{content:'...';animation:dots 1.2s steps(4,end) infinite}
-@keyframes dots{0%,20%{content:''}40%{content:'.'}60%{content:'..'}80%,100%{content:'...'}}
 </style>
 </head>
 <body>
+<div class="page">
 
 <div class="hdr">
-  <span class="logo">MB</span><span class="sep">—</span>
+  <span class="logo">MB</span>
+  <span style="color:var(--b2)">&#8212;</span>
   <span class="htitle">PDF QA &amp; Verification</span>
   <div class="hright">
-    <div class="dot" id="dDot"></div><span class="dlbl" id="dLbl">DRIVE</span>
-    <span style="color:var(--dd)">·</span>
-    <div class="dot" id="aDot"></div><span class="dlbl" id="aLbl">AIRTABLE</span>
+    <div class="dot" id="dDot"></div>
+    <span class="dlbl" id="dLbl">DRIVE</span>
+    <span style="color:var(--dd)">&#183;</span>
+    <div class="dot" id="aDot"></div>
+    <span class="dlbl" id="aLbl">AIRTABLE</span>
   </div>
 </div>
 
-<div class="main">
+<div class="body">
   <div class="sb">
     <div class="sbh">
-      <span class="sbht">PDF Library</span>
-      <button class="btn btn-gh" style="padding:3px 7px;font-size:9px" onclick="loadDriveFiles()" title="Refresh">↺</button>
+      <span class="sbht">Library</span>
+      <button class="btn bg" style="padding:2px 7px;font-size:9px" onclick="loadDrive()">&#8635;</button>
     </div>
     <div class="sbb" id="fileList">
       <div class="abox">
         <div class="atitle">Sign In</div>
-        <div class="asub">Connect Google Drive to load your PDF library.</div>
-        <button class="btn btn-p" onclick="signIn()">Sign in with Google</button>
+        <div class="asub">Connect Google Drive to load your PDFs.</div>
+        <button class="btn bp" onclick="signIn()">Sign in with Google</button>
       </div>
     </div>
     <div class="sbf">
-      <button class="btn btn-p btn-full" id="extractBtn" onclick="startExtraction()" disabled>▶ Extract Selected</button>
-      <button class="btn btn-b btn-full" id="compareBtn" onclick="showTab('compare')" disabled>⇄ Compare vs Airtable</button>
+      <button class="btn bp bfull" id="extractBtn" onclick="startExtract()" disabled>&#9654; Extract Selected</button>
+      <button class="btn bb bfull" id="compareBtn" onclick="showTab('compare')" disabled>&#8646; Compare vs Airtable</button>
     </div>
   </div>
 
-  <div class="content">
+  <div class="panel">
     <div class="tabs">
       <div class="tab active" id="tab-extract" onclick="showTab('extract')">Extract</div>
       <div class="tab" id="tab-compare" onclick="showTab('compare')">Compare</div>
       <div class="tab" id="tab-export" onclick="showTab('export')">Export</div>
-      <div class="tab" id="tab-settings" onclick="showTab('settings')">⚙ Settings</div>
+      <div class="tab" id="tab-settings" onclick="showTab('settings')">&#9881; Settings</div>
     </div>
 
-    <!-- EXTRACT -->
     <div class="tc active" id="tc-extract">
       <div class="empty" id="xEmpty">
-        <div class="ei">⬡</div>
-        <div class="et">No PDF loaded</div>
-        <div class="es">Sign in, select a PDF from the library, then click Extract.</div>
+        <div class="ei">&#11041;</div>
+        <div class="et">No PDF Selected</div>
+        <div class="es">Sign in and select a PDF from the library.</div>
       </div>
       <div id="xUI" style="display:none">
         <div class="tb">
-          <span style="font-family:var(--mono);font-size:11px;color:var(--d)" id="pdfName">—</span>
-          <span style="color:var(--dd)">·</span>
-          <span style="font-family:var(--mono);font-size:10px;color:var(--dd)" id="pdfPages"></span>
-          <span style="color:var(--dd)">·</span>
-          <div style="display:flex;gap:5px" id="typeBtns">
-            <button class="tbtn active" data-type="workout" onclick="setType(this)">Workout</button>
-            <button class="tbtn" data-type="injection" onclick="setType(this)">Injection</button>
-            <button class="tbtn" data-type="supplement" onclick="setType(this)">Supplement</button>
-            <button class="tbtn" data-type="lab" onclick="setType(this)">Lab</button>
-          </div>
+          <span style="color:var(--d);font-size:11px" id="pdfName">&#8212;</span>
+          <span style="color:var(--dd)">&#183;</span>
+          <span style="font-size:10px;color:var(--dd)" id="pdfPages"></span>
+          <span style="color:var(--dd)">&#183;</span>
+          <button class="tbtn active" data-type="workout" onclick="setType(this)">Workout</button>
+          <button class="tbtn" data-type="injection" onclick="setType(this)">Injection</button>
+          <button class="tbtn" data-type="supplement" onclick="setType(this)">Supplement</button>
+          <button class="tbtn" data-type="lab" onclick="setType(this)">Lab</button>
         </div>
         <div class="sec" style="margin-bottom:12px">
           <div class="sech">
-            <span class="sect bl">Pages</span>
-            <span class="secc" id="pgCount">0 / 0</span>
-            <button class="btn btn-gh" style="padding:3px 8px;font-size:9px" onclick="extractAllPages()" id="xAllBtn">Extract All</button>
+            <span class="sect sectbl">Pages</span>
+            <span class="secc" id="pgCount">0/0</span>
+            <button class="btn bg" style="padding:3px 7px;font-size:9px" onclick="extractAll()" id="xAllBtn">Extract All</button>
           </div>
           <div class="pgrid" id="pgGrid"></div>
         </div>
-        <div id="xResults" style="display:none">
+        <div id="xRes" style="display:none">
           <div class="cards" id="xCards"></div>
           <div class="sec">
             <div class="sech">
-              <span class="sect g">Extracted Records</span>
+              <span class="sect sectg">Extracted Records</span>
               <span class="secc" id="xCount">0</span>
-              <button class="btn btn-gh" style="padding:3px 8px;font-size:9px" onclick="clearExtracted()">Clear</button>
+              <button class="btn bg" style="padding:2px 7px;font-size:9px" onclick="clearExtracted()">Clear</button>
             </div>
             <div class="tw"><table class="tbl"><thead id="xHead"></thead><tbody id="xBody"></tbody></table></div>
           </div>
@@ -224,737 +209,504 @@ select.inp{cursor:pointer}
       </div>
     </div>
 
-    <!-- COMPARE -->
     <div class="tc" id="tc-compare">
       <div class="empty" id="cEmpty">
-        <div class="ei">⇄</div>
-        <div class="et">Nothing to compare</div>
-        <div class="es">Extract PDF data first, then compare against Airtable.</div>
+        <div class="ei">&#8646;</div>
+        <div class="et">Nothing to Compare</div>
+        <div class="es">Extract PDF data first.</div>
       </div>
       <div id="cUI" style="display:none">
         <div class="tb">
           <select class="inp" id="cTable"><option value="">Select Airtable table...</option></select>
-          <button class="btn btn-p" onclick="runCompare()">Compare</button>
-          <button class="btn btn-gh" onclick="exportCompareTxt()">Export Diff</button>
+          <button class="btn bp" onclick="runCompare()">Compare</button>
+          <button class="btn bg" onclick="exportDiff()">Export Diff</button>
         </div>
         <div class="cards" id="cCards"></div>
         <div id="cResults"></div>
       </div>
     </div>
 
-    <!-- EXPORT -->
     <div class="tc" id="tc-export">
       <div class="empty" id="eEmpty">
-        <div class="ei">↓</div>
-        <div class="et">Nothing to export</div>
-        <div class="es">Extract data from a PDF first.</div>
+        <div class="ei">&#8595;</div>
+        <div class="et">Nothing to Export</div>
+        <div class="es">Extract data first.</div>
       </div>
       <div id="eUI" style="display:none">
         <div class="tb">
-          <button class="btn btn-p" onclick="exportJSON()">↓ JSON</button>
-          <button class="btn btn-b" onclick="exportCSV()">↓ CSV</button>
-          <button class="btn btn-y" onclick="pushToAirtable()">↑ Push to Airtable</button>
+          <button class="btn bp" onclick="exportJSON()">&#8595; JSON</button>
+          <button class="btn bb" onclick="exportCSV()">&#8595; CSV</button>
+          <button class="btn by" onclick="pushToAT()">&#8593; Push to Airtable</button>
         </div>
         <div class="sec">
-          <div class="sech"><span class="sect g">Preview</span><span class="secc" id="eCount">0</span></div>
+          <div class="sech"><span class="sect sectg">Preview</span><span class="secc" id="eCount">0</span></div>
           <div class="tw"><table class="tbl"><thead id="eHead"></thead><tbody id="eBody"></tbody></table></div>
         </div>
       </div>
     </div>
 
-    <!-- SETTINGS -->
     <div class="tc" id="tc-settings">
-      <div style="max-width:580px;display:flex;flex-direction:column;gap:16px">
+      <div style="max-width:560px">
 
-        <div class="sec">
-          <div class="sech"><span class="sect bl">Google Drive — Watched Folders</span></div>
-          <div style="padding:14px">
-            <div style="font-family:var(--mono);font-size:9px;color:var(--dd);margin-bottom:10px;line-height:1.7">
-              Scope the library to specific folders. Leave empty to show all Drive PDFs.<br>
-              Folder ID = last segment of the URL when you open a folder in Drive.
+        <div class="sec" style="margin-bottom:12px">
+          <div class="sech"><span class="sect sectbl">Watched Folders</span></div>
+          <div style="padding:12px">
+            <div style="font-size:9px;color:var(--dd);margin-bottom:10px;line-height:1.7">
+              Paste a Google Drive folder ID (from the URL when you open a folder in Drive).<br>
+              Leave empty to show all Drive PDFs.
             </div>
             <div id="folderList"></div>
-            <div style="display:flex;gap:7px;margin-top:10px">
-              <input id="fldId" class="inp" placeholder="Folder ID from Drive URL" style="flex:2">
-              <input id="fldName" class="inp" placeholder="Label (e.g. Health PDFs)" style="flex:1">
-              <button class="btn btn-p" onclick="addFolder()">Add</button>
+            <div style="display:flex;gap:6px;margin-top:8px">
+              <input id="fId" class="inp" placeholder="Folder ID" style="flex:2">
+              <input id="fName" class="inp" placeholder="Label" style="flex:1">
+              <button class="btn bp" onclick="addFolder()">Add</button>
             </div>
           </div>
         </div>
 
-        <div class="sec">
-          <div class="sech"><span class="sect g">Default Airtable Table per PDF Type</span></div>
-          <div style="padding:8px 0">
-            <table style="width:100%;border-collapse:collapse">
-              <tbody id="tableMapRows"></tbody>
-            </table>
+        <div class="sec" style="margin-bottom:12px">
+          <div class="sech"><span class="sect sectg">Table Mapping</span></div>
+          <div style="padding:8px 0" id="tableMap">
+            <div style="padding:12px;font-size:10px;color:var(--dd)">Loading Airtable tables...</div>
           </div>
         </div>
 
-        <div class="sec">
-          <div class="sech"><span class="sect y">Preferences</span></div>
-          <div style="padding:14px;display:flex;flex-direction:column;gap:10px">
-            <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
-              <input type="checkbox" id="prefAutoCompare" style="accent-color:var(--g)">
-              <span style="font-family:var(--mono);font-size:10px;color:var(--d)">Auto-compare after extraction</span>
-            </label>
+        <div class="sec" style="margin-bottom:12px">
+          <div class="sech"><span class="sect secty">Auth</span></div>
+          <div style="padding:12px;display:flex;gap:8px">
+            <button class="btn bp" onclick="signIn()">Re-authenticate</button>
+            <button class="btn br" onclick="signOut()">Sign Out</button>
           </div>
         </div>
 
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button class="btn btn-p" onclick="saveSettingsAndReload()">Save &amp; Reload</button>
-          <button class="btn btn-gh" onclick="resetSettings()">Reset</button>
-          <button class="btn btn-r" onclick="signOut()">Sign Out</button>
+        <div style="display:flex;gap:8px">
+          <button class="btn bp" onclick="saveAll()">&#10003; Save &amp; Apply</button>
+          <button class="btn bg" onclick="resetAll()">Reset</button>
         </div>
-
+        <div style="margin-top:8px;font-size:9px;color:var(--dd)" id="saveStatus"></div>
       </div>
     </div>
 
   </div>
 </div>
+</div>
 
 <div class="toasts" id="toasts"></div>
 
 <script>
-// ── CONSTANTS ─────────────────────────────────────────────────────────────────
-const CLIENT_ID = '478191426516-94rflpalsl5ev56ptck62k5imes6jk8l.apps.googleusercontent.com';
-const SCOPE     = 'https://www.googleapis.com/auth/drive.readonly';
-const AT_TOK    = 'pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
-const AT_BASE   = 'appmHDG4TGT1xy6R6';
-const LS_TOK    = 'mb_g_tok';
-const LS_EXP    = 'mb_g_exp';
-const LS_CFG    = 'mb_pdf_cfg';
+const GCI = "478191426516-94rflpalsl5ev56ptck62k5imes6jk8l.apps.googleusercontent.com";
+const GSC = "https://www.googleapis.com/auth/drive.readonly";
+const ATK = "pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a";
+const ATB = "appmHDG4TGT1xy6R6";
+pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+var gTok=null,gCli=null,pdfDoc=null,selFile=null,pdfType="workout";
+var driveFiles=[],extracted=[],atTables=[],atCache={};
+var cfg={folders:[],tmap:{workout:"",injection:"",supplement:"",lab:""}};
 
-// ── STATE ─────────────────────────────────────────────────────────────────────
-let gToken = null, gClient = null;
-let driveFiles = [], selFile = null, pdfDoc = null;
-let pdfType = 'workout';
-let extracted = [];
-let atTables = [], atCache = {};
+function loadCfg(){try{var s=localStorage.getItem("mb_pdfqa");if(s)cfg=Object.assign({folders:[],tmap:{workout:"",injection:"",supplement:"",lab:""}},JSON.parse(s));}catch(e){}}
+function saveCfg(){localStorage.setItem("mb_pdfqa",JSON.stringify(cfg));}
+function loadTok(){var t=localStorage.getItem("mb_pdfqat"),e=parseInt(localStorage.getItem("mb_pdfqae")||0);return(t&&Date.now()<e)?t:null;}
+function saveTok(t,exp){localStorage.setItem("mb_pdfqat",t);localStorage.setItem("mb_pdfqae",Date.now()+(exp-60)*1000);}
+function clearTok(){localStorage.removeItem("mb_pdfqat");localStorage.removeItem("mb_pdfqae");}
 
-let cfg = {
-  folders: [],           // [{id,name}]
-  tableMap: { workout:'', injection:'', supplement:'', lab:'' },
-  autoCompare: false
-};
-
-// ── SETTINGS ──────────────────────────────────────────────────────────────────
-function loadCfg() {
-  try { const s = localStorage.getItem(LS_CFG); if (s) cfg = {...cfg, ...JSON.parse(s)}; } catch(e){}
+function toast(msg,cls,ms){
+  var c=document.getElementById("toasts"),el=document.createElement("div");
+  el.className="toast "+(cls||"ti");el.textContent=msg;c.appendChild(el);
+  setTimeout(function(){el.remove();},ms||3000);
 }
-function saveCfg() {
-  localStorage.setItem(LS_CFG, JSON.stringify(cfg));
+function setDot(which,state,label){
+  var d=document.getElementById(which+"Dot"),l=document.getElementById(which+"Lbl");
+  d.className="dot"+(state==="ok"?" ok":state==="err"?" err":state==="warn"?" warn":"");
+  l.textContent=label;
 }
-function resetSettings() {
-  if (!confirm('Reset all settings?')) return;
-  localStorage.removeItem(LS_CFG);
-  location.reload();
-}
+function esc(v){if(v==null)return"";return String(v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+function today(){return new Date().toISOString().slice(0,10);}
+function dl(blob,name){var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;a.click();}
+function dKeys(recs){var skip={_page:1,_src:1,_type:1},all={};recs.forEach(function(r){Object.keys(r).forEach(function(k){if(!skip[k])all[k]=1;});});return Object.keys(all).slice(0,10);}
+function fmtSz(b){if(!b)return"";var k=parseInt(b)/1024;return k>1024?(k/1024).toFixed(1)+"MB":Math.round(k)+"KB";}
+function fmtDt(s){if(!s)return"";return new Date(s).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"2-digit"});}
 
-function renderFolderList() {
-  const el = document.getElementById('folderList');
-  if (!cfg.folders.length) {
-    el.innerHTML = '<div style="font-family:var(--mono);font-size:10px;color:var(--dd);padding:4px 0">No folders — showing all Drive PDFs</div>';
-    return;
-  }
-  el.innerHTML = cfg.folders.map((f,i) => `
-    <div class="srow">
-      <span class="slbl">${f.name}</span>
-      <span class="smeta">${f.id.slice(0,20)}...</span>
-      <button class="btn btn-r" style="padding:2px 7px;font-size:9px" onclick="removeFolder(${i})">✕</button>
-    </div>
-  `).join('');
+function showTab(name){
+  document.querySelectorAll(".tab").forEach(function(t){t.classList.remove("active");});
+  document.querySelectorAll(".tc").forEach(function(t){t.classList.remove("active");});
+  document.getElementById("tab-"+name).classList.add("active");
+  document.getElementById("tc-"+name).classList.add("active");
+  if(name==="settings")renderSettings();
 }
 
-function renderTableMapRows() {
-  const tbody = document.getElementById('tableMapRows');
-  const types = ['workout','injection','supplement','lab'];
-  tbody.innerHTML = types.map(type => {
-    const opts = atTables.map(t =>
-      '<option value="' + t.id + '"' + (t.id === cfg.tableMap[type] ? ' selected' : '') + '>' + t.name + '</option>'
-    ).join('');
-    return '<tr>' +
-      '<td style="font-family:var(--mono);font-size:10px;color:var(--d);padding:7px 14px;text-transform:capitalize;white-space:nowrap">' + type + '</td>' +
-      '<td style="padding:5px 10px"><select class="inp" style="width:100%" id="tm_' + type + '" onchange="cfg.tableMap[\'' + type + '\']=this.value"><option value="">—</option>' + opts + '</select></td>' +
-    '</tr>';
-  }).join('');
+function setType(btn){
+  document.querySelectorAll(".tbtn").forEach(function(b){b.classList.remove("active");});
+  btn.classList.add("active");
+  pdfType=btn.dataset.type;
+  var m=cfg.tmap[pdfType];
+  if(m){var s=document.getElementById("cTable");if(s)s.value=m;}
 }
 
-function renderSettingsUI() {
-  renderFolderList();
-  renderTableMapRows();
-  const ac = document.getElementById('prefAutoCompare');
-  if (ac) ac.checked = cfg.autoCompare;
+// AUTH
+function initAuth(){
+  if(typeof google==="undefined"){setTimeout(initAuth,300);return;}
+  var stored=loadTok();
+  if(stored){gTok=stored;setDot("d","ok","DRIVE OK");loadDrive();return;}
+  setDot("d","","DRIVE");
 }
-
-function addFolder() {
-  const id = document.getElementById('fldId').value.trim();
-  const name = document.getElementById('fldName').value.trim() || id.slice(0,12);
-  if (!id) { toast('Enter a folder ID', 'err'); return; }
-  cfg.folders.push({id, name});
-  renderFolderList();
-  document.getElementById('fldId').value = '';
-  document.getElementById('fldName').value = '';
-  toast('Folder added — click Save & Reload', 'info');
-}
-
-function removeFolder(i) {
-  cfg.folders.splice(i, 1);
-  renderFolderList();
-}
-
-function saveSettingsAndReload() {
-  const ac = document.getElementById('prefAutoCompare');
-  if (ac) cfg.autoCompare = ac.checked;
-  // Read table map selects
-  ['workout','injection','supplement','lab'].forEach(type => {
-    const sel = document.getElementById('tm_' + type);
-    if (sel) cfg.tableMap[type] = sel.value;
-  });
-  saveCfg();
-  toast('Saved', 'ok');
-  setTimeout(() => loadDriveFiles(), 500);
-}
-
-// ── AUTH ──────────────────────────────────────────────────────────────────────
-function saveTok(tok, exp) {
-  localStorage.setItem(LS_TOK, tok);
-  localStorage.setItem(LS_EXP, Date.now() + (exp - 60) * 1000);
-}
-function loadTok() {
-  const t = localStorage.getItem(LS_TOK);
-  const e = parseInt(localStorage.getItem(LS_EXP) || '0');
-  return (t && Date.now() < e) ? t : null;
-}
-function clearTok() {
-  localStorage.removeItem(LS_TOK);
-  localStorage.removeItem(LS_EXP);
-}
-
-function initAuth() {
-  if (typeof google === 'undefined') { setTimeout(initAuth, 300); return; }
-  // Try stored token first
-  const stored = loadTok();
-  if (stored) {
-    gToken = stored;
-    setDot('d', 'ok', 'DRIVE ✓');
-    loadDriveFiles();
-    return;
-  }
-  // Set up token client
-  gClient = google.accounts.oauth2.initTokenClient({
-    client_id: CLIENT_ID,
-    scope: SCOPE,
-    callback: resp => {
-      if (resp.error) { toast('Auth error: ' + resp.error, 'err'); return; }
-      gToken = resp.access_token;
-      saveTok(resp.access_token, resp.expires_in || 3600);
-      setDot('d', 'ok', 'DRIVE ✓');
-      loadDriveFiles();
+function makeClient(){
+  return google.accounts.oauth2.initTokenClient({
+    client_id:GCI,scope:GSC,
+    callback:function(r){
+      if(r.error){toast("Auth error: "+r.error,"tr");return;}
+      gTok=r.access_token;saveTok(r.access_token,r.expires_in||3600);
+      setDot("d","ok","DRIVE OK");loadDrive();
     }
   });
-  // Show sign-in UI
-  document.getElementById('fileList').innerHTML =
-    '<div class="abox"><div class="atitle">Sign In</div>' +
-    '<div class="asub">Connect Google Drive to load your health PDFs.</div>' +
-    '<button class="btn btn-p" onclick="signIn()">Sign in with Google</button></div>';
+}
+function signIn(){
+  if(!gCli)gCli=makeClient();
+  gCli.requestAccessToken({prompt:""});
+}
+function signOut(){
+  clearTok();gTok=null;
+  setDot("d","","DRIVE");
+  document.getElementById("fileList").innerHTML="<div class='abox'><div class='atitle'>Signed Out</div><button class='btn bp' onclick='signIn()'>Sign in</button></div>";
+  toast("Signed out","ti");
 }
 
-function signIn() {
-  if (!gClient) {
-    gClient = google.accounts.oauth2.initTokenClient({
-      client_id: CLIENT_ID, scope: SCOPE,
-      callback: resp => {
-        if (resp.error) { toast('Auth error: ' + resp.error, 'err'); return; }
-        gToken = resp.access_token;
-        saveTok(resp.access_token, resp.expires_in || 3600);
-        setDot('d', 'ok', 'DRIVE ✓');
-        loadDriveFiles();
-      }
-    });
-  }
-  gClient.requestAccessToken({ prompt: '' });
-}
-
-function signOut() {
-  clearTok(); gToken = null;
-  setDot('d', '', 'DRIVE');
-  document.getElementById('fileList').innerHTML =
-    '<div class="abox"><div class="atitle">Signed Out</div>' +
-    '<button class="btn btn-p" onclick="signIn()">Sign in again</button></div>';
-  toast('Signed out', 'info');
-}
-
-// ── HELPERS ───────────────────────────────────────────────────────────────────
-function toast(msg, type='info', ms=3200) {
-  const c = document.getElementById('toasts');
-  const el = document.createElement('div');
-  el.className = 'toast ' + type;
-  el.textContent = msg;
-  c.appendChild(el);
-  setTimeout(() => el.remove(), ms);
-}
-function setDot(which, state, label) {
-  const dot = document.getElementById(which + 'Dot');
-  const lbl = document.getElementById(which + 'Lbl');
-  dot.className = 'dot' + (state === 'ok' ? ' ok' : state === 'err' ? ' err' : state === 'warn' ? ' warn' : '');
-  lbl.textContent = label;
-}
-function esc(v) {
-  if (v == null) return '';
-  return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
-function showTab(name) {
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.tc').forEach(t => t.classList.remove('active'));
-  document.getElementById('tab-' + name).classList.add('active');
-  document.getElementById('tc-' + name).classList.add('active');
-  if (name === 'settings') renderSettingsUI();
-}
-function setType(btn) {
-  document.querySelectorAll('.tbtn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  pdfType = btn.dataset.type;
-  // Auto-apply table map
-  const mapped = cfg.tableMap[pdfType];
-  if (mapped) { const s = document.getElementById('cTable'); if (s) s.value = mapped; }
-}
-function displayKeys(records) {
-  const skip = new Set(['_page','_src','_type']);
-  const all = new Set();
-  records.forEach(r => Object.keys(r).filter(k => !skip.has(k)).forEach(k => all.add(k)));
-  return Array.from(all).slice(0, 10);
-}
-function fmtSize(b) {
-  if (!b) return '—';
-  const k = parseInt(b) / 1024;
-  return k > 1024 ? (k/1024).toFixed(1) + 'MB' : Math.round(k) + 'KB';
-}
-function fmtDate(iso) {
-  if (!iso) return '—';
-  return new Date(iso).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'2-digit'});
-}
-
-// ── DRIVE ─────────────────────────────────────────────────────────────────────
-async function loadDriveFiles() {
-  if (!gToken) return;
-  setDot('d', 'warn', 'LOADING...');
-  try {
-    let q = "mimeType='application/pdf' and trashed=false";
-    if (cfg.folders.length > 0) {
-      const fc = cfg.folders.map(f => "'" + f.id + "' in parents").join(' or ');
-      q += ' and (' + fc + ')';
+// DRIVE
+async function loadDrive(){
+  if(!gTok){signIn();return;}
+  setDot("d","warn","LOADING");
+  try{
+    var q="mimeType='application/pdf' and trashed=false";
+    if(cfg.folders.length){
+      var fc=cfg.folders.map(function(f){return"'"+f.id+"' in parents";}).join(" or ");
+      q+=" and ("+fc+")";
     }
-    const url = 'https://www.googleapis.com/drive/v3/files?q=' + encodeURIComponent(q)
-      + '&fields=files(id,name,size,modifiedTime)&pageSize=100&orderBy=modifiedTime%20desc';
-    const r = await fetch(url, { headers: { Authorization: 'Bearer ' + gToken } });
-    const d = await r.json();
-    if (d.error) { throw new Error(d.error.message); }
-    driveFiles = d.files || [];
-    setDot('d', 'ok', 'DRIVE ✓');
-    renderFileList();
-  } catch(e) {
-    setDot('d', 'err', 'ERR');
-    clearTok();
-    toast('Drive: ' + e.message, 'err', 6000);
+    var url="https://www.googleapis.com/drive/v3/files?q="+encodeURIComponent(q)+"&fields=files(id,name,size,modifiedTime)&pageSize=100&orderBy=modifiedTime%20desc";
+    var r=await fetch(url,{headers:{Authorization:"Bearer "+gTok}});
+    var d=await r.json();
+    if(d.error)throw new Error(d.error.message);
+    driveFiles=d.files||[];
+    setDot("d","ok","DRIVE OK");
+    renderFiles();
+  }catch(e){
+    setDot("d","err","ERR");clearTok();
+    toast("Drive: "+e.message,"tr",6000);
+  }
+}
+function renderFiles(){
+  var el=document.getElementById("fileList");
+  if(!driveFiles.length){el.innerHTML="<div class='empty'><div class='et'>No PDFs found</div><div class='es'>Configure folders in Settings or upload PDFs to Drive.</div></div>";return;}
+  el.innerHTML=driveFiles.map(function(f){
+    return "<div class='fi' id='fi_"+f.id+"' onclick='selFile(\""+f.id+"\")'>"+
+      "<span class='fn'>&#128196; "+esc(f.name)+"</span>"+
+      "<span class='fm'>"+fmtSz(f.size)+" &middot; "+fmtDt(f.modifiedTime)+"</span>"+
+      "</div>";
+  }).join("");
+}
+
+async function selFile(id){
+  document.querySelectorAll(".fi").forEach(function(e){e.classList.remove("active");});
+  var fiEl=document.getElementById("fi_"+id);if(fiEl)fiEl.classList.add("active");
+  selFile=driveFiles.find(function(f){return f.id===id;});
+  if(!selFile)return;
+  document.getElementById("xEmpty").style.display="none";
+  document.getElementById("xUI").style.display="";
+  document.getElementById("xRes").style.display="none";
+  document.getElementById("pdfName").textContent=selFile.name;
+  document.getElementById("pdfPages").textContent="loading...";
+  document.getElementById("extractBtn").disabled=true;
+  document.getElementById("pgGrid").innerHTML="<div style='padding:12px;color:var(--dd)'>Loading PDF...</div>";
+  var nm=selFile.name.toLowerCase();
+  var dt="workout";
+  if(nm.indexOf("inject")>=0||nm.indexOf("peptide")>=0)dt="injection";
+  else if(nm.indexOf("lab")>=0||nm.indexOf("blood")>=0)dt="lab";
+  else if(nm.indexOf("supp")>=0)dt="supplement";
+  document.querySelectorAll(".tbtn").forEach(function(b){b.classList.toggle("active",b.dataset.type===dt);});
+  pdfType=dt;
+  try{
+    var resp=await fetch("https://www.googleapis.com/drive/v3/files/"+id+"?alt=media",{headers:{Authorization:"Bearer "+gTok}});
+    if(!resp.ok)throw new Error("HTTP "+resp.status);
+    var buf=await resp.arrayBuffer();
+    pdfDoc=await pdfjsLib.getDocument({data:buf}).promise;
+    document.getElementById("pdfPages").textContent=pdfDoc.numPages+" pages";
+    document.getElementById("pgCount").textContent="0/"+pdfDoc.numPages;
+    document.getElementById("extractBtn").disabled=false;
+    renderPgGrid();
+  }catch(e){toast("PDF load error: "+e.message,"tr");document.getElementById("pdfPages").textContent="error";}
+}
+
+async function renderPgGrid(){
+  var grid=document.getElementById("pgGrid");grid.innerHTML="";
+  for(var i=1;i<=pdfDoc.numPages;i++){
+    var w=document.createElement("div");w.className="pt";w.id="pt_"+i;
+    (function(n){w.onclick=function(){extractPage(n);};})(i);
+    w.innerHTML="<canvas id='pc_"+i+"'></canvas><div class='pnum'>"+i+"</div><div class='pstat' id='ps_"+i+"'></div>";
+    grid.appendChild(w);
+    var pg=await pdfDoc.getPage(i),vp=pg.getViewport({scale:0.3}),c=document.getElementById("pc_"+i);
+    c.width=vp.width;c.height=vp.height;
+    await pg.render({canvasContext:c.getContext("2d"),viewport:vp}).promise;
   }
 }
 
-function renderFileList() {
-  const el = document.getElementById('fileList');
-  if (!driveFiles.length) {
-    el.innerHTML = '<div class="empty" style="padding:24px"><div class="et">No PDFs found</div><div class="es">Check folder settings or upload PDFs to Drive.</div></div>';
-    return;
-  }
-  el.innerHTML = driveFiles.map(f =>
-    '<div class="fi" id="fi_' + f.id + '" onclick="selectFile(\'' + f.id + '\')">' +
-    '<span class="fn">📄 ' + esc(f.name) + '</span>' +
-    '<span class="fm">' + fmtSize(f.size) + ' · ' + fmtDate(f.modifiedTime) + '</span>' +
-    '</div>'
-  ).join('');
-}
-
-// ── LOAD & RENDER PDF ─────────────────────────────────────────────────────────
-async function selectFile(id) {
-  document.querySelectorAll('.fi').forEach(el => el.classList.remove('active'));
-  document.getElementById('fi_' + id)?.classList.add('active');
-  selFile = driveFiles.find(f => f.id === id);
-  if (!selFile) return;
-
-  document.getElementById('xEmpty').style.display = 'none';
-  document.getElementById('xUI').style.display = '';
-  document.getElementById('xResults').style.display = 'none';
-  document.getElementById('pdfName').textContent = selFile.name;
-  document.getElementById('pdfPages').textContent = 'Loading...';
-  document.getElementById('extractBtn').disabled = true;
-  document.getElementById('pgGrid').innerHTML = '<div style="padding:16px;font-family:var(--mono);font-size:10px;color:var(--dd)" class="ld">Loading</div>';
-
-  // Auto-detect type
-  const nm = selFile.name.toLowerCase();
-  let detectedType = 'workout';
-  if (nm.includes('inject') || nm.includes('peptide')) detectedType = 'injection';
-  else if (nm.includes('lab') || nm.includes('blood')) detectedType = 'lab';
-  else if (nm.includes('supp')) detectedType = 'supplement';
-  document.querySelectorAll('.tbtn').forEach(b => {
-    b.classList.toggle('active', b.dataset.type === detectedType);
-  });
-  pdfType = detectedType;
-
-  // Apply table map
-  const mapped = cfg.tableMap[pdfType];
-  if (mapped) { const s = document.getElementById('cTable'); if (s) s.value = mapped; }
-
-  try {
-    const resp = await fetch('https://www.googleapis.com/drive/v3/files/' + id + '?alt=media',
-      { headers: { Authorization: 'Bearer ' + gToken } });
-    if (!resp.ok) throw new Error('HTTP ' + resp.status);
-    const buf = await resp.arrayBuffer();
-    pdfDoc = await pdfjsLib.getDocument({ data: buf }).promise;
-    document.getElementById('pdfPages').textContent = pdfDoc.numPages + ' pages';
-    document.getElementById('pgCount').textContent = '0 / ' + pdfDoc.numPages;
-    document.getElementById('extractBtn').disabled = false;
-    renderPageGrid();
-  } catch(e) {
-    toast('Failed to load PDF: ' + e.message, 'err');
-    document.getElementById('pdfPages').textContent = 'Error';
-  }
-}
-
-async function renderPageGrid() {
-  const grid = document.getElementById('pgGrid');
-  grid.innerHTML = '';
-  for (let i = 1; i <= pdfDoc.numPages; i++) {
-    const wrap = document.createElement('div');
-    wrap.className = 'pt'; wrap.id = 'pt_' + i;
-    wrap.onclick = () => extractPage(i);
-    wrap.innerHTML = '<canvas id="pc_' + i + '"></canvas><div class="pn">Pg ' + i + '</div><div class="ps" id="ps_' + i + '"></div>';
-    grid.appendChild(wrap);
-    const page = await pdfDoc.getPage(i);
-    const vp = page.getViewport({ scale: 0.3 });
-    const c = document.getElementById('pc_' + i);
-    c.width = vp.width; c.height = vp.height;
-    await page.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise;
-  }
-}
-
-// ── EXTRACTION ────────────────────────────────────────────────────────────────
-function getPrompt(type) {
-  const p = {
-    workout: 'Extract workout set data from this handwritten gym log page. Return a JSON array where each object has: date (YYYY-MM-DD or null), session ("YYYY-MM-DD Day"), day (e.g. Mon/Tue/Push/Pull), exercise (name as written), variation (implement: DBs/Rope 1/2/EZ-Bar/etc, or empty string), set_number (integer), reps (integer), weight (number in lbs, 0 if bodyweight). Skip illegible sets. Return ONLY valid JSON array, no markdown.',
-    injection: 'Extract peptide/injection log data from this page. Return a JSON array where each object has: date (YYYY-MM-DD or null), compound (name as written), dose (number), unit (u/mg/mcg/IU), time_of_day (AM/PM/Night or null), notes (empty string if none). Return ONLY valid JSON array, no markdown.',
-    supplement: 'Extract supplement log data. Return JSON array: date (YYYY-MM-DD), name, dose (number), unit (mg/mcg/g/caps), time_of_day (AM/PM/Night/Pre-WO). Return ONLY valid JSON array, no markdown.',
-    lab: 'Extract lab results. Return JSON array: date (YYYY-MM-DD), marker, value, unit, ref_range (string or null), status (HIGH/LOW/Normal/null). Return ONLY valid JSON array, no markdown.'
+function getPrompt(type){
+  var p={
+    workout:"Extract workout set data from this handwritten gym log. Return JSON array, each object: date (YYYY-MM-DD or null), session (YYYY-MM-DD Day), day (Mon/Tue/etc), exercise (name), variation (implement or empty), set_number (int), reps (int), weight (number lbs). ONLY JSON array, no markdown.",
+    injection:"Extract peptide/injection log data. Return JSON array, each object: date (YYYY-MM-DD or null), compound (name), dose (number), unit (u/mg/mcg), time_of_day (AM/PM/Night or null), notes. ONLY JSON array.",
+    supplement:"Extract supplement data. Return JSON array: date, name, dose, unit, time_of_day. ONLY JSON array.",
+    lab:"Extract lab results. Return JSON array: date, marker, value, unit, ref_range, status (HIGH/LOW/Normal). ONLY JSON array."
   };
-  return p[type] || p.workout;
+  return p[type]||p.workout;
 }
 
-async function extractPage(pageNum) {
-  if (!pdfDoc) return;
-  const wrap = document.getElementById('pt_' + pageNum);
-  const stat = document.getElementById('ps_' + pageNum);
-  wrap.classList.add('busy');
-  stat.textContent = '⏳';
-  try {
-    const page = await pdfDoc.getPage(pageNum);
-    const vp = page.getViewport({ scale: 2.0 });
-    const c = document.createElement('canvas');
-    c.width = vp.width; c.height = vp.height;
-    await page.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise;
-    const b64 = c.toDataURL('image/jpeg', 0.85).split(',')[1];
-
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 4000,
-        system: getPrompt(pdfType),
-        messages: [{ role: 'user', content: [
-          { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: b64 } },
-          { type: 'text', text: 'Page ' + pageNum + ' of ' + pdfDoc.numPages + '. PDF: ' + (selFile?.name||'') }
-        ]}]
-      })
+async function extractPage(n){
+  if(!pdfDoc)return;
+  var w=document.getElementById("pt_"+n),s=document.getElementById("ps_"+n);
+  w.classList.add("busy");s.textContent="...";
+  try{
+    var pg=await pdfDoc.getPage(n),vp=pg.getViewport({scale:2}),c=document.createElement("canvas");
+    c.width=vp.width;c.height=vp.height;
+    await pg.render({canvasContext:c.getContext("2d"),viewport:vp}).promise;
+    var b64=c.toDataURL("image/jpeg",0.85).split(",")[1];
+    var resp=await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:4000,system:getPrompt(pdfType),
+        messages:[{role:"user",content:[
+          {type:"image",source:{type:"base64",media_type:"image/jpeg",data:b64}},
+          {type:"text",text:"Page "+n+" of "+pdfDoc.numPages+". File: "+(selFile?selFile.name:"")}
+        ]}]})
     });
-    const data = await resp.json();
-    let raw = data.content?.find(c => c.type === 'text')?.text || '[]';
-    raw = raw.replace(/```json\n?|```\n?/g,'').trim();
-    let parsed = [];
-    try { parsed = JSON.parse(raw); } catch(e) { parsed = []; }
-    if (!Array.isArray(parsed)) parsed = [];
-    parsed = parsed.map(r => ({ ...r, _page: pageNum, _src: selFile?.name, _type: pdfType }));
-    extracted.push(...parsed);
-    wrap.classList.remove('busy');
-    wrap.classList.add('done');
-    stat.textContent = parsed.length > 0 ? '✓' + parsed.length : '—';
-    updatePgCount();
-    renderExtracted();
-    toast('Pg ' + pageNum + ': ' + parsed.length + ' records', 'ok');
-  } catch(e) {
-    wrap.classList.remove('busy');
-    stat.textContent = '✗';
-    toast('Pg ' + pageNum + ' error: ' + e.message, 'err', 5000);
+    var data=await resp.json();
+    var raw=(data.content&&data.content.find(function(x){return x.type==="text";})||{text:"[]"}).text;
+    raw=raw.replace(/```json\n?|```\n?/g,"").trim();
+    var parsed=[];try{parsed=JSON.parse(raw);}catch(e){}
+    if(!Array.isArray(parsed))parsed=[];
+    parsed=parsed.map(function(r){return Object.assign({},r,{_page:n,_src:selFile?selFile.name:"",_type:pdfType});});
+    extracted=extracted.concat(parsed);
+    w.classList.remove("busy");w.classList.add("done");
+    s.textContent=parsed.length?"V"+parsed.length:"-";
+    updPgCount();renderExtracted();
+    toast("Pg "+n+": "+parsed.length+" records","tg");
+  }catch(e){
+    w.classList.remove("busy");s.textContent="X";
+    toast("Pg "+n+": "+e.message,"tr",5000);
   }
 }
 
-async function extractAllPages() {
-  if (!pdfDoc) return;
-  document.getElementById('xAllBtn').disabled = true;
-  for (let i = 1; i <= pdfDoc.numPages; i++) {
+async function extractAll(){
+  if(!pdfDoc)return;
+  document.getElementById("xAllBtn").disabled=true;
+  for(var i=1;i<=pdfDoc.numPages;i++){
     await extractPage(i);
-    await new Promise(r => setTimeout(r, 350));
+    await new Promise(function(r){setTimeout(r,350);});
   }
-  document.getElementById('xAllBtn').disabled = false;
-  document.getElementById('compareBtn').disabled = false;
+  document.getElementById("xAllBtn").disabled=false;
+  document.getElementById("compareBtn").disabled=false;
   renderExportUI();
-  if (cfg.autoCompare && cfg.tableMap[pdfType]) {
-    const s = document.getElementById('cTable');
-    if (s) s.value = cfg.tableMap[pdfType];
-    showTab('compare');
-    runCompare();
-  }
+}
+function startExtract(){extracted=[];document.getElementById("xRes").style.display="none";extractAll();}
+function updPgCount(){var d=document.querySelectorAll(".pt.done").length;document.getElementById("pgCount").textContent=d+"/"+(pdfDoc?pdfDoc.numPages:0);}
+
+function renderExtracted(){
+  if(!extracted.length)return;
+  document.getElementById("xRes").style.display="";
+  document.getElementById("xCount").textContent=extracted.length;
+  var keys=dKeys(extracted);
+  document.getElementById("xHead").innerHTML="<tr>"+keys.map(function(k){return"<th>"+k+"</th>";}).join("")+"</tr>";
+  document.getElementById("xBody").innerHTML=extracted.map(function(r){return"<tr>"+keys.map(function(k){return"<td title='"+esc(r[k])+"'>"+esc(r[k])+"</td>";}).join("")+"</tr>";}).join("");
+  var dates=extracted.filter(function(r){return r.date;}).map(function(r){return r.date;});
+  var uniq=dates.filter(function(v,i,a){return a.indexOf(v)===i;}).length;
+  document.getElementById("xCards").innerHTML=
+    "<div class='card cardbl'><div class='cv'>"+extracted.length+"</div><div class='cl'>Records</div></div>"+
+    "<div class='card cardg'><div class='cv'>"+uniq+"</div><div class='cl'>Dates</div></div>"+
+    "<div class='card cardbl'><div class='cv'>"+(pdfDoc?pdfDoc.numPages:0)+"</div><div class='cl'>Pages</div></div>";
+}
+function clearExtracted(){
+  extracted=[];document.getElementById("xRes").style.display="none";
+  document.querySelectorAll(".pt").forEach(function(e){e.classList.remove("done");});
+  document.querySelectorAll("[id^='ps_']").forEach(function(e){e.textContent="";});
+  updPgCount();
 }
 
-async function startExtraction() {
-  extracted = [];
-  document.getElementById('xResults').style.display = 'none';
-  await extractAllPages();
+// AIRTABLE
+async function loadAtTables(){
+  try{
+    var r=await fetch("https://api.airtable.com/v0/meta/bases/"+ATB+"/tables",{headers:{Authorization:"Bearer "+ATK}});
+    var d=await r.json();
+    atTables=d.tables||[];
+    setDot("a","ok","AT OK");
+    var sel=document.getElementById("cTable");
+    atTables.forEach(function(t){var o=document.createElement("option");o.value=t.id;o.textContent=t.name;sel.appendChild(o);});
+  }catch(e){setDot("a","err","AT ERR");}
+}
+async function fetchAt(tid){
+  if(atCache[tid])return atCache[tid];
+  var recs=[],offset;
+  do{
+    var url="https://api.airtable.com/v0/"+ATB+"/"+tid+"?pageSize=100"+(offset?"&offset="+offset:"");
+    var r=await fetch(url,{headers:{Authorization:"Bearer "+ATK}});
+    var d=await r.json();recs=recs.concat(d.records||[]);offset=d.offset;
+  }while(offset);
+  atCache[tid]=recs;return recs;
 }
 
-function updatePgCount() {
-  const done = document.querySelectorAll('.pt.done').length;
-  document.getElementById('pgCount').textContent = done + ' / ' + (pdfDoc?.numPages || 0);
-}
-
-function renderExtracted() {
-  if (!extracted.length) return;
-  document.getElementById('xResults').style.display = '';
-  document.getElementById('xCount').textContent = extracted.length;
-  const keys = displayKeys(extracted);
-  document.getElementById('xHead').innerHTML = '<tr>' + keys.map(k => '<th>' + k + '</th>').join('') + '</tr>';
-  document.getElementById('xBody').innerHTML = extracted.map(r =>
-    '<tr>' + keys.map(k => '<td title="' + esc(r[k]) + '">' + esc(r[k]) + '</td>').join('') + '</tr>'
-  ).join('');
-  document.getElementById('xCards').innerHTML =
-    '<div class="card bl"><div class="cv">' + extracted.length + '</div><div class="cl">Records</div></div>' +
-    '<div class="card g"><div class="cv">' + new Set(extracted.map(r=>r.date).filter(Boolean)).size + '</div><div class="cl">Dates</div></div>' +
-    '<div class="card bl"><div class="cv">' + (pdfDoc?.numPages||0) + '</div><div class="cl">Pages</div></div>';
-}
-
-function clearExtracted() {
-  extracted = [];
-  document.getElementById('xResults').style.display = 'none';
-  document.querySelectorAll('.pt').forEach(el => el.classList.remove('done'));
-  document.querySelectorAll('[id^="ps_"]').forEach(el => el.textContent = '');
-  updatePgCount();
-}
-
-// ── AIRTABLE ──────────────────────────────────────────────────────────────────
-async function loadAtTables() {
-  try {
-    const r = await fetch('https://api.airtable.com/v0/meta/bases/' + AT_BASE + '/tables',
-      { headers: { Authorization: 'Bearer ' + AT_TOK } });
-    const d = await r.json();
-    atTables = d.tables || [];
-    setDot('a', 'ok', 'AT ✓');
-    const sel = document.getElementById('cTable');
-    atTables.forEach(t => {
-      const o = document.createElement('option');
-      o.value = t.id; o.textContent = t.name;
-      sel.appendChild(o);
-    });
-  } catch(e) { setDot('a', 'err', 'AT ERR'); }
-}
-
-async function fetchAtTable(tableId) {
-  if (atCache[tableId]) return atCache[tableId];
-  let records = [], offset;
-  do {
-    const url = 'https://api.airtable.com/v0/' + AT_BASE + '/' + tableId + '?pageSize=100' + (offset ? '&offset=' + offset : '');
-    const r = await fetch(url, { headers: { Authorization: 'Bearer ' + AT_TOK } });
-    const d = await r.json();
-    records.push(...(d.records || []));
-    offset = d.offset;
-  } while (offset);
-  atCache[tableId] = records;
-  return records;
-}
-
-// ── COMPARE ───────────────────────────────────────────────────────────────────
-async function runCompare() {
-  if (!extracted.length) { toast('No extracted data', 'err'); return; }
-  const tableId = document.getElementById('cTable').value;
-  if (!tableId) { toast('Select a table first', 'err'); return; }
-  showTab('compare');
-  document.getElementById('cEmpty').style.display = 'none';
-  document.getElementById('cUI').style.display = '';
-  document.getElementById('cResults').innerHTML = '<div style="padding:20px;font-family:var(--mono);font-size:11px;color:var(--d)" class="ld">Loading Airtable records</div>';
-
-  const atRecs = await fetchAtTable(tableId);
-  const table = atTables.find(t => t.id === tableId);
-
-  const atMap = {};
-  atRecs.forEach(r => {
-    const fp = atFP(r);
-    if (!atMap[fp]) atMap[fp] = [];
-    atMap[fp].push(r);
+// COMPARE
+async function runCompare(){
+  if(!extracted.length){toast("Extract data first","tr");return;}
+  var tid=document.getElementById("cTable").value;
+  if(!tid){toast("Select a table","tr");return;}
+  showTab("compare");
+  document.getElementById("cEmpty").style.display="none";
+  document.getElementById("cUI").style.display="";
+  document.getElementById("cResults").innerHTML="<div style='padding:16px;color:var(--dd)'>Loading...</div>";
+  var atRecs=await fetchAt(tid);
+  var tbl=atTables.find(function(t){return t.id===tid;});
+  var atMap={};
+  atRecs.forEach(function(r){var fp=atFP(r);if(!atMap[fp])atMap[fp]=[];atMap[fp].push(r);});
+  var results=extracted.map(function(er){
+    var fp=exFP(er),hits=atMap[fp];
+    if(hits&&hits.length){var diffs=findDiffs(er,hits[0]);return{er:er,at:hits[0],status:diffs.length?"diff":"match",diffs:diffs};}
+    return{er:er,at:null,status:"missing",diffs:[]};
   });
-
-  const results = extracted.map(er => {
-    const fp = exFP(er);
-    const hits = atMap[fp];
-    if (hits && hits.length) {
-      const diffs = findDiffs(er, hits[0]);
-      return { er, at: hits[0], status: diffs.length ? 'diff' : 'match', diffs };
-    }
-    return { er, at: null, status: 'missing', diffs: [] };
-  });
-
-  const exFPs = new Set(extracted.map(er => exFP(er)));
-  const atOnly = atRecs.filter(r => !exFPs.has(atFP(r)));
-
-  renderCompare(results, atOnly);
+  var exFPs={};extracted.forEach(function(er){exFPs[exFP(er)]=1;});
+  var atOnly=atRecs.filter(function(r){return!exFPs[atFP(r)];});
+  renderCompareUI(results,atOnly);
 }
-
-function atFP(r) {
-  const f = r.fields;
-  const date = (f['Date'] || '').slice(0,10);
-  const name = (f['Exercise'] || f['Name'] || f['Compound'] || f['Marker'] || '').toLowerCase();
-  const num  = String(f['Set#'] || f['SetID'] || '');
-  return date + '|' + name + '|' + num;
-}
-function exFP(r) {
-  const date = (r.date || '').slice(0,10);
-  const name = (r.exercise || r.compound || r.name || r.marker || '').toLowerCase();
-  const num  = String(r.set_number || r.SetID || '');
-  return date + '|' + name + '|' + num;
-}
-function findDiffs(er, atRec) {
-  const diffs = [];
-  const map = { weight:'Weight', reps:'Reps', dose:'Dose', value:'Value' };
-  Object.entries(map).forEach(([ek, ak]) => {
-    const ev = er[ek], av = atRec.fields[ak];
-    if (ev != null && av != null && String(ev) !== String(av))
-      diffs.push({ field: ek, ex: ev, at: av });
-  });
+function atFP(r){var f=r.fields;return((f.Date||"").slice(0,10))+"|"+((f.Exercise||f.Name||f.Compound||f.Marker||"").toLowerCase())+"|"+(f["Set#"]||f.SetID||"");}
+function exFP(r){return((r.date||"").slice(0,10))+"|"+((r.exercise||r.compound||r.name||r.marker||"").toLowerCase())+"|"+(r.set_number||r.SetID||"");}
+function findDiffs(er,at){
+  var diffs=[],map={weight:"Weight",reps:"Reps",dose:"Dose",value:"Value"};
+  Object.keys(map).forEach(function(ek){var av=at.fields[map[ek]];if(er[ek]!=null&&av!=null&&String(er[ek])!==String(av))diffs.push({f:ek,ex:er[ek],at:av});});
   return diffs;
 }
-
-function renderCompare(results, atOnly) {
-  const matched = results.filter(r=>r.status==='match').length;
-  const missing = results.filter(r=>r.status==='missing').length;
-  const diffs   = results.filter(r=>r.status==='diff').length;
-
-  document.getElementById('cCards').innerHTML =
-    '<div class="card g"><div class="cv">' + matched + '</div><div class="cl">Matched</div></div>' +
-    '<div class="card r"><div class="cv">' + missing + '</div><div class="cl">Missing in AT</div></div>' +
-    '<div class="card y"><div class="cv">' + diffs + '</div><div class="cl">Mismatches</div></div>' +
-    '<div class="card bl"><div class="cv">' + atOnly.length + '</div><div class="cl">AT Only</div></div>';
-
-  const html = [];
-  const keys = displayKeys(extracted).filter(k => !k.startsWith('_'));
-
-  if (missing > 0) {
-    html.push('<div class="sec"><div class="sech"><span class="sect r">Missing from Airtable</span><span class="secc">' + missing + '</span></div><div class="tw"><table class="tbl"><thead><tr>' + keys.map(k=>'<th>'+k+'</th>').join('') + '</tr></thead><tbody>' +
-      results.filter(r=>r.status==='missing').map(r => '<tr>' + keys.map(k=>'<td class="r">'+esc(r.er[k])+'</td>').join('') + '</tr>').join('') +
-    '</tbody></table></div></div>');
+function renderCompareUI(results,atOnly){
+  var matched=results.filter(function(r){return r.status==="match";}).length;
+  var missing=results.filter(function(r){return r.status==="missing";}).length;
+  var diffs=results.filter(function(r){return r.status==="diff";}).length;
+  document.getElementById("cCards").innerHTML=
+    "<div class='card cardg'><div class='cv'>"+matched+"</div><div class='cl'>Matched</div></div>"+
+    "<div class='card cardr'><div class='cv'>"+missing+"</div><div class='cl'>Missing</div></div>"+
+    "<div class='card cardy'><div class='cv'>"+diffs+"</div><div class='cl'>Diffs</div></div>"+
+    "<div class='card cardbl'><div class='cv'>"+atOnly.length+"</div><div class='cl'>AT Only</div></div>";
+  var html=[],keys=dKeys(extracted).filter(function(k){return k[0]!=="_";});
+  if(missing){
+    html.push("<div class='sec'><div class='sech'><span class='sect sectr'>Missing from Airtable</span><span class='secc'>"+missing+"</span></div>"+
+      "<div class='tw'><table class='tbl'><thead><tr>"+keys.map(function(k){return"<th>"+k+"</th>";}).join("")+"</tr></thead><tbody>"+
+      results.filter(function(r){return r.status==="missing";}).map(function(r){return"<tr>"+keys.map(function(k){return"<td class='tcr'>"+esc(r.er[k])+"</td>";}).join("")+"</tr>";}).join("")+
+      "</tbody></table></div></div>");
   }
-  if (diffs > 0) {
-    html.push('<div class="sec"><div class="sech"><span class="sect y">Value Mismatches</span><span class="secc">' + diffs + '</span></div><div class="tw"><table class="tbl"><thead><tr><th>Date</th><th>Record</th><th>Field</th><th>PDF</th><th>Airtable</th></tr></thead><tbody>' +
-      results.filter(r=>r.status==='diff').map(r =>
-        r.diffs.map(d => '<tr><td>'+esc(r.er.date)+'</td><td>'+esc(r.er.exercise||r.er.compound||r.er.name||'')+'</td><td class="y">'+d.field+'</td><td class="y">'+esc(d.ex)+'</td><td class="d">'+esc(d.at)+'</td></tr>').join('')
-      ).join('') +
-    '</tbody></table></div></div>');
+  if(diffs){
+    html.push("<div class='sec'><div class='sech'><span class='sect secty'>Value Mismatches</span><span class='secc'>"+diffs+"</span></div>"+
+      "<div class='tw'><table class='tbl'><thead><tr><th>Date</th><th>Record</th><th>Field</th><th>PDF</th><th>AT</th></tr></thead><tbody>"+
+      results.filter(function(r){return r.status==="diff";}).map(function(r){return r.diffs.map(function(d){return"<tr><td>"+esc(r.er.date)+"</td><td>"+esc(r.er.exercise||r.er.compound||"")+"</td><td class='tcy'>"+d.f+"</td><td class='tcy'>"+esc(d.ex)+"</td><td class='tcd'>"+esc(d.at)+"</td></tr>";}).join("");}).join("")+
+      "</tbody></table></div></div>");
   }
-  if (atOnly.length > 0) {
-    const ak = Object.keys(atOnly[0].fields).slice(0,6);
-    html.push('<div class="sec"><div class="sech"><span class="sect bl">In Airtable Only</span><span class="secc">' + atOnly.length + '</span></div><div class="tw"><table class="tbl"><thead><tr>'+ak.map(k=>'<th>'+k+'</th>').join('')+'</tr></thead><tbody>' +
-      atOnly.map(r => '<tr>' + ak.map(k => '<td class="d">'+esc(r.fields[k])+'</td>').join('') + '</tr>').join('') +
-    '</tbody></table></div></div>');
+  if(atOnly.length){
+    var ak=Object.keys(atOnly[0].fields).slice(0,5);
+    html.push("<div class='sec'><div class='sech'><span class='sect sectbl'>In Airtable Only</span><span class='secc'>"+atOnly.length+"</span></div>"+
+      "<div class='tw'><table class='tbl'><thead><tr>"+ak.map(function(k){return"<th>"+k+"</th>";}).join("")+"</tr></thead><tbody>"+
+      atOnly.map(function(r){return"<tr>"+ak.map(function(k){return"<td class='tcd'>"+esc(r.fields[k])+"</td>";}).join("")+"</tr>";}).join("")+
+      "</tbody></table></div></div>");
   }
-  if (!missing && !diffs && !atOnly.length && matched > 0) {
-    html.push('<div class="sec"><div class="sech"><span class="sect g">✓ All ' + matched + ' records match Airtable perfectly</span></div></div>');
+  if(!missing&&!diffs&&!atOnly.length&&matched){
+    html.push("<div class='sec'><div class='sech'><span class='sect sectg'>&#10003; All "+matched+" records match perfectly</span></div></div>");
   }
-  document.getElementById('cResults').innerHTML = html.join('') || '<div class="empty"><div class="et">No issues</div></div>';
+  document.getElementById("cResults").innerHTML=html.join("")||"<div class='empty'><div class='et'>Clean</div></div>";
 }
 
-// ── EXPORT ────────────────────────────────────────────────────────────────────
-function renderExportUI() {
-  if (!extracted.length) return;
-  document.getElementById('eEmpty').style.display = 'none';
-  document.getElementById('eUI').style.display = '';
-  document.getElementById('eCount').textContent = extracted.length;
-  const keys = displayKeys(extracted);
-  document.getElementById('eHead').innerHTML = '<tr>' + keys.map(k=>'<th>'+k+'</th>').join('') + '</tr>';
-  const preview = extracted.slice(0,50);
-  document.getElementById('eBody').innerHTML = preview.map(r =>
-    '<tr>' + keys.map(k => '<td>' + esc(r[k]) + '</td>').join('') + '</tr>'
-  ).join('') + (extracted.length > 50 ? '<tr><td colspan="'+keys.length+'" class="d">...'+( extracted.length-50)+' more</td></tr>' : '');
+// EXPORT
+function renderExportUI(){
+  if(!extracted.length)return;
+  document.getElementById("eEmpty").style.display="none";
+  document.getElementById("eUI").style.display="";
+  document.getElementById("eCount").textContent=extracted.length;
+  var keys=dKeys(extracted);
+  document.getElementById("eHead").innerHTML="<tr>"+keys.map(function(k){return"<th>"+k+"</th>";}).join("")+"</tr>";
+  document.getElementById("eBody").innerHTML=extracted.slice(0,50).map(function(r){return"<tr>"+keys.map(function(k){return"<td>"+esc(r[k])+"</td>";}).join("")+"</tr>";}).join("")+(extracted.length>50?"<tr><td colspan='"+keys.length+"' class='tcd'>..."+( extracted.length-50)+" more</td></tr>":"");
 }
-
-function exportJSON() {
-  const blob = new Blob([JSON.stringify(extracted, null, 2)], {type:'application/json'});
-  dl(blob, (selFile?.name?.replace('.pdf','') || 'extracted') + '_' + today() + '.json');
-  toast('JSON exported', 'ok');
+function exportJSON(){dl(new Blob([JSON.stringify(extracted,null,2)],{type:"application/json"}),(selFile?selFile.name.replace(".pdf",""):"data")+"_"+today()+".json");toast("Exported","tg");}
+function exportCSV(){
+  if(!extracted.length)return;
+  var keys=dKeys(extracted);
+  var rows=[keys.join(",")].concat(extracted.map(function(r){return keys.map(function(k){var v=String(r[k]||"");return v.indexOf(",")>=0?"\""+v+"\"":v;}).join(",");}));
+  dl(new Blob([rows.join("\n")],{type:"text/csv"}),(selFile?selFile.name.replace(".pdf",""):"data")+"_"+today()+".csv");toast("Exported","tg");
 }
-function exportCSV() {
-  if (!extracted.length) return;
-  const keys = displayKeys(extracted);
-  const rows = [keys.join(','), ...extracted.map(r =>
-    keys.map(k => { const v = String(r[k]??''); return v.includes(',') ? '"'+v+'"' : v; }).join(',')
-  )];
-  dl(new Blob([rows.join('\n')], {type:'text/csv'}), (selFile?.name?.replace('.pdf','') || 'extracted') + '_' + today() + '.csv');
-  toast('CSV exported', 'ok');
-}
-function exportCompareTxt() {
-  dl(new Blob([document.getElementById('cResults').innerText], {type:'text/plain'}), 'diff_' + today() + '.txt');
-}
-function dl(blob, name) {
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob); a.download = name; a.click();
-}
-function today() { return new Date().toISOString().slice(0,10); }
-
-async function pushToAirtable() {
-  const tableId = document.getElementById('cTable').value;
-  if (!tableId) { toast('Select Airtable table on Compare tab first', 'err'); return; }
-  if (!confirm('Push ' + extracted.length + ' records to Airtable?')) return;
-  let pushed = 0, failed = 0;
-  for (let i = 0; i < extracted.length; i += 10) {
-    const chunk = extracted.slice(i, i+10);
-    try {
-      await fetch('https://api.airtable.com/v0/' + AT_BASE + '/' + tableId, {
-        method: 'POST',
-        headers: { Authorization: 'Bearer ' + AT_TOK, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ records: chunk.map(r => ({ fields: toAtFields(r) })), typecast: true })
-      });
-      pushed += chunk.length;
-    } catch { failed += chunk.length; }
-    await new Promise(r => setTimeout(r, 200));
+function exportDiff(){dl(new Blob([document.getElementById("cResults").innerText],{type:"text/plain"}),"diff_"+today()+".txt");}
+async function pushToAT(){
+  var tid=document.getElementById("cTable").value;
+  if(!tid){toast("Select table on Compare tab","tr");return;}
+  if(!confirm("Push "+extracted.length+" records?"))return;
+  var pushed=0,failed=0;
+  for(var i=0;i<extracted.length;i+=10){
+    var chunk=extracted.slice(i,i+10);
+    try{
+      await fetch("https://api.airtable.com/v0/"+ATB+"/"+tid,{method:"POST",
+        headers:{Authorization:"Bearer "+ATK,"Content-Type":"application/json"},
+        body:JSON.stringify({records:chunk.map(function(r){return{fields:toAtF(r)};}),typecast:true})});
+      pushed+=chunk.length;
+    }catch(e){failed+=chunk.length;}
+    await new Promise(function(r){setTimeout(r,200);});
   }
-  toast('Pushed ' + pushed + (failed ? ', failed ' + failed : ''), pushed > 0 ? 'ok' : 'err');
+  toast("Pushed "+pushed+(failed?", failed "+failed:""),pushed?"tg":"tr");
+}
+function toAtF(r){
+  var map={date:"Date",exercise:"Exercise",variation:"Variation",set_number:"Set#",reps:"Reps",weight:"Weight",session:"Session",day:"Day",notes:"Notes",compound:"Name",dose:"Dose",unit:"Unit",time_of_day:"Time",marker:"Marker",value:"Value",ref_range:"Ref Range",status:"Status"};
+  var out={};Object.keys(map).forEach(function(k){if(r[k]!=null&&r[k]!=="")out[map[k]]=r[k];});return out;
 }
 
-function toAtFields(r) {
-  const map = {
-    date:'Date', exercise:'Exercise', variation:'Variation',
-    set_number:'Set#', reps:'Reps', weight:'Weight',
-    session:'Session', day:'Day', notes:'Notes',
-    compound:'Name', dose:'Dose', unit:'Unit', time_of_day:'Time',
-    marker:'Marker', value:'Value', ref_range:'Ref Range', status:'Status'
-  };
-  const out = {};
-  Object.entries(map).forEach(([k,v]) => {
-    if (r[k] != null && r[k] !== '') out[v] = r[k];
-  });
-  return out;
+// SETTINGS
+function renderSettings(){
+  renderFolderList();
+  renderTmap();
 }
+function renderFolderList(){
+  var el=document.getElementById("folderList");
+  if(!cfg.folders.length){el.innerHTML="<div style='font-size:10px;color:var(--dd);padding:4px 0'>None configured &mdash; showing all Drive PDFs</div>";return;}
+  el.innerHTML=cfg.folders.map(function(f,i){
+    return "<div class='sfrow'>"+
+      "<span class='sflbl'>"+esc(f.name)+"</span>"+
+      "<span class='sfmeta'>"+f.id.slice(0,18)+"...</span>"+
+      "<button class='btn br' style='padding:2px 7px;font-size:9px' onclick='rmFolder("+i+")'>&#x2715;</button>"+
+      "</div>";
+  }).join("");
+}
+function renderTmap(){
+  var el=document.getElementById("tableMap");
+  var types=["workout","injection","supplement","lab"];
+  var rows=types.map(function(type){
+    var opts="<option value=\'\'>&#8212;</option>"+atTables.map(function(t){
+      return "<option value=\'"+t.id+"\'"+( t.id===cfg.tmap[type]?" selected":"")+">"+t.name+"</option>";
+    }).join("");
+    return "<tr>"+
+      "<td style=\'padding:7px 12px;font-size:10px;color:var(--d);white-space:nowrap\'>"+type+"</td>"+
+      "<td style=\'padding:5px 8px\'><select class=\'inp\' style=\'width:100%\' id=\'tm_"+type+"\'>"+opts+"</select></td>"+
+      "</tr>";
+  }).join("");
+  el.innerHTML="<table style=\'width:100%;border-collapse:collapse\'><tbody>"+rows+"</tbody></table>";
+}
+function addFolder(){
+  var id=document.getElementById("fId").value.trim();
+  var nm=document.getElementById("fName").value.trim()||id.slice(0,12);
+  if(!id){toast("Enter folder ID","tr");return;}
+  cfg.folders.push({id:id,name:nm});
+  document.getElementById("fId").value="";document.getElementById("fName").value="";
+  renderFolderList();toast("Added. Click Save & Apply.","ti");
+}
+function rmFolder(i){cfg.folders.splice(i,1);renderFolderList();}
+function saveAll(){
+  var types=["workout","injection","supplement","lab"];
+  types.forEach(function(type){var s=document.getElementById("tm_"+type);if(s)cfg.tmap[type]=s.value;});
+  saveCfg();
+  var st=document.getElementById("saveStatus");
+  st.textContent="Saved at "+new Date().toLocaleTimeString();
+  st.style.color="var(--g)";
+  setTimeout(function(){loadDrive();},400);
+  toast("Settings saved","tg");
+}
+function resetAll(){if(!confirm("Reset all settings?"))return;localStorage.removeItem("mb_pdfqa");location.reload();}
 
-// ── INIT ──────────────────────────────────────────────────────────────────────
-window.addEventListener('load', async () => {
+window.addEventListener("load",function(){
   loadCfg();
-  await loadAtTables();
+  loadAtTables();
   initAuth();
 });
 </script>
