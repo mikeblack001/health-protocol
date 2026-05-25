@@ -307,6 +307,10 @@
         </div>
       </div>
     </div>
+
+    <!-- SETTINGS TAB -->
+    <div class="tab-content" id="tc-settings"></div>
+
   </div>
 </div>
 
@@ -370,17 +374,17 @@ function renderSettingsTab() {
     </div>
   `).join('') || '<div style="font-family:var(--mono);font-size:10px;color:var(--dimmer);padding:8px 0">No folders configured</div>';
 
-  const tableOpts = ['<option value="">—</option>', ...allAirtableTables.map(t=>`<option value="${t.id}">${t.name}</option>`)].join('');
-  const mapRows = ['workout','injection','supplement','lab','generic'].map(type => `
-    <tr>
-      <td style="font-family:var(--mono);font-size:10px;color:var(--dim);text-transform:capitalize;padding:6px 10px">${type}</td>
-      <td style="padding:6px 10px">
-        <select class="inp" style="width:100%" onchange="settings.tableMap['${type}']=this.value;saveSettings()">
-          ${tableOpts.replace(`value="${settings.tableMap[type]}"`, `value="${settings.tableMap[type]}" selected`)}
-        </select>
-      </td>
-    </tr>
-  `).join('');
+  const tableOpts = allAirtableTables.map(t=>`<option value="${t.id}">${t.name}</option>`).join('');
+  const mapRows = ['workout','injection','supplement','lab','generic'].map(type => {
+    const cur = settings.tableMap[type] || '';
+    const opts = `<option value="">—</option>` + allAirtableTables.map(t =>
+      `<option value="${t.id}"${t.id===cur?' selected':''}>${t.name}</option>`
+    ).join('');
+    return `<tr>
+      <td style="font-family:var(--mono);font-size:10px;color:var(--dim);text-transform:capitalize;padding:8px 10px;white-space:nowrap">${type}</td>
+      <td style="padding:6px 10px"><select class="inp" style="width:100%" data-type="${type}" onchange="settings.tableMap[this.dataset.type]=this.value;saveSettings()">${opts}</select></td>
+    </tr>`;
+  }).join('');
 
   document.getElementById('tc-settings').innerHTML = `
     <div style="max-width:600px;display:flex;flex-direction:column;gap:20px">
@@ -426,11 +430,7 @@ function renderSettingsTab() {
       </div>
     </div>
   `;
-  // Set current select values
-  ['workout','injection','supplement','lab','generic'].forEach(type => {
-    const sel = document.querySelector(`select[onchange*="${type}"]`);
-    if (sel && settings.tableMap[type]) sel.value = settings.tableMap[type];
-  });
+  // select values set inline above
 }
 
 function addFolder() {
