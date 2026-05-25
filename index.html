@@ -5762,9 +5762,12 @@ function renderVerifyResults(rows, startDate, endDate) {
   var missing = rows.filter(function(r){ return r.status==="missing"; }).length;
   var extra = rows.filter(function(r){ return r.status==="extra"; }).length;
   var runDate = new Date().toLocaleString();
-  var html = "<div style=\'display:flex;align-items:center;justify-content:space-between;margin-bottom:12px\'>";
-  html += "<span style=\'font-size:10px;color:var(--dd);font-family:var(--mono)\'>Run: "+runDate+" · "+startDate+" → "+endDate+"</span>";
-  html += "<button class=\'btn bg-btn\' style=\'font-size:10px;padding:4px 10px\' onclick=\'copyForClaude()\'>&#128203; Send to Claude</button></div>";
+  var html = "<div style='display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px'>";
+  html += "<span style='font-size:10px;color:var(--dd);font-family:var(--mono)'>Run: "+runDate+" · "+startDate+" → "+endDate+"</span>";
+  html += "<div style='display:flex;gap:6px'>";
+  html += "<button class='btn bg-btn' style='font-size:10px;padding:4px 10px' onclick='backToExtracted()'>&#8592; Back to Extracted</button>";
+  html += "<button class='btn bg-btn' style='font-size:10px;padding:4px 10px' onclick='copyForClaude()'>&#128203; Send to Claude</button>";
+  html += "</div></div>";
   html += "<div style=\'display:flex;gap:20px;margin-bottom:14px;padding:12px 16px;background:var(--s);border:1px solid var(--b);border-radius:6px\'>";
   html += stat(ok,"Match","var(--g)") + stat(wrong,"Wrong","var(--y)") + stat(missing,"Missing","var(--r)") + stat(extra,"Extra","var(--bl)");
   html += "</div>";
@@ -5897,6 +5900,13 @@ async function compareWithAT() {
   } catch(e) {
     vStatus("AT fetch failed: " + e.message, "err");
   }
+}
+
+function backToExtracted() {
+  if (!_verifyExtracted.length) { toast("No extracted data", "tr"); return; }
+  var dates = _verifyExtracted.map(function(e){return e.date;}).filter(Boolean).sort();
+  renderExtractedForClaude(_verifyExtracted, dates[0], dates[dates.length-1]);
+  vStatus("Showing extracted PDF data", "ok");
 }
 
 function copyForClaude() {
@@ -6108,6 +6118,6 @@ async function runVerification() {
 </div>
 </body>
 </html>
-<!-- cache bust Mon May 26 2026 — parallel+sort+AT -->
+<!-- cache bust Mon May 26 2026 — back btn -->
 
 
