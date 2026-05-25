@@ -891,28 +891,37 @@ document.getElementById("pickerModal").addEventListener("click", function(e) { i
 
 window.addEventListener("load", function() { loadCfg(); loadAtTables(); initAuth(); });
 
-// ── VERIFY TAB ────────────────────────────────────────────────────────
+// ── VERIFY TAB v4 ────────────────────────────────────────────────────
+var CANONICAL_COMPOUNDS = [
+  "Testosterone","Deca (Nandrolone)","NAD+","LipoMinoMix","Tesamorelin",
+  "Tirzepatide","Anavar (Oxandrolone)","Winstrol (Stanozolol)","BPC-157",
+  "TB-500","CJC-1295 No DAC","Ipamorelin","GHK-Cu","Mots-C","SS-31",
+  "Retatrutide","Selank","DSIP","KPV","Melanotan II (MT2)","Semax",
+  "Cagrilintide","Epitalon","Glutathione","Sermorelin","PT-141",
+  "IGF-1 LR3","MK-677","HGH"
+];
+
+var verifyRowData = [];
+var BATCH_SIZE = 4;
+
 function vStatus(msg, cls) {
   var el = document.getElementById("verifyStatus");
+  if (!el) return;
   el.textContent = msg;
   el.style.color = cls === "err" ? "var(--r)" : cls === "ok" ? "var(--g)" : "var(--d)";
 }
 
-var BATCH_SIZE = 6; // pages per Claude call
-
-async function callClaudePages(pageIndices, extraPrompt) {
+// ── CLAUDE CALL ───────────────────────────────────────────────────────
+async function callClaudePages(pageIndices, prompt) {
   var imgBlocks = [];
   pageIndices.forEach(function(i) {
     imgBlocks.push({ type: "image", source: { type: "base64", media_type: "image/jpeg", data: pages[i].url.split(",")[1] } });
     imgBlocks.push({ type: "text", text: "Page " + (i+1) + " of " + pages.length });
   });
   var resp = await fetch(WORKER_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: "claude-sonnet-4-6", max_tokens: 2000,
-      messages: [{ role: "user", content: imgBlocks.concat([{ type: "text", text: extraPrompt }]) }]
-    })
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 4000,
+      messages: [{ role: "user", content: imgBlocks.concat([{ type: "text", text: prompt }]) }] })
   });
   if (!resp.ok) throw new Error("Worker HTTP " + resp.status);
   var data = await resp.json();
@@ -921,214 +930,228 @@ async function callClaudePages(pageIndices, extraPrompt) {
   return raw.replace(/```json\n?|```\n?/g, "").trim();
 }
 
+// ── AIRTABLE FETCH ────────────────────────────────────────────────────
+async function fetchAtPagedURL(url) {
+  var records = [], offset = null;
+  do {
+    var u = url + (offset ? "&offset=" + offset : "");
+    var r = await fetch(u, { headers: { Authorization: "Bearer " + ATK } });
+    if (!r.ok) throw new Error("AT HTTP " + r.status);
+    var d = await r.json();
+    records = records.concat(d.records || []);
+    offset = d.offset || null;
+  } while (offset);
+  return records;
+}
+
+async function fetchAtInjections(startDate, endDate) {
+  var formula = encodeURIComponent("AND({fldhYEtLEGA4VxvvO}>="" + startDate + "",{fldhYEtLEGA4VxvvO}<="" + endDate + "")");
+  var url = "https://api.airtable.com/v0/" + ATB + "/tblBvEaLkGGipnOFc?pageSize=100&returnFieldsByFieldId=true&filterByFormula=" + formula;
+  var recs = await fetchAtPagedURL(url);
+  return recs.map(function(rec) {
+    var f = rec.fields || {};
+    return {
+      id: rec.id,
+      date: f["fldhYEtLEGA4VxvvO"] || "",
+      compound: (f["fldwVFyizH4mBANBa"] || {}).name || "",
+      dose: f["fld8d8mtRapfaIyqL"] || "",
+      side: (f["fldHDlJY8FpAvK018"] || {}).name || "",
+      tod: (f["fldIdzew4Jd0qO4Uc"] || {}).name || "",
+      notes: f["Notes"] || f["fldNotes"] || ""
+    };
+  });
+}
+
+// ── INJECTION VERIFY ─────────────────────────────────────────────────
+var INJ_PROMPT = "You are reading a handwritten peptide injection tracking log. Each page has multiple weekly grids.\n\nEach week grid:\n- Header: \'Week X - Monday Date: M/DD\' (gives Monday date)\n- Columns: Mon, Tue, Wed, Thurs, Fri, Sat, Sun\n- Rows: compound name + dose (e.g. \'Tesamorelin - 15 units\')\n- Sections: Morning and Night\n- Cell values: L (left), R (right), S (skipped), blank (not taken)\n\nFor EVERY non-blank cell extract:\n- date: YYYY-MM-DD. Mon=Monday date, Tue=+1 day, Wed=+2, Thurs=+3, Fri=+4, Sat=+5, Sun=+6. Infer year from context (pages span 2024-2026).\n- compound: map row label to CLOSEST name from this list ONLY: CANONICAL_PLACEHOLDER\n- dose: from row label. If annotated with newer dose, use annotation.\n- side: L, R, S, or X\n- time_of_day: Morning or Night\n- notes: any handwritten notes for that row/week (new vial, dose change, start date, etc.)\n\nSkip blank cells. Return ONLY valid JSON array. No markdown.";
+
+async function runInjectionVerification(pageIndices) {
+  var batches = [];
+  for (var b = 0; b < pageIndices.length; b += BATCH_SIZE) batches.push(pageIndices.slice(b, b + BATCH_SIZE));
+  var prompt = INJ_PROMPT.replace("CANONICAL_PLACEHOLDER", CANONICAL_COMPOUNDS.join(", "));
+  var allEntries = [];
+  for (var bi = 0; bi < batches.length; bi++) {
+    vStatus("Extracting batch " + (bi+1) + "/" + batches.length + " (pages " + (batches[bi][0]+1) + "-" + (batches[bi][batches[bi].length-1]+1) + ")...");
+    var raw = await callClaudePages(batches[bi], prompt);
+    var parsed = [];
+    try { parsed = JSON.parse(raw); } catch(e) { parsed = []; }
+    if (Array.isArray(parsed)) allEntries = allEntries.concat(parsed);
+  }
+  if (!allEntries.length) { vStatus("No injection entries found in PDF", "err"); return; }
+  // Get date range
+  var dates = allEntries.map(function(e){ return e.date; }).filter(Boolean).sort();
+  var startDate = dates[0], endDate = dates[dates.length-1];
+  vStatus("Fetching AT Injection Log (" + startDate + " to " + endDate + ")...");
+  var atRecords = await fetchAtInjections(startDate, endDate);
+  vStatus("Comparing " + allEntries.length + " PDF entries vs " + atRecords.length + " AT records...");
+  var rows = diffInjections(allEntries, atRecords);
+  renderVerifyResults(rows, startDate, endDate);
+  var issues = rows.filter(function(r){ return r.status !== "ok"; }).length;
+  vStatus("Done — " + allEntries.length + " PDF entries · " + atRecords.length + " AT records · " + issues + " issues", "ok");
+}
+
+// ── WORKOUT VERIFY (stub) ─────────────────────────────────────────────
+async function runWorkoutVerification(pageIndices) {
+  vStatus("Workout verification coming soon", "err");
+}
+
+// ── DIFF ──────────────────────────────────────────────────────────────
+function diffInjections(pdfEntries, atRecords) {
+  // Build AT lookup: date+compound → record
+  var atMap = {};
+  atRecords.forEach(function(r) {
+    var key = r.date + "|" + r.compound.toLowerCase().trim();
+    if (!atMap[key]) atMap[key] = [];
+    atMap[key].push(r);
+  });
+  var usedAtIds = new Set();
+  var rows = [];
+  // Check each PDF entry
+  pdfEntries.forEach(function(p) {
+    if (!p.date || !p.compound) return;
+    var key = p.date + "|" + p.compound.toLowerCase().trim();
+    var matches = atMap[key] || [];
+    if (!matches.length) {
+      rows.push({ status: "missing", date: p.date, compound: p.compound,
+        pdf: { dose: p.dose, side: p.side, tod: p.time_of_day, notes: p.notes },
+        at: null, issues: ["Missing in AT"] });
+    } else {
+      var at = matches[0];
+      usedAtIds.add(at.id);
+      var issues = [];
+      if (p.side && at.side && p.side !== at.side) issues.push("Side: PDF=" + p.side + " AT=" + at.side);
+      if (p.time_of_day && at.tod && p.time_of_day !== at.tod) issues.push("TOD: PDF=" + p.time_of_day + " AT=" + at.tod);
+      if (p.notes && !at.notes) issues.push("Notes missing in AT: " + p.notes);
+      var status = issues.length ? "wrong" : "ok";
+      rows.push({ status: status, date: p.date, compound: p.compound,
+        pdf: { dose: p.dose, side: p.side, tod: p.time_of_day, notes: p.notes },
+        at: { id: at.id, dose: at.dose, side: at.side, tod: at.tod, notes: at.notes },
+        issues: issues });
+    }
+  });
+  // Flag AT records not matched by PDF (extra)
+  atRecords.forEach(function(r) {
+    if (!usedAtIds.has(r.id)) {
+      rows.push({ status: "extra", date: r.date, compound: r.compound,
+        pdf: null,
+        at: { id: r.id, dose: r.dose, side: r.side, tod: r.tod, notes: r.notes },
+        issues: ["In AT but not in PDF"] });
+    }
+  });
+  // Sort by date then compound
+  rows.sort(function(a,b){ return (a.date+a.compound).localeCompare(b.date+b.compound); });
+  return rows;
+}
+
+// ── RENDER ────────────────────────────────────────────────────────────
+function renderVerifyResults(rows, startDate, endDate) {
+  verifyRowData = rows;
+  var resEl = document.getElementById("verifyResults");
+  var ok = rows.filter(function(r){ return r.status==="ok"; }).length;
+  var wrong = rows.filter(function(r){ return r.status==="wrong"; }).length;
+  var missing = rows.filter(function(r){ return r.status==="missing"; }).length;
+  var extra = rows.filter(function(r){ return r.status==="extra"; }).length;
+  var runDate = new Date().toLocaleString();
+  var html = "<div style=\'display:flex;align-items:center;justify-content:space-between;margin-bottom:12px\'>";
+  html += "<span style=\'font-size:10px;color:var(--dd);font-family:var(--mono)\'>Run: "+runDate+" · "+startDate+" → "+endDate+"</span>";
+  html += "<button class=\'btn bg-btn\' style=\'font-size:10px;padding:4px 10px\' onclick=\'copyForClaude()\'>&#128203; Send to Claude</button></div>";
+  html += "<div style=\'display:flex;gap:20px;margin-bottom:14px;padding:12px 16px;background:var(--s);border:1px solid var(--b);border-radius:6px\'>";
+  html += stat(ok,"Match","var(--g)") + stat(wrong,"Wrong","var(--y)") + stat(missing,"Missing","var(--r)") + stat(extra,"Extra","var(--bl)");
+  html += "</div>";
+  html += "<div style=\'overflow-x:auto\'><table class=\'tbl\' style=\'width:100%;font-size:11px\'><thead><tr style=\'background:var(--s2)\'>";
+  ["Date","Compound","PDF Side","PDF Dose","PDF TOD","AT Side","AT Dose","AT TOD","Notes","Issues",""].forEach(function(h){
+    html += "<th style=\'padding:7px 10px;text-align:left;font-size:9px;letter-spacing:1.2px;text-transform:uppercase;font-family:var(--mono);color:var(--d);border-bottom:1px solid var(--b)\'>" + h + "</th>";
+  });
+  html += "</tr></thead><tbody>";
+  rows.forEach(function(r, idx) {
+    var bg = r.status==="missing" ? "background:var(--rd)" : r.status==="extra" ? "background:var(--bld)" : r.status==="wrong" ? "background:var(--yd)" : "";
+    var p = r.pdf || {}, a = r.at || {};
+    html += "<tr style=\'" + bg + "\'>";
+    html += td(r.date);
+    html += "<td style=\'padding:6px 10px;font-weight:600\'>" + esc(r.compound) + "</td>";
+    html += tdMono(p.side||"—"); html += tdMono(p.dose||"—"); html += tdMono(p.tod||"—");
+    html += tdMono(a.side||"—"); html += tdMono(a.dose||"—"); html += tdMono(a.tod||"—");
+    html += "<td style=\'padding:6px 10px;font-size:10px;color:var(--d);max-width:160px\'>" + esc((p.notes||a.notes||"")) + "</td>";
+    var ic = r.status==="ok"?"color:var(--g)":r.status==="missing"?"color:var(--r)":r.status==="extra"?"color:var(--bl)":"color:var(--y)";
+    html += "<td style=\'padding:6px 10px;font-size:10px;"+ic+"\'>" + esc(r.issues.join("; ")||"✓") + "</td>";
+    // Action cell
+    var act = "";
+    if (r.status === "missing") act = "<button class=\'btn bg-btn\' style=\'font-size:9px;padding:3px 8px\' onclick=\'flagMissing("+idx+")\''>Flag</button>";
+    if (r.status === "wrong" && a.id) act = "<button class=\'btn bg-btn\' style=\'font-size:9px;padding:3px 8px\' onclick=\'fixRecord(\""+a.id+"\","+idx+")\''>Fix AT</button>";
+    html += "<td style=\'padding:6px 8px\'>" + act + "</td>";
+    html += "</tr>";
+  });
+  html += "</tbody></table></div>";
+  resEl.innerHTML = html.replace(/\\'/g, "'");
+}
+
+function stat(n,label,color) {
+  return "<div style=\'text-align:center\'><div style=\'font-size:22px;font-weight:700;color:"+color+";font-family:var(--mono)\'>"+n+"</div><div style=\'font-size:10px;color:var(--d)\'>"+label+"</div></div>";
+}
+function td(v) { return "<td style=\'padding:6px 10px;font-family:var(--mono);font-size:10px\'>" + esc(v||"—") + "</td>"; }
+function tdMono(v) { return "<td style=\'padding:6px 10px;font-family:var(--mono)\'>" + esc(v||"—") + "</td>"; }
+
+function flagMissing(idx) {
+  var r = verifyRowData[idx];
+  if (!r) return;
+  var msg = "MISSING INJECTION RECORD:\nDate: " + r.date + "\nCompound: " + r.compound + "\nPDF Side: " + (r.pdf&&r.pdf.side||"") + "\nPDF Dose: " + (r.pdf&&r.pdf.dose||"") + "\nPDF TOD: " + (r.pdf&&r.pdf.tod||"") + "\nNotes: " + (r.pdf&&r.pdf.notes||"");
+  if (typeof sendPrompt === "function") sendPrompt(msg);
+  else { navigator.clipboard.writeText(msg); toast("Copied", "ti"); }
+}
+
+async function fixRecord(recId, idx) {
+  var r = verifyRowData[idx];
+  if (!r || !r.pdf) return;
+  var fields = {};
+  if (r.pdf.side && r.at.side !== r.pdf.side) fields["fldHDlJY8FpAvK018"] = r.pdf.side;
+  if (r.pdf.tod && r.at.tod !== r.pdf.tod) fields["fldIdzew4Jd0qO4Uc"] = r.pdf.tod;
+  if (r.pdf.notes) fields["Notes"] = r.pdf.notes;
+  if (!Object.keys(fields).length) { toast("Nothing to fix", "ti"); return; }
+  try {
+    var url = "https://api.airtable.com/v0/" + ATB + "/tblBvEaLkGGipnOFc/" + recId;
+    var resp = await fetch(url, { method: "PATCH", headers: { Authorization: "Bearer " + ATK, "Content-Type": "application/json" }, body: JSON.stringify({fields: fields}) });
+    if (!resp.ok) throw new Error("HTTP " + resp.status);
+    toast("Fixed", "tg");
+    document.querySelector("#verifyResults tbody tr:nth-child(" + (idx+1) + ")").style.background = "var(--gd)";
+  } catch(e) { toast("Fix failed: " + e.message, "tr"); }
+}
+
+function copyForClaude() {
+  if (!verifyRowData.length) { toast("Run Verify first", "tr"); return; }
+  var issues = verifyRowData.filter(function(r){ return r.status !== "ok"; });
+  var txt = "INJECTION LOG VERIFICATION\nRun: " + new Date().toLocaleString() + "\n";
+  txt += "Issues: " + issues.length + " / " + verifyRowData.length + " total\n\n";
+  issues.forEach(function(r) {
+    txt += "[" + r.status.toUpperCase() + "] " + r.date + " · " + r.compound + "\n";
+    if (r.pdf) txt += "  PDF: side=" + (r.pdf.side||"?") + " dose=" + (r.pdf.dose||"?") + " tod=" + (r.pdf.tod||"?") + (r.pdf.notes?" notes="+r.pdf.notes:"") + "\n";
+    if (r.at) txt += "  AT:  side=" + (r.at.side||"?") + " dose=" + (r.at.dose||"?") + " tod=" + (r.at.tod||"?") + (r.at.notes?" notes="+r.at.notes:"") + " id=" + (r.at.id||"?") + "\n";
+    txt += "  Issues: " + r.issues.join("; ") + "\n\n";
+  });
+  if (typeof sendPrompt === "function") sendPrompt(txt);
+  else navigator.clipboard.writeText(txt).then(function(){ toast("Copied — paste to Claude", "tg", 4000); });
+}
+
+// ── MAIN RUN ──────────────────────────────────────────────────────────
 async function runVerification() {
   var btn = document.getElementById("runVerifyBtn");
   var resEl = document.getElementById("verifyResults");
   resEl.innerHTML = "";
-  if (!pages.length) { vStatus("No PDF loaded — load an injection PDF first", "err"); return; }
+  if (!pages.length) { vStatus("No PDF loaded", "err"); return; }
   btn.disabled = true; btn.textContent = "Running...";
   try {
     var pageVal = document.getElementById("verifyPages").value;
-    var startIdx = (pageVal === "all") ? 0 : Math.max(0, pages.length - (parseInt(pageVal) || 4));
+    var startIdx = (pageVal === "all") ? 0 : Math.max(0, pages.length - (parseInt(pageVal)||4));
     var pageIndices = [];
     for (var i = startIdx; i < pages.length; i++) pageIndices.push(i);
-    vStatus("Extracting protocol from pages " + (startIdx+1) + "–" + pages.length + " (" + pageIndices.length + " pages)...");
-
-    // Build batches
-    var batches = [];
-    for (var b = 0; b < pageIndices.length; b += BATCH_SIZE) {
-      batches.push(pageIndices.slice(b, b + BATCH_SIZE));
-    }
-
-    var PROMPT = "You are reading pages of a handwritten peptide/injection tracking log. Pages show weekly grids with printed compound names as row headers, split into Morning and Night sections.\n\nTask: Identify any TEMPLATE pages (pages with printed compound names in a structured table). From the MOST RECENT template, extract every compound listed.\n\nFor each compound return:\n- name: exact compound name as printed\n- dose_units: dose from template label. If annotated with a newer dose, use the annotation.\n- time_of_day: Morning or Night\n- month_year: the month/year label at the top of the page if visible (e.g. May 2026)\n- notes: any handwritten notes (dose changes, start dates, etc.)\n\nIMPORTANT: Finished = finished vial, NOT stopped. Only flag stopped if notes say Stopped or Paused.\n\nIf no template pages in this batch, return [].\nReturn ONLY valid JSON array. No explanation.";
-
-    var allResults = [];
-    var detectedDate = null;
-    for (var bi = 0; bi < batches.length; bi++) {
-      vStatus("Batch " + (bi+1) + "/" + batches.length + " — pages " + (batches[bi][0]+1) + "–" + (batches[bi][batches[bi].length-1]+1) + "...");
-      var raw = await callClaudePages(batches[bi], PROMPT);
-      var parsed = [];
-      try { parsed = JSON.parse(raw); } catch(e) { parsed = []; }
-      if (Array.isArray(parsed) && parsed.length) {
-        // Extract date if found
-        var d = parsed.find(function(r){ return r.month_year; });
-        if (d) detectedDate = d.month_year;
-        allResults = parsed; // later batch = more recent, always overwrite
-      }
-    }
-
-    if (!allResults.length) { vStatus("No protocol template found in selected pages", "err"); btn.disabled=false; btn.textContent="⚡ Run Verify"; return; }
-
-    vStatus("Fetching Airtable Peptides...");
-    var atRecords = await fetchAllPeptides();
-    vStatus("Comparing...");
-    renderVerifyDiff(allResults, atRecords, detectedDate);
-    vStatus("Done — " + allResults.length + " PDF compounds · " + atRecords.length + " AT records · pages " + (startIdx+1) + "–" + pages.length, "ok");
+    vStatus("Starting verification — " + pageIndices.length + " pages · type: " + pdfType);
+    if (pdfType === "injection") await runInjectionVerification(pageIndices);
+    else if (pdfType === "workout") await runWorkoutVerification(pageIndices);
+    else vStatus("Select a PDF type (injection/workout) from Settings", "err");
   } catch(e) {
     vStatus("Error: " + e.message, "err");
     console.error(e);
   }
   btn.disabled = false; btn.textContent = "⚡ Run Verify";
-}
-
-async function fetchAllPeptides() {
-  var url = "https://api.airtable.com/v0/" + ATB + "/tblMs6YRdP4wkndUp?pageSize=100&returnFieldsByFieldId=true";
-  var r = await fetch(url, { headers: { Authorization: "Bearer " + ATK } });
-  if (!r.ok) throw new Error("Airtable HTTP " + r.status);
-  var d = await r.json();
-  return (d.records || []).map(function(rec) {
-    var f = rec.fields || {};
-    var name = f["fldeH5uyKXDFPZbHK"] || "";
-    var dose = f["fldN7WOCx7ETJwmrB"] || "";
-    var status = (f["fldeCBOtYYp6BtAfh"] || {}).name || f["fldeCBOtYYp6BtAfh"] || "";
-    var tod = (f["fld9J0U5iSDzyaaun"] || {}).name || f["fld9J0U5iSDzyaaun"] || "";
-    var freq = (f["fldyExNQXycfMjd1S"] || {}).name || f["fldyExNQXycfMjd1S"] || "";
-    var notes = f["fld3I1yzis1GsIDig"] || "";
-    return { name: name, dose: dose, status: status, tod: tod, freq: freq, notes: notes, recId: rec.id };
-  }).filter(function(r) { return r.name; });
-}
-
-var verifyRowData = []; // global store for send-to-claude
-
-function copyForClaude() {
-  if (!verifyRowData.length) { toast("Run Verify first", "tr"); return; }
-  var issues = verifyRowData.filter(function(r){ return r.rowClass !== "ok"; });
-  var ok = verifyRowData.filter(function(r){ return r.rowClass === "ok"; });
-  var txt = "PEPTIDE VERIFICATION RESULTS\n";
-  txt += "Run: " + new Date().toLocaleString() + "\n";
-  txt += "PDF: " + (curFile ? curFile.name : "—") + "\n\n";
-  txt += "ISSUES (" + issues.length + "):\n";
-  issues.forEach(function(r){
-    txt += "  [" + r.rowClass.toUpperCase() + "] " + r.compound;
-    txt += " | PDF: " + r.pdfDose + " " + r.pdfTOD;
-    txt += " | AT: " + r.atDose + " " + r.atStatus + " " + r.atTOD;
-    txt += " | " + r.issues.join("; ") + "\n";
-  });
-  txt += "\nMATCHED OK (" + ok.length + "):\n";
-  ok.forEach(function(r){ txt += "  ✓ " + r.compound + "\n"; });
-  navigator.clipboard.writeText(txt).then(function(){ toast("Copied — paste to Claude", "tg", 4000); });
-}
-
-async function updateAtStatus(recId, newStatus, btnEl) {
-  if (typeof btnEl === "string") btnEl = null;
-  try {
-    var url = "https://api.airtable.com/v0/" + ATB + "/tblMs6YRdP4wkndUp/" + recId;
-    var body = { fields: { "fldeCBOtYYp6BtAfh": newStatus } };
-    var r = await fetch(url, { method: "PATCH", headers: { Authorization: "Bearer " + ATK, "Content-Type": "application/json" }, body: JSON.stringify(body) });
-    if (!r.ok) throw new Error("HTTP " + r.status);
-    toast("Updated to " + newStatus, "tg");
-    if (btnEl && btnEl.closest) btnEl.closest("tr").style.background = "var(--gd)";
-  } catch(e) { toast("Update failed: " + e.message, "tr"); }
-}
-
-function normalizeName(n) {
-  return n.toLowerCase()
-    .replace(/\s*\([^)]*\)/g, "") // remove parentheticals
-    .replace(/[^a-z0-9]/g, "")    // strip non-alphanumeric
-    .replace(/nandrolone/g, "deca")
-    .replace(/testosterone/g, "trt")
-    .replace(/oxandrolone/g, "anavar")
-    .replace(/stanozolol/g, "winstrol")
-    .replace(/melanotan2/g, "mt2")
-    .replace(/melanotanii/g, "mt2");
-}
-
-function matchPeptide(pdfName, atList) {
-  var pn = normalizeName(pdfName);
-  return atList.find(function(a) {
-    var an = normalizeName(a.name);
-    return an === pn || an.includes(pn) || pn.includes(an);
-  });
-}
-
-function renderVerifyDiff(pdfProtocol, atRecords, detectedDate) {
-  var resEl = document.getElementById("verifyResults");
-  var matched = new Set();
-  var rows = [];
-  verifyRowData = [];
-
-  // For each PDF compound, find Airtable match
-  pdfProtocol.forEach(function(p) {
-    var at = matchPeptide(p.name, atRecords);
-    var issues = [];
-    var rowClass = "ok";
-    if (!at) {
-      rowClass = "warn";
-      issues.push("Not found in Airtable");
-    } else {
-      matched.add(normalizeName(at.name));
-      // Check status
-      var isStopped = p.notes && /\bstop|stopped|paused\b/i.test(p.notes);
-      // "Finished" = finished vial, not stopped — don't flag
-      if (isStopped && at.status === "Active") {
-        rowClass = "err"; issues.push("PDF: STOPPED — AT status: Active");
-      }
-      if (!isStopped && at.status === "Paused") {
-        rowClass = "err"; issues.push("PDF: on template — AT status: Paused");
-      }
-    }
-    rows.push({ source: "pdf", compound: p.name, pdfDose: p.dose_units || "—", pdfTOD: p.time_of_day || "—", pdfNotes: p.notes || "", atName: at ? at.name : "—", atDose: at ? at.dose : "—", atStatus: at ? at.status : "—", atTOD: at ? at.tod : "—", atRecId: at ? at.recId : null, issues: issues, rowClass: rowClass });
-  });
-
-  // Find Airtable Active/On-order compounds NOT in PDF
-  atRecords.forEach(function(a) {
-    if (a.status === "Deferred") return;
-    var an = normalizeName(a.name);
-    if (!matched.has(an)) {
-      var isPaused = a.status === "Paused";
-      rows.push({ source: "at", compound: a.name, pdfDose: "—", pdfTOD: "—", pdfNotes: "", atName: a.name, atDose: a.dose, atStatus: a.status, atTOD: a.tod, atRecId: a.recId, issues: isPaused ? [] : ["Active in AT — not on PDF template"], rowClass: isPaused ? "ok" : "warn" });
-    }
-  });
-
-  verifyRowData = rows; // store globally for copy
-  // Stats
-  var errs = rows.filter(function(r){ return r.rowClass === "err"; }).length;
-  var warns = rows.filter(function(r){ return r.rowClass === "warn"; }).length;
-  var oks = rows.filter(function(r){ return r.rowClass === "ok"; }).length;
-
-  var runDate = new Date().toLocaleString();
-  var dateLabel = detectedDate ? " · PDF: " + detectedDate : "";
-  var html = "<div style='display:flex;align-items:center;justify-content:space-between;margin-bottom:10px'><span style='font-size:10px;color:var(--dd);font-family:var(--mono)'>Run: " + runDate + dateLabel + "</span><button class='btn bg-btn' style='font-size:10px;padding:4px 10px' onclick='copyForClaude()'>&#128203; Send to Claude</button></div>";
-  html += "<div style='display:flex;gap:16px;margin-bottom:16px;padding:12px;background:var(--s);border:1px solid var(--b);border-radius:6px'>";
-  html += "<div style='text-align:center'><div style='font-size:22px;font-weight:700;color:var(--g);font-family:var(--mono)'>"+oks+"</div><div style='font-size:10px;color:var(--d)'>Match</div></div>";
-  html += "<div style='text-align:center'><div style='font-size:22px;font-weight:700;color:var(--y);font-family:var(--mono)'>"+warns+"</div><div style='font-size:10px;color:var(--d)'>Warning</div></div>";
-  html += "<div style='text-align:center'><div style='font-size:22px;font-weight:700;color:var(--r);font-family:var(--mono)'>"+errs+"</div><div style='font-size:10px;color:var(--d)'>Mismatch</div></div>";
-  html += "</div>";
-
-  html += "<div style='overflow-x:auto'><table class='tbl' style='width:100%;font-size:11px'>";
-  html += "<thead><tr style='background:var(--s2)'>";
-  ["Source","Compound","PDF Dose","PDF TOD","AT Dose","AT Status","AT TOD","Issues",""].forEach(function(h){
-    html += "<th style='padding:7px 10px;text-align:left;font-size:9px;letter-spacing:1.2px;text-transform:uppercase;font-family:var(--mono);color:var(--d);border-bottom:1px solid var(--b)'>"+h+"</th>";
-  });
-  html += "</tr></thead><tbody>";
-
-  rows.forEach(function(r) {
-    var bg = r.rowClass === "err" ? "background:var(--rd)" : r.rowClass === "warn" ? "background:var(--yd)" : "";
-    html += "<tr style='" + bg + "'>";
-    html += "<td style='padding:6px 10px;font-family:var(--mono);font-size:9px;color:var(--d)'>" + esc(r.source.toUpperCase()) + "</td>";
-    html += "<td style='padding:6px 10px;font-weight:600'>" + esc(r.compound) + "</td>";
-    html += "<td style='padding:6px 10px;font-family:var(--mono)'>" + esc(r.pdfDose) + "</td>";
-    html += "<td style='padding:6px 10px;font-family:var(--mono)'>" + esc(r.pdfTOD) + "</td>";
-    html += "<td style='padding:6px 10px;font-family:var(--mono)'>" + esc(r.atDose) + "</td>";
-    var sc = r.atStatus === "Active" ? "color:var(--g)" : r.atStatus === "Paused" ? "color:var(--d)" : "color:var(--y)";
-    html += "<td style='padding:6px 10px;font-family:var(--mono);" + sc + "'>" + esc(r.atStatus) + "</td>";
-    html += "<td style='padding:6px 10px;font-family:var(--mono)'>" + esc(r.atTOD) + "</td>";
-    var issueColor = r.rowClass === "err" ? "color:var(--r)" : r.rowClass === "warn" ? "color:var(--y)" : "color:var(--g)";
-    html += "<td style='padding:6px 10px;font-size:10px;" + issueColor + "'>" + esc(r.issues.join("; ") || "✓") + "</td>";
-    // Action cell
-    var actionHtml = "";
-    if (r.rowClass !== "ok" && r.atRecId) {
-      if (r.atStatus === "Paused" && r.source === "pdf") {
-        actionHtml = "<button class='btn bg-btn' style='font-size:9px;padding:3px 8px' onclick=\"updateAtStatus('" + r.atRecId + "','Active','this')\" >→ Set Active</button>";
-      } else if (r.atStatus === "Active" && r.source === "at") {
-        actionHtml = "<button class='btn bg-btn' style='font-size:9px;padding:3px 8px' onclick=\"updateAtStatus('" + r.atRecId + "','Paused','this')\" >→ Set Paused</button>";
-      }
-    }
-    html += "<td style='padding:6px 8px'>" + actionHtml + "</td>";
-    html += "</tr>";
-  });
-  html += "</tbody></table></div>";
-  resEl.innerHTML = html;
 }
 
 </script>
