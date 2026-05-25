@@ -2377,9 +2377,26 @@ async function saveWorkout() {
 }
 
 function printWorkout() {
+  // Auto-size: compute row height from actual exercise counts so 2 days always fit per page
+  const PAGE_H = 883;        // letter portrait @0.4in margins ≈ 9.2in at 96dpi
+  const TABLE_OVERHEAD = 96; // day-hdr(28) + meta-row(36) + col-hdr(22) + table-gap(10)
+  const NOTES_H = 60;        // fixed notes row height
+  const AVAIL_FOR_ROWS = PAGE_H - 2 * (TABLE_OVERHEAD + NOTES_H); // 571px
+
+  const dayKeys = ['Monday - Push','Tuesday - Pull','Wednesday - Legs / Core','Thursday - Arms / Chest'];
+  const counts = dayKeys.map(k => (WORKOUT_DAYS[k] || []).length);
+  const maxRows = Math.max(counts[0] + counts[1], counts[2] + counts[3], 1);
+  const rowH = Math.max(20, Math.min(40, Math.floor(AVAIL_FOR_ROWS / maxRows)));
+
+  const style = document.createElement('style');
+  style.id = 'print-dynamic-size';
+  style.textContent = `@media print { .pex td { height: ${rowH}px !important; } .pnotes td { height: ${NOTES_H}px !important; } }`;
+  document.head.appendChild(style);
+
   document.body.classList.add('print-workout');
   window.print();
   document.body.classList.remove('print-workout');
+  document.head.removeChild(style);
 }
 
 async function loadWorkoutHistory() {
@@ -3272,7 +3289,6 @@ function printTracker() {
     'CJC-1295 No DAC', 'Ipamorelin', 'DSIP', 'KPV', 'Epitalon'
   ];
 
-  const ROW_H = 28;
   const MORN_BG = '#ffffff'; const NIGHT_BG = '#ffffff'; const INACTIVE = '#C0C0C0';
   const DAYS = ['Mon','Tues','Wed','Thurs','Fri','Sat','Sun'];
 
@@ -3335,12 +3351,13 @@ function printTracker() {
     </tbody></table>`;
   }
 
-  // Auto-size: letter portrait @0.4in margins = 9.2in usable height per page
+  // Auto-size: letter portrait @0.4in margins ≈ 883px usable height
+  // Per page: 2 week tables. Per table overhead: week-hdr(24) + col-hdr(20) + morn-hdr(18) +
+  //   divider(6) + night-hdr(18) + margin-top(10) = 96px. Total fixed: 192px.
+  // Available for data rows = (883 - 192) / (2 * totalRows)
   const PAGE_H_PX = 883;
-  const TABLES_PER_PAGE = 2;
-  const FIXED_OVERHEAD_PX = 95;
-  const availPerTable = Math.floor(PAGE_H_PX / TABLES_PER_PAGE) - FIXED_OVERHEAD_PX;
-  const rowH = totalRows > 0 ? Math.max(18, Math.min(36, Math.floor(availPerTable / totalRows))) : 28;
+  const TABLE_OVERHEAD = 96;
+  const rowH = totalRows > 0 ? Math.max(18, Math.min(36, Math.floor((PAGE_H_PX - 2 * TABLE_OVERHEAD) / (2 * totalRows)))) : 28;
 
   const html = `<!DOCTYPE html><html><head><title>Peptide Tracker</title>
   <style>
