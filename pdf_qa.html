@@ -931,6 +931,43 @@ async function callClaudePages(pageIndices, prompt) {
 }
 
 // ── AIRTABLE FETCH ────────────────────────────────────────────────────
+async function loadActivePeptides() {
+  document.getElementById("atContent").innerHTML = "<div style='padding:16px;color:var(--dd);font-size:11px;text-align:center'>Loading peptides...</div>";
+  try {
+    var url = "https://api.airtable.com/v0/" + ATB + "/tblMs6YRdP4wkndUp?pageSize=100&returnFieldsByFieldId=true";
+    var r = await fetch(url, { headers: { Authorization: "Bearer " + ATK } });
+    var d = await r.json();
+    var recs = (d.records || []).filter(function(rec) {
+      return ((rec.fields || {})["fldeCBOtYYp6BtAfh"] || {}).name === "Active";
+    }).sort(function(a,b){
+      var na = (a.fields["fld9J0U5iSDzyaaun"]||{}).name||"";
+      var nb = (b.fields["fld9J0U5iSDzyaaun"]||{}).name||"";
+      return na.localeCompare(nb) || ((a.fields["fldeH5uyKXDFPZbHK"]||"").localeCompare(b.fields["fldeH5uyKXDFPZbHK"]||""));
+    });
+    var html = "<div style='padding:8px 0'>";
+    var curTOD = "";
+    recs.forEach(function(rec) {
+      var f = rec.fields || {};
+      var name = f["fldeH5uyKXDFPZbHK"] || "?";
+      var dose = f["fldN7WOCx7ETJwmrB"] || "—";
+      var tod = (f["fld9J0U5iSDzyaaun"]||{}).name || "";
+      var freq = (f["fldyExNQXycfMjd1S"]||{}).name || "";
+      if (tod !== curTOD) {
+        curTOD = tod;
+        html += "<div style='padding:4px 14px 2px;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--dd);font-family:var(--mono);margin-top:6px'>" + esc(tod) + "</div>";
+      }
+      html += "<div style='display:flex;align-items:center;padding:5px 14px;border-bottom:1px solid var(--b)'>";
+      html += "<div style='flex:1;font-size:11px;font-weight:500'>" + esc(name) + "</div>";
+      html += "<div style='font-size:10px;font-family:var(--mono);color:var(--d)'>" + esc(dose) + "</div>";
+      html += "</div>";
+    });
+    html += "</div>";
+    document.getElementById("atContent").innerHTML = html;
+  } catch(e) {
+    document.getElementById("atContent").innerHTML = "<div style='padding:16px;color:var(--r);font-size:11px'>Error: " + esc(e.message) + "</div>";
+  }
+}
+
 async function fetchAtPagedURL(url) {
   var records = [], offset = null;
   do {
