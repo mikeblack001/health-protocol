@@ -1536,9 +1536,9 @@ function renderTracker(weekNum) {
   const activePeps = data.peptides.filter(r => getField(r,'Status') === 'Active');
   const pepMap = {};
   activePeps.forEach(r => { pepMap[getField(r,'Compound')] = r; });
-  // Case-insensitive lookup for historical mode (injection log names are lowercased)
+  // Case-insensitive lookup for historical mode — use ALL peptides so paused compounds resolve correctly
   const pepMapCI = {};
-  activePeps.forEach(r => { pepMapCI[getField(r,'Compound').toLowerCase()] = r; });
+  data.peptides.forEach(r => { pepMapCI[getField(r,'Compound').toLowerCase()] = r; });
 
   let morning, night;
   if (trackerHistoricalData) {
@@ -1785,6 +1785,17 @@ async function loadTrackerWeekData(mondayISO) {
           const val = rest.slice(ci + 1).trim();
           const noteInput = document.querySelector(`input[data-type="notes"][data-compound="${compound}"]`);
           if (noteInput) noteInput.value = val;
+        } else if (entry.includes('|') && entry.includes(':')) {
+          // Format: "YYYY-MM-DD|compoundName:STATE" — restore saved tracker states (S, N, L, R, etc.)
+          const pipeIdx = entry.indexOf('|');
+          const colonIdx = entry.lastIndexOf(':');
+          if (pipeIdx === -1 || colonIdx === -1 || colonIdx < pipeIdx) return;
+          const date = entry.slice(0, pipeIdx).trim();
+          const compound = entry.slice(pipeIdx + 1, colonIdx).trim();
+          const state = entry.slice(colonIdx + 1).trim();
+          if (!state || state === '0') return;
+          const box = allBoxes.find(b => norm(b.dataset.compound) === norm(compound) && b.dataset.date === date);
+          if (box && !box.dataset.s) applyState(box, state); // injection log takes precedence
         }
       });
     }
@@ -4973,7 +4984,7 @@ async function selFile(id, name, type) {
         for (var p = 1; p <= pdfDoc.numPages; p++) {
           dbg("Rendering page " + p + "/" + pdfDoc.numPages);
           var page = await pdfDoc.getPage(p);
-          var vp = page.getViewport({ scale: 1.5 });
+          var vp = page.getViewport({ scale: 2.0 });
           var canvas = document.createElement("canvas");
           canvas.width = vp.width; canvas.height = vp.height;
           await page.render({ canvasContext: canvas.getContext("2d"), viewport: vp }).promise;
@@ -5309,7 +5320,7 @@ var CANONICAL_COMPOUNDS = [
 ];
 
 var verifyRowData = [];
-var BATCH_SIZE = 1;
+var BATCH_SIZE = 2;
 
 function vStatus(msg, cls) {
   var el = document.getElementById("verifyStatus");
