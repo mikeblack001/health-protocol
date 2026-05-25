@@ -5452,7 +5452,7 @@ var CANONICAL_COMPOUNDS = [
 ];
 
 var verifyRowData = [];
-var BATCH_SIZE = 4;
+var BATCH_SIZE = 2;
 
 function vStatus(msg, cls) {
   var el = document.getElementById("verifyStatus");
@@ -5470,7 +5470,7 @@ async function callClaudePages(pageIndices, prompt) {
   });
   var resp = await fetch(WORKER_URL, {
     method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ model: (document.getElementById("verifyModel")||{value:"claude-haiku-4-5-20251001"}).value, max_tokens: 4000,
+    body: JSON.stringify({ model: (document.getElementById("verifyModel")||{value:"claude-haiku-4-5-20251001"}).value, max_tokens: 8192,
       messages: [{ role: "user", content: imgBlocks.concat([{ type: "text", text: prompt }]) }] })
   });
   if (!resp.ok) throw new Error("Worker HTTP " + resp.status);
@@ -5662,20 +5662,42 @@ async function runInjectionVerification(pageIndices) {
   var batches = [];
   for (var b = 0; b < pageIndices.length; b += BATCH_SIZE) batches.push(pageIndices.slice(b, b + BATCH_SIZE));
   var prompt = INJ_PROMPT.replace("CANONICAL_PLACEHOLDER", CANONICAL_COMPOUNDS.join(", "));
+  vStatus("Running " + batches.length + " batches in parallel (" + pageIndices.length + " pages)...");
+
+  // Run all batches simultaneously
+  var batchResults = await Promise.all(batches.map(async function(batch, bi) {
+    try {
+      var raw = await callClaudePages(batch, prompt);
+      var parsed = [];
+      try { parsed = JSON.parse(raw); } catch(e) {
+        // Try to salvage partial JSON
+        var trimmed = raw.replace(/,\s*$/, '').replace(/^\s*\[?/, '[');
+        if (!trimmed.endsWith(']')) trimmed += ']';
+        try { parsed = JSON.parse(trimmed); } catch(e2) { parsed = []; }
+      }
+      return { batch: bi, pages: batch, entries: Array.isArray(parsed) ? parsed : [], err: null };
+    } catch(e) {
+      return { batch: bi, pages: batch, entries: [], err: e.message };
+    }
+  }));
+
+  // Report per-batch results
+  var batchSummary = batchResults.map(function(r) {
+    if (r.err) return "B"+(r.batch+1)+":ERR";
+    return "B"+(r.batch+1)+":"+(r.entries.length||"0");
+  }).join(" · ");
+
   var allEntries = [];
-  for (var bi = 0; bi < batches.length; bi++) {
-    vStatus("Extracting batch " + (bi+1) + "/" + batches.length + " (pages " + (batches[bi][0]+1) + "-" + (batches[bi][batches[bi].length-1]+1) + ")...");
-    var raw = await callClaudePages(batches[bi], prompt);
-    var parsed = [];
-    try { parsed = JSON.parse(raw); } catch(e) { parsed = []; }
-    if (Array.isArray(parsed)) allEntries = allEntries.concat(parsed);
-  }
-  if (!allEntries.length) { vStatus("No entries found — try selecting All pages", "err"); return; }
-  // Get date range
+  batchResults.forEach(function(r) { allEntries = allEntries.concat(r.entries); });
+  var errors = batchResults.filter(function(r){ return r.err || r.entries.length === 0; });
+
+  if (!allEntries.length) { vStatus("No entries found — check Worker connection", "err"); return; }
+
   var dates = allEntries.map(function(e){ return e.date; }).filter(Boolean).sort();
   var startDate = dates[0], endDate = dates[dates.length-1];
-  vStatus("Done — " + allEntries.length + " entries · " + startDate + " to " + endDate, "ok");
-  renderExtractedForClaude(allEntries, startDate, endDate);
+  var errNote = errors.length ? " · " + errors.length + " batch(es) empty/failed" : "";
+  vStatus("Done — " + allEntries.length + " entries · " + startDate + " to " + endDate + errNote, errors.length ? "warn" : "ok");
+  renderExtractedForClaude(allEntries, startDate, endDate, batchSummary);
 }
 
 // ── WORKOUT VERIFY (stub) ─────────────────────────────────────────────
@@ -5804,27 +5826,77 @@ async function fixRecord(recId, idx) {
   } catch(e) { toast("Fix failed: " + e.message, "tr"); }
 }
 
-function renderExtractedForClaude(entries, startDate, endDate) {
+var _verifySort = 'asc';
+var _verifyExtracted = [];
+
+function renderExtractedForClaude(entries, startDate, endDate, batchSummary) {
+  _verifyExtracted = entries;
   verifyRowData = entries;
   var resEl = document.getElementById("verifyResults");
-  var html = "<div style='display:flex;align-items:center;justify-content:space-between;margin-bottom:12px'>";
-  html += "<span style='font-size:11px;color:var(--dd);font-family:var(--mono)'>Extracted: " + entries.length + " entries · " + startDate + " → " + endDate + "</span>";
-  html += "<button class='btn bp' style='font-size:11px;padding:6px 16px' onclick='copyForClaude()'>&#128203; Send to Claude</button></div>";
-  html += "<div style='overflow-x:auto'><table class='tbl' style='width:100%;font-size:11px'><thead><tr style='background:var(--s2)'>";
-  ["Date","Compound","Dose","Side","TOD","Notes"].forEach(function(h){
-    html += "<th style='padding:7px 10px;text-align:left;font-size:9px;letter-spacing:1.2px;text-transform:uppercase;font-family:var(--mono);color:var(--d);border-bottom:1px solid var(--b)'>" + h + "</th>";
-  });
-  html += "</tr></thead><tbody>";
-  entries.forEach(function(e) {
-    html += "<tr><td style='padding:5px 10px;font-family:var(--mono);font-size:10px'>" + esc(e.date||"—") + "</td>";
-    html += "<td style='padding:5px 10px;font-weight:500'>" + esc(e.compound||"—") + "</td>";
-    html += "<td style='padding:5px 10px;font-family:var(--mono)'>" + esc(e.dose||"—") + "</td>";
-    html += "<td style='padding:5px 10px;font-family:var(--mono)'>" + esc(e.side||"—") + "</td>";
-    html += "<td style='padding:5px 10px;font-family:var(--mono)'>" + esc(e.time_of_day||"—") + "</td>";
-    html += "<td style='padding:5px 10px;font-size:10px;color:var(--d)'>" + esc(e.notes||"") + "</td></tr>";
-  });
-  html += "</tbody></table></div>";
-  resEl.innerHTML = html;
+
+  function buildTable(sorted) {
+    var html = "";
+    html += "<div style='display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px'>";
+    html += "<span style='font-size:11px;color:var(--dd);font-family:var(--mono)'>Extracted: " + entries.length + " entries · " + startDate + " → " + endDate + "</span>";
+    if (batchSummary) html += "<span style='font-size:9px;color:var(--dd);font-family:var(--mono)'>" + esc(batchSummary) + "</span>";
+    html += "<div style='display:flex;gap:6px'>";
+    html += "<button class='btn bg-btn' style='font-size:10px;padding:4px 10px' onclick='toggleVerifySort()'>&#8597; " + (_verifySort==='asc'?'Oldest first':'Newest first') + "</button>";
+    html += "<button class='btn bb' style='font-size:10px;padding:4px 10px' onclick='compareWithAT()'>&#9776; Compare AT</button>";
+    html += "<button class='btn bp' style='font-size:10px;padding:4px 10px' onclick='copyForClaude()'>&#128203; Send to Claude</button>";
+    html += "</div></div>";
+    html += "<div style='overflow-x:auto'><table class='tbl' style='width:100%;font-size:11px'><thead><tr style='background:var(--s2)'>";
+    ["Date","Compound","Dose","Side","TOD","Notes"].forEach(function(h){
+      html += "<th style='padding:7px 10px;text-align:left;font-size:9px;letter-spacing:1.2px;text-transform:uppercase;font-family:var(--mono);color:var(--d);border-bottom:1px solid var(--b)'>" + h + "</th>";
+    });
+    html += "</tr></thead><tbody>";
+    sorted.forEach(function(e) {
+      html += "<tr><td style='padding:5px 10px;font-family:var(--mono);font-size:10px'>" + esc(e.date||"—") + "</td>";
+      html += "<td style='padding:5px 10px;font-weight:500'>" + esc(e.compound||"—") + "</td>";
+      html += "<td style='padding:5px 10px;font-family:var(--mono)'>" + esc(e.dose||"—") + "</td>";
+      html += "<td style='padding:5px 10px;font-family:var(--mono)'>" + esc(e.side||"—") + "</td>";
+      html += "<td style='padding:5px 10px;font-family:var(--mono)'>" + esc(e.time_of_day||"—") + "</td>";
+      html += "<td style='padding:5px 10px;font-size:10px;color:var(--d)'>" + esc(e.notes||"") + "</td></tr>";
+    });
+    html += "</tbody></table></div>";
+    return html;
+  }
+
+  function getSorted() {
+    return entries.slice().sort(function(a,b){
+      var d = (a.date||"").localeCompare(b.date||"");
+      return _verifySort === 'asc' ? d : -d;
+    });
+  }
+
+  resEl.innerHTML = buildTable(getSorted());
+}
+
+function toggleVerifySort() {
+  _verifySort = _verifySort === 'asc' ? 'desc' : 'asc';
+  renderExtractedForClaude(_verifyExtracted,
+    (_verifyExtracted.map(function(e){return e.date;}).filter(Boolean).sort())[0],
+    (_verifyExtracted.map(function(e){return e.date;}).filter(Boolean).sort()).slice(-1)[0]
+  );
+}
+
+async function compareWithAT() {
+  if (!_verifyExtracted.length) { toast("Run Verify first", "tr"); return; }
+  var dates = _verifyExtracted.map(function(e){return e.date;}).filter(Boolean).sort();
+  var startDate = dates[0], endDate = dates[dates.length-1];
+  vStatus("Fetching Airtable records " + startDate + " → " + endDate + "...");
+  try {
+    var atRecords = await fetchAtInjections(startDate, endDate);
+    vStatus("AT: " + atRecords.length + " records fetched. Running diff...");
+    var rows = diffInjections(_verifyExtracted, atRecords);
+    renderVerifyResults(rows, startDate, endDate);
+    var ok = rows.filter(function(r){return r.status==="ok";}).length;
+    var miss = rows.filter(function(r){return r.status==="missing";}).length;
+    var wrong = rows.filter(function(r){return r.status==="wrong";}).length;
+    var extra = rows.filter(function(r){return r.status==="extra";}).length;
+    vStatus("Diff complete — ✓" + ok + " match · " + miss + " missing · " + wrong + " wrong · " + extra + " extra", miss+wrong ? "warn" : "ok");
+  } catch(e) {
+    vStatus("AT fetch failed: " + e.message, "err");
+  }
 }
 
 function copyForClaude() {
@@ -6036,6 +6108,6 @@ async function runVerification() {
 </div>
 </body>
 </html>
-<!-- cache bust Mon May 26 2026 — haiku selector -->
+<!-- cache bust Mon May 26 2026 — parallel+sort+AT -->
 
 
