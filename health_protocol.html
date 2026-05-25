@@ -1272,7 +1272,7 @@ let trackerMondayOffset = 0; // weeks offset from current week
 
 const TRACKER_MORNING_ORDER = [
   'Testosterone (TRT)', 'Deca (Nano)', 'NAD+', 'Retatrutide',
-  'Cagrilintide', 'Tesamorelin', 'GHK-Cu', 'Melanotan II', 'Tirzepatide - 36u (9mg)'
+  'Cagrilintide', 'Tesamorelin', 'GHK-Cu', 'Melanotan II', 'Tirzepatide'
 ];
 const TRACKER_NIGHT_ORDER = [
   'CJC-1295 No DAC', 'Ipamorelin', 'DSIP', 'KPV', 'Epitalon'
@@ -1286,7 +1286,7 @@ const TRACKER_SCHEDULE = {
   'Tesamorelin':        [0,1,2,3,4,5],// Mon-Sat
   'GHK-Cu':             [0,1,2,3,4,5,6],// Daily
   'Melanotan II':       [1],          // Tue
-  'Tirzepatide - 36u (9mg)':        [5],          // Sat
+  'Tirzepatide':        [6],          // Sun
   'CJC-1295 No DAC':    [0,1,2,3,6], // Mon/Tue/Wed/Thu/Sun
   'Ipamorelin':         [0,1,2,3,6], // Mon/Tue/Wed/Thu/Sun
   'DSIP':               [0,2,4,5,6], // Mon/Wed/Fri/Sat/Sun
@@ -2990,47 +2990,48 @@ function printTracker() {
       const r = pepMap[name];
       if (!r) return '';
       const dose = getField(r,'Dose');
-      const label = dose ? `${name} - ${dose}` : name;
+      const label = dose ? `${name}<br><span style="font-size:7pt;color:#555">${dose}</span>` : name;
       const active = TRACKER_SCHEDULE[name] || [0,1,2,3,4,5,6];
-      let tr = `<tr><td style="background-color:${bg}!important;border:1px solid #ccc;padding:3px 5px">${label}</td>`;
+      let tr = `<tr><td style="background-color:${bg}!important;border:1px solid #000;padding:4px 5px;height:34px;vertical-align:middle">${label}</td>`;
       for (let d=0; d<7; d++) {
         tr += active.includes(d)
-          ? `<td style="background-color:${bg}!important;border:1px solid #ccc;"></td>`
-          : `<td style="background-color:${INACTIVE}!important;border:1px solid #ccc;"></td>`;
+          ? `<td style="background-color:${bg}!important;border:1px solid #000;height:34px;"></td>`
+          : `<td style="background-color:${INACTIVE}!important;border:1px solid #000;height:34px;"></td>`;
       }
-      tr += `<td style="background-color:${bg}!important;border:1px solid #ccc;"></td></tr>`;
+      tr += `<td style="background-color:${bg}!important;border:1px solid #000;height:34px;"></td></tr>`;
       return tr;
     }).join('');
   }
 
   function weekTable(weekNum) {
     return `
-    <div style="background-color:#1B4332!important;color:#fff!important;font-weight:bold;font-size:8pt;padding:3px 5px;margin-top:${weekNum>1?'8px':'0'}">
-      Week ${weekNum} &nbsp;&nbsp; Monday Date: _____________________
-    </div>
-    <table style="width:100%;border-collapse:collapse;font-size:8pt;table-layout:fixed;border:2px solid #000">
-    <colgroup><col style="width:35%">${DAYS.map(()=>'<col style="width:6%">').join('')}<col style="width:23%"></colgroup>
+    <table style="width:100%;border-collapse:collapse;margin-top:${weekNum>1?'10px':'0'};border:2px solid #000">
+      <tr>
+        <td style="background-color:#1B4332!important;color:#fff!important;font-weight:bold;font-size:9pt;padding:5px 8px;width:70px;white-space:nowrap">Week ${weekNum}</td>
+        <td style="background-color:#fff!important;border-left:2px solid #000;font-size:9pt;padding:5px 8px;color:#000">Monday Date: _____________________________</td>
+      </tr>
+    </table>
+    <table style="width:100%;border-collapse:collapse;font-size:8.5pt;table-layout:fixed;border:2px solid #000;border-top:none">
+    <colgroup><col style="width:34%">${DAYS.map(()=>'<col style="width:6%">').join('')}<col style="width:24%"></colgroup>
     <thead><tr style="background-color:#D9D9D9!important">
-      <th style="border:1px solid #999;padding:2px 4px;text-align:left">Medication</th>
-      ${DAYS.map(d=>`<th style="border:1px solid #999;padding:2px;text-align:center">${d}</th>`).join('')}
-      <th style="border:1px solid #999;padding:2px;text-align:left">Notes</th>
-      <th style="border:1px solid #999;padding:2px;text-align:left">Notes</th>
+      <th style="border:1px solid #000;padding:3px 5px;text-align:left">Medication</th>
+      ${DAYS.map(d=>`<th style="border:1px solid #000;padding:3px 2px;text-align:center">${d}</th>`).join('')}
+      <th style="border:1px solid #000;padding:3px 5px;text-align:left">Notes</th>
     </tr></thead><tbody>
-    <tr><td colspan="9" style="background-color:#E8A838!important;color:#fff!important;font-weight:bold;padding:3px 5px;font-size:8pt">☀ Morning</td></tr>
+    <tr><td colspan="9" style="background-color:#E8A838!important;color:#fff!important;font-weight:bold;padding:4px 6px;font-size:8.5pt">☀ Morning</td></tr>
     ${rows(MORNING_ORDER, MORN_BG)}
-    <tr><td colspan="9" style="height:20px;background-color:#e8e8e8!important"></td></tr>
-    <tr><td colspan="9" style="background-color:#4A6FA5!important;color:#fff!important;font-weight:bold;padding:3px 5px;font-size:8pt">🌙 Night</td></tr>
+    <tr><td colspan="9" style="height:10px;background-color:#e8e8e8!important;border:1px solid #000"></td></tr>
+    <tr><td colspan="9" style="background-color:#4A6FA5!important;color:#fff!important;font-weight:bold;padding:4px 6px;font-size:8.5pt">🌙 Night</td></tr>
     ${rows(NIGHT_ORDER, NIGHT_BG)}
     </tbody></table>`;
   }
 
   const html = `<!DOCTYPE html><html><head><title></title>
   <style>
-    @page { size: portrait letter; margin: 0.25in; }
-    body { font-family: Calibri, Arial, sans-serif; margin: 0; font-size: 8pt; -webkit-print-color-adjust: exact; print-color-adjust: exact; color-adjust: exact; }
+    @page { size: portrait letter; margin: 0.3in; }
+    body { font-family: Calibri, Arial, sans-serif; margin: 0; font-size: 8.5pt; -webkit-print-color-adjust: exact; print-color-adjust: exact; color-adjust: exact; }
     * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
-    table { width: 100%; border-collapse: collapse; margin-bottom: 4px; table-layout: fixed; }
-    td, th { padding: 2px 3px !important; line-height: 1.2; overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; table-layout: fixed; }
     .page-break { page-break-after: always; }
   </style></head><body>
   <div class="page-break">${weekTable(1)}${weekTable(2)}</div>
