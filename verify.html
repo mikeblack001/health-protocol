@@ -244,8 +244,10 @@ select.inp{cursor:pointer}
           <div class="at-panel">
             <div class="at-toolbar">
               <span class="at-toolbar-title">Airtable — <span id="atTableLabel" style="color:var(--bl)">Sets</span></span>
+              <span id="atStatusLabel" style="font-size:10px;color:var(--dd);font-family:var(--mono)"></span>
               <button class="btn bg-btn" style="padding:3px 9px;font-size:10px" onclick="refreshAtData()" id="atRefreshBtn">&#8635; Load</button>
             </div>
+            <div id="injAuditNav" style="display:none;flex-wrap:wrap;gap:3px;padding:8px 12px;border-bottom:1px solid var(--b);flex-shrink:0;overflow-y:auto;max-height:80px"></div>
             <div class="at-scroll" id="atScroll">
               <div class="date-row">
                 <input type="date" class="date-inp" id="dateFilter" onchange="refreshAtData()" placeholder="YYYY-MM-DD"/>
@@ -554,12 +556,21 @@ async function selFile(id, name, type) {
   document.getElementById("imgEmpty").style.display = "flex";
   document.getElementById("imgEmpty").innerHTML = "<span style='font-size:28px'>&#8635;</span><span id='dbgStatus'>Downloading file...</span>";
   document.getElementById("dateFilter").value = "";
-  document.getElementById("dateFilter").closest(".date-row").style.display = "flex";
-  document.getElementById("atRefreshBtn").style.display = "";
   showTab("review");
   var m = cfg.types[type];
   document.getElementById("atTableLabel").textContent = m.tableName || type;
-  document.getElementById("atContent").innerHTML = "<div class='empty' style='padding:30px 10px'><div class='et' style='font-size:11px'>Set a date to load records</div></div>";
+  if (type === "injection") {
+    document.getElementById("dateFilter").closest(".date-row").style.display = "none";
+    document.getElementById("atRefreshBtn").style.display = "none";
+    document.getElementById("injAuditNav").style.display = "flex";
+    document.getElementById("atContent").innerHTML = "<div style='padding:16px;text-align:center;font-size:11px;color:var(--dd)'>Loading audit data...</div>";
+    loadInjAuditPanel();
+  } else {
+    document.getElementById("dateFilter").closest(".date-row").style.display = "flex";
+    document.getElementById("atRefreshBtn").style.display = "";
+    document.getElementById("injAuditNav").style.display = "none";
+    document.getElementById("atContent").innerHTML = "<div class='empty' style='padding:30px 10px'><div class='et' style='font-size:11px'>Set a date to load records</div></div>";
+  }
 
   try {
     setDot("d", "warn", "LOADING");
@@ -1004,6 +1015,112 @@ async function loadActivePeptides() {
   } catch(e) {
     document.getElementById("atContent").innerHTML = "<div style='padding:16px;color:var(--r);font-size:11px'>Error: " + esc(e.message) + "</div>";
   }
+}
+
+var injAuditData = null; // cache loaded audit
+
+async function loadInjAuditPanel() {
+  var statusEl = document.getElementById("atStatusLabel");
+  var navEl = document.getElementById("injAuditNav");
+  var contentEl = document.getElementById("atContent");
+  if (injAuditData) { renderInjAuditNav(injAuditData, navEl, contentEl); return; }
+  statusEl.textContent = "Loading...";
+  var ALIAS = {"trt":"Testosterone","cjc-1295":"CJC-1295 No DAC","cjc 1295":"CJC-1295 No DAC","cag":"Cagrilintide","epithalon":"Epitalon","epithalone":"Epitalon","deca (nano)":"Deca (Nandrolone)","deca nano":"Deca (Nandrolone)","melanotan ii":"Melanotan II (MT2)","melanotan 2":"Melanotan II (MT2)","mots c":"Mots-C","ss 31":"SS-31","anavar":"Anavar (Oxandrolone)","stanozolal":"Winstrol (Stanozolol)","stanozolol":"Winstrol (Stanozolol)"};
+  var nrm = function(s){ return (s||"").toLowerCase().trim().replace(/ +/g," "); };
+  var res = function(raw){ return ALIAS[nrm(raw)] || raw; };
+  function getMon(dateStr) {
+    var d = new Date(dateStr + "T12:00:00");
+    var diff = d.getDay() === 0 ? -6 : 1 - d.getDay();
+    var m = new Date(d); m.setDate(d.getDate() + diff);
+    return m.toISOString().split("T")[0];
+  }
+  try {
+    var records = [], offset = null;
+    do {
+      var url = "https://api.airtable.com/v0/" + ATB + "/tblBvEaLkGGipnOFc?pageSize=100&fields[]=Date&fields[]=Compound&fields[]=Site&fields[]=Notes&sort[0][field]=Date&sort[0][direction]=asc" + (offset ? "&offset=" + encodeURIComponent(offset) : "");
+      var r = await fetch(url, { headers: { Authorization: "Bearer " + ATK } });
+      var j = await r.json();
+      if (j.error) throw new Error(j.error.message);
+      records = records.concat(j.records || []);
+      offset = j.offset;
+      statusEl.textContent = records.length + " records...";
+    } while (offset);
+    var weeks = {};
+    records.forEach(function(rec) {
+      var f = rec.fields, date = f["Date"];
+      if (!date) return;
+      var compound = res(f["Compound"] || ""), mon = getMon(date);
+      if (!weeks[mon]) weeks[mon] = {};
+      var key = compound + "|" + date;
+      if (!weeks[mon][key]) weeks[mon][key] = [];
+      weeks[mon][key].push({ site: f["Site"] || "", note: f["Notes"] || "" });
+    });
+    injAuditData = weeks;
+    var sortedWeeks = Object.keys(weeks).sort();
+    statusEl.textContent = records.length + " · " + sortedWeeks.length + " wks";
+    renderInjAuditNav(weeks, navEl, contentEl);
+  } catch(e) {
+    statusEl.textContent = "Error: " + e.message;
+    contentEl.innerHTML = "<div style='padding:16px;color:var(--r);font-size:11px'>" + esc(e.message) + "</div>";
+  }
+}
+
+function renderInjAuditNav(weeks, navEl, contentEl) {
+  var sortedWeeks = Object.keys(weeks).sort();
+  navEl.innerHTML = "";
+  var DAYS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+  sortedWeeks.forEach(function(mon) {
+    var btn = document.createElement("button");
+    var parts = mon.split("-"); btn.textContent = parts[1]+"/"+parts[2]+"/"+parts[0].slice(2);
+    btn.style.cssText = "padding:2px 7px;border:1px solid var(--b);border-radius:4px;cursor:pointer;font-size:10px;font-family:var(--mono);background:var(--s);color:var(--t);flex-shrink:0";
+    btn.onclick = function() {
+      navEl.querySelectorAll("button").forEach(function(b){ b.style.background="var(--s)"; b.style.color="var(--t)"; });
+      btn.style.background="var(--bl)"; btn.style.color="#fff";
+      showInjWeek(mon, weeks[mon], DAYS, contentEl);
+    };
+    navEl.appendChild(btn);
+    btn._weekKey = mon;
+  });
+  // Auto-select most recent week
+  var btns = navEl.querySelectorAll("button");
+  if (btns.length) btns[btns.length-1].click();
+}
+
+function showInjWeek(mon, weekData, DAYS, contentEl) {
+  var monDate = new Date(mon + "T12:00:00");
+  var dates = [];
+  for (var i = 0; i < 7; i++) { var d = new Date(monDate); d.setDate(monDate.getDate()+i); dates.push(d.toISOString().split("T")[0]); }
+  var compounds = [];
+  var seen = {};
+  Object.keys(weekData).forEach(function(k){ var c=k.split("|")[0]; if(!seen[c]){seen[c]=1;compounds.push(c);} });
+  compounds.sort();
+  var NIGHT = {"CJC-1295 No DAC":1,"Ipamorelin":1,"DSIP":1,"KPV":1,"Epitalon":1,"Selank":1,"BPC-157":1};
+  var secOf = function(c){ return NIGHT[c] ? "Night" : "Morning"; };
+  var CC = {"L":"#dbeafe","R":"#fef3c7","S":"#fee2e2","X":"#f3f4f6","N":"#e5e7eb"};
+  var TC = {"L":"#1d4ed8","R":"#92400e","S":"#dc2626","X":"#6b7280","N":"#9ca3af"};
+  function cell(entries) {
+    if (!entries||!entries.length) return "<td style='border:1px solid #ccc;min-width:48px'></td>";
+    var s = entries[0].site;
+    if (!s) return "<td style='border:1px solid #ccc;min-width:48px;text-align:center;background:#f9fafb;font-size:11px;color:#ccc'>·</td>";
+    return "<td style='border:1px solid #ccc;min-width:48px;text-align:center;padding:5px 2px;background:"+(CC[s]||"#dcfce7")+";font-size:13px;font-weight:700;color:"+(TC[s]||"#15803d")+"'>"+s+"</td>";
+  }
+  var html = "<table style='border-collapse:collapse;font-size:12px;width:100%'><thead><tr>";
+  html += "<th style='text-align:left;padding:5px 10px;border:1px solid #999;min-width:160px;background:#e5e7eb;font-size:11px'>Compound</th>";
+  DAYS.forEach(function(d,i){ var p=dates[i].split("-"); html += "<th style='padding:3px 5px;border:1px solid #999;text-align:center;background:#e5e7eb;font-size:10px;min-width:48px'>"+d+"<br><span style='font-weight:400;font-size:9px'>"+p[1]+"/"+p[2]+"</span></th>"; });
+  html += "<th style='border:1px solid #999;background:#e5e7eb;padding:3px 6px;font-size:10px'>Notes</th></tr></thead><tbody>";
+  ["Morning","Night"].forEach(function(section) {
+    html += "<tr><td colspan='"+(DAYS.length+2)+"' style='background:#374151;color:#fff;padding:4px 10px;font-size:11px;font-weight:600;border:1px solid #555'>"+section+"</td></tr>";
+    compounds.filter(function(c){ return secOf(c)===section; }).forEach(function(c) {
+      html += "<tr><td style='padding:4px 10px;border:1px solid #ccc;font-size:11px;font-weight:500;background:#f9fafb;white-space:nowrap'>"+esc(c)+"</td>";
+      dates.forEach(function(date){ html += cell(weekData[c+"|"+date]); });
+      var notes = [];
+      var seen = {};
+      dates.forEach(function(date){ (weekData[c+"|"+date]||[]).forEach(function(e){ if(e.note&&!seen[e.note]){seen[e.note]=1;notes.push(e.note);} }); });
+      html += "<td style='padding:4px 6px;border:1px solid #ccc;font-size:10px;color:#666'>"+esc(notes.join("; "))+"</td></tr>";
+    });
+  });
+  html += "</tbody></table>";
+  contentEl.innerHTML = html;
 }
 
 async function fetchAtPagedURL(url) {
