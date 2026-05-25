@@ -510,6 +510,8 @@
     <div class="nav-dropdown">
       <button class="nav-tab drop-trigger" id="nav-pep" onclick="toggleDrop('drop-pep',event)">Peptides <span class="drop-caret">▾</span></button>
       <div class="drop-menu" id="drop-pep">
+        <button class="drop-item" onclick="navDrop('log-injections','nav-pep')" style="color:var(--accent);font-weight:600">💉 Log Injections</button>
+        <div class="drop-divider"></div>
         <button class="drop-item" onclick="navDrop('peptides','nav-pep')">Peptides</button>
         <button class="drop-item" onclick="navDrop('tracker','nav-pep')">Peptide Tracker</button>
         <button class="drop-item" onclick="navDrop('changes','nav-pep')">Peptide Changes</button>
@@ -1076,6 +1078,235 @@
     <div id="injaudit-nav" style="display:flex;gap:4px;flex-wrap:wrap;padding:8px 12px;border-bottom:1px solid var(--border)"></div>
     <div id="injaudit-content" style="padding:16px;overflow-x:auto;width:100%"></div>
   </div>
+
+  <!-- LOG INJECTIONS -->
+  <div id="view-log-injections" class="view">
+    <div style="max-width:560px;margin:0 auto;padding:16px 16px 40px">
+
+      <!-- Header -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+        <div>
+          <h2 style="font-size:20px;font-weight:500;color:var(--text)">💉 Log Injections</h2>
+          <p style="font-size:12px;color:var(--muted);margin-top:2px;font-family:'DM Mono',monospace" id="inj-log-subtitle">Loading protocol...</p>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <input type="date" id="inj-log-date" style="padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:'DM Mono',monospace;color:var(--text);background:var(--surface2)">
+          <button onclick="loadInjLogProtocol(true)" style="padding:7px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--muted);font-size:13px;cursor:pointer">↻</button>
+        </div>
+      </div>
+
+      <!-- TOD toggle -->
+      <div style="display:flex;gap:6px;margin-bottom:20px">
+        <button id="inj-tog-am" onclick="setInjTOD('Morning')" style="flex:1;padding:10px;border-radius:8px;border:2px solid var(--accent);background:var(--accent-light);color:var(--accent);font-weight:600;font-size:13px;cursor:pointer">☀ Morning</button>
+        <button id="inj-tog-pm" onclick="setInjTOD('Night')" style="flex:1;padding:10px;border-radius:8px;border:2px solid var(--border);background:var(--surface);color:var(--muted);font-weight:500;font-size:13px;cursor:pointer">🌙 Night</button>
+      </div>
+
+      <!-- Compound rows -->
+      <div id="inj-log-compounds" style="display:flex;flex-direction:column;gap:8px;margin-bottom:24px">
+        <div style="padding:40px;text-align:center;color:var(--muted);font-size:13px">Loading active compounds...</div>
+      </div>
+
+      <!-- Submit -->
+      <button id="inj-log-submit" onclick="submitInjLog()" style="width:100%;padding:14px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:opacity .15s" disabled>
+        Submit Session
+      </button>
+      <div id="inj-log-status" style="margin-top:12px;font-size:12px;text-align:center;color:var(--muted);min-height:18px;font-family:'DM Mono',monospace"></div>
+    </div>
+  </div>
+
+  <div id="view-pdfqa" class="view">
+  <div class="pdfqa-root">
+    <!-- MINI STATUS BAR -->
+    <div class="hdr" style="padding:8px 20px;flex-shrink:0">
+      <span class="logo">MB</span><span style="color:var(--b2)">&#8212;</span>
+      <span class="htitle">PDF QA &amp; VERIFICATION</span>
+      <div class="hright">
+        <div class="dot" id="dDot"></div><span class="dlbl" id="dLbl">DRIVE</span>
+        <span style="color:var(--dd)">&#183;</span>
+        <div class="dot" id="aDot"></div><span class="dlbl" id="aLbl">AIRTABLE</span>
+      </div>
+    </div>
+    <!-- BODY -->
+    <div class="body">
+      <!-- SIDEBAR -->
+      <div class="sb">
+        <div class="sbh">
+          <span class="sbht">Library</span>
+          <button class="btn bg-btn" style="padding:3px 8px;font-size:9px" onclick="loadMappedFiles()">&#8635;</button>
+        </div>
+        <div class="sbb" id="fileList">
+          <div class="abox" style="padding:24px">
+            <div class="atitle">Connect Drive</div>
+            <div class="asub">Sign in to load your PDF library.</div>
+            <button class="btn bp" onclick="signIn()">Sign in with Google</button>
+          </div>
+        </div>
+      </div>
+      <!-- MAIN PANEL -->
+      <div class="panel">
+        <div class="tabs">
+          <div class="tab active" id="tab-review" onclick="showTab('review')">Review</div>
+          <div class="tab" id="tab-export" onclick="showTab('export')">Export</div>
+          <div class="tab" id="tab-verify" onclick="showTab('verify')">&#9889; Verify</div>
+          <div class="tab" id="tab-settings" onclick="showTab('settings')">&#9881; Settings</div>
+        </div>
+        <!-- REVIEW TAB -->
+        <div class="tc active" id="tc-review">
+          <div class="empty" id="revEmpty" style="flex:1">
+            <div class="ei">&#128196;</div>
+            <div class="et">Select a file from the library</div>
+            <div class="es">Choose a workout, injection, or lab PDF from the sidebar to begin review.</div>
+          </div>
+          <div id="revUI" style="display:none;flex:1;flex-direction:column;overflow:hidden" class="tc active">
+            <div style="padding:8px 14px;border-bottom:1px solid var(--b);display:flex;align-items:center;gap:10px;flex-shrink:0;background:var(--s)">
+              <div style="flex:1">
+                <span style="font-size:12px;font-weight:600" id="pdfName">&#8212;</span>
+                <span style="font-size:10px;color:var(--dd);font-family:var(--mono);margin-left:10px" id="pdfMeta"></span>
+              </div>
+              <div id="pgStatusBadges" style="display:flex;gap:5px"></div>
+            </div>
+            <div class="rev-wrap">
+              <div class="img-panel">
+                <div class="img-toolbar">
+                  <div class="img-nav">
+                    <button class="navbtn" id="prevBtn" onclick="navPage(-1)" disabled>&#8592;</button>
+                    <span class="pg-label" id="pgLabel">&#8212; / &#8212;</span>
+                    <button class="navbtn" id="nextBtn" onclick="navPage(1)" disabled>&#8594;</button>
+                  </div>
+                  <div style="margin-left:8px;display:flex;gap:6px">
+                    <button class="navbtn" onclick="markPage('ok')" id="markOkBtn" title="Mark Verified">&#10003;</button>
+                    <button class="navbtn" onclick="markPage('flagged')" id="markFlagBtn" title="Flag Issue">&#9873;</button>
+                    <button class="navbtn" id="extractBtn" onclick="extractCurrentPage()" style="background:#00a855;color:#fff;border-color:#00a855">&#8659; Extract Page</button>
+                    <button class="navbtn" onclick="sendToClaude()" style="background:#2255cc;color:#fff;border-color:#2255cc">&#8595; Download</button>
+                  </div>
+                  <div class="img-meta" id="imgMeta"></div>
+                </div>
+                <div class="img-scroll" id="imgScroll">
+                  <div class="img-empty" id="imgEmpty">
+                    <span style="font-size:28px">&#128247;</span>
+                    <span>Loading pages...</span>
+                  </div>
+                  <img id="mainImg" style="display:none" alt="Page"/>
+                </div>
+                <div class="thumb-strip" id="thumbStrip"></div>
+              </div>
+              <div class="at-panel">
+                <div class="at-toolbar">
+                  <span class="at-toolbar-title">Airtable &#8212; <span id="atTableLabel" style="color:var(--bl)">Sets</span></span>
+                  <span id="atStatusLabel" style="font-size:10px;color:var(--dd);font-family:var(--mono)"></span>
+                  <button class="btn bg-btn" style="padding:3px 9px;font-size:10px" onclick="refreshAtData()" id="atRefreshBtn">&#8635; Load</button>
+                </div>
+                <div id="injAuditNav" style="display:none;flex-wrap:wrap;gap:3px;padding:8px 12px;border-bottom:1px solid var(--b);flex-shrink:0;overflow-y:auto;max-height:100px"></div>
+                <div class="at-scroll" id="atScroll">
+                  <div class="date-row">
+                    <input type="date" class="date-inp" id="dateFilter" onchange="refreshAtData()" placeholder="YYYY-MM-DD"/>
+                    <span style="font-size:10px;color:var(--dd);font-family:var(--mono)">filter date</span>
+                  </div>
+                  <div id="atContent">
+                    <div class="empty" style="padding:30px 10px">
+                      <div class="et" style="font-size:11px">Set a date to load Airtable records</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="pg-status-bar">
+                  <span style="font-family:var(--mono);font-size:10px;color:var(--d)">Page status:</span>
+                  <span id="pgStatusText" style="font-family:var(--mono);font-size:10px;color:var(--dd)">&#8212;</span>
+                  <div style="margin-left:auto;display:flex;gap:6px">
+                    <span id="okCount" style="font-size:10px;font-family:var(--mono);color:var(--g)"></span>
+                    <span id="flagCount" style="font-size:10px;font-family:var(--mono);color:var(--r)"></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- EXPORT TAB -->
+        <div class="tc" id="tc-export">
+          <div class="tc-scroll">
+            <p style="font-size:12px;color:var(--d);line-height:1.6;margin-bottom:16px">Mark pages verified (&#10003;) or flagged (&#9873;) in the Review tab.</p>
+            <div id="exportSummary"><div class="empty"><div class="et">No file loaded</div></div></div>
+          </div>
+        </div>
+        <!-- VERIFY TAB -->
+        <div class="tc" id="tc-verify">
+          <div class="tc-scroll">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+              <div style="flex:1">
+                <div style="font-size:13px;font-weight:600;margin-bottom:3px">Protocol Verification</div>
+                <div style="font-size:11px;color:var(--d)">Verifies every injection entry in the PDF against the Airtable Injection Log.</div>
+              </div>
+              <button class="btn bp" id="runVerifyBtn" onclick="runVerification()" style="white-space:nowrap;padding:8px 18px">&#9889; Run Verify</button>
+            </div>
+            <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
+              <label style="font-size:11px;color:var(--d);display:flex;align-items:center;gap:6px">
+                <select id="verifyPages" style="padding:4px 8px;font-size:11px;border:1px solid var(--b);border-radius:4px;background:var(--s2);color:var(--t)">
+                  <option value="4">Last 4 pages</option>
+                  <option value="6">Last 6 pages</option>
+                  <option value="10">Last 10 pages</option>
+                  <option value="all" selected>All pages</option>
+                </select>
+                to analyze
+              </label>
+              <label style="font-size:11px;color:var(--d);display:flex;align-items:center;gap:6px">
+                Model:
+                <select id="verifyModel" style="padding:4px 8px;font-size:11px;border:1px solid var(--b);border-radius:4px;background:var(--s2);color:var(--t)">
+                  <option value="claude-haiku-4-5-20251001" selected>Haiku 4.5 — fast</option>
+                  <option value="claude-sonnet-4-6">Sonnet 4.6 — accurate</option>
+                </select>
+              </label>
+            </div>
+            <div id="verifyStatus" style="font-size:11px;color:var(--d);font-family:var(--mono);margin-bottom:12px;min-height:18px"></div>
+            <div id="verifyResults"></div>
+          </div>
+        </div>
+        <!-- SETTINGS TAB -->
+        <div class="tc" id="tc-settings">
+          <div class="tc-scroll">
+            <p style="font-size:12px;color:var(--d);margin-bottom:16px;line-height:1.6">Assign Drive files (ZIP or PDF) to each type. Use <strong>+ Add Files</strong> to browse your Drive.</p>
+            <div id="typeSections"></div>
+            <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--b)">
+              <div style="font-size:12px;font-weight:600;margin-bottom:10px">Airtable Table Mapping</div>
+              <table style="width:100%;border-collapse:collapse;background:var(--s);border:1px solid var(--b);border-radius:6px;overflow:hidden">
+                <thead><tr>
+                  <th style="font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--d);text-align:left;padding:8px 12px;border-bottom:1px solid var(--b);background:var(--s2);font-family:var(--mono)">Type</th>
+                  <th style="font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--d);text-align:left;padding:8px 12px;border-bottom:1px solid var(--b);background:var(--s2);font-family:var(--mono)">Airtable Table</th>
+                </tr></thead>
+                <tbody id="atMapBody"></tbody>
+              </table>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:16px">
+              <button class="btn bp" onclick="saveSettings()">&#10003; Save Settings</button>
+              <button class="btn bg-btn" onclick="signOut()">Sign Out</button>
+              <button class="btn br" onclick="resetAll()">Reset All</button>
+            </div>
+            <div style="margin-top:8px;font-size:11px;color:var(--g);font-family:var(--mono)" id="saveStatus"></div>
+          </div>
+        </div>
+      </div><!-- /panel -->
+    </div><!-- /body -->
+    <!-- FOLDER BROWSER MODAL -->
+    <div class="modal-bg" id="pickerModal">
+      <div class="modal">
+        <div class="mhdr">
+          <div class="mhdr-top">
+            <div class="mhdr-title" id="pickerTitle">Add Files</div>
+            <button class="btn bg-btn" style="padding:4px 9px;font-size:11px" onclick="closePickerModal()">&#x2715;</button>
+          </div>
+          <div class="breadcrumb" id="breadcrumb"></div>
+        </div>
+        <div class="msearch"><input type="text" id="pickerSearch" placeholder="Search..." oninput="filterItems()"></div>
+        <div class="mlist" id="pickerList"></div>
+        <div class="mftr">
+          <span class="mftr-count" id="pickerSelCount">0 selected</span>
+          <button class="btn bg-btn" onclick="closePickerModal()">Cancel</button>
+          <button class="btn bp" onclick="confirmPicker()">Add Selected</button>
+        </div>
+      </div>
+    </div>
+    <!-- TOASTS -->
+    <div class="toasts" id="toasts"></div>
+  </div><!-- /pdfqa-root -->
+  </div><!-- /view-pdfqa -->
 
   <div id="view-pdfqa" class="view">
   <div class="pdfqa-root">
@@ -4099,6 +4330,7 @@ function buildWeeklyPrintHTML(monday) {
   if (viewId === 'suppvendors') loadSuppVendors();
     if (viewId === 'workout-suggestions') loadWorkoutSuggestions();
     if (viewId === 'pdfqa') initPdfQA();
+    if (viewId === 'log-injections') loadInjLogProtocol();
     if (viewId === 'databrowser') { _dbAllRows = []; _dbColumns = []; document.getElementById('db-collection').value = ''; document.getElementById('db-search').value = ''; document.getElementById('db-count').textContent = ''; document.getElementById('db-content').innerHTML = '<div style="padding:40px;text-align:center;color:var(--muted);font-size:14px">Select a collection above to view all records</div>'; }
     closeAllDrops();
   }
@@ -5961,6 +6193,139 @@ async function runVerification() {
 }
 
 
+// ── INJECTION LOGGER ──────────────────────────────────────────────────
+var _injProtocol = { Morning: [], Night: [] };
+var _injTOD = 'Morning';
+var _injSelections = {}; // compoundName → 'L'|'R'|'S'|null
+
+function setInjTOD(tod) {
+  _injTOD = tod;
+  document.getElementById('inj-tog-am').style.cssText = tod === 'Morning'
+    ? 'flex:1;padding:10px;border-radius:8px;border:2px solid var(--accent);background:var(--accent-light);color:var(--accent);font-weight:600;font-size:13px;cursor:pointer'
+    : 'flex:1;padding:10px;border-radius:8px;border:2px solid var(--border);background:var(--surface);color:var(--muted);font-weight:500;font-size:13px;cursor:pointer';
+  document.getElementById('inj-tog-pm').style.cssText = tod === 'Night'
+    ? 'flex:1;padding:10px;border-radius:8px;border:2px solid var(--accent);background:var(--accent-light);color:var(--accent);font-weight:600;font-size:13px;cursor:pointer'
+    : 'flex:1;padding:10px;border-radius:8px;border:2px solid var(--border);background:var(--surface);color:var(--muted);font-weight:500;font-size:13px;cursor:pointer';
+  renderInjLogRows();
+}
+
+async function loadInjLogProtocol(force) {
+  if (!force && _injProtocol.Morning.length + _injProtocol.Night.length > 0) { renderInjLogRows(); return; }
+  // Set today's date
+  const dateEl = document.getElementById('inj-log-date');
+  if (dateEl && !dateEl.value) dateEl.value = new Date().toISOString().split('T')[0];
+  document.getElementById('inj-log-compounds').innerHTML = '<div style="padding:40px;text-align:center;color:var(--muted);font-size:13px">Loading...</div>';
+  try {
+    const url = `https://api.airtable.com/v0/${BASE}/tblMs6YRdP4wkndUp?pageSize=100&returnFieldsByFieldId=true`;
+    const r = await fetch(url, { headers: { Authorization: `Bearer ${TOKEN}` } });
+    const d = await r.json();
+    const active = (d.records || []).filter(rec => (rec.fields['fldeCBOtYYp6BtAfh'] || {}).name === 'Active');
+    _injProtocol = { Morning: [], Night: [] };
+    active.forEach(rec => {
+      const f = rec.fields;
+      const tod = (f['fld9J0U5iSDzyaaun'] || {}).name || '';
+      const entry = { name: f['fldeH5uyKXDFPZbHK'] || '?', dose: f['fldN7WOCx7ETJwmrB'] || '' };
+      if (tod === 'Morning') _injProtocol.Morning.push(entry);
+      else if (tod === 'Night') _injProtocol.Night.push(entry);
+    });
+    _injProtocol.Morning.sort((a,b) => a.name.localeCompare(b.name));
+    _injProtocol.Night.sort((a,b) => a.name.localeCompare(b.name));
+    const total = _injProtocol.Morning.length + _injProtocol.Night.length;
+    document.getElementById('inj-log-subtitle').textContent = `${total} active compounds · ${_injProtocol.Morning.length} AM · ${_injProtocol.Night.length} PM`;
+    renderInjLogRows();
+  } catch(e) {
+    document.getElementById('inj-log-compounds').innerHTML = `<div style="padding:20px;color:var(--red-bg, #dc2626);font-size:12px">Error loading protocol: ${e.message}</div>`;
+  }
+}
+
+function renderInjLogRows() {
+  const compounds = _injProtocol[_injTOD] || [];
+  const el = document.getElementById('inj-log-compounds');
+  if (!compounds.length) {
+    el.innerHTML = `<div style="padding:30px;text-align:center;color:var(--muted);font-size:13px">No active ${_injTOD} compounds</div>`;
+    document.getElementById('inj-log-submit').disabled = true;
+    return;
+  }
+  el.innerHTML = compounds.map(c => {
+    const sel = _injSelections[c.name] || null;
+    const btnStyle = (v, active) => `padding:12px 0;border-radius:8px;border:2px solid ${active ? (v==='S'?'var(--amber)':'var(--accent)') : 'var(--border)'};background:${active ? (v==='S'?'var(--amber-bg)':'var(--accent-light)') : 'var(--surface)'};color:${active ? (v==='S'?'var(--amber)':'var(--accent)') : 'var(--muted)'};font-weight:${active?'700':'500'};font-size:15px;cursor:pointer;flex:1;font-family:'DM Sans',sans-serif;transition:all .1s`;
+    return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px" data-compound="${c.name}">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px">
+        <span style="font-size:14px;font-weight:600;color:var(--text)">${c.name}</span>
+        <span style="font-size:12px;color:var(--muted);font-family:'DM Mono',monospace">${c.dose}</span>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button style="${btnStyle('L', sel==='L')}" onclick="selectSide('${c.name}','L')">L</button>
+        <button style="${btnStyle('R', sel==='R')}" onclick="selectSide('${c.name}','R')">R</button>
+        <button style="${btnStyle('S', sel==='S')}" onclick="selectSide('${c.name}','S')">Skip</button>
+      </div>
+    </div>`;
+  }).join('');
+  updateInjSubmitBtn();
+}
+
+function selectSide(name, side) {
+  // Toggle off if already selected
+  _injSelections[name] = _injSelections[name] === side ? null : side;
+  renderInjLogRows();
+}
+
+function updateInjSubmitBtn() {
+  const compounds = _injProtocol[_injTOD] || [];
+  const filled = compounds.filter(c => _injSelections[c.name]).length;
+  const btn = document.getElementById('inj-log-submit');
+  btn.disabled = filled === 0;
+  btn.textContent = filled > 0 ? `Submit ${filled} Injection${filled>1?'s':''} (${_injTOD})` : 'Submit Session';
+}
+
+async function submitInjLog() {
+  const btn = document.getElementById('inj-log-submit');
+  const statusEl = document.getElementById('inj-log-status');
+  const date = document.getElementById('inj-log-date').value;
+  if (!date) { statusEl.textContent = 'Set a date first'; statusEl.style.color = 'var(--red, #dc2626)'; return; }
+  const compounds = _injProtocol[_injTOD] || [];
+  const toLog = compounds.filter(c => _injSelections[c.name] && _injSelections[c.name] !== null);
+  if (!toLog.length) return;
+
+  btn.disabled = true; btn.textContent = 'Submitting...';
+  statusEl.textContent = ''; statusEl.style.color = 'var(--muted)';
+
+  // Build records — batch of 10 max per AT request
+  const records = toLog.map(c => ({ fields: {
+    'fldhYEtLEGA4VxvvO': date,
+    'fldwVFyizH4mBANBa': c.name,
+    'fld8d8mtRapfaIyqL': c.dose,
+    'fldHDlJY8FpAvK018': _injSelections[c.name],
+    'fldIdzew4Jd0qO4Uc': _injTOD
+  }}));
+
+  try {
+    // AT allows max 10 records per create call
+    const batches = [];
+    for (let i = 0; i < records.length; i += 10) batches.push(records.slice(i, i+10));
+    let created = 0;
+    for (const batch of batches) {
+      const resp = await fetch(`https://api.airtable.com/v0/${BASE}/tblBvEaLkGGipnOFc`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ records: batch, typecast: true })
+      });
+      if (!resp.ok) { const e = await resp.json(); throw new Error(e.error?.message || 'HTTP ' + resp.status); }
+      created += batch.length;
+    }
+    statusEl.textContent = `✓ ${created} record${created>1?'s':''} saved to Injection Log`;
+    statusEl.style.color = 'var(--green, #16a34a)';
+    // Clear selections for this TOD
+    (_injProtocol[_injTOD] || []).forEach(c => delete _injSelections[c.name]);
+    renderInjLogRows();
+  } catch(e) {
+    statusEl.textContent = 'Error: ' + e.message;
+    statusEl.style.color = 'var(--red, #dc2626)';
+    btn.disabled = false;
+    btn.textContent = `Submit ${toLog.length} Injections`;
+  }
+}
+
 </script>
 
 <!-- ADD PURCHASE MODAL -->
@@ -6135,6 +6500,6 @@ async function runVerification() {
 </div>
 </body>
 </html>
-<!-- cache bust Mon May 26 2026 — diff sort -->
+<!-- cache bust Mon May 26 2026 — inj logger -->
 
 
