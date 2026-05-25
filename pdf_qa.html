@@ -945,7 +945,7 @@ async function fetchAtPagedURL(url) {
 }
 
 async function fetchAtInjections(startDate, endDate) {
-  var formula = encodeURIComponent("AND({fldhYEtLEGA4VxvvO}>="" + startDate + "",{fldhYEtLEGA4VxvvO}<="" + endDate + "")");
+  var formula = encodeURIComponent("AND({fldhYEtLEGA4VxvvO}>='"+startDate+"',{fldhYEtLEGA4VxvvO}<='"+endDate+"')");
   var url = "https://api.airtable.com/v0/" + ATB + "/tblBvEaLkGGipnOFc?pageSize=100&returnFieldsByFieldId=true&filterByFormula=" + formula;
   var recs = await fetchAtPagedURL(url);
   return recs.map(function(rec) {
