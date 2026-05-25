@@ -289,7 +289,7 @@ select.inp{cursor:pointer}
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
           <div style="flex:1">
             <div style="font-size:13px;font-weight:600;margin-bottom:3px">Protocol Verification</div>
-            <div style="font-size:11px;color:var(--d)">Extracts current protocol from the last 4 PDF pages, pulls Airtable Peptides, and diffs compound-by-compound.</div>
+            <div style="font-size:11px;color:var(--d)">Verifies every injection entry in the PDF against the Airtable Injection Log — flags missing, extra, and mismatched records.</div>
           </div>
           <button class="btn bp" id="runVerifyBtn" onclick="runVerification()" style="white-space:nowrap;padding:8px 18px">&#9889; Run Verify</button>
         </div>
@@ -299,7 +299,7 @@ select.inp{cursor:pointer}
               <option value="4">Last 4 pages</option>
               <option value="6">Last 6 pages</option>
               <option value="10">Last 10 pages</option>
-              <option value="all">All pages</option>
+              <option value="all" selected>All pages</option>
             </select>
             to analyze
           </label>
@@ -1022,7 +1022,7 @@ async function runInjectionVerification(pageIndices) {
     try { parsed = JSON.parse(raw); } catch(e) { parsed = []; }
     if (Array.isArray(parsed)) allEntries = allEntries.concat(parsed);
   }
-  if (!allEntries.length) { vStatus("No injection entries found in PDF", "err"); return; }
+  if (!allEntries.length) { vStatus("No entries found — try selecting All pages", "err"); return; }
   // Get date range
   var dates = allEntries.map(function(e){ return e.date; }).filter(Boolean).sort();
   var startDate = dates[0], endDate = dates[dates.length-1];
