@@ -1293,27 +1293,27 @@ function renderSupplements(filter) {
 let trackerMondayOffset = 0; // weeks offset from current week
 
 const TRACKER_MORNING_ORDER = [
-  'Testosterone (TRT)', 'Deca (Nano)', 'NAD+', 'Retatrutide',
-  'Cagrilintide', 'Tesamorelin', 'GHK-Cu', 'Melanotan II', 'Tirzepatide'
+  'Testosterone', 'Deca (Nandrolone)', 'NAD+', 'Retatrutide',
+  'Cagrilintide', 'Tesamorelin', 'GHK-Cu', 'Melanotan II (MT2)', 'Tirzepatide'
 ];
 const TRACKER_NIGHT_ORDER = [
   'CJC-1295 No DAC', 'Ipamorelin', 'DSIP', 'KPV', 'Epitalon'
 ];
 const TRACKER_SCHEDULE = {
-  'Testosterone (TRT)': [0,3],        // Mon/Thu
-  'Deca (Nano)':        [0,3],        // Mon/Thu
-  'NAD+':               [1,4,6],      // Tue/Fri/Sun
-  'Retatrutide':        [2],          // Wed
-  'Cagrilintide':       [2],          // Wed
-  'Tesamorelin':        [0,1,2,3,4,5],// Mon-Sat
-  'GHK-Cu':             [0,1,2,3,4,5,6],// Daily
-  'Melanotan II':       [1],          // Tue
-  'Tirzepatide':        [6],          // Sun
-  'CJC-1295 No DAC':    [0,1,2,3,6], // Mon/Tue/Wed/Thu/Sun
-  'Ipamorelin':         [0,1,2,3,6], // Mon/Tue/Wed/Thu/Sun
-  'DSIP':               [0,2,4,5,6], // Mon/Wed/Fri/Sat/Sun
-  'KPV':                [0,1,2,3,4,5,6],// Daily
-  'Epitalon':           [0,1,2,3,4,5,6],// Daily
+  'Testosterone':           [0,3],          // Mon/Thu
+  'Deca (Nandrolone)':      [0,3],          // Mon/Thu
+  'NAD+':                   [1,4,6],        // Tue/Fri/Sun
+  'Retatrutide':            [2],            // Wed
+  'Cagrilintide':           [2],            // Wed
+  'Tesamorelin':            [0,1,2,3,4,5],  // Mon-Sat
+  'GHK-Cu':                 [0,1,2,3,4,5,6],// Daily
+  'Melanotan II (MT2)':     [1],            // Tue
+  'Tirzepatide':            [6],            // Sun
+  'CJC-1295 No DAC':        [0,1,2,3,6],   // Mon/Tue/Wed/Thu/Sun
+  'Ipamorelin':             [0,1,2,3,6],   // Mon/Tue/Wed/Thu/Sun
+  'DSIP':                   [0,2,4,5,6],   // Mon/Wed/Fri/Sat/Sun
+  'KPV':                    [0,1,2,3,4,5,6],// Daily
+  'Epitalon':               [0,1,2,3,4,5,6],// Daily
 };
 const MORN_BG  = '#FFF8E7';
 const NIGHT_BG = '#EEF4FB';
