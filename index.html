@@ -2544,7 +2544,8 @@ function showAuditWeek(mon, weekData, DAYS) {
   function cell(entries) {
     if (!entries || !entries.length) return '<td style="border:1px solid #ccc;min-width:52px"></td>';
     const s = entries[0].site;
-    return '<td style="border:1px solid #ccc;min-width:52px;text-align:center;padding:6px 2px;background:' + (CC[s]||'#dcfce7') + ';font-size:13px;font-weight:700;color:' + (TC[s]||'#15803d') + '">' + (s||'?') + '</td>';
+    if (!s) return '<td style="border:1px solid #ccc;min-width:52px;text-align:center;padding:6px 2px;background:#f3f4f6;font-size:11px;color:#9ca3af">•</td>';
+    return '<td style="border:1px solid #ccc;min-width:52px;text-align:center;padding:6px 2px;background:' + (CC[s]||'#dcfce7') + ';font-size:13px;font-weight:700;color:' + (TC[s]||'#15803d') + '">' + s + '</td>';
   }
   let html = '<table style="border-collapse:collapse;font-size:13px;width:100%"><thead><tr>';
   html += '<th style="text-align:left;padding:6px 12px;border:1px solid #999;min-width:180px;background:#e5e7eb;font-size:12px">Compound</th>';
