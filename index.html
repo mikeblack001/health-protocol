@@ -5340,7 +5340,7 @@ async function selFile(id, name, type) {
         for (var p = 1; p <= pdfDoc.numPages; p++) {
           dbg("Rendering page " + p + "/" + pdfDoc.numPages);
           var page = await pdfDoc.getPage(p);
-          var vp = page.getViewport({ scale: 2.0 });
+          var vp = page.getViewport({ scale: 1.5 });
           var canvas = document.createElement("canvas");
           canvas.width = vp.width; canvas.height = vp.height;
           await page.render({ canvasContext: canvas.getContext("2d"), viewport: vp }).promise;
@@ -5676,7 +5676,7 @@ var CANONICAL_COMPOUNDS = [
 ];
 
 var verifyRowData = [];
-var BATCH_SIZE = 2;
+var BATCH_SIZE = 1;
 
 function vStatus(msg, cls) {
   var el = document.getElementById("verifyStatus");
