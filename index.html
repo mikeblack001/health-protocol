@@ -1893,14 +1893,16 @@ function renderTracker(weekNum) {
   const activePeps = data.peptides.filter(r => getField(r,'Status') === 'Active');
   const pepMap = {};
   activePeps.forEach(r => { pepMap[getField(r,'Compound')] = r; });
+  const pepMapCI = {};
+  activePeps.forEach(r => { pepMapCI[getField(r,'Compound').toLowerCase()] = r; });
 
   let morning, night;
   if (trackerHistoricalData) {
     const histNames = [...trackerHistoricalData.keys()];
     morning = histNames.filter(n => !isNightPep(n))
-      .map(n => pepMap[n] || { fields: { Compound: n, Dose: '', Status: 'Historical', Timing: 'Morning' }});
+      .map(n => pepMap[n] || pepMapCI[n] || { fields: { Compound: n, Dose: '', Status: 'Historical', Timing: 'Morning' }});
     night   = histNames.filter(n =>  isNightPep(n))
-      .map(n => pepMap[n] || { fields: { Compound: n, Dose: '', Status: 'Historical', Timing: 'Night' }});
+      .map(n => pepMap[n] || pepMapCI[n] || { fields: { Compound: n, Dose: '', Status: 'Historical', Timing: 'Night' }});
   } else {
     const knownM = new Set(TRACKER_MORNING_ORDER), knownN = new Set(TRACKER_NIGHT_ORDER);
     morning = [
