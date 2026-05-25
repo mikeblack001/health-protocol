@@ -2378,7 +2378,7 @@ async function saveWorkout() {
 
 function printWorkout() {
   // Auto-size: compute row height from actual exercise counts so 2 days always fit per page
-  const PAGE_H = 883;        // letter portrait @0.4in margins ≈ 9.2in at 96dpi
+  const PAGE_H = 979;        // letter portrait @0.4in margins = 10.2in at 96dpi
   const TABLE_OVERHEAD = 96; // day-hdr(28) + meta-row(36) + col-hdr(22) + table-gap(10)
   const NOTES_H = 60;        // fixed notes row height
   const AVAIL_FOR_ROWS = PAGE_H - 2 * (TABLE_OVERHEAD + NOTES_H); // 571px
