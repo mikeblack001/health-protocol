@@ -839,11 +839,7 @@
 
   <div id="view-tracker" class="view">
     <div id="tracker-content"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
-    <div id="tracker-metrics" style="display:none;margin-top:4px;border:2px solid #000;border-radius:0 0 8px 8px;background:#f5f5f5;overflow:hidden">
-      <div style="background:#374151;color:#fff;font-weight:600;padding:4px 10px;font-size:11px;letter-spacing:1px;text-transform:uppercase">📊 Daily Metrics</div>
-      <table id="metrics-table" style="width:100%;border-collapse:collapse;font-size:13px"></table>
-    </div>
-    <div id="tracker-legend" style="display:none;margin-top:8px;display:flex;gap:10px;font-size:11px;font-family:'DM Mono',monospace;flex-wrap:wrap">
+    <div id="tracker-legend" style="margin-top:8px;display:flex;gap:10px;font-size:11px;font-family:'DM Mono',monospace;flex-wrap:wrap">
       <span style="background:#dbeafe;border:1px solid #2563eb;color:#1d4ed8;padding:2px 8px;border-radius:4px">L = Left</span>
       <span style="background:#fef3c7;border:1px solid #d97706;color:#92400e;padding:2px 8px;border-radius:4px">R = Right</span>
       <span style="background:#f3e8ff;border:1px solid #9333ea;color:#7e22ce;padding:2px 8px;border-radius:4px">Abd = Abdomen</span>
@@ -1076,178 +1072,6 @@
     </div>
     <div id="injaudit-nav" style="display:flex;gap:4px;flex-wrap:wrap;padding:8px 12px;border-bottom:1px solid var(--border)"></div>
     <div id="injaudit-content" style="padding:16px;overflow-x:auto;width:100%"></div>
-  </div>
-
-  <div id="view-pdfqa" class="view">
-  <div class="pdfqa-root">
-    <div class="hdr" style="padding:8px 20px;flex-shrink:0">
-      <span class="logo">MB</span><span style="color:var(--b2)">&#8212;</span>
-      <span class="htitle">PDF QA &amp; VERIFICATION</span>
-      <div class="hright">
-        <div class="dot" id="dDot"></div><span class="dlbl" id="dLbl">DRIVE</span>
-        <span style="color:var(--dd)">&#183;</span>
-        <div class="dot" id="aDot"></div><span class="dlbl" id="aLbl">AIRTABLE</span>
-      </div>
-    </div>
-    <div class="body">
-      <div class="sb">
-        <div class="sbh"><span class="sbht">Library</span><button class="btn bg-btn" style="padding:3px 8px;font-size:9px" onclick="loadMappedFiles()">&#8635;</button></div>
-        <div class="sbb" id="fileList">
-          <div class="abox" style="padding:24px">
-            <div class="atitle">Connect Drive</div>
-            <div class="asub">Sign in to load your PDF library.</div>
-            <button class="btn bp" onclick="signIn()">Sign in with Google</button>
-          </div>
-        </div>
-      </div>
-      <div class="panel">
-        <div class="tabs">
-          <div class="tab active" id="tab-review" onclick="showTab('review')">Review</div>
-          <div class="tab" id="tab-export" onclick="showTab('export')">Export</div>
-          <div class="tab" id="tab-verify" onclick="showTab('verify')">&#9889; Verify</div>
-          <div class="tab" id="tab-settings" onclick="showTab('settings')">&#9881; Settings</div>
-        </div>
-        <!-- REVIEW TAB -->
-        <div class="tc active" id="tc-review">
-          <div class="empty" id="revEmpty" style="flex:1">
-            <div class="ei">&#128196;</div>
-            <div class="et">Select a file from the library</div>
-            <div class="es">Choose a workout, injection, or lab PDF to begin.</div>
-          </div>
-          <div id="revUI" style="display:none;flex:1;flex-direction:column;overflow:hidden" class="tc active">
-            <div style="padding:8px 14px;border-bottom:1px solid var(--b);display:flex;align-items:center;gap:10px;flex-shrink:0;background:var(--s)">
-              <div style="flex:1"><span style="font-size:12px;font-weight:600" id="pdfName">&#8212;</span><span style="font-size:10px;color:var(--dd);font-family:var(--mono);margin-left:10px" id="pdfMeta"></span></div>
-              <div id="pgStatusBadges" style="display:flex;gap:5px"></div>
-            </div>
-            <div class="rev-wrap">
-              <div class="img-panel">
-                <div class="img-toolbar">
-                  <div class="img-nav">
-                    <button class="navbtn" id="prevBtn" onclick="navPage(-1)" disabled>&#8592;</button>
-                    <span class="pg-label" id="pgLabel">&#8212; / &#8212;</span>
-                    <button class="navbtn" id="nextBtn" onclick="navPage(1)" disabled>&#8594;</button>
-                  </div>
-                  <div style="margin-left:8px;display:flex;gap:6px">
-                    <button class="navbtn" onclick="markPage('ok')" title="Mark Verified">&#10003;</button>
-                    <button class="navbtn" onclick="markPage('flagged')" title="Flag">&#9873;</button>
-                    <button class="navbtn" id="extractBtn" onclick="extractCurrentPage()" style="background:#00a855;color:#fff;border-color:#00a855">&#8659; Extract</button>
-                    <button class="navbtn" onclick="sendToClaude()" style="background:#2255cc;color:#fff;border-color:#2255cc">&#8595; Download</button>
-                  </div>
-                  <div class="img-meta" id="imgMeta"></div>
-                </div>
-                <div class="img-scroll" id="imgScroll">
-                  <div class="img-empty" id="imgEmpty"><span style="font-size:28px">&#128247;</span><span>Loading...</span></div>
-                  <img id="mainImg" style="display:none" alt="Page"/>
-                </div>
-                <div class="thumb-strip" id="thumbStrip"></div>
-              </div>
-              <div class="at-panel">
-                <div class="at-toolbar">
-                  <span class="at-toolbar-title">Airtable &#8212; <span id="atTableLabel" style="color:var(--bl)">Sets</span></span>
-                  <span id="atStatusLabel" style="font-size:10px;color:var(--dd);font-family:var(--mono)"></span>
-                  <button class="btn bg-btn" style="padding:3px 9px;font-size:10px" onclick="refreshAtData()" id="atRefreshBtn">&#8635; Load</button>
-                </div>
-                <div id="injAuditNav" style="display:none;flex-wrap:wrap;gap:3px;padding:8px 12px;border-bottom:1px solid var(--b);flex-shrink:0;overflow-y:auto;max-height:100px"></div>
-                <div class="at-scroll" id="atScroll">
-                  <div class="date-row">
-                    <input type="date" class="date-inp" id="dateFilter" onchange="refreshAtData()" placeholder="YYYY-MM-DD"/>
-                    <span style="font-size:10px;color:var(--dd);font-family:var(--mono)">filter date</span>
-                  </div>
-                  <div id="atContent"><div class="empty" style="padding:30px 10px"><div class="et" style="font-size:11px">Set a date to load records</div></div></div>
-                </div>
-                <div class="pg-status-bar">
-                  <span style="font-family:var(--mono);font-size:10px;color:var(--d)">Page status:</span>
-                  <span id="pgStatusText" style="font-family:var(--mono);font-size:10px;color:var(--dd)">&#8212;</span>
-                  <div style="margin-left:auto;display:flex;gap:6px">
-                    <span id="okCount" style="font-size:10px;font-family:var(--mono);color:var(--g)"></span>
-                    <span id="flagCount" style="font-size:10px;font-family:var(--mono);color:var(--r)"></span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <!-- EXPORT TAB -->
-        <div class="tc" id="tc-export">
-          <div class="tc-scroll">
-            <p style="font-size:12px;color:var(--d);line-height:1.6;margin-bottom:16px">Mark pages verified (&#10003;) or flagged (&#9873;) in the Review tab.</p>
-            <div id="exportSummary"><div class="empty"><div class="et">No file loaded</div></div></div>
-          </div>
-        </div>
-        <!-- VERIFY TAB -->
-        <div class="tc" id="tc-verify">
-          <div class="tc-scroll">
-            <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
-              <div style="flex:1">
-                <div style="font-size:13px;font-weight:600;margin-bottom:3px">Protocol Verification</div>
-                <div style="font-size:11px;color:var(--d)">Extracts every injection entry from the PDF and compares against the Airtable Injection Log.</div>
-              </div>
-              <button class="btn bp" id="runVerifyBtn" onclick="runVerification()" style="white-space:nowrap;padding:8px 18px">&#9889; Run Verify</button>
-            </div>
-            <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
-              <label style="font-size:11px;color:var(--d);display:flex;align-items:center;gap:6px">
-                Pages:
-                <select id="verifyPages" style="padding:4px 8px;font-size:11px;border:1px solid var(--b);border-radius:4px;background:var(--s2);color:var(--t)">
-                  <option value="4">Last 4</option>
-                  <option value="6">Last 6</option>
-                  <option value="10">Last 10</option>
-                  <option value="all" selected>All</option>
-                </select>
-              </label>
-              <label style="font-size:11px;color:var(--d);display:flex;align-items:center;gap:6px">
-                Model:
-                <select id="verifyModel" style="padding:4px 8px;font-size:11px;border:1px solid var(--b);border-radius:4px;background:var(--s2);color:var(--t)">
-                  <option value="claude-haiku-4-5-20251001" selected>Haiku 4.5 — fast</option>
-                  <option value="claude-sonnet-4-6">Sonnet 4.6 — accurate</option>
-                </select>
-              </label>
-            </div>
-            <div id="verifyStatus" style="font-size:11px;color:var(--d);font-family:var(--mono);margin-bottom:12px;min-height:18px"></div>
-            <div id="verifyResults"></div>
-          </div>
-        </div>
-        <!-- SETTINGS TAB -->
-        <div class="tc" id="tc-settings">
-          <div class="tc-scroll">
-            <p style="font-size:12px;color:var(--d);margin-bottom:16px;line-height:1.6">Assign Drive files to each type. Use <strong>+ Add Files</strong> to browse your Drive.</p>
-            <div id="typeSections"></div>
-            <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--b)">
-              <div style="font-size:12px;font-weight:600;margin-bottom:10px">Airtable Table Mapping</div>
-              <table style="width:100%;border-collapse:collapse;background:var(--s);border:1px solid var(--b);border-radius:6px;overflow:hidden">
-                <thead><tr>
-                  <th style="font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--d);text-align:left;padding:8px 12px;border-bottom:1px solid var(--b);background:var(--s2);font-family:var(--mono)">Type</th>
-                  <th style="font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--d);text-align:left;padding:8px 12px;border-bottom:1px solid var(--b);background:var(--s2);font-family:var(--mono)">Airtable Table</th>
-                </tr></thead>
-                <tbody id="atMapBody"></tbody>
-              </table>
-            </div>
-            <div style="display:flex;gap:8px;margin-top:16px">
-              <button class="btn bp" onclick="saveSettings()">&#10003; Save Settings</button>
-              <button class="btn bg-btn" onclick="signOut()">Sign Out</button>
-              <button class="btn br" onclick="resetAll()">Reset All</button>
-            </div>
-            <div style="margin-top:8px;font-size:11px;color:var(--g);font-family:var(--mono)" id="saveStatus"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="modal-bg" id="pickerModal">
-      <div class="modal">
-        <div class="mhdr">
-          <div class="mhdr-top"><div class="mhdr-title" id="pickerTitle">Add Files</div><button class="btn bg-btn" style="padding:4px 9px;font-size:11px" onclick="closePickerModal()">&#x2715;</button></div>
-          <div class="breadcrumb" id="breadcrumb"></div>
-        </div>
-        <div class="msearch"><input type="text" id="pickerSearch" placeholder="Search..." oninput="filterItems()"></div>
-        <div class="mlist" id="pickerList"></div>
-        <div class="mftr">
-          <span class="mftr-count" id="pickerSelCount">0 selected</span>
-          <button class="btn bg-btn" onclick="closePickerModal()">Cancel</button>
-          <button class="btn bp" onclick="confirmPicker()">Add Selected</button>
-        </div>
-      </div>
-    </div>
-    <div class="toasts" id="toasts"></div>
-  </div>
   </div>
 
 
@@ -1790,8 +1614,8 @@ function renderTracker(weekNum) {
       const name = getField(r,'Compound');
       html += `<tr>
         <td style="padding:5px 10px;border:1px solid #000;background:${MORN_BG}">
-          <div style="font-weight:600;font-size:12px">${name}</div>
-          <div style="font-size:11px;color:var(--muted)">${getField(r,'Dose')}</div>
+          <div style="font-weight:700;font-size:13px;line-height:1.3;color:var(--text)">${name}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:1px">${[getField(r,'Dose'), getField(r,'Frequency')].filter(Boolean).join(' · ')}</div>
         </td>
         ${days.map((_,i) => dayCell(name, i, MORN_BG)).join('')}
         ${vialBtns(name)}
@@ -1810,8 +1634,8 @@ function renderTracker(weekNum) {
       const name = getField(r,'Compound');
       html += `<tr>
         <td style="padding:5px 10px;border:1px solid #000;background:${NIGHT_BG}">
-          <div style="font-weight:600;font-size:12px">${name}</div>
-          <div style="font-size:11px;color:var(--muted)">${getField(r,'Dose')}</div>
+          <div style="font-weight:700;font-size:13px;line-height:1.3;color:var(--text)">${name}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:1px">${[getField(r,'Dose'), getField(r,'Frequency')].filter(Boolean).join(' · ')}</div>
         </td>
         ${days.map((_,i) => dayCell(name, i, NIGHT_BG)).join('')}
         ${vialBtns(name)}
@@ -1825,30 +1649,6 @@ function renderTracker(weekNum) {
 
   html += `</tbody></table></div>`;
   document.getElementById('tracker-content').innerHTML = html;
-
-  // Populate static metrics section
-  const metricsDef = [
-    { label: 'Sleep (hrs)',      key: 'sleep', step: '0.5', placeholder: '7.5' },
-    { label: 'Deep Sleep (min)', key: 'deep',  step: '1',   placeholder: '45'  },
-    { label: 'Duration (min)',   key: 'dur',   step: '5',   placeholder: '60'  },
-  ];
-  const mTable = document.getElementById('metrics-table');
-  if (mTable) {
-    // Header row with day labels
-    const hdr = `<tr><td style="padding:5px 10px;border:1px solid #ccc;background:#e5e5e5;font-size:11px;font-weight:600;min-width:200px">Metric</td>${days.map(d=>`<td style="text-align:center;padding:5px 4px;border:1px solid #ccc;background:#e5e5e5;width:44px;font-size:11px;font-weight:600">${d}</td>`).join('')}<td style="border:1px solid #ccc;background:#e5e5e5"></td><td style="border:1px solid #ccc;background:#e5e5e5"></td></tr>`;
-    let rows = hdr;
-    metricsDef.forEach(f => {
-      rows += `<tr><td style="padding:5px 10px;border:1px solid #ccc;font-weight:600;font-size:12px;font-style:italic">${f.label}</td>`;
-      days.forEach((_,i) => {
-        const d2 = new Date(monday); d2.setDate(monday.getDate() + i);
-        rows += `<td style="border:1px solid #ccc;width:44px;text-align:center;padding:2px"><input type="number" step="${f.step}" placeholder="${f.placeholder}" data-sleepkey="${f.key}" data-date="${d2.toISOString().split('T')[0]}" style="width:40px;border:none;background:transparent;font-size:11px;font-family:'DM Mono',monospace;text-align:center;outline:none;color:var(--text)"></td>`;
-      });
-      rows += `<td style="border:1px solid #ccc"></td><td style="border:1px solid #ccc"></td></tr>`;
-    });
-    mTable.innerHTML = rows;
-    document.getElementById('tracker-metrics').style.display = 'block';
-    document.getElementById('tracker-legend').style.display = 'flex';
-  }
 }
 
 async function shiftTrackerWeek(dir) {
@@ -1967,14 +1767,7 @@ async function loadTrackerWeekData(mondayISO) {
     if (dlRec) {
       const pepLog = dlRec.fields['fldAatoFJQPQwbVhQ'] || '';
       pepLog.split(', ').forEach(entry => {
-        if (entry.startsWith('METRIC|')) {
-          const rest = entry.slice(7);
-          const parts = rest.split(':');
-          if (parts.length < 3) return;
-          const key = parts[0]; const date = parts[1]; const val = parts[2];
-          const inp = document.querySelector(`input[data-sleepkey="${key}"][data-date="${date}"]`);
-          if (inp) inp.value = val;
-        } else if (entry.startsWith('NOTE|')) {
+        if (entry.startsWith('NOTE|')) {
           const rest = entry.slice(5);
           const ci = rest.indexOf(':');
           if (ci === -1) return;
@@ -2017,10 +1810,6 @@ async function saveTrackerWeek(mondayISO) {
   const noteInputs = document.querySelectorAll('input[data-type="notes"]');
   noteInputs.forEach(n => {
     if (n.value.trim()) entries.push(`NOTE|${n.dataset.compound}:${n.value.trim()}`);
-  });
-  // Save metrics
-  document.querySelectorAll('input[data-sleepkey]').forEach(inp => {
-    if (inp.value.trim()) entries.push(`METRIC|${inp.dataset.sleepkey}:${inp.dataset.date}:${inp.value.trim()}`);
   });
   if (!entries.length) { alert('Nothing to save — mark some injections first.'); return; }
   try {
@@ -5057,8 +4846,8 @@ function initAuth() {
   setDot("d", "", "DRIVE");
 }
 function signIn() {
-  // Redirect via pdf_qa.html — authorized OAuth URI
-  var redirect = "https://mikeblack001.github.io/health-protocol/pdf_qa.html";
+  // Same-window redirect — no popup
+  var redirect = window.location.href.split("#")[0].split("?")[0];
   window.location.href = "https://accounts.google.com/o/oauth2/v2/auth" +
     "?client_id=" + encodeURIComponent(GCI) +
     "&redirect_uri=" + encodeURIComponent(redirect) +
