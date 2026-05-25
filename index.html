@@ -322,11 +322,11 @@
   body.print-workout #print-week-date, body.print-workout button { display: none !important; }
   body.print-workout .print-page-controls { display: none !important; }
 
-  .print-page { page-break-after: always; margin: 0; padding: 0; width: 100%; }
-  .print-page:last-child { page-break-after: auto; }
+  body.print-workout .print-page { page-break-after: always; margin: 0; padding: 0; width: 100%; }
+  body.print-workout .print-page:last-child { page-break-after: auto; }
 
-  .ptable { width: 100%; font-size: 10px; margin-bottom: 10px; }
-  .pday-hdr { font-size: 11px; background: #1a56db !important; color: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body.print-workout .ptable { width: 100%; font-size: 10px; margin-bottom: 10px; }
+  body.print-workout .pday-hdr { font-size: 11px; background: #1a56db !important; color: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .pmeta td, .pmeta-cell { background: #ebf2ff !important; border: 1.5px solid #6b9fd4 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .pcol-hdr th { background: #dbeafe !important; color: #1e40af !important; border: 1.5px solid #6b9fd4 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .pex td { height: 32px !important; border: 1.5px solid #777 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
