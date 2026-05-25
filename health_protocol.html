@@ -5512,21 +5512,26 @@ async function runInjectionVerification(pageIndices) {
   var batches = [];
   for (var b = 0; b < pageIndices.length; b += BATCH_SIZE) batches.push(pageIndices.slice(b, b + BATCH_SIZE));
   var prompt = INJ_PROMPT.replace("CANONICAL_PLACEHOLDER", CANONICAL_COMPOUNDS.join(", "));
-  vStatus("Running " + batches.length + " batches in parallel (" + pageIndices.length + " pages)...");
+  var totalBatches = batches.length;
+  var completedBatches = 0;
+  vStatus("⏳ 0 / " + totalBatches + " batches complete (" + pageIndices.length + " pages)...");
 
-  // Run all batches simultaneously
+  // Run all batches simultaneously with live progress
   var batchResults = await Promise.all(batches.map(async function(batch, bi) {
     try {
       var raw = await callClaudePages(batch, prompt);
       var parsed = [];
       try { parsed = JSON.parse(raw); } catch(e) {
-        // Try to salvage partial JSON
         var trimmed = raw.replace(/,\s*$/, '').replace(/^\s*\[?/, '[');
         if (!trimmed.endsWith(']')) trimmed += ']';
         try { parsed = JSON.parse(trimmed); } catch(e2) { parsed = []; }
       }
+      completedBatches++;
+      vStatus("⏳ " + completedBatches + " / " + totalBatches + " batches complete...");
       return { batch: bi, pages: batch, entries: Array.isArray(parsed) ? parsed : [], err: null };
     } catch(e) {
+      completedBatches++;
+      vStatus("⏳ " + completedBatches + " / " + totalBatches + " batches complete...");
       return { batch: bi, pages: batch, entries: [], err: e.message };
     }
   }));
