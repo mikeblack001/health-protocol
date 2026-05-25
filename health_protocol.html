@@ -1475,13 +1475,43 @@ async function loadTrackerWeekData(mondayISO) {
     const records = json.records || [];
     const allBoxes = Array.from(document.querySelectorAll('.check-box[data-compound]'));
     const norm = s => (s||'').toLowerCase().trim().replace(/\s+/g,' ');
+    // Alias map: injection log name → tracker name (both normalized)
+    const ALIAS = {
+      'trt': 'testosterone (trt)',
+      'testosterone': 'testosterone (trt)',
+      'testosterone cypionate': 'testosterone (trt)',
+      'testosterone enanthate': 'testosterone (trt)',
+      'cjc-1295': 'cjc-1295 no dac',
+      'cjc 1295': 'cjc-1295 no dac',
+      'cjc1295': 'cjc-1295 no dac',
+      'cjc-1295 nodac': 'cjc-1295 no dac',
+      'epithalon': 'epitalon',
+      'epithalone': 'epitalon',
+      'epitalone': 'epitalon',
+      'cag': 'cagrilintide',
+      'reta': 'retatrutide',
+      'deca nano': 'deca (nano)',
+      'deca': 'deca (nano)',
+      'nandrolone': 'deca (nano)',
+      'melanotan': 'melanotan ii',
+      'melanotan 2': 'melanotan ii',
+      'mt-2': 'melanotan ii',
+      'mt2': 'melanotan ii',
+      'ghk': 'ghk-cu',
+      'ghk cu': 'ghk-cu',
+    };
+    function resolveCompound(raw) {
+      const n = norm(raw);
+      return ALIAS[n] || n;
+    }
     records.forEach(r => {
       const f = r.fields;
       const rawCompound = Array.isArray(f['Compound']) ? f['Compound'][0] : (f['Compound'] || f['Name']);
       const date = f['Date'];
       const site = f['Site'] || '✓';
       if (!rawCompound || !date) return;
-      const box = allBoxes.find(b => norm(b.dataset.compound) === norm(rawCompound) && b.dataset.date === date);
+      const resolved = resolveCompound(rawCompound);
+      const box = allBoxes.find(b => norm(b.dataset.compound) === resolved && b.dataset.date === date);
       if (box) applyState(box, site);
     });
     // Load metrics (sleep/deep/duration) from DailyLog
