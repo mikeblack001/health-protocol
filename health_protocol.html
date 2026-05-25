@@ -1552,19 +1552,6 @@ async function saveTrackerWeek(mondayISO) {
     alert('Week saved ✓');
   } catch(e) { alert('Save failed: ' + e.message); }
 }
-  try {
-    await fetch(`https://api.airtable.com/v0/${BASE}/${TABLES.dailyLog}`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fields: {
-        [DL.date]: mondayISO,
-        [DL.pepLog]: entries.join(', '),
-        [DL.pepTaken]: true
-      }})
-    });
-    alert('Week saved ✓');
-  } catch(e) { alert('Save failed: ' + e.message); }
-}
 
 function selectWeek(btn) {
   document.querySelectorAll('.week-btn').forEach(b => b.classList.remove('active'));
