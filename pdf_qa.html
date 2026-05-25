@@ -7,124 +7,156 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;background:#0a0a0a;color:#e8e8e8;font-family:'IBM Plex Mono',monospace;font-size:12px}
-:root{--g:#00ff88;--r:#ff4444;--y:#ffaa00;--bl:#4488ff;--s:#111;--s2:#1a1a1a;--b:#2a2a2a;--b2:#3a3a3a;--d:#888;--dd:#555}
+html,body{height:100%;background:#f5f6f8;color:#1a1a1a;font-family:'IBM Plex Sans',sans-serif;font-size:13px}
+:root{
+  --bg:#f5f6f8;--s:#ffffff;--s2:#f0f1f3;--b:#e2e4e8;--b2:#cdd0d6;
+  --t:#1a1a1a;--d:#5a6070;--dd:#9aa0ac;
+  --g:#00a855;--gd:rgba(0,168,85,.1);--gb:#007a3d;
+  --r:#d63030;--rd:rgba(214,48,48,.1);
+  --y:#c47800;--yd:rgba(196,120,0,.1);
+  --bl:#2255cc;--bld:rgba(34,85,204,.1);
+  --mono:'IBM Plex Mono',monospace;
+}
 /* LAYOUT */
 .page{display:flex;flex-direction:column;height:100vh;overflow:hidden}
-.hdr{background:var(--s);border-bottom:1px solid var(--b);padding:12px 18px;display:flex;align-items:center;gap:10px;flex-shrink:0}
-.logo{color:var(--g);font-weight:600;letter-spacing:3px;font-size:11px}
-.htitle{color:var(--d);letter-spacing:2px;font-size:11px}
-.hright{margin-left:auto;display:flex;align-items:center;gap:8px}
-.dot{width:6px;height:6px;border-radius:50%;background:var(--dd)}
-.dot.ok{background:var(--g);box-shadow:0 0 6px var(--g)}
+/* HEADER */
+.hdr{background:var(--s);border-bottom:1px solid var(--b);padding:12px 20px;display:flex;align-items:center;gap:12px;flex-shrink:0;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.logo{color:var(--g);font-weight:700;letter-spacing:2px;font-size:12px;font-family:var(--mono)}
+.htitle{color:var(--d);letter-spacing:1px;font-size:11px;font-family:var(--mono)}
+.hright{margin-left:auto;display:flex;align-items:center;gap:10px}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--dd)}
+.dot.ok{background:var(--g)}
 .dot.err{background:var(--r)}
-.dlbl{font-size:10px;color:var(--d)}
+.dot.warn{background:var(--y)}
+.dlbl{font-size:10px;color:var(--d);font-family:var(--mono)}
+/* BODY */
 .body{display:flex;flex:1;overflow:hidden}
 /* SIDEBAR */
-.sb{width:240px;background:var(--s);border-right:1px solid var(--b);display:flex;flex-direction:column;flex-shrink:0}
-.sbh{padding:10px 12px;border-bottom:1px solid var(--b);display:flex;align-items:center}
-.sbht{font-size:9px;letter-spacing:2px;color:var(--d);text-transform:uppercase;flex:1}
+.sb{width:250px;background:var(--s);border-right:1px solid var(--b);display:flex;flex-direction:column;flex-shrink:0}
+.sbh{padding:11px 14px;border-bottom:1px solid var(--b);display:flex;align-items:center;background:var(--s2)}
+.sbht{font-size:10px;letter-spacing:2px;color:var(--d);text-transform:uppercase;flex:1;font-family:var(--mono)}
 .sbb{flex:1;overflow-y:auto;padding:6px}
-.sbf{padding:8px;border-top:1px solid var(--b);display:flex;flex-direction:column;gap:5px}
+.sbf{padding:10px;border-top:1px solid var(--b);display:flex;flex-direction:column;gap:6px;background:var(--s2)}
 /* FILE ITEMS */
-.fi{padding:8px 9px;border-radius:3px;cursor:pointer;border:1px solid transparent;margin-bottom:2px}
+.fi{padding:8px 10px;border-radius:5px;cursor:pointer;border:1px solid transparent;margin-bottom:2px;transition:all .12s}
 .fi:hover{background:var(--s2);border-color:var(--b)}
-.fi.active{background:rgba(68,136,255,.1);border-color:var(--bl)}
-.fi.done{border-color:var(--g);background:rgba(0,255,136,.07)}
-.fn{font-size:10px;color:#e8e8e8;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:2px}
-.fm{font-size:9px;color:var(--dd)}
+.fi.active{background:var(--bld);border-color:var(--bl)}
+.fi.done{border-color:var(--g);background:var(--gd)}
+.fn{font-size:11px;color:var(--t);display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:2px;font-weight:500}
+.fm{font-size:10px;color:var(--dd);font-family:var(--mono)}
 /* CONTENT PANEL */
 .panel{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
 /* TABS */
 .tabs{display:flex;border-bottom:1px solid var(--b);background:var(--s);flex-shrink:0}
-.tab{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;padding:11px 16px;cursor:pointer;color:var(--d);border-bottom:2px solid transparent}
-.tab:hover{color:#e8e8e8}
-.tab.active{color:var(--g);border-bottom-color:var(--g)}
+.tab{font-size:11px;letter-spacing:.5px;padding:11px 18px;cursor:pointer;color:var(--d);border-bottom:2px solid transparent;transition:all .12s;font-weight:500}
+.tab:hover{color:var(--t)}
+.tab.active{color:var(--bl);border-bottom-color:var(--bl);font-weight:600}
 /* TAB CONTENT */
-.tc{flex:1;overflow-y:auto;padding:16px;display:none}
+.tc{flex:1;overflow-y:auto;padding:18px;display:none}
 .tc.active{display:block}
 /* BUTTONS */
-.btn{font-size:10px;letter-spacing:1px;text-transform:uppercase;padding:7px 12px;border-radius:3px;cursor:pointer;border:1px solid;display:inline-flex;align-items:center;gap:5px;font-family:inherit}
-.bp{background:var(--g);color:#000;border-color:var(--g);font-weight:600}
-.bp:hover{background:#00cc6e}
-.bp:disabled{background:var(--b);color:var(--dd);border-color:var(--b);cursor:not-allowed}
+.btn{font-size:11px;padding:7px 13px;border-radius:5px;cursor:pointer;border:1px solid;display:inline-flex;align-items:center;gap:5px;font-family:inherit;font-weight:500;transition:all .12s;white-space:nowrap}
+.bp{background:var(--g);color:#fff;border-color:var(--g)}
+.bp:hover{background:var(--gb)}
+.bp:disabled{background:var(--dd);border-color:var(--dd);cursor:not-allowed}
 .bb{background:transparent;color:var(--bl);border-color:var(--bl)}
-.bb:hover{background:rgba(68,136,255,.1)}
-.bb:disabled{opacity:.3;cursor:not-allowed}
+.bb:hover{background:var(--bld)}
+.bb:disabled{opacity:.4;cursor:not-allowed}
 .by{background:transparent;color:var(--y);border-color:var(--y)}
-.by:hover{background:rgba(255,170,0,.1)}
+.by:hover{background:var(--yd)}
 .br{background:transparent;color:var(--r);border-color:var(--r)}
-.br:hover{background:rgba(255,68,68,.1)}
+.br:hover{background:var(--rd)}
 .bg{background:transparent;color:var(--d);border-color:var(--b)}
-.bg:hover{border-color:var(--b2);color:#e8e8e8}
+.bg:hover{border-color:var(--b2);color:var(--t)}
 .bfull{width:100%;justify-content:center}
+/* CARDS */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:14px}
+.card{background:var(--s);border:1px solid var(--b);border-radius:6px;padding:12px 14px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.cardg{border-color:var(--g);background:var(--gd)}
+.cardr{border-color:var(--r);background:var(--rd)}
+.cardy{border-color:var(--y);background:var(--yd)}
+.cardbl{border-color:var(--bl);background:var(--bld)}
+.cv{font-size:24px;font-weight:700;line-height:1;margin-bottom:3px;font-family:var(--mono)}
+.cardg .cv{color:var(--g)} .cardr .cv{color:var(--r)} .cardy .cv{color:var(--y)} .cardbl .cv{color:var(--bl)}
+.cl{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--d)}
 /* SECTION */
-.sec{background:var(--s);border:1px solid var(--b);border-radius:4px;overflow:hidden;margin-bottom:10px}
-.sech{padding:8px 12px;border-bottom:1px solid var(--b);display:flex;align-items:center;gap:7px;background:var(--s2)}
-.sect{font-size:9px;letter-spacing:2px;text-transform:uppercase;font-weight:600;flex:1}
-.sectg{color:var(--g)} .sectr{color:var(--r)} .secty{color:var(--y)} .sectbl{color:var(--bl)}
-.secc{font-size:9px;color:var(--d);background:var(--b);padding:1px 6px;border-radius:8px}
+.sec{background:var(--s);border:1px solid var(--b);border-radius:6px;overflow:hidden;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.sech{padding:9px 13px;border-bottom:1px solid var(--b);display:flex;align-items:center;gap:8px;background:var(--s2)}
+.sect{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;font-weight:600;flex:1;font-family:var(--mono)}
+.sectg{color:var(--g)} .sectr{color:var(--r)} .secty{color:var(--y)} .sectbl{color:var(--bl)} .sectn{color:var(--d)}
+.secc{font-size:10px;color:var(--d);background:var(--b);padding:1px 7px;border-radius:10px;font-family:var(--mono)}
 /* TABLE */
 .tw{overflow-x:auto}
-.tbl{width:100%;border-collapse:collapse;font-size:10px}
-.tbl th{font-size:8px;letter-spacing:1.5px;text-transform:uppercase;color:var(--dd);text-align:left;padding:6px 9px;border-bottom:1px solid var(--b);background:var(--s2);white-space:nowrap}
-.tbl td{padding:5px 9px;border-bottom:1px solid var(--b);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tbl{width:100%;border-collapse:collapse;font-size:12px}
+.tbl th{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--d);text-align:left;padding:7px 11px;border-bottom:1px solid var(--b);background:var(--s2);white-space:nowrap;font-family:var(--mono)}
+.tbl td{padding:6px 11px;border-bottom:1px solid var(--b);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--t)}
 .tbl tr:last-child td{border-bottom:none}
 .tbl tr:hover td{background:var(--s2)}
 .tcg{color:var(--g)} .tcr{color:var(--r)} .tcy{color:var(--y)} .tcd{color:var(--dd)}
 /* PAGES GRID */
 .pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:6px;padding:10px}
-.pt{border:1px solid var(--b);border-radius:3px;overflow:hidden;cursor:pointer;position:relative}
+.pt{border:1px solid var(--b);border-radius:4px;overflow:hidden;cursor:pointer;position:relative;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.06)}
 .pt:hover{border-color:var(--bl)}
 .pt.done{border-color:var(--g)}
 .pt.busy{border-color:var(--y)}
 .pt canvas{width:100%;display:block}
-.pnum{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.7);font-size:8px;color:var(--d);padding:2px 4px;text-align:center}
-.pstat{position:absolute;top:3px;right:3px;font-size:10px}
-/* SETTINGS FORM */
-.sfrow{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--b)}
-.sfrow:last-child{border-bottom:none}
-.sflbl{font-size:10px;color:#e8e8e8;flex:1;overflow:hidden;text-overflow:ellipsis}
-.sfmeta{font-size:9px;color:var(--dd)}
+.pnum{position:absolute;bottom:0;left:0;right:0;background:rgba(255,255,255,.9);font-size:9px;color:var(--d);padding:2px 5px;text-align:center;border-top:1px solid var(--b);font-family:var(--mono)}
+.pstat{position:absolute;top:3px;right:3px;font-size:11px}
 /* FORM INPUTS */
-.inp{font-family:inherit;font-size:10px;background:var(--s2);border:1px solid var(--b);color:#e8e8e8;padding:7px 9px;border-radius:3px;outline:none}
-.inp:focus{border-color:var(--bl)}
+.inp{font-family:var(--mono);font-size:11px;background:#fff;border:1px solid var(--b);color:var(--t);padding:7px 10px;border-radius:5px;outline:none;transition:border .12s}
+.inp:focus{border-color:var(--bl);box-shadow:0 0 0 3px rgba(34,85,204,.1)}
 select.inp{cursor:pointer}
 /* TOOLBAR */
-.tb{display:flex;gap:6px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
+.tb{display:flex;gap:7px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
 /* TYPE BUTTONS */
-.tbtn{font-family:inherit;font-size:10px;padding:5px 9px;border-radius:3px;cursor:pointer;border:1px solid var(--b);color:var(--d);background:transparent}
-.tbtn.active{border-color:var(--bl);color:var(--bl);background:rgba(68,136,255,.1)}
-/* CARDS */
-.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:7px;margin-bottom:12px}
-.card{background:var(--s);border:1px solid var(--b);border-radius:4px;padding:10px 12px}
-.cardg{border-color:var(--g);background:rgba(0,255,136,.08)}
-.cardr{border-color:var(--r);background:rgba(255,68,68,.08)}
-.cardy{border-color:var(--y);background:rgba(255,170,0,.08)}
-.cardbl{border-color:var(--bl);background:rgba(68,136,255,.08)}
-.cv{font-size:22px;font-weight:600;line-height:1;margin-bottom:3px}
-.cardg .cv{color:var(--g)} .cardr .cv{color:var(--r)} .cardy .cv{color:var(--y)} .cardbl .cv{color:var(--bl)}
-.cl{font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--d)}
+.tbtn{font-family:inherit;font-size:11px;padding:5px 11px;border-radius:5px;cursor:pointer;border:1px solid var(--b);color:var(--d);background:#fff;font-weight:500;transition:all .12s}
+.tbtn.active{border-color:var(--bl);color:var(--bl);background:var(--bld);font-weight:600}
+/* MAPPING TABLE */
+.maptbl{width:100%;border-collapse:collapse}
+.maptbl th{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--d);text-align:left;padding:8px 12px;border-bottom:2px solid var(--b);background:var(--s2);font-family:var(--mono)}
+.maptbl td{padding:8px 12px;border-bottom:1px solid var(--b);vertical-align:middle}
+.maptbl tr:last-child td{border-bottom:none}
+.maptbl tr:hover td{background:var(--s2)}
+.type-badge{display:inline-block;font-size:10px;font-family:var(--mono);padding:2px 8px;border-radius:3px;font-weight:600;text-transform:capitalize}
+.type-workout{background:#e8f5ef;color:var(--g)}
+.type-injection{background:#fff3e8;color:var(--y)}
+.type-supplement{background:#e8eeff;color:var(--bl)}
+.type-lab{background:#fde8e8;color:var(--r)}
+.edit-field{font-size:11px;color:var(--t);font-family:var(--mono);cursor:pointer;display:flex;align-items:center;gap:5px}
+.edit-field .val{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.edit-field .edit-btn{font-size:10px;color:var(--dd);opacity:0;transition:opacity .12s;flex-shrink:0}
+.maptbl tr:hover .edit-btn{opacity:1}
 /* AUTH BOX */
-.abox{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:40px;text-align:center}
-.atitle{font-size:11px;letter-spacing:2px;text-transform:uppercase}
-.asub{font-size:10px;color:var(--d);max-width:240px;line-height:1.7}
+.abox{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:40px;text-align:center}
+.atitle{font-size:13px;font-weight:600;color:var(--t)}
+.asub{font-size:12px;color:var(--d);max-width:240px;line-height:1.6}
 /* EMPTY */
-.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:48px 20px;color:var(--dd);text-align:center}
-.ei{font-size:30px;opacity:.25}
-.et{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--d)}
-.es{font-size:10px;max-width:240px;line-height:1.6}
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:50px 20px;text-align:center}
+.ei{font-size:32px;opacity:.2}
+.et{font-size:12px;font-weight:600;color:var(--d);letter-spacing:.5px}
+.es{font-size:11px;color:var(--dd);max-width:240px;line-height:1.6}
+/* MODAL */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:100;display:flex;align-items:center;justify-content:center;display:none}
+.modal-bg.open{display:flex}
+.modal{background:#fff;border-radius:8px;padding:24px;width:480px;max-width:95vw;box-shadow:0 8px 40px rgba(0,0,0,.2)}
+.modal-title{font-size:14px;font-weight:600;margin-bottom:4px}
+.modal-sub{font-size:11px;color:var(--d);margin-bottom:16px;line-height:1.5}
+.modal-row{display:flex;flex-direction:column;gap:4px;margin-bottom:12px}
+.modal-lbl{font-size:10px;font-family:var(--mono);color:var(--d);letter-spacing:1px;text-transform:uppercase}
+.modal-inp{font-family:var(--mono);font-size:11px;background:#fff;border:1px solid var(--b);color:var(--t);padding:8px 11px;border-radius:5px;outline:none;width:100%}
+.modal-inp:focus{border-color:var(--bl);box-shadow:0 0 0 3px rgba(34,85,204,.1)}
+.modal-btns{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
 /* TOASTS */
-.toasts{position:fixed;bottom:16px;right:16px;display:flex;flex-direction:column;gap:5px;z-index:9999}
-.toast{font-size:10px;padding:8px 12px;border-radius:3px;border:1px solid}
-.tg{background:rgba(0,255,136,.1);border-color:var(--g);color:var(--g)}
-.tr{background:rgba(255,68,68,.1);border-color:var(--r);color:var(--r)}
-.ti{background:rgba(68,136,255,.1);border-color:var(--bl);color:var(--bl)}
-::-webkit-scrollbar{width:4px;height:4px}
-::-webkit-scrollbar-track{background:var(--s)}
-::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
+.toasts{position:fixed;bottom:18px;right:18px;display:flex;flex-direction:column;gap:6px;z-index:9999}
+.toast{font-size:11px;padding:9px 14px;border-radius:6px;border:1px solid;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.tg{background:#f0faf5;border-color:var(--g);color:var(--g)}
+.tr{background:#fdf0f0;border-color:var(--r);color:var(--r)}
+.ti{background:#f0f3ff;border-color:var(--bl);color:var(--bl)}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--s2)}
+::-webkit-scrollbar-thumb{background:var(--b2);border-radius:3px}
 </style>
 </head>
 <body>
@@ -133,13 +165,11 @@ select.inp{cursor:pointer}
 <div class="hdr">
   <span class="logo">MB</span>
   <span style="color:var(--b2)">&#8212;</span>
-  <span class="htitle">PDF QA &amp; Verification</span>
+  <span class="htitle">PDF QA &amp; VERIFICATION</span>
   <div class="hright">
-    <div class="dot" id="dDot"></div>
-    <span class="dlbl" id="dLbl">DRIVE</span>
+    <div class="dot" id="dDot"></div><span class="dlbl" id="dLbl">DRIVE</span>
     <span style="color:var(--dd)">&#183;</span>
-    <div class="dot" id="aDot"></div>
-    <span class="dlbl" id="aLbl">AIRTABLE</span>
+    <div class="dot" id="aDot"></div><span class="dlbl" id="aLbl">AIRTABLE</span>
   </div>
 </div>
 
@@ -147,16 +177,18 @@ select.inp{cursor:pointer}
   <div class="sb">
     <div class="sbh">
       <span class="sbht">Library</span>
-      <button class="btn bg" style="padding:2px 7px;font-size:9px" onclick="loadDrive()">&#8635;</button>
+      <button class="btn bg" style="padding:3px 8px;font-size:10px" onclick="loadDrive()">&#8635;</button>
     </div>
     <div class="sbb" id="fileList">
       <div class="abox">
-        <div class="atitle">Sign In</div>
-        <div class="asub">Connect Google Drive to load your PDFs.</div>
+        <div class="atitle">Connect Google Drive</div>
+        <div class="asub">Sign in to load your PDF library.</div>
         <button class="btn bp" onclick="signIn()">Sign in with Google</button>
       </div>
     </div>
     <div class="sbf">
+      <button class="btn bp bfull" id="uploadBtn" onclick="triggerUpload()" style="display:none">&#8593; Upload PDF to Drive</button>
+      <input type="file" id="uploadInput" accept=".pdf" style="display:none" onchange="uploadToDrive(this)">
       <button class="btn bp bfull" id="extractBtn" onclick="startExtract()" disabled>&#9654; Extract Selected</button>
       <button class="btn bb bfull" id="compareBtn" onclick="showTab('compare')" disabled>&#8646; Compare vs Airtable</button>
     </div>
@@ -170,17 +202,18 @@ select.inp{cursor:pointer}
       <div class="tab" id="tab-settings" onclick="showTab('settings')">&#9881; Settings</div>
     </div>
 
+    <!-- EXTRACT -->
     <div class="tc active" id="tc-extract">
       <div class="empty" id="xEmpty">
-        <div class="ei">&#11041;</div>
+        <div class="ei">&#128196;</div>
         <div class="et">No PDF Selected</div>
-        <div class="es">Sign in and select a PDF from the library.</div>
+        <div class="es">Sign in and select a PDF from the library, or upload one using the button below.</div>
       </div>
       <div id="xUI" style="display:none">
         <div class="tb">
-          <span style="color:var(--d);font-size:11px" id="pdfName">&#8212;</span>
+          <span style="color:var(--d);font-size:12px;font-weight:500" id="pdfName">&#8212;</span>
           <span style="color:var(--dd)">&#183;</span>
-          <span style="font-size:10px;color:var(--dd)" id="pdfPages"></span>
+          <span style="font-size:11px;color:var(--dd);font-family:var(--mono)" id="pdfPages"></span>
           <span style="color:var(--dd)">&#183;</span>
           <button class="tbtn active" data-type="workout" onclick="setType(this)">Workout</button>
           <button class="tbtn" data-type="injection" onclick="setType(this)">Injection</button>
@@ -191,7 +224,7 @@ select.inp{cursor:pointer}
           <div class="sech">
             <span class="sect sectbl">Pages</span>
             <span class="secc" id="pgCount">0/0</span>
-            <button class="btn bg" style="padding:3px 7px;font-size:9px" onclick="extractAll()" id="xAllBtn">Extract All</button>
+            <button class="btn bg" style="padding:3px 8px;font-size:10px" onclick="extractAll()" id="xAllBtn">Extract All</button>
           </div>
           <div class="pgrid" id="pgGrid"></div>
         </div>
@@ -201,7 +234,7 @@ select.inp{cursor:pointer}
             <div class="sech">
               <span class="sect sectg">Extracted Records</span>
               <span class="secc" id="xCount">0</span>
-              <button class="btn bg" style="padding:2px 7px;font-size:9px" onclick="clearExtracted()">Clear</button>
+              <button class="btn bg" style="padding:3px 8px;font-size:10px" onclick="clearExtracted()">Clear</button>
             </div>
             <div class="tw"><table class="tbl"><thead id="xHead"></thead><tbody id="xBody"></tbody></table></div>
           </div>
@@ -209,15 +242,16 @@ select.inp{cursor:pointer}
       </div>
     </div>
 
+    <!-- COMPARE -->
     <div class="tc" id="tc-compare">
       <div class="empty" id="cEmpty">
         <div class="ei">&#8646;</div>
         <div class="et">Nothing to Compare</div>
-        <div class="es">Extract PDF data first.</div>
+        <div class="es">Extract PDF data first, then compare against Airtable.</div>
       </div>
       <div id="cUI" style="display:none">
         <div class="tb">
-          <select class="inp" id="cTable"><option value="">Select Airtable table...</option></select>
+          <select class="inp" id="cTable" style="min-width:200px"><option value="">Select Airtable table...</option></select>
           <button class="btn bp" onclick="runCompare()">Compare</button>
           <button class="btn bg" onclick="exportDiff()">Export Diff</button>
         </div>
@@ -226,11 +260,12 @@ select.inp{cursor:pointer}
       </div>
     </div>
 
+    <!-- EXPORT -->
     <div class="tc" id="tc-export">
       <div class="empty" id="eEmpty">
         <div class="ei">&#8595;</div>
         <div class="et">Nothing to Export</div>
-        <div class="es">Extract data first.</div>
+        <div class="es">Extract data from a PDF first.</div>
       </div>
       <div id="eUI" style="display:none">
         <div class="tb">
@@ -245,45 +280,43 @@ select.inp{cursor:pointer}
       </div>
     </div>
 
+    <!-- SETTINGS -->
     <div class="tc" id="tc-settings">
-      <div style="max-width:560px">
+      <div style="max-width:640px">
 
-        <div class="sec" style="margin-bottom:12px">
-          <div class="sech"><span class="sect sectbl">Watched Folders</span></div>
-          <div style="padding:12px">
-            <div style="font-size:9px;color:var(--dd);margin-bottom:10px;line-height:1.7">
-              Paste a Google Drive folder ID (from the URL when you open a folder in Drive).<br>
-              Leave empty to show all Drive PDFs.
-            </div>
-            <div id="folderList"></div>
-            <div style="display:flex;gap:6px;margin-top:8px">
-              <input id="fId" class="inp" placeholder="Folder ID" style="flex:2">
-              <input id="fName" class="inp" placeholder="Label" style="flex:1">
-              <button class="btn bp" onclick="addFolder()">Add</button>
-            </div>
+        <div class="sec" style="margin-bottom:16px">
+          <div class="sech">
+            <span class="sect sectbl">Type Mapping</span>
+            <button class="btn bg" style="padding:3px 9px;font-size:10px" onclick="saveAll()">&#10003; Save</button>
+          </div>
+          <div style="padding:10px 12px;font-size:11px;color:var(--d);border-bottom:1px solid var(--b);line-height:1.6">
+            Map each PDF type to its Google Drive folder and Airtable table. Click the pencil icon to edit any cell.
+          </div>
+          <div class="tw">
+            <table class="maptbl" id="mapTable">
+              <thead>
+                <tr>
+                  <th style="width:110px">Type</th>
+                  <th>Drive Folder</th>
+                  <th>Airtable Table</th>
+                </tr>
+              </thead>
+              <tbody id="mapBody"></tbody>
+            </table>
           </div>
         </div>
 
-        <div class="sec" style="margin-bottom:12px">
-          <div class="sech"><span class="sect sectg">Table Mapping</span></div>
-          <div style="padding:8px 0" id="tableMap">
-            <div style="padding:12px;font-size:10px;color:var(--dd)">Loading Airtable tables...</div>
-          </div>
-        </div>
-
-        <div class="sec" style="margin-bottom:12px">
-          <div class="sech"><span class="sect secty">Auth</span></div>
-          <div style="padding:12px;display:flex;gap:8px">
+        <div class="sec" style="margin-bottom:16px">
+          <div class="sech"><span class="sect sectn">Authentication</span></div>
+          <div style="padding:12px;display:flex;gap:8px;align-items:center">
             <button class="btn bp" onclick="signIn()">Re-authenticate</button>
             <button class="btn br" onclick="signOut()">Sign Out</button>
+            <span style="font-size:10px;color:var(--dd);font-family:var(--mono)" id="authStatus"></span>
           </div>
         </div>
 
-        <div style="display:flex;gap:8px">
-          <button class="btn bp" onclick="saveAll()">&#10003; Save &amp; Apply</button>
-          <button class="btn bg" onclick="resetAll()">Reset</button>
-        </div>
-        <div style="margin-top:8px;font-size:9px;color:var(--dd)" id="saveStatus"></div>
+        <button class="btn br" style="font-size:10px" onclick="resetAll()">Reset All Settings</button>
+        <div style="margin-top:8px;font-size:11px;color:var(--g);font-family:var(--mono)" id="saveStatus"></div>
       </div>
     </div>
 
@@ -291,35 +324,55 @@ select.inp{cursor:pointer}
 </div>
 </div>
 
+<!-- EDIT MODAL -->
+<div class="modal-bg" id="editModal">
+  <div class="modal">
+    <div class="modal-title" id="modalTitle">Edit Mapping</div>
+    <div class="modal-sub" id="modalSub"></div>
+    <div class="modal-row">
+      <div class="modal-lbl">Value</div>
+      <input class="modal-inp" id="modalInput" placeholder="">
+    </div>
+    <div style="font-size:10px;color:var(--dd);font-family:var(--mono);margin-top:-4px" id="modalHint"></div>
+    <div class="modal-btns">
+      <button class="btn bg" onclick="closeModal()">Cancel</button>
+      <button class="btn bp" onclick="saveModal()">Save</button>
+    </div>
+  </div>
+</div>
+
 <div class="toasts" id="toasts"></div>
 
 <script>
-const GCI = "478191426516-94rflpalsl5ev56ptck62k5imes6jk8l.apps.googleusercontent.com";
-const GSC = "https://www.googleapis.com/auth/drive.readonly";
-const ATK = "pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a";
-const ATB = "appmHDG4TGT1xy6R6";
+var GCI = "478191426516-94rflpalsl5ev56ptck62k5imes6jk8l.apps.googleusercontent.com";
+var GSC = "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly";
+var ATK = "pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a";
+var ATB = "appmHDG4TGT1xy6R6";
 pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 
-var gTok=null,gCli=null,pdfDoc=null,selFile=null,pdfType="workout";
-var driveFiles=[],extracted=[],atTables=[],atCache={};
-var cfg={folders:[],tmap:{workout:"",injection:"",supplement:"",lab:""}};
+// STATE
+var gTok=null, gCli=null, pdfDoc=null, selFile=null, pdfType="workout";
+var driveFiles=[], extracted=[], atTables=[], atCache={};
+// Default mapping — pre-filled with known IDs
+var cfg = {
+  map: {
+    workout:    { folderID:"", folderName:"", tableID:"tblKDqjy5RzqaJvjr", tableName:"Sets" },
+    injection:  { folderID:"", folderName:"", tableID:"tblaYuZjl4Pu4nKxS", tableName:"DailyLog" },
+    supplement: { folderID:"", folderName:"", tableID:"tblSnkc0Gu2BzGACP", tableName:"Supplements" },
+    lab:        { folderID:"", folderName:"", tableID:"tbl3200yJid6fXaOp", tableName:"Bloodwork" }
+  }
+};
 
-function loadCfg(){try{var s=localStorage.getItem("mb_pdfqa");if(s)cfg=Object.assign({folders:[],tmap:{workout:"",injection:"",supplement:"",lab:""}},JSON.parse(s));}catch(e){}}
-function saveCfg(){localStorage.setItem("mb_pdfqa",JSON.stringify(cfg));}
+// PERSIST
+function loadCfg(){try{var s=localStorage.getItem("mb_pdfqa2");if(s){var p=JSON.parse(s);cfg=Object.assign({map:{workout:{folderID:"",folderName:"",tableID:"tblKDqjy5RzqaJvjr",tableName:"Sets"},injection:{folderID:"",folderName:"",tableID:"tblaYuZjl4Pu4nKxS",tableName:"DailyLog"},supplement:{folderID:"",folderName:"",tableID:"tblSnkc0Gu2BzGACP",tableName:"Supplements"},lab:{folderID:"",folderName:"",tableID:"tbl3200yJid6fXaOp",tableName:"Bloodwork"}}},p);}}catch(e){}}
+function saveCfg(){localStorage.setItem("mb_pdfqa2",JSON.stringify(cfg));}
 function loadTok(){var t=localStorage.getItem("mb_pdfqat"),e=parseInt(localStorage.getItem("mb_pdfqae")||0);return(t&&Date.now()<e)?t:null;}
 function saveTok(t,exp){localStorage.setItem("mb_pdfqat",t);localStorage.setItem("mb_pdfqae",Date.now()+(exp-60)*1000);}
 function clearTok(){localStorage.removeItem("mb_pdfqat");localStorage.removeItem("mb_pdfqae");}
 
-function toast(msg,cls,ms){
-  var c=document.getElementById("toasts"),el=document.createElement("div");
-  el.className="toast "+(cls||"ti");el.textContent=msg;c.appendChild(el);
-  setTimeout(function(){el.remove();},ms||3000);
-}
-function setDot(which,state,label){
-  var d=document.getElementById(which+"Dot"),l=document.getElementById(which+"Lbl");
-  d.className="dot"+(state==="ok"?" ok":state==="err"?" err":state==="warn"?" warn":"");
-  l.textContent=label;
-}
+// HELPERS
+function toast(msg,cls,ms){var c=document.getElementById("toasts"),el=document.createElement("div");el.className="toast "+(cls||"ti");el.textContent=msg;c.appendChild(el);setTimeout(function(){el.remove();},ms||3000);}
+function setDot(w,s,l){var d=document.getElementById(w+"Dot"),lb=document.getElementById(w+"Lbl");d.className="dot"+(s==="ok"?" ok":s==="err"?" err":s==="warn"?" warn":"");lb.textContent=l;}
 function esc(v){if(v==null)return"";return String(v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
 function today(){return new Date().toISOString().slice(0,10);}
 function dl(blob,name){var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;a.click();}
@@ -332,78 +385,98 @@ function showTab(name){
   document.querySelectorAll(".tc").forEach(function(t){t.classList.remove("active");});
   document.getElementById("tab-"+name).classList.add("active");
   document.getElementById("tc-"+name).classList.add("active");
-  if(name==="settings")renderSettings();
+  if(name==="settings"){renderMapTable();updateAuthStatus();}
 }
 
 function setType(btn){
   document.querySelectorAll(".tbtn").forEach(function(b){b.classList.remove("active");});
   btn.classList.add("active");
   pdfType=btn.dataset.type;
-  var m=cfg.tmap[pdfType];
-  if(m){var s=document.getElementById("cTable");if(s)s.value=m;}
+  applyTableFromMap();
+}
+function applyTableFromMap(){
+  var m=cfg.map[pdfType];
+  if(m && m.tableID){var s=document.getElementById("cTable");if(s)s.value=m.tableID;}
 }
 
 // AUTH
 function initAuth(){
   if(typeof google==="undefined"){setTimeout(initAuth,300);return;}
   var stored=loadTok();
-  if(stored){gTok=stored;setDot("d","ok","DRIVE OK");loadDrive();return;}
+  if(stored){gTok=stored;setDot("d","ok","DRIVE");loadDrive();showUploadBtn();return;}
   setDot("d","","DRIVE");
 }
-function makeClient(){
-  return google.accounts.oauth2.initTokenClient({
+function signIn(){
+  if(!gCli)gCli=google.accounts.oauth2.initTokenClient({
     client_id:GCI,scope:GSC,
     callback:function(r){
       if(r.error){toast("Auth error: "+r.error,"tr");return;}
       gTok=r.access_token;saveTok(r.access_token,r.expires_in||3600);
-      setDot("d","ok","DRIVE OK");loadDrive();
+      setDot("d","ok","DRIVE");loadDrive();showUploadBtn();updateAuthStatus();
     }
   });
-}
-function signIn(){
-  if(!gCli)gCli=makeClient();
   gCli.requestAccessToken({prompt:""});
 }
-function signOut(){
-  clearTok();gTok=null;
-  setDot("d","","DRIVE");
-  document.getElementById("fileList").innerHTML="<div class='abox'><div class='atitle'>Signed Out</div><button class='btn bp' onclick='signIn()'>Sign in</button></div>";
-  toast("Signed out","ti");
-}
+function signOut(){clearTok();gTok=null;setDot("d","","DRIVE");document.getElementById("uploadBtn").style.display="none";document.getElementById("fileList").innerHTML="<div class='abox'><div class='atitle'>Signed Out</div><button class='btn bp' onclick='signIn()'>Sign in</button></div>";toast("Signed out","ti");}
+function showUploadBtn(){document.getElementById("uploadBtn").style.display="";}
+function updateAuthStatus(){var el=document.getElementById("authStatus");if(el)el.textContent=gTok?"Connected":"Not connected";}
 
-// DRIVE
+// DRIVE — LOAD
 async function loadDrive(){
   if(!gTok){signIn();return;}
   setDot("d","warn","LOADING");
   try{
+    var folders=[];
+    Object.values(cfg.map).forEach(function(m){if(m.folderID)folders.push(m.folderID);});
+    var unique=folders.filter(function(v,i,a){return a.indexOf(v)===i;});
     var q="mimeType='application/pdf' and trashed=false";
-    if(cfg.folders.length){
-      var fc=cfg.folders.map(function(f){return"'"+f.id+"' in parents";}).join(" or ");
-      q+=" and ("+fc+")";
-    }
+    if(unique.length){var fc=unique.map(function(id){return"'"+id+"' in parents";}).join(" or ");q+=" and ("+fc+")";}
     var url="https://www.googleapis.com/drive/v3/files?q="+encodeURIComponent(q)+"&fields=files(id,name,size,modifiedTime)&pageSize=100&orderBy=modifiedTime%20desc";
     var r=await fetch(url,{headers:{Authorization:"Bearer "+gTok}});
     var d=await r.json();
     if(d.error)throw new Error(d.error.message);
     driveFiles=d.files||[];
-    setDot("d","ok","DRIVE OK");
+    setDot("d","ok","DRIVE");
     renderFiles();
-  }catch(e){
-    setDot("d","err","ERR");clearTok();
-    toast("Drive: "+e.message,"tr",6000);
-  }
+  }catch(e){setDot("d","err","ERR");clearTok();toast("Drive: "+e.message,"tr",6000);}
 }
 function renderFiles(){
   var el=document.getElementById("fileList");
-  if(!driveFiles.length){el.innerHTML="<div class='empty'><div class='et'>No PDFs found</div><div class='es'>Configure folders in Settings or upload PDFs to Drive.</div></div>";return;}
+  if(!driveFiles.length){
+    var hasFolders=Object.values(cfg.map).some(function(m){return m.folderID;});
+    el.innerHTML="<div class='empty'><div class='et'>"+(hasFolders?"No PDFs in mapped folders":"No folders configured")+"</div><div class='es'>"+(hasFolders?"Upload a PDF or check your folder settings.":"Go to Settings to map your Drive folders.")+"</div></div>";
+    return;
+  }
   el.innerHTML=driveFiles.map(function(f){
-    return "<div class='fi' id='fi_"+f.id+"' onclick='selFile(\""+f.id+"\")'>"+
-      "<span class='fn'>&#128196; "+esc(f.name)+"</span>"+
-      "<span class='fm'>"+fmtSz(f.size)+" &middot; "+fmtDt(f.modifiedTime)+"</span>"+
-      "</div>";
+    return "<div class='fi' id='fi_"+f.id+"' onclick='selFile(\""+f.id+"\")'><span class='fn'>"+esc(f.name)+"</span><span class='fm'>"+fmtSz(f.size)+" &middot; "+fmtDt(f.modifiedTime)+"</span></div>";
   }).join("");
 }
 
+// DRIVE — UPLOAD
+function triggerUpload(){document.getElementById("uploadInput").click();}
+async function uploadToDrive(input){
+  if(!input.files.length)return;
+  var file=input.files[0];
+  var m=cfg.map[pdfType];
+  if(!m||!m.folderID){toast("Set a Drive folder for '"+pdfType+"' in Settings first","tr",4000);return;}
+  toast("Uploading "+file.name+"...","ti",8000);
+  try{
+    var meta=JSON.stringify({name:file.name,parents:[m.folderID]});
+    var form=new FormData();
+    form.append("metadata",new Blob([meta],{type:"application/json"}));
+    form.append("file",file);
+    var r=await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart",{
+      method:"POST",headers:{Authorization:"Bearer "+gTok},body:form
+    });
+    var d=await r.json();
+    if(d.error)throw new Error(d.error.message);
+    toast("Uploaded to "+m.folderName+"!","tg");
+    input.value="";
+    await loadDrive();
+  }catch(e){toast("Upload failed: "+e.message,"tr",5000);}
+}
+
+// SELECT FILE
 async function selFile(id){
   document.querySelectorAll(".fi").forEach(function(e){e.classList.remove("active");});
   var fiEl=document.getElementById("fi_"+id);if(fiEl)fiEl.classList.add("active");
@@ -415,7 +488,7 @@ async function selFile(id){
   document.getElementById("pdfName").textContent=selFile.name;
   document.getElementById("pdfPages").textContent="loading...";
   document.getElementById("extractBtn").disabled=true;
-  document.getElementById("pgGrid").innerHTML="<div style='padding:12px;color:var(--dd)'>Loading PDF...</div>";
+  document.getElementById("pgGrid").innerHTML="<div style='padding:14px;color:var(--dd);font-size:11px'>Loading PDF...</div>";
   var nm=selFile.name.toLowerCase();
   var dt="workout";
   if(nm.indexOf("inject")>=0||nm.indexOf("peptide")>=0)dt="injection";
@@ -423,6 +496,7 @@ async function selFile(id){
   else if(nm.indexOf("supp")>=0)dt="supplement";
   document.querySelectorAll(".tbtn").forEach(function(b){b.classList.toggle("active",b.dataset.type===dt);});
   pdfType=dt;
+  applyTableFromMap();
   try{
     var resp=await fetch("https://www.googleapis.com/drive/v3/files/"+id+"?alt=media",{headers:{Authorization:"Bearer "+gTok}});
     if(!resp.ok)throw new Error("HTTP "+resp.status);
@@ -432,9 +506,10 @@ async function selFile(id){
     document.getElementById("pgCount").textContent="0/"+pdfDoc.numPages;
     document.getElementById("extractBtn").disabled=false;
     renderPgGrid();
-  }catch(e){toast("PDF load error: "+e.message,"tr");document.getElementById("pdfPages").textContent="error";}
+  }catch(e){toast("Load error: "+e.message,"tr");document.getElementById("pdfPages").textContent="error";}
 }
 
+// PAGE GRID
 async function renderPgGrid(){
   var grid=document.getElementById("pgGrid");grid.innerHTML="";
   for(var i=1;i<=pdfDoc.numPages;i++){
@@ -448,16 +523,16 @@ async function renderPgGrid(){
   }
 }
 
+// EXTRACTION
 function getPrompt(type){
   var p={
-    workout:"Extract workout set data from this handwritten gym log. Return JSON array, each object: date (YYYY-MM-DD or null), session (YYYY-MM-DD Day), day (Mon/Tue/etc), exercise (name), variation (implement or empty), set_number (int), reps (int), weight (number lbs). ONLY JSON array, no markdown.",
-    injection:"Extract peptide/injection log data. Return JSON array, each object: date (YYYY-MM-DD or null), compound (name), dose (number), unit (u/mg/mcg), time_of_day (AM/PM/Night or null), notes. ONLY JSON array.",
+    workout:"Extract workout set data from this handwritten gym log. Return JSON array, each object: date (YYYY-MM-DD or null), session (YYYY-MM-DD Day), day (Mon/Tue/etc), exercise (name), variation (implement or empty string), set_number (int), reps (int), weight (number lbs). ONLY JSON array.",
+    injection:"Extract peptide/injection log data. Return JSON array, each object: date (YYYY-MM-DD or null), compound (name), dose (number), unit (u/mg/mcg/IU), time_of_day (AM/PM/Night or null), notes. ONLY JSON array.",
     supplement:"Extract supplement data. Return JSON array: date, name, dose, unit, time_of_day. ONLY JSON array.",
     lab:"Extract lab results. Return JSON array: date, marker, value, unit, ref_range, status (HIGH/LOW/Normal). ONLY JSON array."
   };
   return p[type]||p.workout;
 }
-
 async function extractPage(n){
   if(!pdfDoc)return;
   var w=document.getElementById("pt_"+n),s=document.getElementById("ps_"+n);
@@ -470,41 +545,32 @@ async function extractPage(n){
     var resp=await fetch("https://api.anthropic.com/v1/messages",{
       method:"POST",headers:{"Content-Type":"application/json"},
       body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:4000,system:getPrompt(pdfType),
-        messages:[{role:"user",content:[
-          {type:"image",source:{type:"base64",media_type:"image/jpeg",data:b64}},
-          {type:"text",text:"Page "+n+" of "+pdfDoc.numPages+". File: "+(selFile?selFile.name:"")}
-        ]}]})
+        messages:[{role:"user",content:[{type:"image",source:{type:"base64",media_type:"image/jpeg",data:b64}},{type:"text",text:"Page "+n+" of "+pdfDoc.numPages}]}]})
     });
     var data=await resp.json();
-    var raw=(data.content&&data.content.find(function(x){return x.type==="text";})||{text:"[]"}).text;
+    var raw=((data.content||[]).find(function(x){return x.type==="text";})||{text:"[]"}).text;
     raw=raw.replace(/```json\n?|```\n?/g,"").trim();
     var parsed=[];try{parsed=JSON.parse(raw);}catch(e){}
     if(!Array.isArray(parsed))parsed=[];
     parsed=parsed.map(function(r){return Object.assign({},r,{_page:n,_src:selFile?selFile.name:"",_type:pdfType});});
     extracted=extracted.concat(parsed);
     w.classList.remove("busy");w.classList.add("done");
-    s.textContent=parsed.length?"V"+parsed.length:"-";
+    s.textContent=parsed.length?""+parsed.length:"-";
     updPgCount();renderExtracted();
     toast("Pg "+n+": "+parsed.length+" records","tg");
-  }catch(e){
-    w.classList.remove("busy");s.textContent="X";
-    toast("Pg "+n+": "+e.message,"tr",5000);
-  }
+  }catch(e){w.classList.remove("busy");s.textContent="!";toast("Pg "+n+" error","tr",5000);}
 }
-
 async function extractAll(){
   if(!pdfDoc)return;
   document.getElementById("xAllBtn").disabled=true;
-  for(var i=1;i<=pdfDoc.numPages;i++){
-    await extractPage(i);
-    await new Promise(function(r){setTimeout(r,350);});
-  }
+  for(var i=1;i<=pdfDoc.numPages;i++){await extractPage(i);await new Promise(function(r){setTimeout(r,350);});}
   document.getElementById("xAllBtn").disabled=false;
   document.getElementById("compareBtn").disabled=false;
   renderExportUI();
 }
 function startExtract(){extracted=[];document.getElementById("xRes").style.display="none";extractAll();}
 function updPgCount(){var d=document.querySelectorAll(".pt.done").length;document.getElementById("pgCount").textContent=d+"/"+(pdfDoc?pdfDoc.numPages:0);}
+function clearExtracted(){extracted=[];document.getElementById("xRes").style.display="none";document.querySelectorAll(".pt").forEach(function(e){e.classList.remove("done");});document.querySelectorAll("[id^='ps_']").forEach(function(e){e.textContent="";});updPgCount();}
 
 function renderExtracted(){
   if(!extracted.length)return;
@@ -513,18 +579,12 @@ function renderExtracted(){
   var keys=dKeys(extracted);
   document.getElementById("xHead").innerHTML="<tr>"+keys.map(function(k){return"<th>"+k+"</th>";}).join("")+"</tr>";
   document.getElementById("xBody").innerHTML=extracted.map(function(r){return"<tr>"+keys.map(function(k){return"<td title='"+esc(r[k])+"'>"+esc(r[k])+"</td>";}).join("")+"</tr>";}).join("");
-  var dates=extracted.filter(function(r){return r.date;}).map(function(r){return r.date;});
-  var uniq=dates.filter(function(v,i,a){return a.indexOf(v)===i;}).length;
+  var dates=extracted.filter(function(r){return r.date;});
+  var uniq=dates.filter(function(v,i,a){return a.indexOf(v.date)===i;}).length;
   document.getElementById("xCards").innerHTML=
     "<div class='card cardbl'><div class='cv'>"+extracted.length+"</div><div class='cl'>Records</div></div>"+
     "<div class='card cardg'><div class='cv'>"+uniq+"</div><div class='cl'>Dates</div></div>"+
     "<div class='card cardbl'><div class='cv'>"+(pdfDoc?pdfDoc.numPages:0)+"</div><div class='cl'>Pages</div></div>";
-}
-function clearExtracted(){
-  extracted=[];document.getElementById("xRes").style.display="none";
-  document.querySelectorAll(".pt").forEach(function(e){e.classList.remove("done");});
-  document.querySelectorAll("[id^='ps_']").forEach(function(e){e.textContent="";});
-  updPgCount();
 }
 
 // AIRTABLE
@@ -533,9 +593,14 @@ async function loadAtTables(){
     var r=await fetch("https://api.airtable.com/v0/meta/bases/"+ATB+"/tables",{headers:{Authorization:"Bearer "+ATK}});
     var d=await r.json();
     atTables=d.tables||[];
-    setDot("a","ok","AT OK");
+    setDot("a","ok","AT");
     var sel=document.getElementById("cTable");
     atTables.forEach(function(t){var o=document.createElement("option");o.value=t.id;o.textContent=t.name;sel.appendChild(o);});
+    // Update table names in cfg from live AT data
+    Object.keys(cfg.map).forEach(function(type){
+      var m=cfg.map[type];
+      if(m.tableID){var t=atTables.find(function(x){return x.id===m.tableID;});if(t)m.tableName=t.name;}
+    });
   }catch(e){setDot("a","err","AT ERR");}
 }
 async function fetchAt(tid){
@@ -557,9 +622,8 @@ async function runCompare(){
   showTab("compare");
   document.getElementById("cEmpty").style.display="none";
   document.getElementById("cUI").style.display="";
-  document.getElementById("cResults").innerHTML="<div style='padding:16px;color:var(--dd)'>Loading...</div>";
+  document.getElementById("cResults").innerHTML="<div style='padding:16px;color:var(--dd);font-size:11px'>Loading Airtable records...</div>";
   var atRecs=await fetchAt(tid);
-  var tbl=atTables.find(function(t){return t.id===tid;});
   var atMap={};
   atRecs.forEach(function(r){var fp=atFP(r);if(!atMap[fp])atMap[fp]=[];atMap[fp].push(r);});
   var results=extracted.map(function(er){
@@ -573,11 +637,7 @@ async function runCompare(){
 }
 function atFP(r){var f=r.fields;return((f.Date||"").slice(0,10))+"|"+((f.Exercise||f.Name||f.Compound||f.Marker||"").toLowerCase())+"|"+(f["Set#"]||f.SetID||"");}
 function exFP(r){return((r.date||"").slice(0,10))+"|"+((r.exercise||r.compound||r.name||r.marker||"").toLowerCase())+"|"+(r.set_number||r.SetID||"");}
-function findDiffs(er,at){
-  var diffs=[],map={weight:"Weight",reps:"Reps",dose:"Dose",value:"Value"};
-  Object.keys(map).forEach(function(ek){var av=at.fields[map[ek]];if(er[ek]!=null&&av!=null&&String(er[ek])!==String(av))diffs.push({f:ek,ex:er[ek],at:av});});
-  return diffs;
-}
+function findDiffs(er,at){var diffs=[],map={weight:"Weight",reps:"Reps",dose:"Dose",value:"Value"};Object.keys(map).forEach(function(ek){var av=at.fields[map[ek]];if(er[ek]!=null&&av!=null&&String(er[ek])!==String(av))diffs.push({f:ek,ex:er[ek],at:av});});return diffs;}
 function renderCompareUI(results,atOnly){
   var matched=results.filter(function(r){return r.status==="match";}).length;
   var missing=results.filter(function(r){return r.status==="missing";}).length;
@@ -588,28 +648,10 @@ function renderCompareUI(results,atOnly){
     "<div class='card cardy'><div class='cv'>"+diffs+"</div><div class='cl'>Diffs</div></div>"+
     "<div class='card cardbl'><div class='cv'>"+atOnly.length+"</div><div class='cl'>AT Only</div></div>";
   var html=[],keys=dKeys(extracted).filter(function(k){return k[0]!=="_";});
-  if(missing){
-    html.push("<div class='sec'><div class='sech'><span class='sect sectr'>Missing from Airtable</span><span class='secc'>"+missing+"</span></div>"+
-      "<div class='tw'><table class='tbl'><thead><tr>"+keys.map(function(k){return"<th>"+k+"</th>";}).join("")+"</tr></thead><tbody>"+
-      results.filter(function(r){return r.status==="missing";}).map(function(r){return"<tr>"+keys.map(function(k){return"<td class='tcr'>"+esc(r.er[k])+"</td>";}).join("")+"</tr>";}).join("")+
-      "</tbody></table></div></div>");
-  }
-  if(diffs){
-    html.push("<div class='sec'><div class='sech'><span class='sect secty'>Value Mismatches</span><span class='secc'>"+diffs+"</span></div>"+
-      "<div class='tw'><table class='tbl'><thead><tr><th>Date</th><th>Record</th><th>Field</th><th>PDF</th><th>AT</th></tr></thead><tbody>"+
-      results.filter(function(r){return r.status==="diff";}).map(function(r){return r.diffs.map(function(d){return"<tr><td>"+esc(r.er.date)+"</td><td>"+esc(r.er.exercise||r.er.compound||"")+"</td><td class='tcy'>"+d.f+"</td><td class='tcy'>"+esc(d.ex)+"</td><td class='tcd'>"+esc(d.at)+"</td></tr>";}).join("");}).join("")+
-      "</tbody></table></div></div>");
-  }
-  if(atOnly.length){
-    var ak=Object.keys(atOnly[0].fields).slice(0,5);
-    html.push("<div class='sec'><div class='sech'><span class='sect sectbl'>In Airtable Only</span><span class='secc'>"+atOnly.length+"</span></div>"+
-      "<div class='tw'><table class='tbl'><thead><tr>"+ak.map(function(k){return"<th>"+k+"</th>";}).join("")+"</tr></thead><tbody>"+
-      atOnly.map(function(r){return"<tr>"+ak.map(function(k){return"<td class='tcd'>"+esc(r.fields[k])+"</td>";}).join("")+"</tr>";}).join("")+
-      "</tbody></table></div></div>");
-  }
-  if(!missing&&!diffs&&!atOnly.length&&matched){
-    html.push("<div class='sec'><div class='sech'><span class='sect sectg'>&#10003; All "+matched+" records match perfectly</span></div></div>");
-  }
+  if(missing)html.push("<div class='sec'><div class='sech'><span class='sect sectr'>Missing from Airtable</span><span class='secc'>"+missing+"</span></div><div class='tw'><table class='tbl'><thead><tr>"+keys.map(function(k){return"<th>"+k+"</th>";}).join("")+"</tr></thead><tbody>"+results.filter(function(r){return r.status==="missing";}).map(function(r){return"<tr>"+keys.map(function(k){return"<td class='tcr'>"+esc(r.er[k])+"</td>";}).join("")+"</tr>";}).join("")+"</tbody></table></div></div>");
+  if(diffs)html.push("<div class='sec'><div class='sech'><span class='sect secty'>Value Mismatches</span><span class='secc'>"+diffs+"</span></div><div class='tw'><table class='tbl'><thead><tr><th>Date</th><th>Record</th><th>Field</th><th>PDF</th><th>AT</th></tr></thead><tbody>"+results.filter(function(r){return r.status==="diff";}).map(function(r){return r.diffs.map(function(d){return"<tr><td>"+esc(r.er.date)+"</td><td>"+esc(r.er.exercise||r.er.compound||"")+"</td><td class='tcy'>"+d.f+"</td><td class='tcy'>"+esc(d.ex)+"</td><td class='tcd'>"+esc(d.at)+"</td></tr>";}).join("");}).join("")+"</tbody></table></div></div>");
+  if(atOnly.length){var ak=Object.keys(atOnly[0].fields).slice(0,5);html.push("<div class='sec'><div class='sech'><span class='sect sectbl'>In Airtable Only</span><span class='secc'>"+atOnly.length+"</span></div><div class='tw'><table class='tbl'><thead><tr>"+ak.map(function(k){return"<th>"+k+"</th>";}).join("")+"</tr></thead><tbody>"+atOnly.map(function(r){return"<tr>"+ak.map(function(k){return"<td class='tcd'>"+esc(r.fields[k])+"</td>";}).join("")+"</tr>";}).join("")+"</tbody></table></div></div>");}
+  if(!missing&&!diffs&&!atOnly.length&&matched)html.push("<div class='sec'><div class='sech'><span class='sect sectg'>&#10003; All "+matched+" records match perfectly</span></div></div>");
   document.getElementById("cResults").innerHTML=html.join("")||"<div class='empty'><div class='et'>Clean</div></div>";
 }
 
@@ -621,89 +663,98 @@ function renderExportUI(){
   document.getElementById("eCount").textContent=extracted.length;
   var keys=dKeys(extracted);
   document.getElementById("eHead").innerHTML="<tr>"+keys.map(function(k){return"<th>"+k+"</th>";}).join("")+"</tr>";
-  document.getElementById("eBody").innerHTML=extracted.slice(0,50).map(function(r){return"<tr>"+keys.map(function(k){return"<td>"+esc(r[k])+"</td>";}).join("")+"</tr>";}).join("")+(extracted.length>50?"<tr><td colspan='"+keys.length+"' class='tcd'>..."+( extracted.length-50)+" more</td></tr>":"");
+  document.getElementById("eBody").innerHTML=extracted.slice(0,50).map(function(r){return"<tr>"+keys.map(function(k){return"<td>"+esc(r[k])+"</td>";}).join("")+"</tr>";}).join("")+(extracted.length>50?"<tr><td colspan='"+keys.length+"' class='tcd'>... "+(extracted.length-50)+" more</td></tr>":"");
 }
 function exportJSON(){dl(new Blob([JSON.stringify(extracted,null,2)],{type:"application/json"}),(selFile?selFile.name.replace(".pdf",""):"data")+"_"+today()+".json");toast("Exported","tg");}
-function exportCSV(){
-  if(!extracted.length)return;
-  var keys=dKeys(extracted);
-  var rows=[keys.join(",")].concat(extracted.map(function(r){return keys.map(function(k){var v=String(r[k]||"");return v.indexOf(",")>=0?"\""+v+"\"":v;}).join(",");}));
-  dl(new Blob([rows.join("\n")],{type:"text/csv"}),(selFile?selFile.name.replace(".pdf",""):"data")+"_"+today()+".csv");toast("Exported","tg");
-}
+function exportCSV(){if(!extracted.length)return;var keys=dKeys(extracted);var rows=[keys.join(",")].concat(extracted.map(function(r){return keys.map(function(k){var v=String(r[k]||"");return v.indexOf(",")>=0?'"'+v+'"':v;}).join(",");}));dl(new Blob([rows.join("\n")],{type:"text/csv"}),(selFile?selFile.name.replace(".pdf",""):"data")+"_"+today()+".csv");toast("Exported","tg");}
 function exportDiff(){dl(new Blob([document.getElementById("cResults").innerText],{type:"text/plain"}),"diff_"+today()+".txt");}
 async function pushToAT(){
   var tid=document.getElementById("cTable").value;
   if(!tid){toast("Select table on Compare tab","tr");return;}
-  if(!confirm("Push "+extracted.length+" records?"))return;
+  if(!confirm("Push "+extracted.length+" records to Airtable?"))return;
   var pushed=0,failed=0;
   for(var i=0;i<extracted.length;i+=10){
     var chunk=extracted.slice(i,i+10);
-    try{
-      await fetch("https://api.airtable.com/v0/"+ATB+"/"+tid,{method:"POST",
-        headers:{Authorization:"Bearer "+ATK,"Content-Type":"application/json"},
-        body:JSON.stringify({records:chunk.map(function(r){return{fields:toAtF(r)};}),typecast:true})});
-      pushed+=chunk.length;
-    }catch(e){failed+=chunk.length;}
+    try{await fetch("https://api.airtable.com/v0/"+ATB+"/"+tid,{method:"POST",headers:{Authorization:"Bearer "+ATK,"Content-Type":"application/json"},body:JSON.stringify({records:chunk.map(function(r){return{fields:toAtF(r)};}),typecast:true})});pushed+=chunk.length;}
+    catch(e){failed+=chunk.length;}
     await new Promise(function(r){setTimeout(r,200);});
   }
   toast("Pushed "+pushed+(failed?", failed "+failed:""),pushed?"tg":"tr");
 }
-function toAtF(r){
-  var map={date:"Date",exercise:"Exercise",variation:"Variation",set_number:"Set#",reps:"Reps",weight:"Weight",session:"Session",day:"Day",notes:"Notes",compound:"Name",dose:"Dose",unit:"Unit",time_of_day:"Time",marker:"Marker",value:"Value",ref_range:"Ref Range",status:"Status"};
-  var out={};Object.keys(map).forEach(function(k){if(r[k]!=null&&r[k]!=="")out[map[k]]=r[k];});return out;
-}
+function toAtF(r){var map={date:"Date",exercise:"Exercise",variation:"Variation",set_number:"Set#",reps:"Reps",weight:"Weight",session:"Session",day:"Day",notes:"Notes",compound:"Name",dose:"Dose",unit:"Unit",time_of_day:"Time",marker:"Marker",value:"Value",ref_range:"Ref Range",status:"Status"};var out={};Object.keys(map).forEach(function(k){if(r[k]!=null&&r[k]!=="")out[map[k]]=r[k];});return out;}
 
-// SETTINGS
-function renderSettings(){
-  renderFolderList();
-  renderTmap();
-}
-function renderFolderList(){
-  var el=document.getElementById("folderList");
-  if(!cfg.folders.length){el.innerHTML="<div style='font-size:10px;color:var(--dd);padding:4px 0'>None configured &mdash; showing all Drive PDFs</div>";return;}
-  el.innerHTML=cfg.folders.map(function(f,i){
-    return "<div class='sfrow'>"+
-      "<span class='sflbl'>"+esc(f.name)+"</span>"+
-      "<span class='sfmeta'>"+f.id.slice(0,18)+"...</span>"+
-      "<button class='btn br' style='padding:2px 7px;font-size:9px' onclick='rmFolder("+i+")'>&#x2715;</button>"+
-      "</div>";
-  }).join("");
-}
-function renderTmap(){
-  var el=document.getElementById("tableMap");
+// SETTINGS — MAP TABLE
+var editCtx = null;
+function renderMapTable(){
+  var tbody=document.getElementById("mapBody");
   var types=["workout","injection","supplement","lab"];
-  var rows=types.map(function(type){
-    var opts="<option value=\'\'>&#8212;</option>"+atTables.map(function(t){
-      return "<option value=\'"+t.id+"\'"+( t.id===cfg.tmap[type]?" selected":"")+">"+t.name+"</option>";
-    }).join("");
+  tbody.innerHTML=types.map(function(type){
+    var m=cfg.map[type];
+    var fName=m.folderName||(m.folderID?"ID: "+m.folderID.slice(0,12)+"...":"Not set");
+    var tName=m.tableName||"Not set";
     return "<tr>"+
-      "<td style=\'padding:7px 12px;font-size:10px;color:var(--d);white-space:nowrap\'>"+type+"</td>"+
-      "<td style=\'padding:5px 8px\'><select class=\'inp\' style=\'width:100%\' id=\'tm_"+type+"\'>"+opts+"</select></td>"+
-      "</tr>";
+      "<td><span class='type-badge type-"+type+"'>"+type+"</span></td>"+
+      "<td><div class='edit-field' onclick='openModal(\""+type+"\",\"folder\")'><span class='val' id='fv_"+type+"'>"+esc(fName)+"</span><span class='edit-btn'>&#9998;</span></div></td>"+
+      "<td><div class='edit-field' onclick='openModal(\""+type+"\",\"table\")'><span class='val' id='tv_"+type+"'>"+esc(tName)+"</span><span class='edit-btn'>&#9998;</span></div></td>"+
+    "</tr>";
   }).join("");
-  el.innerHTML="<table style=\'width:100%;border-collapse:collapse\'><tbody>"+rows+"</tbody></table>";
 }
-function addFolder(){
-  var id=document.getElementById("fId").value.trim();
-  var nm=document.getElementById("fName").value.trim()||id.slice(0,12);
-  if(!id){toast("Enter folder ID","tr");return;}
-  cfg.folders.push({id:id,name:nm});
-  document.getElementById("fId").value="";document.getElementById("fName").value="";
-  renderFolderList();toast("Added. Click Save & Apply.","ti");
-}
-function rmFolder(i){cfg.folders.splice(i,1);renderFolderList();}
-function saveAll(){
-  var types=["workout","injection","supplement","lab"];
-  types.forEach(function(type){var s=document.getElementById("tm_"+type);if(s)cfg.tmap[type]=s.value;});
-  saveCfg();
-  var st=document.getElementById("saveStatus");
-  st.textContent="Saved at "+new Date().toLocaleTimeString();
-  st.style.color="var(--g)";
-  setTimeout(function(){loadDrive();},400);
-  toast("Settings saved","tg");
-}
-function resetAll(){if(!confirm("Reset all settings?"))return;localStorage.removeItem("mb_pdfqa");location.reload();}
 
+function openModal(type, field){
+  editCtx={type:type,field:field};
+  var m=cfg.map[type];
+  var modal=document.getElementById("editModal");
+  var inp=document.getElementById("modalInput");
+  document.getElementById("modalTitle").textContent="Edit "+type+" "+field;
+  if(field==="folder"){
+    document.getElementById("modalSub").textContent="Enter the Google Drive folder ID for "+type+" PDFs.";
+    document.getElementById("modalHint").textContent="Get it from the Drive URL: drive.google.com/drive/folders/[PASTE THIS PART]";
+    inp.placeholder="Folder ID";
+    inp.value=m.folderID||"";
+  } else {
+    document.getElementById("modalSub").textContent="Select or paste the Airtable table ID for "+type+" data.";
+    document.getElementById("modalHint").textContent="";
+    // Build a select-style input with table names
+    var opts=atTables.map(function(t){return t.id+" ("+t.name+")";}).join("\n");
+    inp.placeholder="Table ID — options:\n"+opts;
+    inp.value=m.tableID||"";
+  }
+  modal.classList.add("open");
+  setTimeout(function(){inp.focus();inp.select();},50);
+}
+function closeModal(){document.getElementById("editModal").classList.remove("open");editCtx=null;}
+function saveModal(){
+  if(!editCtx)return;
+  var val=document.getElementById("modalInput").value.trim();
+  var type=editCtx.type, field=editCtx.field;
+  if(field==="folder"){
+    cfg.map[type].folderID=val;
+    cfg.map[type].folderName=val?"Drive: "+val.slice(0,12)+"...":"Not set";
+    document.getElementById("fv_"+type).textContent=cfg.map[type].folderName;
+  } else {
+    cfg.map[type].tableID=val;
+    var t=atTables.find(function(x){return x.id===val;});
+    cfg.map[type].tableName=t?t.name:val;
+    document.getElementById("tv_"+type).textContent=cfg.map[type].tableName;
+  }
+  closeModal();
+  saveAll();
+}
+// Close modal on bg click
+document.getElementById("editModal").addEventListener("click",function(e){if(e.target===this)closeModal();});
+// Enter key saves modal
+document.getElementById("modalInput").addEventListener("keydown",function(e){if(e.key==="Enter")saveModal();});
+
+function saveAll(){
+  saveCfg();
+  var el=document.getElementById("saveStatus");
+  if(el){el.textContent="Saved "+new Date().toLocaleTimeString();setTimeout(function(){el.textContent="";},3000);}
+  toast("Settings saved","tg");
+  loadDrive();
+}
+function resetAll(){if(!confirm("Reset all settings?"))return;localStorage.removeItem("mb_pdfqa2");location.reload();}
+
+// INIT
 window.addEventListener("load",function(){
   loadCfg();
   loadAtTables();
