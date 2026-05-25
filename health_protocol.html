@@ -3275,6 +3275,7 @@ function printTracker() {
     'CJC-1295 No DAC', 'Ipamorelin', 'DSIP', 'KPV', 'Epitalon'
   ];
 
+  const ROW_H = 28;
   const MORN_BG = '#ffffff'; const NIGHT_BG = '#ffffff'; const INACTIVE = '#C0C0C0';
   const DAYS = ['Mon','Tues','Wed','Thurs','Fri','Sat','Sun'];
 
@@ -3300,15 +3301,6 @@ function printTracker() {
       tr += `<td style="background-color:${bg}!important;border:1px solid #000;height:${rowH}px;"></td></tr>`;
       return tr;
     }).join('');
-  }
-
-  const SLEEP_BG = '#f5f5f5';
-  function sleepRows() {
-    return ['Sleep (hrs)', 'Deep Sleep (min)', 'Duration (min)'].map(label =>
-      `<tr><td style="background-color:${SLEEP_BG}!important;border:1px solid #000;padding:1px 3px;height:${sleepH}px;font-style:italic;font-size:7pt;color:#444">${label}</td>` +
-      DAYS.map(() => `<td style="background-color:${SLEEP_BG}!important;border:1px solid #000;height:${sleepH}px;"></td>`).join('') +
-      `<td style="background-color:${SLEEP_BG}!important;border:1px solid #000;height:${sleepH}px;"></td></tr>`
-    ).join('');
   }
 
   // Generate Monday date for each week offset from today's Monday
@@ -3347,7 +3339,6 @@ function printTracker() {
     </tbody></table>`;
   }
 
-  const ROW_H = 28;
   const html = `<!DOCTYPE html><html><head><title></title>
   <style>
     @page { size: letter portrait; margin: 0.4in; }
