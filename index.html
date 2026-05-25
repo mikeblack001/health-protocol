@@ -3272,6 +3272,15 @@ function printTracker() {
   const MORN_BG = '#FFF8E7'; const NIGHT_BG = '#EEF4FB'; const INACTIVE = '#C0C0C0';
   const DAYS = ['Mon','Tues','Wed','Thurs','Fri','Sat','Sun'];
 
+  // Dynamic row height — adapts to active compound count automatically
+  const activeM = MORNING_ORDER.filter(n => pepMap[n]).length;
+  const activeN = NIGHT_ORDER.filter(n => pepMap[n]).length;
+  const totalRows = activeM + activeN + 3; // +3 sleep rows
+  const weekH = 340; // px available per week (letter 0.2in margins, 2 weeks/page)
+  const fixedH = 82; // headers + section headers + separators
+  const rowH = Math.max(14, Math.min(22, Math.floor((weekH - fixedH) / totalRows)));
+  const sleepH = Math.max(16, Math.min(26, rowH + 3));
+
   function rows(order, bg) {
     return order.map(name => {
       const r = pepMap[name];
@@ -3279,13 +3288,13 @@ function printTracker() {
       const dose = getField(r,'Dose');
       const label = dose ? `<span style="font-size:8pt;font-weight:600">${name}</span> <span style="font-size:6.5pt;color:#555">${dose}</span>` : name;
       const active = TRACKER_SCHEDULE[name] || [0,1,2,3,4,5,6];
-      let tr = `<tr><td style="background-color:${bg}!important;border:1px solid #000;padding:1px 3px;height:18px;vertical-align:middle;white-space:nowrap;overflow:hidden">${label}</td>`;
+      let tr = `<tr><td style="background-color:${bg}!important;border:1px solid #000;padding:1px 3px;height:${rowH}px;vertical-align:middle;white-space:nowrap;overflow:hidden">${label}</td>`;
       for (let d=0; d<7; d++) {
         tr += active.includes(d)
-          ? `<td style="background-color:${bg}!important;border:1px solid #000;height:18px;"></td>`
-          : `<td style="background-color:${INACTIVE}!important;border:1px solid #000;height:18px;"></td>`;
+          ? `<td style="background-color:${bg}!important;border:1px solid #000;height:${rowH}px;"></td>`
+          : `<td style="background-color:${INACTIVE}!important;border:1px solid #000;height:${rowH}px;"></td>`;
       }
-      tr += `<td style="background-color:${bg}!important;border:1px solid #000;height:18px;"></td></tr>`;
+      tr += `<td style="background-color:${bg}!important;border:1px solid #000;height:${rowH}px;"></td></tr>`;
       return tr;
     }).join('');
   }
@@ -3293,9 +3302,9 @@ function printTracker() {
   const SLEEP_BG = '#F0F0F0';
   function sleepRows() {
     return ['Sleep (hrs)', 'Deep Sleep (min)', 'Duration (min)'].map(label =>
-      `<tr><td style="background-color:${SLEEP_BG}!important;border:1px solid #000;padding:1px 3px;height:22px;font-style:italic;font-size:7pt;color:#444">${label}</td>` +
-      DAYS.map(() => `<td style="background-color:${SLEEP_BG}!important;border:1px solid #000;height:22px;"></td>`).join('') +
-      `<td style="background-color:${SLEEP_BG}!important;border:1px solid #000;height:22px;"></td></tr>`
+      `<tr><td style="background-color:${SLEEP_BG}!important;border:1px solid #000;padding:1px 3px;height:${sleepH}px;font-style:italic;font-size:7pt;color:#444">${label}</td>` +
+      DAYS.map(() => `<td style="background-color:${SLEEP_BG}!important;border:1px solid #000;height:${sleepH}px;"></td>`).join('') +
+      `<td style="background-color:${SLEEP_BG}!important;border:1px solid #000;height:${sleepH}px;"></td></tr>`
     ).join('');
   }
 
