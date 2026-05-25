@@ -1637,6 +1637,7 @@ function renderSupplements(filter) {
 
 // ===== PEPTIDE TRACKER =====
 let trackerMondayOffset = 0; // weeks offset from current week
+let trackerHistoricalData = null; // Map<compoundName, Set<dateISO>> for past weeks; null = current/future
 
 const TRACKER_MORNING_ORDER = [
   'Testosterone', 'Deca (Nandrolone)', 'NAD+', 'Retatrutide',
@@ -1674,12 +1675,74 @@ function getTrackerMonday() {
   return mon;
 }
 
+function isNightPep(name) {
+  const pep = data.peptides.find(r => getField(r,'Compound') === name);
+  if (pep) return (getField(pep,'Timing')||'').toLowerCase().includes('night');
+  return TRACKER_NIGHT_ORDER.some(n => n.toLowerCase() === name.toLowerCase());
+}
+
+const INJECTION_ALIAS = {
+  'trt':'testosterone','testosterone (trt)':'testosterone','testosterone cypionate':'testosterone','testosterone enanthate':'testosterone',
+  'cjc-1295':'cjc-1295 no dac','cjc 1295':'cjc-1295 no dac','cjc1295':'cjc-1295 no dac','cjc-1295 nodac':'cjc-1295 no dac',
+  'epithalon':'epitalon','epithalone':'epitalon','epitalone':'epitalon',
+  'cag':'cagrilintide','reta':'retatrutide',
+  'deca nano':'deca (nandrolone)','deca (nano)':'deca (nandrolone)','deca':'deca (nandrolone)','nandrolone':'deca (nandrolone)',
+  'melanotan ii':'melanotan ii (mt2)','melanotan':'melanotan ii (mt2)','melanotan 2':'melanotan ii (mt2)','mt-2':'melanotan ii (mt2)','mt2':'melanotan ii (mt2)',
+  'ghk':'ghk-cu','ghk cu':'ghk-cu','mots c':'mots-c','ss 31':'ss-31',
+  'stanozolal':'winstrol (stanozolol)','stanozolol':'winstrol (stanozolol)',
+  'anavar':'anavar (oxandrolone)',
+};
+function resolveInjectionCompound(raw) {
+  const n = (raw||'').toLowerCase().trim().replace(/\s+/g,' ');
+  return INJECTION_ALIAS[n] || n;
+}
+
+async function fetchHistoricalCompounds(mondayISO) {
+  try {
+    const mon = new Date(mondayISO + 'T12:00:00');
+    const prev = new Date(mon); prev.setDate(mon.getDate() - 1);
+    const next = new Date(mon); next.setDate(mon.getDate() + 7);
+    const formula = `AND(IS_AFTER({Date},"${prev.toISOString().split('T')[0]}"),IS_BEFORE({Date},"${next.toISOString().split('T')[0]}"))`;
+    const url = `https://api.airtable.com/v0/${BASE}/tblBvEaLkGGipnOFc?filterByFormula=${encodeURIComponent(formula)}&fields[]=Date&fields[]=Compound&fields[]=Name`;
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${TOKEN}` }});
+    const json = await res.json();
+    const map = new Map();
+    (json.records||[]).forEach(r => {
+      const f = r.fields;
+      const raw = Array.isArray(f['Compound']) ? f['Compound'][0] : (f['Compound'] || f['Name']);
+      const date = f['Date'];
+      if (!raw || !date) return;
+      const name = resolveInjectionCompound(raw);
+      if (!map.has(name)) map.set(name, new Set());
+      map.get(name).add(date);
+    });
+    return map.size > 0 ? map : null;
+  } catch(e) { console.error('fetchHistoricalCompounds failed:', e); return null; }
+}
+
 function renderTracker(weekNum) {
   const activePeps = data.peptides.filter(r => getField(r,'Status') === 'Active');
   const pepMap = {};
   activePeps.forEach(r => { pepMap[getField(r,'Compound')] = r; });
-  const morning = TRACKER_MORNING_ORDER.map(n => pepMap[n]).filter(Boolean);
-  const night   = TRACKER_NIGHT_ORDER.map(n => pepMap[n]).filter(Boolean);
+
+  let morning, night;
+  if (trackerHistoricalData) {
+    const histNames = [...trackerHistoricalData.keys()];
+    morning = histNames.filter(n => !isNightPep(n))
+      .map(n => pepMap[n] || { fields: { Compound: n, Dose: '', Status: 'Historical', Timing: 'Morning' }});
+    night   = histNames.filter(n =>  isNightPep(n))
+      .map(n => pepMap[n] || { fields: { Compound: n, Dose: '', Status: 'Historical', Timing: 'Night' }});
+  } else {
+    const knownM = new Set(TRACKER_MORNING_ORDER), knownN = new Set(TRACKER_NIGHT_ORDER);
+    morning = [
+      ...TRACKER_MORNING_ORDER.map(n => pepMap[n]).filter(Boolean),
+      ...activePeps.filter(r => { const n = getField(r,'Compound'); const t = getField(r,'Timing')||''; return !t.toLowerCase().includes('night') && !knownM.has(n); })
+    ];
+    night = [
+      ...TRACKER_NIGHT_ORDER.map(n => pepMap[n]).filter(Boolean),
+      ...activePeps.filter(r => { const n = getField(r,'Compound'); const t = getField(r,'Timing')||''; return t.toLowerCase().includes('night') && !knownN.has(n); })
+    ];
+  }
   const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
 
   const monday = getTrackerMonday();
@@ -1797,11 +1860,17 @@ function renderTracker(weekNum) {
   }
 }
 
-function shiftTrackerWeek(dir) {
+async function shiftTrackerWeek(dir) {
   trackerMondayOffset += dir;
-  renderTracker();
   const monday = getTrackerMonday();
-  loadTrackerWeekData(monday.toISOString().split('T')[0]);
+  const mondayISO = monday.toISOString().split('T')[0];
+  if (trackerMondayOffset < 0) {
+    trackerHistoricalData = await fetchHistoricalCompounds(mondayISO);
+  } else {
+    trackerHistoricalData = null;
+  }
+  renderTracker();
+  loadTrackerWeekData(mondayISO);
 }
 
 async function loadTrackerWeekData(mondayISO) {
@@ -3625,20 +3694,23 @@ function printTracker() {
   const pepMap = {};
   activePeps.forEach(r => { pepMap[getField(r,'Compound')] = r; });
 
+  // Dynamic: known order first, then any unlisted Active peps
+  const knownPM = new Set(TRACKER_MORNING_ORDER), knownPN = new Set(TRACKER_NIGHT_ORDER);
   const MORNING_ORDER = [
-    'Testosterone', 'Deca (Nandrolone)', 'NAD+', 'Retatrutide',
-    'Cagrilintide', 'Tesamorelin', 'GHK-Cu', 'Melanotan II (MT2)', 'Tirzepatide'
+    ...TRACKER_MORNING_ORDER.filter(n => pepMap[n]),
+    ...activePeps.filter(r => { const n = getField(r,'Compound'); const t = getField(r,'Timing')||''; return !t.toLowerCase().includes('night') && !knownPM.has(n); }).map(r => getField(r,'Compound'))
   ];
   const NIGHT_ORDER = [
-    'CJC-1295 No DAC', 'Ipamorelin', 'DSIP', 'KPV', 'Epitalon'
+    ...TRACKER_NIGHT_ORDER.filter(n => pepMap[n]),
+    ...activePeps.filter(r => { const n = getField(r,'Compound'); const t = getField(r,'Timing')||''; return t.toLowerCase().includes('night') && !knownPN.has(n); }).map(r => getField(r,'Compound'))
   ];
 
   const MORN_BG = '#ffffff'; const NIGHT_BG = '#ffffff'; const INACTIVE = '#C0C0C0';
   const DAYS = ['Mon','Tues','Wed','Thurs','Fri','Sat','Sun'];
 
   // totalRows used below for auto-size calc
-  const activeM = MORNING_ORDER.filter(n => pepMap[n]).length;
-  const activeN = NIGHT_ORDER.filter(n => pepMap[n]).length;
+  const activeM = MORNING_ORDER.length;
+  const activeN = NIGHT_ORDER.length;
   const totalRows = activeM + activeN;
 
   function rows(order, bg) {
