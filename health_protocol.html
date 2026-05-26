@@ -5533,41 +5533,36 @@ async function runInjectionVerification(pageIndices) {
   var prompt = INJ_PROMPT.replace("CANONICAL_PLACEHOLDER", CANONICAL_COMPOUNDS.join(", "));
   var totalBatches = batches.length;
   var completedBatches = 0;
-  vStatus("⏳ 0 / " + totalBatches + " batches (max 5 concurrent)...");
+  vStatus("⏳ 0 / " + totalBatches + " batches complete...");
 
-  // Run with concurrency limit of 5 to avoid rate limits
-  var CONCURRENCY = 5;
-  var batchResults = new Array(batches.length);
-  var queue = batches.map(function(batch, bi) { return { batch: batch, bi: bi }; });
-  var active = 0;
-  await new Promise(function(resolveAll) {
-    function runNext() {
-      while (active < CONCURRENCY && queue.length > 0) {
-        var item = queue.shift();
-        active++;
-        (async function(batch, bi) {
-          try {
-            var raw = await callClaudePages(batch, prompt);
-            var parsed = [];
-            try { parsed = JSON.parse(raw); } catch(e) {
-              var trimmed = raw.replace(/,\s*$/, '').replace(/^\s*\[?/, '[');
-              if (!trimmed.endsWith(']')) trimmed += ']';
-              try { parsed = JSON.parse(trimmed); } catch(e2) { parsed = []; }
-            }
-            batchResults[bi] = { batch: bi, pages: batch, entries: Array.isArray(parsed) ? parsed : [], err: null };
-          } catch(e) {
-            batchResults[bi] = { batch: bi, pages: batch, entries: [], err: e.message };
-          }
-          completedBatches++;
-          vStatus("⏳ " + completedBatches + " / " + totalBatches + " batches complete...");
-          active--;
-          if (queue.length === 0 && active === 0) resolveAll();
-          else runNext();
-        })(item.batch, item.bi);
+  async function runBatch(batch, bi) {
+    try {
+      var raw = await callClaudePages(batch, prompt);
+      var parsed = [];
+      try { parsed = JSON.parse(raw); } catch(e) {
+        var trimmed = raw.replace(/,\s*$/, '').replace(/^\s*\[?/, '[');
+        if (!trimmed.endsWith(']')) trimmed += ']';
+        try { parsed = JSON.parse(trimmed); } catch(e2) { parsed = []; }
       }
+      return { batch: bi, pages: batch, entries: Array.isArray(parsed) ? parsed : [], err: null };
+    } catch(e) {
+      return { batch: bi, pages: batch, entries: [], err: e.message };
     }
-    runNext();
-  });
+  }
+
+  // Run in groups of 5 to avoid rate limits
+  var batchResults = [];
+  for (var g = 0; g < batches.length; g += 5) {
+    var group = batches.slice(g, g + 5);
+    var groupResults = await Promise.all(group.map(function(batch, idx) {
+      return runBatch(batch, g + idx);
+    }));
+    batchResults = batchResults.concat(groupResults);
+    completedBatches += groupResults.length;
+    vStatus("⏳ " + completedBatches + " / " + totalBatches + " batches complete...");
+    // Small pause between groups
+    if (g + 5 < batches.length) await new Promise(function(r){ setTimeout(r, 500); });
+  }
 
   // Report per-batch results
   var batchSummary = batchResults.map(function(r) {
