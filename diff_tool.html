@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Workout Diff Tool</title>
+<style>
+  body { font-family: -apple-system, sans-serif; background: #0f0f0f; color: #e0e0e0; margin: 0; padding: 20px; }
+  h1 { color: #fff; font-size: 1.4rem; margin-bottom: 4px; }
+  .sub { color: #888; font-size: 0.85rem; margin-bottom: 20px; }
+  .status { background: #1a1a1a; border: 1px solid #333; border-radius: 8px; padding: 16px; margin-bottom: 16px; font-size: 0.85rem; }
+  .status .step { margin: 4px 0; }
+  .step.done { color: #4ade80; } .step.running { color: #facc15; } .step.error { color: #f87171; }
+  .summary { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+  .card { background: #1a1a1a; border: 1px solid #333; border-radius: 8px; padding: 16px; min-width: 140px; }
+  .card .num { font-size: 1.8rem; font-weight: 700; }
+  .card .lbl { font-size: 0.75rem; color: #888; margin-top: 4px; }
+  .card.ok .num { color: #4ade80; } .card.warn .num { color: #facc15; } .card.bad .num { color: #f87171; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+  th { background: #222; padding: 8px 12px; text-align: left; color: #aaa; font-weight: 600; position: sticky; top: 0; }
+  td { padding: 7px 12px; border-bottom: 1px solid #1e1e1e; }
+  tr.match td { color: #4ade80; }
+  tr.off td { background: #2a1a00; }
+  tr.off td.diff { color: #facc15; font-weight: 700; }
+  tr.missing td { background: #1a0000; color: #f87171; }
+  tr.extra td { background: #001a0a; color: #6ee7b7; }
+  .filter-bar { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  .filter-bar button { padding: 6px 14px; border-radius: 6px; border: 1px solid #444; background: #222; color: #ccc; cursor: pointer; font-size: 0.8rem; }
+  .filter-bar button.active { background: #3b82f6; border-color: #3b82f6; color: #fff; }
+  #tbl-wrap { overflow-x: auto; max-height: 70vh; overflow-y: auto; }
+</style>
+</head>
+<body>
+<h1>Workout Diff — PDF vs Airtable</h1>
+<div class="sub">Count-based by date. PDF = extracted_sets_clean.json (6,041 sets). AT = live Airtable.</div>
+
+<div class="status" id="status">
+  <div class="step running" id="s1">⏳ Loading PDF data...</div>
+  <div class="step" id="s2">— Fetching Airtable sets...</div>
+  <div class="step" id="s3">— Running diff...</div>
+</div>
+
+<div id="results" style="display:none">
+  <div class="summary" id="summary"></div>
+  <div class="filter-bar">
+    <button class="active" onclick="filter('all',this)">All</button>
+    <button onclick="filter('off',this)">Count Mismatch</button>
+    <button onclick="filter('missing',this)">Missing from AT</button>
+    <button onclick="filter('extra',this)">Extra in AT</button>
+    <button onclick="filter('match',this)">Match ✓</button>
+  </div>
+  <div id="tbl-wrap">
+    <table>
+      <thead><tr><th>Date</th><th>Day Type</th><th>PDF Sets</th><th>AT Sets</th><th>Diff</th><th>Status</th></tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+const AT_TOKEN = 'pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
+const AT_BASE = 'appmHDG4TGT1xy6R6';
+const AT_TABLE = 'tblKDqjy5RzqaJvjr';
+const PDF_URL = 'https://raw.githubusercontent.com/mikeblack001/health-protocol/main/extracted_sets_clean.json';
+
+let allRows = [];
+
+function step(id, state, msg) {
+  const el = document.getElementById(id);
+  el.className = 'step ' + state;
+  el.textContent = (state==='done'?'✅':state==='error'?'❌':'⏳') + ' ' + msg;
+}
+
+async function fetchAT() {
+  let all = [], offset = null;
+  do {
+    const url = `https://api.airtable.com/v0/${AT_BASE}/${AT_TABLE}?returnFieldsByFieldId=true&fields%5B%5D=fld75zYXknF0RtCWH&fields%5B%5D=fldypzlwqw9AzWrEE&pageSize=100${offset?'&offset='+offset:''}`;
+    const r = await fetch(url, {headers:{Authorization:'Bearer '+AT_TOKEN}});
+    const d = await r.json();
+    all = all.concat(d.records||[]);
+    offset = d.offset||null;
+    document.getElementById('s2').textContent = `⏳ Fetching Airtable... ${all.length} records`;
+  } while(offset);
+  return all;
+}
+
+async function run() {
+  // Load PDF data
+  let pdf;
+  try {
+    const r = await fetch(PDF_URL);
+    pdf = await r.json();
+    step('s1','done',`PDF loaded: ${pdf.length} sets`);
+  } catch(e) { step('s1','error','Failed to load PDF data: '+e); return; }
+
+  // Group PDF by date
+  const pdfByDate = {};
+  const pdfDayByDate = {};
+  for (const s of pdf) {
+    const d = s.date||s.Date||'';
+    if (!d) continue;
+    pdfByDate[d] = (pdfByDate[d]||0) + 1;
+    if (!pdfDayByDate[d] && (s.day||s.Day)) pdfDayByDate[d] = s.day||s.Day;
+  }
+
+  // Fetch AT
+  let atRecords;
+  try {
+    step('s2','running','Fetching Airtable...');
+    atRecords = await fetchAT();
+    step('s2','done',`Airtable loaded: ${atRecords.length} records`);
+  } catch(e) { step('s2','error','AT fetch failed: '+e); return; }
+
+  // Group AT by date (field fld75zYXknF0RtCWH = Date)
+  const atByDate = {};
+  for (const r of atRecords) {
+    const d = (r.fields['fld75zYXknF0RtCWH']||'').split('T')[0];
+    if (!d) continue;
+    atByDate[d] = (atByDate[d]||0) + 1;
+  }
+
+  step('s3','running','Diffing...');
+
+  // Build diff rows
+  const allDates = new Set([...Object.keys(pdfByDate), ...Object.keys(atByDate)]);
+  const rows = [];
+  for (const date of [...allDates].sort()) {
+    const pCount = pdfByDate[date]||0;
+    const aCount = atByDate[date]||0;
+    const diff = aCount - pCount;
+    let status;
+    if (pCount === 0) status = 'extra';
+    else if (aCount === 0) status = 'missing';
+    else if (pCount === aCount) status = 'match';
+    else status = 'off';
+    rows.push({date, day: pdfDayByDate[date]||'', pCount, aCount, diff, status});
+  }
+  allRows = rows;
+
+  step('s3','done','Diff complete');
+
+  // Summary
+  const counts = {match:0,off:0,missing:0,extra:0};
+  for (const r of rows) counts[r.status]++;
+  document.getElementById('summary').innerHTML = `
+    <div class="card ok"><div class="num">${counts.match}</div><div class="lbl">Dates Match</div></div>
+    <div class="card warn"><div class="num">${counts.off}</div><div class="lbl">Count Mismatch</div></div>
+    <div class="card bad"><div class="num">${counts.missing}</div><div class="lbl">Missing from AT</div></div>
+    <div class="card"><div class="num">${counts.extra}</div><div class="lbl">Extra in AT</div></div>
+    <div class="card"><div class="num">${rows.length}</div><div class="lbl">Total Dates</div></div>
+  `;
+
+  renderTable(rows);
+  document.getElementById('results').style.display = 'block';
+}
+
+function renderTable(rows) {
+  const tbody = document.getElementById('tbody');
+  tbody.innerHTML = rows.map(r => `
+    <tr class="${r.status}">
+      <td>${r.date}</td>
+      <td>${r.day||'—'}</td>
+      <td>${r.pCount||'—'}</td>
+      <td>${r.aCount||'—'}</td>
+      <td class="diff">${r.status==='match'?'✓':r.diff>0?'+'+r.diff:r.diff}</td>
+      <td>${r.status==='match'?'✅ Match':r.status==='off'?'⚠️ Mismatch':r.status==='missing'?'❌ Not in AT':'➕ AT only'}</td>
+    </tr>`).join('');
+}
+
+function filter(type, btn) {
+  document.querySelectorAll('.filter-bar button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderTable(type==='all'?allRows:allRows.filter(r=>r.status===type));
+}
+
+run();
+</script>
+</body>
+</html>
