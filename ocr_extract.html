@@ -2,78 +2,100 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Workout OCR Extractor</title>
+<title>Workout OCR</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,sans-serif;background:#0f0f0f;color:#e0e0e0;padding:20px}
-h1{font-size:1.3rem;color:#fff;margin-bottom:4px}
-.sub{color:#888;font-size:0.82rem;margin-bottom:20px}
-.progress{background:#1a1a1a;border:1px solid #333;border-radius:8px;padding:16px;margin-bottom:20px}
-.prog-bar-wrap{background:#333;border-radius:4px;height:8px;margin:10px 0}
-.prog-bar{background:#3b82f6;height:8px;border-radius:4px;width:0%;transition:width .3s}
-.prog-label{font-size:0.9rem;color:#fff;font-weight:600}
-.prog-sub{font-size:0.75rem;color:#666;margin-top:4px}
-.summary{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:20px;display:none}
-.scard{background:#1a1a1a;border:1px solid #333;border-radius:8px;padding:14px;min-width:120px}
-.scard .n{font-size:1.8rem;font-weight:700}
-.scard .l{font-size:0.72rem;color:#666;margin-top:2px}
-.n.ok{color:#4ade80}.n.bad{color:#f87171}.n.warn{color:#facc15}
-.page-cards{display:flex;flex-direction:column;gap:12px}
-.card{background:#1a1a1a;border:1px solid #333;border-radius:8px;overflow:hidden}
-.card-hdr{padding:10px 16px;background:#222;display:flex;align-items:center;gap:10px;border-bottom:1px solid #333}
-.pg{font-size:0.72rem;color:#666;font-family:monospace}
-.dates{font-size:0.9rem;font-weight:600;color:#fff;flex:1}
-.badge{font-size:0.72rem;padding:3px 10px;border-radius:12px}
-.b-ok{background:#052e16;color:#4ade80}.b-err{background:#2d0a0a;color:#f87171}.b-proc{background:#1c1700;color:#facc15}
-.card-body{display:grid;grid-template-columns:42% 58%;min-height:300px}
-.img-side{border-right:1px solid #333;padding:8px;background:#111}
-.img-side img{width:100%;height:auto;display:block}
-.data-side{padding:12px;overflow-y:auto;max-height:600px}
-.tbl{width:100%;border-collapse:collapse;font-size:0.78rem}
-.tbl th{font-size:0.68rem;color:#666;text-transform:uppercase;letter-spacing:0.5px;padding:4px 6px;text-align:left;border-bottom:1px solid #222}
-.tbl td{padding:3px 4px;border-bottom:1px solid #1a1a1a}
-.tbl td input{background:#111;border:1px solid #2a2a2a;color:#e0e0e0;padding:2px 5px;border-radius:3px;font-size:0.77rem;width:100%}
+body{font-family:-apple-system,sans-serif;background:#0f0f0f;color:#e0e0e0;padding:20px;font-size:13px}
+h1{color:#fff;font-size:1.2rem;margin-bottom:4px}
+.sub{color:#666;font-size:0.8rem;margin-bottom:16px}
+.controls{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center}
+select,button{padding:7px 14px;border-radius:6px;border:1px solid #444;background:#222;color:#e0e0e0;font-size:0.82rem;cursor:pointer}
+button:hover{background:#333} button.primary{background:#3b82f6;border-color:#3b82f6;color:#fff}
+button.primary:hover{background:#2563eb} button.success{background:#16a34a;border-color:#16a34a;color:#fff}
+button:disabled{opacity:.4;cursor:not-allowed}
+.prog-wrap{background:#1a1a1a;border:1px solid #333;border-radius:8px;padding:14px;margin-bottom:16px;display:none}
+.prog-bar-bg{background:#333;border-radius:4px;height:6px;margin:8px 0}
+.prog-bar{background:#3b82f6;height:6px;border-radius:4px;width:0%;transition:width .2s}
+.prog-lbl{font-size:0.82rem;color:#aaa}
+.stats{display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.stat{background:#1a1a1a;border:1px solid #333;border-radius:6px;padding:10px 16px}
+.stat .n{font-size:1.5rem;font-weight:700} .stat .l{font-size:0.7rem;color:#666;margin-top:2px}
+.n.g{color:#4ade80}.n.r{color:#f87171}.n.y{color:#facc15}
+.page-grid{display:flex;flex-direction:column;gap:10px}
+.pcard{background:#1a1a1a;border:1px solid #333;border-radius:8px;overflow:hidden}
+.pcard-hdr{padding:8px 14px;background:#1e1e1e;display:flex;align-items:center;gap:10px;border-bottom:1px solid #2a2a2a;cursor:pointer}
+.pcard-hdr:hover{background:#252525}
+.phdr-pg{font-size:0.7rem;color:#555;font-family:monospace;min-width:60px}
+.phdr-date{font-size:0.88rem;font-weight:600;color:#fff;flex:1}
+.phdr-badge{font-size:0.7rem;padding:2px 8px;border-radius:10px}
+.b-ok{background:#052e16;color:#4ade80}.b-err{background:#2d0a0a;color:#f87171}
+.b-proc{background:#1c1700;color:#facc15}.b-push{background:#0c1a3a;color:#60a5fa}
+.pcard-body{display:none;grid-template-columns:44% 56%}
+.pcard-body.open{display:grid}
+.img-col{border-right:1px solid #2a2a2a;padding:8px;background:#111}
+.img-col img{width:100%;height:auto;display:block}
+.data-col{padding:10px;overflow-y:auto;max-height:580px}
+.tbl{width:100%;border-collapse:collapse;font-size:0.77rem;margin-bottom:8px}
+.tbl th{font-size:0.67rem;color:#555;text-transform:uppercase;letter-spacing:0.4px;padding:4px 5px;text-align:left;border-bottom:1px solid #252525;white-space:nowrap}
+.tbl td{padding:2px 3px;border-bottom:1px solid #1e1e1e}
+.tbl td input{background:#111;border:1px solid #252525;color:#e0e0e0;padding:2px 4px;border-radius:3px;font-size:0.76rem;width:100%;min-width:30px}
 .tbl td input:focus{outline:none;border-color:#3b82f6}
 .tbl tr:hover td{background:#161616}
-.del-btn{background:none;border:none;color:#444;cursor:pointer;font-size:0.9rem;padding:1px 4px}
-.del-btn:hover{color:#f87171}
-.add-row{font-size:0.75rem;color:#3b82f6;background:none;border:none;cursor:pointer;padding:6px 0;display:block}
-.add-row:hover{color:#60a5fa}
-.push-btn{background:#3b82f6;color:#fff;border:none;border-radius:6px;padding:8px 18px;font-size:0.82rem;cursor:pointer;margin-top:10px;font-weight:600;display:block;width:100%}
-.push-btn:hover{background:#2563eb}
-.push-btn:disabled{background:#222;color:#555;cursor:not-allowed}
-.push-btn.done{background:#16a34a}
-.err-box{background:#2d0a0a;border:1px solid #7f1d1d;border-radius:6px;padding:10px;font-size:0.78rem;color:#fca5a5;margin-top:8px}
-.retry-btn{background:#7f1d1d;color:#fca5a5;border:none;border-radius:4px;padding:4px 10px;font-size:0.75rem;cursor:pointer;margin-top:6px}
+.delbtn{background:none;border:none;color:#444;cursor:pointer;font-size:0.85rem;line-height:1;padding:1px 3px}
+.delbtn:hover{color:#f87171}
+.add-row-btn{font-size:0.73rem;color:#3b82f6;background:none;border:none;cursor:pointer;padding:4px 0;display:block;margin-top:2px}
+.push-page-btn{width:100%;padding:7px;border-radius:5px;border:none;background:#3b82f6;color:#fff;font-size:0.8rem;font-weight:600;cursor:pointer;margin-top:8px}
+.push-page-btn:hover{background:#2563eb}
+.push-page-btn:disabled{background:#222;color:#555;cursor:not-allowed}
+.push-page-btn.done{background:#16a34a}
+.err-msg{background:#2d0a0a;color:#fca5a5;font-size:0.75rem;padding:8px;border-radius:4px;margin-top:6px}
 </style>
 </head>
 <body>
-<h1>Workout OCR Extractor — 2026</h1>
-<div class="sub">Google Vision OCR → all 40 pages auto-loaded → review & push to Airtable</div>
+<h1>Workout OCR — All Files</h1>
+<div class="sub">Vision API bounding-box parser • 152 pages • W1(48) + W2(64) + W3(40)</div>
 
-<div class="progress" id="progressBox">
-  <div class="prog-label" id="progLabel">Starting...</div>
-  <div class="prog-bar-wrap"><div class="prog-bar" id="progBar"></div></div>
-  <div class="prog-sub" id="progSub">Loading pages...</div>
+<div class="controls">
+  <select id="fileSelect">
+    <option value="w1">W1 — 2024/2025 (48 pages)</option>
+    <option value="w2">W2 — 2025 (64 pages)</option>
+    <option value="w3" selected>W3 — 2026 (40 pages)</option>
+  </select>
+  <button class="primary" id="startBtn" onclick="startFile()">▶ Run OCR</button>
+  <button onclick="pushAll()" id="pushAllBtn" disabled>Push All Extracted → AT</button>
 </div>
 
-<div class="summary" id="summary">
-  <div class="scard"><div class="n ok" id="sOk">0</div><div class="l">Pages OK</div></div>
-  <div class="scard"><div class="n bad" id="sErr">0</div><div class="l">Errors</div></div>
-  <div class="scard"><div class="n ok" id="sSets">0</div><div class="l">Sets Extracted</div></div>
-  <div class="scard"><div class="n warn" id="sPushed">0</div><div class="l">Sets Pushed</div></div>
+<div class="prog-wrap" id="progWrap">
+  <div class="prog-lbl" id="progLbl">Starting...</div>
+  <div class="prog-bar-bg"><div class="prog-bar" id="progBar"></div></div>
+  <div style="font-size:0.72rem;color:#555;margin-top:4px" id="progSub"></div>
 </div>
 
-<div class="page-cards" id="cards"></div>
+<div class="stats">
+  <div class="stat"><div class="n g" id="sOk">0</div><div class="l">Pages Done</div></div>
+  <div class="stat"><div class="n r" id="sErr">0</div><div class="l">Errors</div></div>
+  <div class="stat"><div class="n g" id="sSets">0</div><div class="l">Sets Extracted</div></div>
+  <div class="stat"><div class="n y" id="sPushed">0</div><div class="l">Sets Pushed</div></div>
+</div>
+
+<div class="page-grid" id="pageGrid"></div>
 
 <script>
 const VISION_KEY = 'AIzaSyD4qdnRn9LVzC8Nm55GYpsL3rjYe82MCCs';
 const AT_TOKEN = 'pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
 const AT_BASE = 'appmHDG4TGT1xy6R6';
 const AT_TABLE = 'tblKDqjy5RzqaJvjr';
-const BASE_URL = 'https://mikeblack001.github.io/health-protocol/w3_pages/';
+const BASE = 'https://mikeblack001.github.io/health-protocol/';
 
-const DATE_MAP = {
+// File configs
+const FILES = {
+  w1: { dir:'w1_pages', pages:48, label:'W1 2024/2025' },
+  w2: { dir:'w2_pages', pages:64, label:'W2 2025' },
+  w3: { dir:'w3_pages', pages:40, label:'W3 2026' }
+};
+
+// Date maps — right-column dates confirmed from prior visual inspection
+const W3_DATES = {
   1:'2026-01-05',2:'2026-01-06',3:'2026-01-07',4:'2026-01-08',5:'2026-01-09',
   6:'2026-01-12',7:'2026-01-13',8:'2026-01-14',9:'2026-01-15',10:'2026-01-16',
   11:'2026-01-19',12:'2026-01-20',13:'2026-01-21',14:'2026-01-22',15:'2026-01-23',
@@ -83,230 +105,366 @@ const DATE_MAP = {
   31:'2026-02-16',32:'2026-02-17',33:'2026-04-27',34:'2026-04-28',35:'2026-04-29',
   36:'2026-04-30',37:'2026-05-11',38:'2026-05-12',39:'2026-05-18',40:'2026-05-20'
 };
-const DAY_MAP = {
-  1:'Push',2:'Pull',3:'Legs',4:'Arms',5:'Shoulders',
-  6:'Push',7:'Pull',8:'Legs',9:'Arms',10:'Shoulders',
-  11:'Push',12:'Pull',13:'Legs',14:'Arms',15:'Shoulders',
-  16:'Push',17:'Pull',18:'Legs',19:'Arms',20:'Shoulders',
-  21:'Push',22:'Pull',23:'Legs',24:'Arms',25:'Shoulders',
-  26:'Push',27:'Pull',28:'Legs',29:'Arms',30:'Shoulders',
-  31:'Push',32:'Pull',33:'Arms',34:'Push',35:'Pull',
-  36:'Legs',37:'Push',38:'Pull',39:'Push',40:'Pull'
-};
+// W1 and W2 dates will be read from the pages themselves (date is written on each page)
+// For now use placeholder — OCR will extract actual date from the page header
+const DATE_MAPS = { w1: null, w2: null, w3: W3_DATES };
 
-let totalOk=0, totalErr=0, totalSets=0, totalPushed=0;
-const pageStore = {};
+let totalOk=0,totalErr=0,totalSets=0,totalPushed=0;
+const allPageSets = {}; // pageId -> [{...}]
 
-async function imgToB64(url) {
-  const r = await fetch(url);
-  const blob = await r.blob();
-  return new Promise(res => {
-    const reader = new FileReader();
-    reader.onloadend = () => res(reader.result.split(',')[1]);
-    reader.readAsDataURL(blob);
-  });
+function stat(id,v){document.getElementById(id).textContent=v;}
+
+async function imgToB64(url){
+  const r=await fetch(url);
+  const blob=await r.blob();
+  return new Promise(res=>{const fr=new FileReader();fr.onloadend=()=>res(fr.result.split(',')[1]);fr.readAsDataURL(blob);});
 }
 
-async function runVision(b64) {
-  const r = await fetch(`https://vision.googleapis.com/v1/images:annotate?key=${VISION_KEY}`, {
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({requests:[{image:{content:b64},features:[{type:'DOCUMENT_TEXT_DETECTION'}]}]})
-  });
-  const d = await r.json();
-  if (d.error) throw new Error(d.error.message);
-  return d.responses[0]?.fullTextAnnotation?.text || '';
-}
+// Core bounding-box parser
+function parseVisionResponse(resp, pageNum, fileKey) {
+  const annotation = resp.fullTextAnnotation;
+  if (!annotation) return [];
 
-function parseText(text, pageNum) {
-  const date = DATE_MAP[pageNum];
-  const day = DAY_MAP[pageNum];
-  const lines = text.split('\n').map(l=>l.trim()).filter(Boolean);
-  const sets = [];
-
-  const KNOWN = ['Wrist Twist','Bench Press','Incline Press','Decline Press','Incline Fly',
-    'Lateral Raises','Seated Shoulder Press','Tricep Pushdowns','Overhead Tricep Ext',
-    'High Cable Fly','Cable Cross Overs','Cable Crossovers','Lat Pulldown','Bent Over Rows',
-    'Barbell Bent Over Rows','Cable Rows','Face Pulls','Rear Delt Raises','Bicep Curls',
-    'Hammer Curls','Barbell Shrugs','Cable Shrugs','Cable Curls','Leg Press',
-    'Leg Extensions','Leg Curls','Hip Thrust','Nordic Curl','Reverse Hyper',
-    'DB Calf Raises','Smith Mach Calf Raises','Back Extension','Cable Press',
-    'Low Cable Fly','Incline Curls','Overhead Tricep Press','Curls','Tricep Ext Down',
-    'Tricep Ext Up','Forearm Raise'];
-
-  let curEx = null, setNum = 0;
-  for (const line of lines) {
-    const up = line.toUpperCase();
-    const found = KNOWN.find(ex => up.includes(ex.toUpperCase()));
-    if (found) { curEx = found; setNum = 0; continue; }
-    if (!curEx) continue;
-
-    // Extract numbers — looking for reps + weight pattern
-    const nums = [...line.matchAll(/\b(\d{1,3})\b/g)].map(m=>parseInt(m[1]));
-    if (nums.length >= 2) {
-      for (let i=0; i+1<nums.length; i+=2) {
-        const reps=nums[i], wt=nums[i+1];
-        if (reps>=1 && reps<=50 && wt>=1 && wt<=999) {
-          setNum++;
-          sets.push({date,day,session:`${date} ${day}`,exercise:curEx,variation:'',set_number:setNum,reps,weight:wt});
+  // Collect all words with their bounding box center
+  const words = [];
+  for (const page of annotation.pages||[]) {
+    for (const block of page.blocks||[]) {
+      for (const para of block.paragraphs||[]) {
+        for (const word of para.words||[]) {
+          const text = word.symbols.map(s=>s.text).join('');
+          const verts = word.boundingBox?.vertices||[];
+          if (verts.length<2) continue;
+          const xs = verts.map(v=>v.x||0);
+          const ys = verts.map(v=>v.y||0);
+          const cx = (Math.min(...xs)+Math.max(...xs))/2;
+          const cy = (Math.min(...ys)+Math.max(...ys))/2;
+          words.push({text, cx, cy, x0:Math.min(...xs), x1:Math.max(...xs)});
         }
       }
     }
   }
+
+  if (!words.length) return [];
+
+  // Group words into rows by y proximity (±12px = same row)
+  words.sort((a,b)=>a.cy-b.cy);
+  const rows = [];
+  let curRow = [words[0]];
+  for (let i=1;i<words.length;i++){
+    if (Math.abs(words[i].cy - curRow[curRow.length-1].cy) < 14) {
+      curRow.push(words[i]);
+    } else {
+      rows.push([...curRow].sort((a,b)=>a.cx-b.cx));
+      curRow=[words[i]];
+    }
+  }
+  if (curRow.length) rows.push([...curRow].sort((a,b)=>a.cx-b.cx));
+
+  // Find date from the page if not in date map
+  let pageDate = DATE_MAPS[fileKey]?.[pageNum] || null;
+  let pageDay = '';
+
+  // Try to extract date from page content
+  if (!pageDate) {
+    // Look for date patterns: M/D, MM/DD, or written dates
+    for (const row of rows) {
+      const txt = row.map(w=>w.text).join(' ');
+      // Match patterns like 10/28, 1/5, 11/4 etc
+      const m = txt.match(/(\d{1,2})\/(\d{1,2})/);
+      if (m) {
+        // Determine year from file
+        const yr = fileKey==='w1'?'2024':fileKey==='w2'?'2025':'2026';
+        pageDate = `${yr}-${String(m[1]).padStart(2,'0')}-${String(m[2]).padStart(2,'0')}`;
+        break;
+      }
+    }
+  }
+  if (!pageDate) pageDate = '1900-01-01'; // fallback — will be visible as wrong
+
+  // Detect day type from row text
+  for (const row of rows) {
+    const txt = row.map(w=>w.text).join(' ').toLowerCase();
+    if (txt.includes('monday')||txt.includes('push')) pageDay='Push';
+    else if (txt.includes('tuesday')||txt.includes('pull')) pageDay='Pull';
+    else if (txt.includes('wednesday')||txt.includes('legs')) pageDay='Legs';
+    else if (txt.includes('thursday')||txt.includes('arms')) pageDay='Arms';
+    else if (txt.includes('friday')||txt.includes('shoulder')) pageDay='Shoulders';
+    if (pageDay) break;
+  }
+  if (!pageDay) pageDay = 'Push';
+
+  // Known exercises (canonical names)
+  const EXERCISES = [
+    'Wrist Twist','Bench Press','Incline Press','Decline Press','Incline Fly',
+    'Lateral Raises','Seated Shoulder Press','Tricep Pushdowns','Overhead Tricep Ext',
+    'High Cable Fly','Cable Cross Overs','Lat Pulldown','Bent Over Rows',
+    'Barbell Bent Over Rows','Cable Rows','Face Pulls','Rear Delt Raises',
+    'Bicep Curls','Hammer Curls','Barbell Shrugs','Cable Shrugs','Cable Curls',
+    'Leg Press','Leg Extensions','Leg Curls','Hip Thrust','Nordic Curl',
+    'Reverse Hyper','DB Calf Raises','Smith Mach Calf Raises','Back Extension',
+    'Cable Press','Low Cable Fly','Incline Curls','Overhead Tricep Press',
+    'Curls','Tricep Ext Down','Tricep Ext Up','Forearm Raise'
+  ];
+
+  function matchExercise(rowText) {
+    const up = rowText.toUpperCase();
+    return EXERCISES.find(ex=>up.includes(ex.toUpperCase()))||null;
+  }
+
+  // Find table x-boundaries by locating header row ("Reps" and "Weight" words)
+  let repsXs=[], weightXs=[];
+  for (const row of rows) {
+    const rowTxt = row.map(w=>w.text).join(' ');
+    if (/reps/i.test(rowTxt) && /weight/i.test(rowTxt)) {
+      for (const w of row) {
+        if (/reps/i.test(w.text)) repsXs.push(w.cx);
+        if (/weight/i.test(w.text)) weightXs.push(w.cx);
+      }
+      if (repsXs.length>=2) break;
+    }
+  }
+
+  // Determine column positions: each set has [SetNum, Reps, Weight]
+  // Typically 3 sets per exercise row
+  // If we found header positions, use them; otherwise use defaults
+  const pageWidth = Math.max(...words.map(w=>w.cx), 950);
+
+  // Default column positions (normalized from typical 952px page)
+  // These are the x-centers of each column
+  const colRanges = repsXs.length>=2 ? [
+    // Dynamic — use found header positions ±30px
+    ...repsXs.map((x,i)=>({type:'reps',cx:x,set:i+1})),
+    ...weightXs.map((x,i)=>({type:'weight',cx:x,set:i+1}))
+  ] : [
+    // Static fallback
+    {type:'reps',cx:pageWidth*0.40,set:1},{type:'weight',cx:pageWidth*0.49,set:1},
+    {type:'reps',cx:pageWidth*0.59,set:2},{type:'weight',cx:pageWidth*0.68,set:2},
+    {type:'reps',cx:pageWidth*0.78,set:3},{type:'weight',cx:pageWidth*0.87,set:3}
+  ];
+  colRanges.sort((a,b)=>a.cx-b.cx);
+
+  function getNearestCol(cx) {
+    let best=null, bestDist=999;
+    for (const col of colRanges) {
+      const d=Math.abs(cx-col.cx);
+      if (d<bestDist){bestDist=d;best=col;}
+    }
+    return bestDist<60?best:null;
+  }
+
+  // Parse exercise rows
+  const sets=[];
+  for (const row of rows) {
+    const rowTxt = row.map(w=>w.text).join(' ');
+    const ex = matchExercise(rowTxt);
+    if (!ex) continue;
+
+    // Variation: text between exercise name end and first number column
+    const exWord = row.find(w=>rowTxt.toUpperCase().includes(w.text.toUpperCase())&&w.text.length>2);
+    const exEndX = exWord ? exWord.x1+100 : pageWidth*0.30;
+    const varEndX = pageWidth*0.38;
+
+    const variationWords = row.filter(w=>w.cx>exEndX && w.cx<varEndX && !/^\d+$/.test(w.text));
+    const variation = variationWords.map(w=>w.text).join(' ').trim();
+
+    // Extract numbers and assign to columns
+    const numWords = row.filter(w=>/^\d+$/.test(w.text));
+    const setData = {}; // set# -> {reps, weight}
+
+    for (const nw of numWords) {
+      const col = getNearestCol(nw.cx);
+      if (!col) continue;
+      const n = parseInt(nw.text);
+      if (!setData[col.set]) setData[col.set]={};
+      if (col.type==='reps') setData[col.set].reps=n;
+      else setData[col.set].weight=n;
+    }
+
+    // Emit one record per set that has both reps and weight
+    for (const [setNum, sd] of Object.entries(setData)) {
+      if (sd.reps && sd.weight && sd.reps>=1 && sd.reps<=50 && sd.weight>=1 && sd.weight<=999) {
+        const session=`${pageDate} ${pageDay}`;
+        const setId=`${pageDate}-${ex.replace(/[\s\/]+/g,'-').substring(0,12)}-${setNum}`;
+        sets.push({SetID:setId,Date:pageDate,Session:session,Exercise:ex,
+          Variation:variation,SetNum:parseInt(setNum),Reps:sd.reps,Weight:sd.weight,Day:pageDay});
+      }
+    }
+  }
+
   return sets;
 }
 
-function mkInput(val, cls='') {
-  return `<input class="${cls}" value="${String(val).replace(/"/g,'&quot;')}">`;
-}
-
-function renderTable(sets, pageNum) {
-  if (!sets.length) return '<div style="color:#555;padding:10px;font-size:0.8rem">No sets parsed — add manually below</div>';
-  let rows = sets.map((s,i) => `<tr id="sr-${pageNum}-${i}">
-    <td>${mkInput(s.exercise)}</td>
-    <td>${mkInput(s.variation)}</td>
-    <td>${mkInput(s.set_number)}</td>
-    <td>${mkInput(s.reps)}</td>
-    <td>${mkInput(s.weight)}</td>
-    <td><button class="del-btn" onclick="delRow('sr-${pageNum}-${i}')">×</button></td>
-  </tr>`).join('');
-  return `<table class="tbl"><thead><tr>
-    <th>Exercise</th><th>Variation</th><th>Set#</th><th>Reps</th><th>Wt</th><th></th>
-  </tr></thead><tbody id="tbody-${pageNum}">${rows}</tbody></table>
-  <button class="add-row" onclick="addRow(${pageNum})">+ Add row</button>`;
-}
-
-function delRow(id) { const el=document.getElementById(id); if(el) el.remove(); }
-
-function addRow(pageNum) {
-  const tb = document.getElementById(`tbody-${pageNum}`);
-  if (!tb) return;
-  const i = tb.children.length;
-  const tr = document.createElement('tr');
-  tr.id = `sr-${pageNum}-${i}`;
-  tr.innerHTML = `<td>${mkInput('')}</td><td>${mkInput('')}</td><td>${mkInput(i+1)}</td><td>${mkInput('')}</td><td>${mkInput('')}</td><td><button class="del-btn" onclick="delRow('sr-${pageNum}-${i}')">×</button></td>`;
-  tb.appendChild(tr);
-}
-
-async function pushPage(pageNum) {
-  const btn = document.getElementById(`pbtn-${pageNum}`);
-  btn.disabled = true;
-  const date = DATE_MAP[pageNum];
-  const day = DAY_MAP[pageNum];
-  const session = `${date} ${day}`;
-  const tb = document.getElementById(`tbody-${pageNum}`);
-  if (!tb) { btn.textContent='No table'; return; }
-
-  const records = [];
-  tb.querySelectorAll('tr').forEach((tr,idx) => {
-    const inputs = tr.querySelectorAll('input');
-    if (inputs.length < 5) return;
-    const ex = inputs[0].value.trim();
-    const vari = inputs[1].value.trim();
-    const sn = parseInt(inputs[2].value)||1;
-    const reps = parseInt(inputs[3].value)||0;
-    const wt = parseFloat(inputs[4].value)||0;
-    if (!ex || !reps) return;
-    const setId = `${date}-${ex.replace(/\s+/g,'-').replace(/\//g,'').substring(0,12)}-${sn}`;
-    records.push({fields:{
-      'fld4hUpEzC9IqN0xh':setId,
-      'fld75zYXknF0RtCWH':date,
-      'fldBChNmPkNg61oTN':session,
-      'fldZ93A1t7fGjjsSS':ex,
-      'fld2TZdmCOloH0gAK':vari,
-      'fldNm9Ao0rmcwwDXo':sn,
-      'fldelUngWHRTm48m1':reps,
-      'fldmrbBmfgSMtREMt':wt,
-      'fldypzlwqw9AzWrEE':day
-    }});
-  });
-
-  if (!records.length) { btn.textContent='Nothing to push'; return; }
-  let pushed=0;
-  for (let i=0;i<records.length;i+=10) {
-    const batch=records.slice(i,i+10);
-    btn.textContent=`Pushing ${i}/${records.length}...`;
-    const r = await fetch(`https://api.airtable.com/v0/${AT_BASE}/${AT_TABLE}`,{
-      method:'POST',headers:{'Authorization':'Bearer '+AT_TOKEN,'Content-Type':'application/json'},
-      body:JSON.stringify({records:batch,typecast:true})
-    });
-    const d=await r.json();
-    if (d.error){btn.textContent='Error: '+d.error.message;btn.disabled=false;return;}
-    pushed+=batch.length;
-  }
-  btn.className='push-btn done';
-  btn.textContent=`✓ Pushed ${pushed} sets`;
-  totalPushed+=pushed;
-  document.getElementById('sPushed').textContent=totalPushed;
-  const badge=document.querySelector(`#card-${pageNum} .badge`);
-  if(badge){badge.className='badge b-ok';badge.textContent=`✓ Pushed ${pushed}`;}
-}
-
-async function processPage(pageNum) {
-  const url = `${BASE_URL}${pageNum}.jpeg`;
-  const date = DATE_MAP[pageNum]||'?';
-  const day = DAY_MAP[pageNum]||'?';
-
-  // Create card immediately with loading state
-  const card = document.createElement('div');
-  card.className='card'; card.id=`card-${pageNum}`;
-  card.innerHTML=`
-    <div class="card-hdr">
-      <span class="pg">Page ${pageNum}</span>
-      <span class="dates">${date} — ${day}</span>
-      <span class="badge b-proc" id="badge-${pageNum}">⏳ Processing</span>
-    </div>
-    <div class="card-body">
-      <div class="img-side"><img src="${url}" alt="Page ${pageNum}" loading="lazy"></div>
-      <div class="data-side" id="ds-${pageNum}"><div style="color:#555;padding:20px;font-size:0.8rem">Running Vision OCR...</div></div>
-    </div>`;
-  document.getElementById('cards').appendChild(card);
+async function processSinglePage(fileKey, pageNum) {
+  const cfg = FILES[fileKey];
+  const url = `${BASE}${cfg.dir}/${pageNum}.jpeg`;
+  const pageId = `${fileKey}-${pageNum}`;
 
   try {
     const b64 = await imgToB64(url);
-    const text = await runVision(b64);
-    const sets = parseText(text, pageNum);
-    pageStore[pageNum] = sets;
-    totalSets += sets.length;
-    totalOk++;
-    document.getElementById('sOk').textContent=totalOk;
-    document.getElementById('sSets').textContent=totalSets;
-    document.getElementById(`ds-${pageNum}`).innerHTML=renderTable(sets,pageNum)+`<button class="push-btn" id="pbtn-${pageNum}" onclick="pushPage(${pageNum})">Push Page ${pageNum} → Airtable</button>`;
-    document.getElementById(`badge-${pageNum}`).className='badge b-ok';
-    document.getElementById(`badge-${pageNum}`).textContent=`✓ ${sets.length} sets`;
+    const r = await fetch(`https://vision.googleapis.com/v1/images:annotate?key=${VISION_KEY}`,{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({requests:[{image:{content:b64},features:[{type:'DOCUMENT_TEXT_DETECTION'}]}]})
+    });
+    const d = await r.json();
+    if (d.error) throw new Error(d.error.message);
+    const sets = parseVisionResponse(d.responses[0], pageNum, fileKey);
+    allPageSets[pageId] = sets;
+    totalOk++; totalSets+=sets.length;
+    stat('sOk',totalOk); stat('sSets',totalSets);
+    return {ok:true, sets, url};
   } catch(e) {
     totalErr++;
-    document.getElementById('sErr').textContent=totalErr;
-    document.getElementById(`ds-${pageNum}`).innerHTML=`<div class="err-box">${e.message}<br><button class="retry-btn" onclick="retryPage(${pageNum})">Retry</button></div>`;
-    document.getElementById(`badge-${pageNum}`).className='badge b-err';
-    document.getElementById(`badge-${pageNum}`).textContent='⚠ Error';
+    stat('sErr',totalErr);
+    return {ok:false, error:e.message, url};
   }
 }
 
-async function retryPage(pageNum) {
-  document.getElementById(`ds-${pageNum}`).innerHTML='<div style="color:#555;padding:20px;font-size:0.8rem">Retrying...</div>';
-  await processPage(pageNum);
+function renderPageCard(fileKey, pageNum, result) {
+  const pageId = `${fileKey}-${pageNum}`;
+  const cfg = FILES[fileKey];
+  const sets = result.sets||[];
+  const date = DATE_MAPS[fileKey]?.[pageNum] || (sets[0]?.Date||'?');
+  const day = sets[0]?.Day||'';
+
+  const badge = result.ok
+    ? `<span class="phdr-badge b-ok">✓ ${sets.length} sets</span>`
+    : `<span class="phdr-badge b-err">⚠ Error</span>`;
+
+  const tableHTML = sets.length ? `
+    <table class="tbl">
+      <thead><tr><th>Exercise</th><th>Var</th><th>Set#</th><th>Reps</th><th>Wt</th><th></th></tr></thead>
+      <tbody id="tb-${pageId}">${sets.map((s,i)=>`
+        <tr id="row-${pageId}-${i}">
+          <td><input value="${s.Exercise}"></td>
+          <td><input value="${s.Variation||''}"></td>
+          <td><input value="${s.SetNum}" style="width:36px"></td>
+          <td><input value="${s.Reps}" style="width:44px"></td>
+          <td><input value="${s.Weight}" style="width:52px"></td>
+          <td><button class="delbtn" onclick="this.closest('tr').remove()">×</button></td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+    <button class="add-row-btn" onclick="addRow('${pageId}','${date}','${day}')">+ Add row</button>` :
+    `<div style="color:#555;padding:10px;font-size:0.78rem">${result.error||'No sets extracted'}</div>
+     <button class="add-row-btn" onclick="addRow('${pageId}','${date}','${day}')">+ Add row</button>`;
+
+  const card = document.createElement('div');
+  card.className='pcard'; card.id=`pcard-${pageId}`;
+  card.innerHTML=`
+    <div class="pcard-hdr" onclick="toggleCard('${pageId}')">
+      <span class="phdr-pg">${cfg.label} p${pageNum}</span>
+      <span class="phdr-date">${date}${day?' — '+day:''}</span>
+      ${badge}
+    </div>
+    <div class="pcard-body" id="body-${pageId}">
+      <div class="img-col"><img src="${result.url}" loading="lazy"></div>
+      <div class="data-col">
+        ${tableHTML}
+        <button class="push-page-btn" id="ppbtn-${pageId}" onclick="pushPageData('${pageId}','${date}','${day}')">
+          Push → Airtable
+        </button>
+      </div>
+    </div>`;
+  document.getElementById('pageGrid').appendChild(card);
 }
 
-async function run() {
-  document.getElementById('summary').style.display='flex';
-  const pages = Array.from({length:40},(_,i)=>i+1);
+function toggleCard(pageId) {
+  const body = document.getElementById(`body-${pageId}`);
+  body.classList.toggle('open');
+}
 
-  // Process 3 at a time to avoid rate limits
-  for (let i=0; i<pages.length; i+=3) {
-    const batch = pages.slice(i, i+3);
-    document.getElementById('progLabel').textContent=`Processing pages ${batch[0]}–${batch[batch.length-1]} of 40`;
-    document.getElementById('progBar').style.width=(i/pages.length*100)+'%';
-    document.getElementById('progSub').textContent=`${i} of 40 complete`;
-    await Promise.all(batch.map(p=>processPage(p)));
-    await new Promise(r=>setTimeout(r,500)); // small delay between batches
+function addRow(pageId, date, day) {
+  const tb = document.getElementById(`tb-${pageId}`);
+  if (!tb) {
+    // Create table first
+    const dc = document.querySelector(`#body-${pageId} .data-col`);
+    dc.insertAdjacentHTML('afterbegin',`<table class="tbl"><thead><tr><th>Exercise</th><th>Var</th><th>Set#</th><th>Reps</th><th>Wt</th><th></th></tr></thead><tbody id="tb-${pageId}"></tbody></table>`);
   }
-  document.getElementById('progLabel').textContent='All pages processed';
+  const tbody = document.getElementById(`tb-${pageId}`);
+  const i = tbody.children.length;
+  const tr = document.createElement('tr');
+  tr.id=`row-${pageId}-${i}`;
+  tr.innerHTML=`<td><input value=""></td><td><input value=""></td><td><input value="${i+1}" style="width:36px"></td><td><input value="" style="width:44px"></td><td><input value="" style="width:52px"></td><td><button class="delbtn" onclick="this.closest('tr').remove()">×</button></td>`;
+  tbody.appendChild(tr);
+}
+
+async function pushPageData(pageId, date, day) {
+  const btn = document.getElementById(`ppbtn-${pageId}`);
+  btn.disabled=true;
+  const tb = document.getElementById(`tb-${pageId}`);
+  if (!tb){btn.textContent='No data';return;}
+  const session=`${date} ${day}`;
+  const records=[];
+  tb.querySelectorAll('tr').forEach(tr=>{
+    const inp=tr.querySelectorAll('input');
+    if(inp.length<5)return;
+    const ex=inp[0].value.trim(),vari=inp[1].value.trim();
+    const sn=parseInt(inp[2].value)||1,reps=parseInt(inp[3].value)||0,wt=parseFloat(inp[4].value)||0;
+    if(!ex||!reps)return;
+    const sid=`${date}-${ex.replace(/[\s\/]+/g,'-').substring(0,12)}-${sn}`;
+    records.push({fields:{
+      'fld4hUpEzC9IqN0xh':sid,'fld75zYXknF0RtCWH':date,'fldBChNmPkNg61oTN':session,
+      'fldZ93A1t7fGjjsSS':ex,'fld2TZdmCOloH0gAK':vari,'fldNm9Ao0rmcwwDXo':sn,
+      'fldelUngWHRTm48m1':reps,'fldmrbBmfgSMtREMt':wt,'fldypzlwqw9AzWrEE':day
+    }});
+  });
+  if(!records.length){btn.textContent='Nothing';return;}
+  let pushed=0;
+  for(let i=0;i<records.length;i+=10){
+    btn.textContent=`Pushing ${pushed+1}–${Math.min(i+10,records.length)}...`;
+    const r=await fetch(`https://api.airtable.com/v0/${AT_BASE}/${AT_TABLE}`,{
+      method:'POST',headers:{'Authorization':'Bearer '+AT_TOKEN,'Content-Type':'application/json'},
+      body:JSON.stringify({records:records.slice(i,i+10),typecast:true})
+    });
+    const d=await r.json();
+    if(d.error){btn.textContent='Error: '+d.error.message;btn.disabled=false;return;}
+    pushed+=records.slice(i,i+10).length;
+  }
+  btn.className='push-page-btn done';btn.textContent=`✓ Pushed ${pushed}`;
+  totalPushed+=pushed;stat('sPushed',totalPushed);
+  document.querySelector(`#pcard-${pageId} .phdr-badge`).className='phdr-badge b-push';
+  document.querySelector(`#pcard-${pageId} .phdr-badge`).textContent=`↑ ${pushed} pushed`;
+}
+
+async function pushAll() {
+  for (const [pageId, sets] of Object.entries(allPageSets)) {
+    const btn = document.getElementById(`ppbtn-${pageId}`);
+    if (btn && !btn.classList.contains('done')) {
+      const parts = pageId.split('-');
+      const fileKey=parts[0], pageNum=parseInt(parts[1]);
+      const date = DATE_MAPS[fileKey]?.[pageNum]||sets[0]?.Date||'';
+      const day = sets[0]?.Day||'';
+      await pushPageData(pageId, date, day);
+      await new Promise(r=>setTimeout(r,200));
+    }
+  }
+}
+
+async function startFile() {
+  const fileKey = document.getElementById('fileSelect').value;
+  const cfg = FILES[fileKey];
+  document.getElementById('pageGrid').innerHTML='';
+  document.getElementById('progWrap').style.display='block';
+  document.getElementById('startBtn').disabled=true;
+  totalOk=0;totalErr=0;totalSets=0;
+  stat('sOk',0);stat('sErr',0);stat('sSets',0);
+
+  // Process 2 pages at a time
+  for(let i=1;i<=cfg.pages;i+=2){
+    const batch=[i,i+1].filter(n=>n<=cfg.pages);
+    document.getElementById('progLbl').textContent=`${cfg.label}: page ${i} / ${cfg.pages}`;
+    document.getElementById('progBar').style.width=((i-1)/cfg.pages*100)+'%';
+    document.getElementById('progSub').textContent=`${totalSets} sets extracted so far`;
+    const results = await Promise.all(batch.map(p=>processSinglePage(fileKey,p)));
+    for(let j=0;j<batch.length;j++) renderPageCard(fileKey,batch[j],results[j]);
+    await new Promise(r=>setTimeout(r,300));
+  }
+
+  document.getElementById('progLbl').textContent=`Done — ${cfg.pages} pages processed`;
   document.getElementById('progBar').style.width='100%';
-  document.getElementById('progSub').textContent='Review each page and push to Airtable';
+  document.getElementById('startBtn').disabled=false;
+  document.getElementById('pushAllBtn').disabled=false;
 }
-
-run();
 </script>
 </body>
 </html>
