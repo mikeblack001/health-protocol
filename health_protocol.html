@@ -5525,30 +5525,49 @@ async function fetchAtInjections(startDate, endDate) {
 }
 
 // ── INJECTION VERIFY ─────────────────────────────────────────────────
-var INJ_PROMPT = "You are reading a handwritten peptide injection tracking log. Each page has multiple weekly grids.\n\nEach week grid:\n- Header: \'Week X - Monday Date: M/DD\' (gives Monday date)\n- Columns: Mon, Tue, Wed, Thurs, Fri, Sat, Sun\n- Rows: compound name + dose (e.g. \'Tesamorelin - 15 units\')\n- Sections: Morning and Night\n- Cell values: L (left), R (right), S (skipped), blank (not taken)\n\nFor EVERY non-blank cell extract:\n- date: YYYY-MM-DD. Mon=Monday date, Tue=+1 day, Wed=+2, Thurs=+3, Fri=+4, Sat=+5, Sun=+6. This log starts July 2025. All dates are 2025 or 2026 — NEVER use 2024 or earlier.\n- compound: map row label to CLOSEST name from this list ONLY: CANONICAL_PLACEHOLDER\n- dose: from row label. If annotated with newer dose, use annotation.\n- side: L, R, S, or X\n- time_of_day: Morning or Night\n- notes: any handwritten notes for that row/week (new vial, dose change, start date, etc.)\n\nSkip blank cells. Return ONLY valid JSON array. No markdown.";
+var INJ_PROMPT = "You are reading a handwritten peptide injection tracking log. Each page has multiple weekly grids.\n\nEach week grid:\n- Header: \'Week X - Monday Date: M/DD\' (gives Monday date)\n- Columns: Mon, Tue, Wed, Thurs, Fri, Sat, Sun\n- Rows: compound name + dose (e.g. \'Tesamorelin - 15 units\')\n- Sections: Morning and Night\n- Cell values: L (left), R (right), S (skipped), blank (not taken)\n\nFor EVERY non-blank cell extract:\n- date: YYYY-MM-DD. Mon=Monday date, Tue=+1 day, Wed=+2, Thurs=+3, Fri=+4, Sat=+5, Sun=+6. This log starts July 28, 2025. All dates are 2025 or 2026. In 2025, valid months are 7-12 only. In 2026, valid months are 1-6 only. If you read a month 1-6 in 2025 you have misread the handwriting — re-examine carefully.\n- compound: map row label to CLOSEST name from this list ONLY: CANONICAL_PLACEHOLDER\n- dose: from row label. If annotated with newer dose, use annotation.\n- side: L, R, S, or X\n- time_of_day: Morning or Night\n- notes: any handwritten notes for that row/week (new vial, dose change, start date, etc.)\n\nSkip blank cells. Return ONLY valid JSON array. No markdown.";
 
 async function runInjectionVerification(pageIndices) {
   var batches = [];
   for (var b = 0; b < pageIndices.length; b += BATCH_SIZE) batches.push(pageIndices.slice(b, b + BATCH_SIZE));
   var prompt = INJ_PROMPT.replace("CANONICAL_PLACEHOLDER", CANONICAL_COMPOUNDS.join(", "));
-  vStatus("Running " + batches.length + " batches in parallel (" + pageIndices.length + " pages)...");
+  var totalBatches = batches.length;
+  var completedBatches = 0;
+  vStatus("⏳ 0 / " + totalBatches + " batches (max 5 concurrent)...");
 
-  // Run all batches simultaneously
-  var batchResults = await Promise.all(batches.map(async function(batch, bi) {
-    try {
-      var raw = await callClaudePages(batch, prompt);
-      var parsed = [];
-      try { parsed = JSON.parse(raw); } catch(e) {
-        // Try to salvage partial JSON
-        var trimmed = raw.replace(/,\s*$/, '').replace(/^\s*\[?/, '[');
-        if (!trimmed.endsWith(']')) trimmed += ']';
-        try { parsed = JSON.parse(trimmed); } catch(e2) { parsed = []; }
+  // Run with concurrency limit of 5 to avoid rate limits
+  var CONCURRENCY = 5;
+  var batchResults = new Array(batches.length);
+  var queue = batches.map(function(batch, bi) { return { batch: batch, bi: bi }; });
+  var active = 0;
+  await new Promise(function(resolveAll) {
+    function runNext() {
+      while (active < CONCURRENCY && queue.length > 0) {
+        var item = queue.shift();
+        active++;
+        (async function(batch, bi) {
+          try {
+            var raw = await callClaudePages(batch, prompt);
+            var parsed = [];
+            try { parsed = JSON.parse(raw); } catch(e) {
+              var trimmed = raw.replace(/,\s*$/, '').replace(/^\s*\[?/, '[');
+              if (!trimmed.endsWith(']')) trimmed += ']';
+              try { parsed = JSON.parse(trimmed); } catch(e2) { parsed = []; }
+            }
+            batchResults[bi] = { batch: bi, pages: batch, entries: Array.isArray(parsed) ? parsed : [], err: null };
+          } catch(e) {
+            batchResults[bi] = { batch: bi, pages: batch, entries: [], err: e.message };
+          }
+          completedBatches++;
+          vStatus("⏳ " + completedBatches + " / " + totalBatches + " batches complete...");
+          active--;
+          if (queue.length === 0 && active === 0) resolveAll();
+          else runNext();
+        })(item.batch, item.bi);
       }
-      return { batch: bi, pages: batch, entries: Array.isArray(parsed) ? parsed : [], err: null };
-    } catch(e) {
-      return { batch: bi, pages: batch, entries: [], err: e.message };
     }
-  }));
+    runNext();
+  });
 
   // Report per-batch results
   var batchSummary = batchResults.map(function(r) {
