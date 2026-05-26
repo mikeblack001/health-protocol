@@ -1282,7 +1282,7 @@ async function runWorkoutVerification(pageIndices) {
   if (!m || !m.tableID) { vStatus("No Airtable table mapped for workout — check Settings", "err"); return; }
   vStatus("Running Vision OCR + extraction on " + pageIndices.length + " pages...");
   var allSets = [];
-  var BATCH = 3; // pages per Claude call
+  var BATCH = BATCH_SIZE;
   for (var b = 0; b < pageIndices.length; b += BATCH) {
     var batch = pageIndices.slice(b, b + BATCH);
     vStatus("Extracting pages " + (batch[0]+1) + "–" + (batch[batch.length-1]+1) + " of " + pages.length + "...");
@@ -1297,8 +1297,8 @@ async function runWorkoutVerification(pageIndices) {
   var dates = allSets.map(function(s){ return s.date; }).filter(Boolean).sort();
   var startDate = dates[0], endDate = dates[dates.length-1];
   vStatus("Fetching Airtable sets (" + startDate + " → " + endDate + ")...");
-  var formula = encodeURIComponent("AND({Date}>='" + startDate + "',{Date}<='" + endDate + "')");
-  var url = "https://api.airtable.com/v0/" + ATB + "/" + m.tableID + "?pageSize=100&filterByFormula=" + formula;
+  var formula = encodeURIComponent("AND({fld75zYXknF0RtCWH}>='" + startDate + "',{fld75zYXknF0RtCWH}<='" + endDate + "')");
+  var url = "https://api.airtable.com/v0/" + ATB + "/" + m.tableID + "?pageSize=100&returnFieldsByFieldId=true&filterByFormula=" + formula;
   var atSets = await fetchAtPagedURL(url);
   vStatus("Comparing " + allSets.length + " PDF sets vs " + atSets.length + " AT records...");
   var rows = diffWorkoutSets(allSets, atSets);
@@ -1308,30 +1308,37 @@ async function runWorkoutVerification(pageIndices) {
 }
 
 function diffWorkoutSets(pdfSets, atRecords) {
-  // Build AT lookup: date|exercise|set# → record
+  // Field IDs for Sets table
+  var FID_DATE = "fld75zYXknF0RtCWH";
+  var FID_EX   = "fldZ93A1t7fGjjsSS";
+  var FID_SET  = "fldNm9Ao0rmcwwDXo";
+  var FID_REPS = "fldelUngWHRTm48m1";
+  var FID_WGT  = "fldmrbBmfgSMtREMt";
+  // Build AT lookup: date|exercise_lower|set# → record
   var atMap = {};
   atRecords.forEach(function(rec) {
     var f = rec.fields;
-    var date = f["Date"] || f["fld75zYXknF0RtCWH"] || "";
-    var ex = (f["Exercise"] || f["fldZ93A1t7fGjjsSS"] || "").toLowerCase().trim();
-    var setN = f["Set#"] || f["fldNm9Ao0rmcwwDXo"] || "";
-    var key = date + "|" + ex + "|" + setN;
+    var date = f[FID_DATE] || "";
+    var ex   = (f[FID_EX] || "").toLowerCase().trim();
+    var setN = String(f[FID_SET] || "");
+    var key  = date + "|" + ex + "|" + setN;
     atMap[key] = rec;
   });
   var usedIds = {};
   var rows = [];
   pdfSets.forEach(function(p) {
     if (!p.date || !p.exercise) return;
-    var key = p.date + "|" + (p.exercise||"").toLowerCase().trim() + "|" + (p.set_number||"");
+    var key = p.date + "|" + (p.exercise||"").toLowerCase().trim() + "|" + String(p.set_number||"");
     var at = atMap[key];
     if (!at) {
-      rows.push({ status: "missing", date: p.date, exercise: p.exercise, set: p.set_number, pdf: { reps: p.reps, weight: p.weight, variation: p.variation }, at: null, issues: ["Missing in AT"] });
+      rows.push({ status: "missing", date: p.date, exercise: p.exercise, set: p.set_number,
+        pdf: { reps: p.reps, weight: p.weight, variation: p.variation }, at: null, issues: ["Missing in AT"] });
     } else {
       usedIds[at.id] = true;
       var pdfW = parseFloat(p.weight) || 0;
-      var atW = parseFloat(at.fields["Weight"] || at.fields["fldmrbBmfgSMtREMt"] || 0);
+      var atW  = parseFloat(at.fields[FID_WGT] || 0);
       var pdfR = parseInt(p.reps) || 0;
-      var atR = parseInt(at.fields["Reps"] || at.fields["fldelUngWHRTm48m1"] || 0);
+      var atR  = parseInt(at.fields[FID_REPS] || 0);
       var issues = [];
       if (Math.abs(pdfW - atW) > 0.5) issues.push("Weight: PDF=" + pdfW + " AT=" + atW);
       if (pdfR !== atR && pdfR > 0 && atR > 0) issues.push("Reps: PDF=" + pdfR + " AT=" + atR);
@@ -1343,8 +1350,8 @@ function diffWorkoutSets(pdfSets, atRecords) {
   atRecords.forEach(function(rec) {
     if (!usedIds[rec.id]) {
       var f = rec.fields;
-      rows.push({ status: "extra", date: f["Date"]||"", exercise: f["Exercise"]||"", set: f["Set#"]||"",
-        pdf: null, at: { id: rec.id, reps: f["Reps"]||"", weight: f["Weight"]||"" }, issues: ["In AT not in PDF"] });
+      rows.push({ status: "extra", date: f[FID_DATE]||"", exercise: f[FID_EX]||"", set: f[FID_SET]||"",
+        pdf: null, at: { id: rec.id, reps: f[FID_REPS]||"", weight: f[FID_WGT]||"" }, issues: ["In AT not in PDF"] });
     }
   });
   rows.sort(function(a,b){ return (a.date+a.exercise+String(a.set)).localeCompare(b.date+b.exercise+String(b.set)); });
