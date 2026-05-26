@@ -177,10 +177,20 @@ select.inp{cursor:pointer}
       <span class="sbht">Library</span>
       <button class="btn bg-btn" style="padding:3px 8px;font-size:9px" onclick="loadMappedFiles()">&#8635;</button>
     </div>
+    <!-- LOCAL FILE LOADER -->
+    <div style="padding:10px 12px;border-bottom:1px solid var(--b);background:var(--s2)">
+      <div style="font-size:9px;letter-spacing:1.5px;color:var(--dd);font-family:var(--mono);margin-bottom:6px;text-transform:uppercase">Load Local PDF</div>
+      <select id="localTypeSelect" style="width:100%;margin-bottom:6px;font-size:11px;font-family:var(--mono);padding:5px 8px;border:1px solid var(--b);border-radius:4px;background:var(--s);color:var(--t);outline:none">
+        <option value="workout">Workout</option>
+        <option value="injection">Injection</option>
+      </select>
+      <input type="file" id="localFile" accept=".pdf" style="display:none" onchange="handleLocalFile(event)">
+      <button class="btn bg-btn" style="width:100%;font-size:11px;padding:7px" onclick="document.getElementById('localFile').click()">&#128193; Load PDF from Device</button>
+    </div>
     <div class="sbb" id="fileList">
-      <div class="abox" style="padding:24px">
-        <div class="atitle">Connect Drive</div>
-        <div class="asub">Sign in to load your PDF library.</div>
+      <div class="abox" style="padding:16px">
+        <div class="atitle" style="font-size:11px">Or connect Drive</div>
+        <div class="asub" style="font-size:10px">Load from your Google Drive library.</div>
         <button class="btn bp" onclick="signIn()">Sign in with Google</button>
       </div>
     </div>
@@ -432,6 +442,77 @@ var pageStatus = {}; // page index → 'ok'|'flagged'|null
 var atTables = [], atCache = {};
 var pdfDocRef = null; // keep pdf.js doc ref for text extraction
 var pickerType = null, pickerPending = [], folderStack = [], folderCache = {}, curFolderItems = [];
+
+// ── LOCAL FILE LOADING ────────────────────────────────────────────────
+async function handleLocalFile(evt) {
+  var file = evt.target.files[0];
+  if (!file) return;
+  evt.target.value = ''; // allow same file re-load
+  var type = document.getElementById('localTypeSelect').value;
+  pdfType = type; curFile = { name: file.name, id: 'local', type: type };
+  pages = []; curPage = 0; pageStatus = {}; pdfDocRef = null;
+  document.getElementById('pdfMeta').textContent = 'Loading...';
+  document.getElementById('mainImg').style.display = 'none';
+  var ie = document.getElementById('imgEmpty'); ie.style.display = 'flex'; ie.innerHTML = 'Loading ' + esc(file.name) + '...';
+  // Set up Airtable panel
+  var m = cfg.types[type];
+  document.getElementById('atTableLabel').textContent = m.tableName || type;
+  if (type === 'injection') {
+    document.getElementById('dateFilter').closest('.date-row').style.display = 'none';
+    document.getElementById('atRefreshBtn').style.display = 'none';
+    document.getElementById('injAuditNav').style.display = 'flex';
+    document.getElementById('atContent').innerHTML = "<div style='padding:16px;text-align:center;font-size:11px;color:var(--dd)'>Loading audit data...</div>";
+    loadInjAuditPanel();
+  } else {
+    document.getElementById('dateFilter').closest('.date-row').style.display = 'flex';
+    document.getElementById('atRefreshBtn').style.display = '';
+    document.getElementById('injAuditNav').style.display = 'none';
+    document.getElementById('atContent').innerHTML = "<div class='empty' style='padding:30px 10px'><div class='et' style='font-size:11px'>Set a date above to load records</div></div>";
+  }
+  try {
+    var buf = await file.arrayBuffer();
+    function dbg(msg) { var el = document.getElementById('dbgStatus'); if (el) el.textContent = msg; }
+    dbg('Loaded ' + (buf.byteLength/1024).toFixed(0) + 'KB. Processing...');
+    var loaded = false;
+    // Try ZIP first
+    try {
+      var zip = await JSZip.loadAsync(buf);
+      var imgFiles = [];
+      zip.forEach(function(path, zf) { if (!zf.dir && /\.(jpe?g|png|gif|webp)$/i.test(path)) imgFiles.push({ path: path, file: zf }); });
+      imgFiles.sort(function(a, b) { var na=parseInt(a.path.replace(/\D/g,''),10),nb=parseInt(b.path.replace(/\D/g,''),10); return (!isNaN(na)&&!isNaN(nb))?na-nb:a.path.localeCompare(b.path); });
+      if (imgFiles.length) {
+        for (var i=0;i<imgFiles.length;i++) { dbg('Extracting image '+(i+1)+'/'+imgFiles.length); var b64=await imgFiles[i].file.async('base64'); var ext=imgFiles[i].path.split('.').pop().toLowerCase(); var mime=ext==='png'?'image/png':ext==='gif'?'image/gif':'image/jpeg'; pages.push({url:'data:'+mime+';base64,'+b64,filename:imgFiles[i].path}); }
+        loaded = true;
+      }
+    } catch(e) { dbg('Not a ZIP. Trying PDF...'); }
+    // Try PDF.js
+    if (!loaded) {
+      if (typeof pdfjsLib === 'undefined') throw new Error('pdf.js not loaded');
+      var pdfDoc = await pdfjsLib.getDocument({ data: buf }).promise;
+      dbg('PDF loaded. Rendering ' + pdfDoc.numPages + ' pages...');
+      pdfDocRef = pdfDoc;
+      for (var p=1;p<=pdfDoc.numPages;p++) {
+        dbg('Rendering page '+p+'/'+pdfDoc.numPages);
+        var pg = await pdfDoc.getPage(p);
+        var vp = pg.getViewport({scale:2.0});
+        var cv = document.createElement('canvas'); cv.width=vp.width; cv.height=vp.height;
+        await pg.render({canvasContext:cv.getContext('2d'),viewport:vp}).promise;
+        var tc = await pg.getTextContent();
+        var pt = tc.items.map(function(i){return i.str;}).join(' ');
+        pages.push({url:cv.toDataURL('image/jpeg',0.9),filename:'page_'+p+'.jpg',text:pt});
+      }
+      loaded = true;
+    }
+    if (loaded) {
+      document.getElementById('pdfMeta').textContent = pages.length + ' pages · ' + type;
+      renderThumbs(); goToPage(0); updateStatusBar();
+      toast('Loaded ' + pages.length + ' pages · ' + file.name, 'tg');
+    } else { toast('Could not load file', 'tr'); }
+  } catch(e) {
+    toast('Load error: ' + e.message, 'tr');
+    ie.innerHTML = "<span style='color:#d63030'>Load error: " + esc(e.message) + "</span>";
+  }
+}
 
 var cfg = {
   types: {
