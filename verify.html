@@ -378,10 +378,21 @@ var ATK = "pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db
 var ATB = "appmHDG4TGT1xy6R6";
 var FOLDER_MIME = "application/vnd.google-apps.folder";
 var WORKER_URL = "https://anthropic-proxy.mikeblack01.workers.dev";
+var VISION_KEY = "AIzaSyD4qdnRn9LVzC8Nm55GYpsL3rjYe82MCCs";
+
+async function callVisionOCR(b64) {
+  var resp = await fetch("https://vision.googleapis.com/v1/images:annotate?key=" + VISION_KEY, {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ requests: [{ image: { content: b64 }, features: [{ type: "DOCUMENT_TEXT_DETECTION", maxResults: 1 }] }] })
+  });
+  var data = await resp.json();
+  if (data.responses && data.responses[0] && data.responses[0].error) throw new Error("Vision: " + data.responses[0].error.message);
+  return ((data.responses || [{}])[0].fullTextAnnotation || {}).text || "";
+}
 
 function getPrompt(type) {
   var p = {
-    workout: "Extract workout set data from this handwritten gym log. Return ONLY a JSON array, each object: {date, session, day, exercise, variation, set_number, reps, weight}. date=YYYY-MM-DD, session='YYYY-MM-DD Day', day=Mon/Tue/etc, weight=number lbs. No explanation.",
+    workout: "Extract ALL workout sets from this handwritten gym log page. There may be multiple sessions on one page separated by day headers (Mon, Tue, Wed, Thu, Fri, etc.).\n\nRULES:\n- date: YYYY-MM-DD from the page header\n- session: 'YYYY-MM-DD Day' (e.g. '2025-01-15 Mon')\n- day: session type label (Mon/Tue/Wed/Thu/Fri/Arms/Push/Pull/Legs)\n- exercise: canonical exercise name\n- variation: implement used (Rope 1/2, DBs, EZ-Bar, Cable - 2 Hand, V-Bar, Bar, etc.) — omit if none\n- set_number: 1, 2, 3...\n- reps: integer\n- weight: stored weight in lbs (RIGHT column number if two columns shown)\n- Cable/pulley exercises (any exercise with cable, 1/2, rope, UClip, V-Bar on pulley): divide stack weight by 2\n- Smith machine: add 35 lbs to plate weight shown\n- Olympic barbell with no plates: 45 lbs\n- RIGHT column number always overrides any calculation\n- Extract EVERY set — do not skip any\n\nReturn ONLY a JSON array, no explanation, no markdown.",
     injection: "Extract peptide/injection log data. Return ONLY a JSON array: [{date, compound, dose, unit, time_of_day, notes}]. date=YYYY-MM-DD. No explanation.",
     supplement: "Extract supplement data. Return ONLY a JSON array: [{date, name, dose, unit, time_of_day}]. No explanation.",
     lab: "Extract lab results. Return ONLY a JSON array: [{date, marker, value, unit, ref_range, status}]. No explanation."
@@ -390,22 +401,23 @@ function getPrompt(type) {
 }
 
 async function extractCurrentPage() {
-  toast("Starting extract... pages=" + pages.length + " cur=" + curPage, "ti", 5000);
-  if (!pages[curPage]) { toast("No page loaded (pages=" + pages.length + ")", "tr", 5000); return; }
+  if (!pages[curPage]) { toast("No page loaded", "tr", 3000); return; }
   var btn = document.getElementById("extractBtn");
-  btn.disabled = true; btn.textContent = "Extracting...";
+  btn.disabled = true; btn.textContent = "OCR...";
   try {
     var b64 = pages[curPage].url.split(",")[1];
+    // Step 1: Vision API OCR
+    btn.textContent = "OCR...";
+    var ocrText = await callVisionOCR(b64);
+    if (!ocrText) { toast("Vision OCR returned no text", "tr"); btn.disabled=false; btn.textContent="\u21e9 Extract Page"; return; }
+    // Step 2: Claude parses OCR text
+    btn.textContent = "Parsing...";
     var resp = await fetch(WORKER_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+      method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "claude-sonnet-4-6", max_tokens: 4000,
+        model: "claude-sonnet-4-6", max_tokens: 8192,
         system: getPrompt(pdfType),
-        messages: [{ role: "user", content: [
-          { type: "image", source: { type: "base64", media_type: "image/jpeg", data: b64 } },
-          { type: "text", text: "Page " + (curPage+1) + " of " + pages.length }
-        ]}]
+        messages: [{ role: "user", content: "Page " + (curPage+1) + " of " + pages.length + ":\n\n" + ocrText }]
       })
     });
     var data = await resp.json();
@@ -866,10 +878,7 @@ function renderInjectionPanel(recs, startDate, endDate) {
 async function fetchAtDate(tid, date) {
   var formula = encodeURIComponent("FIND(\"" + date + "\",{Date})");
   var url = "https://api.airtable.com/v0/" + ATB + "/" + tid + "?pageSize=100&filterByFormula=" + formula + "&sort[0][field]=Date&sort[0][direction]=asc";
-  var r = await fetch(url, { headers: { Authorization: "Bearer " + ATK } });
-  if (!r.ok) throw new Error("HTTP " + r.status);
-  var d = await r.json();
-  return d.records || [];
+  return await fetchAtPagedURL(url);
 }
 function renderAtPanel(recs, date, tid) {
   if (!recs.length) {
@@ -1043,15 +1052,18 @@ function vStatus(msg, cls) {
 
 // ── CLAUDE CALL ───────────────────────────────────────────────────────
 async function callClaudePages(pageIndices, prompt) {
-  var imgBlocks = [];
-  pageIndices.forEach(function(i) {
-    imgBlocks.push({ type: "image", source: { type: "base64", media_type: "image/jpeg", data: pages[i].url.split(",")[1] } });
-    imgBlocks.push({ type: "text", text: "Page " + (i+1) + " of " + pages.length });
-  });
+  // OCR all pages via Vision API first, then send text to Claude
+  var ocrParts = [];
+  for (var i = 0; i < pageIndices.length; i++) {
+    var b64 = pages[pageIndices[i]].url.split(",")[1];
+    var text = await callVisionOCR(b64);
+    ocrParts.push("=== Page " + (pageIndices[i]+1) + " ===\n" + text);
+  }
+  var combined = ocrParts.join("\n\n");
   var resp = await fetch(WORKER_URL, {
     method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 4000,
-      messages: [{ role: "user", content: imgBlocks.concat([{ type: "text", text: prompt }]) }] })
+    body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 8192,
+      messages: [{ role: "user", content: combined + "\n\n" + prompt }] })
   });
   if (!resp.ok) throw new Error("Worker HTTP " + resp.status);
   var data = await resp.json();
@@ -1263,9 +1275,124 @@ async function runInjectionVerification(pageIndices) {
   vStatus("Done — " + allEntries.length + " PDF entries · " + atRecords.length + " AT records · " + issues + " issues", "ok");
 }
 
-// ── WORKOUT VERIFY (stub) ─────────────────────────────────────────────
+// ── WORKOUT VERIFY ───────────────────────────────────────────────────
 async function runWorkoutVerification(pageIndices) {
-  vStatus("Workout verification coming soon", "err");
+  if (!pageIndices.length) { vStatus("No pages selected", "err"); return; }
+  var m = cfg.types["workout"];
+  if (!m || !m.tableID) { vStatus("No Airtable table mapped for workout — check Settings", "err"); return; }
+  vStatus("Running Vision OCR + extraction on " + pageIndices.length + " pages...");
+  var allSets = [];
+  var BATCH = 3; // pages per Claude call
+  for (var b = 0; b < pageIndices.length; b += BATCH) {
+    var batch = pageIndices.slice(b, b + BATCH);
+    vStatus("Extracting pages " + (batch[0]+1) + "–" + (batch[batch.length-1]+1) + " of " + pages.length + "...");
+    try {
+      var raw = await callClaudePages(batch, getPrompt("workout"));
+      var parsed = []; try { parsed = JSON.parse(raw); } catch(e) {}
+      if (Array.isArray(parsed)) allSets = allSets.concat(parsed);
+    } catch(e) { vStatus("Batch error: " + e.message, "err"); return; }
+  }
+  if (!allSets.length) { vStatus("No sets extracted — check scan quality or page selection", "err"); return; }
+  // Get date range
+  var dates = allSets.map(function(s){ return s.date; }).filter(Boolean).sort();
+  var startDate = dates[0], endDate = dates[dates.length-1];
+  vStatus("Fetching Airtable sets (" + startDate + " → " + endDate + ")...");
+  var formula = encodeURIComponent("AND({Date}>='" + startDate + "',{Date}<='" + endDate + "')");
+  var url = "https://api.airtable.com/v0/" + ATB + "/" + m.tableID + "?pageSize=100&filterByFormula=" + formula;
+  var atSets = await fetchAtPagedURL(url);
+  vStatus("Comparing " + allSets.length + " PDF sets vs " + atSets.length + " AT records...");
+  var rows = diffWorkoutSets(allSets, atSets);
+  renderWorkoutVerifyResults(rows, startDate, endDate);
+  var issues = rows.filter(function(r){ return r.status !== "ok"; }).length;
+  vStatus("Done — " + allSets.length + " PDF sets · " + atSets.length + " AT records · " + issues + " issues", "ok");
+}
+
+function diffWorkoutSets(pdfSets, atRecords) {
+  // Build AT lookup: date|exercise|set# → record
+  var atMap = {};
+  atRecords.forEach(function(rec) {
+    var f = rec.fields;
+    var date = f["Date"] || f["fld75zYXknF0RtCWH"] || "";
+    var ex = (f["Exercise"] || f["fldZ93A1t7fGjjsSS"] || "").toLowerCase().trim();
+    var setN = f["Set#"] || f["fldNm9Ao0rmcwwDXo"] || "";
+    var key = date + "|" + ex + "|" + setN;
+    atMap[key] = rec;
+  });
+  var usedIds = {};
+  var rows = [];
+  pdfSets.forEach(function(p) {
+    if (!p.date || !p.exercise) return;
+    var key = p.date + "|" + (p.exercise||"").toLowerCase().trim() + "|" + (p.set_number||"");
+    var at = atMap[key];
+    if (!at) {
+      rows.push({ status: "missing", date: p.date, exercise: p.exercise, set: p.set_number, pdf: { reps: p.reps, weight: p.weight, variation: p.variation }, at: null, issues: ["Missing in AT"] });
+    } else {
+      usedIds[at.id] = true;
+      var pdfW = parseFloat(p.weight) || 0;
+      var atW = parseFloat(at.fields["Weight"] || at.fields["fldmrbBmfgSMtREMt"] || 0);
+      var pdfR = parseInt(p.reps) || 0;
+      var atR = parseInt(at.fields["Reps"] || at.fields["fldelUngWHRTm48m1"] || 0);
+      var issues = [];
+      if (Math.abs(pdfW - atW) > 0.5) issues.push("Weight: PDF=" + pdfW + " AT=" + atW);
+      if (pdfR !== atR && pdfR > 0 && atR > 0) issues.push("Reps: PDF=" + pdfR + " AT=" + atR);
+      rows.push({ status: issues.length ? "wrong" : "ok", date: p.date, exercise: p.exercise, set: p.set_number,
+        pdf: { reps: p.reps, weight: p.weight, variation: p.variation },
+        at: { id: at.id, reps: atR, weight: atW }, issues: issues });
+    }
+  });
+  atRecords.forEach(function(rec) {
+    if (!usedIds[rec.id]) {
+      var f = rec.fields;
+      rows.push({ status: "extra", date: f["Date"]||"", exercise: f["Exercise"]||"", set: f["Set#"]||"",
+        pdf: null, at: { id: rec.id, reps: f["Reps"]||"", weight: f["Weight"]||"" }, issues: ["In AT not in PDF"] });
+    }
+  });
+  rows.sort(function(a,b){ return (a.date+a.exercise+String(a.set)).localeCompare(b.date+b.exercise+String(b.set)); });
+  return rows;
+}
+
+function renderWorkoutVerifyResults(rows, startDate, endDate) {
+  verifyRowData = rows;
+  var resEl = document.getElementById("verifyResults");
+  var ok=rows.filter(function(r){return r.status==="ok";}).length;
+  var wrong=rows.filter(function(r){return r.status==="wrong";}).length;
+  var missing=rows.filter(function(r){return r.status==="missing";}).length;
+  var extra=rows.filter(function(r){return r.status==="extra";}).length;
+  var html = "<div style='display:flex;gap:20px;margin-bottom:14px;padding:12px 16px;background:var(--s);border:1px solid var(--b);border-radius:6px'>";
+  html += stat(ok,"Match","var(--g)") + stat(wrong,"Wrong","var(--y)") + stat(missing,"Missing","var(--r)") + stat(extra,"Extra","var(--bl)");
+  html += "</div><div style='overflow-x:auto'><table class='tbl' style='width:100%;font-size:11px'><thead><tr style='background:var(--s2)'>";
+  ["Date","Exercise","Set","PDF Reps","PDF Wt","AT Reps","AT Wt","Issues",""].forEach(function(h){
+    html += "<th style='padding:7px 10px;text-align:left;font-size:9px;letter-spacing:1.2px;text-transform:uppercase;font-family:var(--mono);color:var(--d);border-bottom:1px solid var(--b)'>" + h + "</th>";
+  });
+  html += "</tr></thead><tbody>";
+  rows.forEach(function(r, idx) {
+    var bg = r.status==="missing"?"background:var(--rd)":r.status==="extra"?"background:var(--bld)":r.status==="wrong"?"background:var(--yd)":"";
+    var p = r.pdf||{}, a = r.at||{};
+    var act = "";
+    if (r.status==="wrong" && a.id) act = "<button class='btn bg-btn' style='font-size:9px;padding:3px 8px' onclick='fixWorkoutRecord(\""+a.id+"\","+idx+")'>Fix AT</button>";
+    html += "<tr style='" + bg + "'><td style='padding:6px 10px;font-family:var(--mono);font-size:10px'>"+esc(r.date)+"</td><td style='padding:6px 10px;font-weight:600'>"+esc(r.exercise)+"</td><td style='padding:6px 10px;font-family:var(--mono)'>"+esc(String(r.set||""))+"</td>";
+    html += "<td style='padding:6px 10px;font-family:var(--mono)'>"+esc(String(p.reps||"—"))+"</td><td style='padding:6px 10px;font-family:var(--mono)'>"+esc(String(p.weight||"—"))+"</td>";
+    html += "<td style='padding:6px 10px;font-family:var(--mono)'>"+esc(String(a.reps||"—"))+"</td><td style='padding:6px 10px;font-family:var(--mono)'>"+esc(String(a.weight||"—"))+"</td>";
+    var ic = r.status==="ok"?"color:var(--g)":r.status==="missing"?"color:var(--r)":r.status==="extra"?"color:var(--bl)":"color:var(--y)";
+    html += "<td style='padding:6px 10px;font-size:10px;"+ic+"'>"+esc(r.issues.join("; ")||"✓")+"</td><td style='padding:6px 10px'>"+act+"</td></tr>";
+  });
+  html += "</tbody></table></div>";
+  resEl.innerHTML = html;
+}
+
+async function fixWorkoutRecord(recId, idx) {
+  var r = verifyRowData[idx]; if (!r || !r.pdf) return;
+  var fields = {};
+  if (r.pdf.weight !== undefined) fields["fldmrbBmfgSMtREMt"] = parseFloat(r.pdf.weight);
+  if (r.pdf.reps !== undefined) fields["fldelUngWHRTm48m1"] = parseInt(r.pdf.reps);
+  if (!Object.keys(fields).length) return;
+  var m = cfg.types["workout"];
+  var resp = await fetch("https://api.airtable.com/v0/" + ATB + "/" + m.tableID + "/" + recId, {
+    method: "PATCH", headers: { Authorization: "Bearer " + ATK, "Content-Type": "application/json" },
+    body: JSON.stringify({ fields: fields })
+  });
+  if (resp.ok) { toast("Fixed", "tg"); verifyRowData[idx].status = "ok"; document.querySelectorAll("tr")[idx+1].style.background = ""; }
+  else toast("Fix failed", "tr");
 }
 
 // ── DIFF ──────────────────────────────────────────────────────────────
