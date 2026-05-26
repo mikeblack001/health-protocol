@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>Auto Diff — running...</title>
+<style>
+body{font-family:monospace;background:#0a0a10;color:#e0e0e8;padding:24px;font-size:13px;}
+h2{color:#fff;margin-bottom:12px;}
+#log{line-height:1.8;}
+.ok{color:#34d399;} .err{color:#f87171;} .warn{color:#fbbf24;}
+</style></head>
+<body>
+<h2>⚡ Auto Diff — PDF vs Airtable</h2>
+<div id="log"></div>
+<script>
+const L = (msg,cls='') => {
+  const d=document.createElement('div');
+  d.textContent=new Date().toLocaleTimeString('en',{hour12:false})+' '+msg;
+  if(cls) d.className=cls;
+  document.getElementById('log').appendChild(d);
+};
+
+const AT_TOKEN='pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
+const AT_BASE='appmHDG4TGT1xy6R6';
+const AT_TABLE='tblKDqjy5RzqaJvjr';
+const FLD_DATE='fld75zYXknF0RtCWH';
+const OAUTH_CLIENT='478191426516-94rflpalsl5ev56ptck62k5imes6jk8l.apps.googleusercontent.com';
+const PDF_COUNTS={"2024-10-28":24,"2024-11-04":72,"2024-11-05":58,"2024-11-06":18,"2024-11-07":30,"2024-11-18":58,"2024-11-27":22,"2024-11-28":27,"2024-12-01":63,"2024-12-02":25,"2024-12-04":53,"2024-12-05":30,"2024-12-16":29,"2024-12-17":60,"2024-12-18":72,"2024-12-19":109,"2024-12-20":3,"2024-12-23":31,"2024-12-24":36,"2024-12-25":62,"2024-12-26":66,"2024-12-28":36,"2024-12-30":31,"2024-12-31":73,"2025-01-01":30,"2025-01-02":45,"2025-01-05":21,"2025-01-06":128,"2025-01-07":101,"2025-01-08":377,"2025-01-09":500,"2025-01-10":86,"2025-01-11":56,"2025-01-13":76,"2025-01-15":51,"2025-01-16":49,"2025-01-17":33,"2025-01-20":24,"2025-01-21":90,"2025-01-22":12,"2025-01-23":30,"2025-01-25":33,"2025-01-27":67,"2025-01-28":100,"2025-01-29":27,"2025-01-30":66,"2025-02-06":30,"2025-02-10":36,"2025-02-11":36,"2025-03-10":38,"2025-03-11":33,"2025-03-24":91,"2025-03-31":36,"2025-04-01":21,"2025-04-02":15,"2025-04-28":38,"2025-05-12":39,"2025-05-19":43,"2025-05-20":33,"2025-06-16":41,"2025-08-11":45,"2025-09-08":48,"2025-09-22":66,"2025-09-29":48,"2025-10-06":48,"2025-10-13":48,"2025-10-23":18,"2025-11-03":48,"2025-11-24":24,"2025-11-25":24,"2025-12-01":45,"2025-12-08":24,"2025-12-09":24,"2025-12-15":24,"2025-12-16":24,"2025-12-22":24,"2025-12-23":24,"2026-01-01":29,"2026-01-07":133,"2026-01-08":266,"2026-01-09":115,"2026-01-10":18,"2026-01-12":28,"2026-01-13":33,"2026-01-15":30,"2026-01-16":33,"2026-01-19":30,"2026-01-20":33,"2026-01-22":3,"2026-01-23":19,"2026-01-26":30,"2026-01-27":33,"2026-01-28":27,"2026-01-29":49,"2026-02-03":30,"2026-02-04":33,"2026-02-14":62,"2026-02-19":63,"2026-02-23":29,"2026-02-24":33,"2026-03-16":48,"2026-03-19":21,"2026-03-20":22,"2026-03-23":30,"2026-03-24":24,"2026-03-30":24,"2026-03-31":24,"2026-04-08":22,"2026-04-13":25,"2026-04-16":28,"2026-04-17":26,"2026-04-20":30,"2026-04-21":28,"2026-04-27":30,"2026-04-28":25,"2026-04-29":21,"2026-04-30":24,"2026-05-04":30,"2026-05-05":21,"2026-05-11":30,"2026-05-12":33,"2026-05-18":21,"2026-05-19":24,"2026-05-20":45};
+
+async function run(){
+  try{
+    // Step 1: Fetch all AT records
+    L('Fetching Airtable sets...');
+    const atRecords=[];
+    let offset=null,page=0;
+    while(true){
+      let url=`https://api.airtable.com/v0/${AT_BASE}/${AT_TABLE}?returnFieldsByFieldId=true&pageSize=100&fields%5B%5D=${FLD_DATE}`;
+      if(offset) url+=`&offset=${offset}`;
+      const r=await fetch(url,{headers:{'Authorization':`Bearer ${AT_TOKEN}`}});
+      if(!r.ok) throw new Error('AT fetch '+r.status);
+      const d=await r.json();
+      atRecords.push(...d.records);
+      page++;
+      if(page%10===0) L(`  ...fetched ${atRecords.length.toLocaleString()} records`);
+      offset=d.offset;
+      if(!offset) break;
+      await new Promise(r=>setTimeout(r,40));
+    }
+    L(`Fetched ${atRecords.length.toLocaleString()} AT records`,'ok');
+
+    // Step 2: Count AT sets per date (>= 2024-10-28)
+    const atCounts={};
+    for(const rec of atRecords){
+      const date=rec.fields[FLD_DATE]||'';
+      if(date>='2024-10-28'){
+        atCounts[date]=(atCounts[date]||0)+1;
+      }
+    }
+    const atDates=Object.keys(atCounts).sort();
+    L(`AT dates in range: ${atDates.length}, total sets: ${Object.values(atCounts).reduce((a,b)=>a+b,0).toLocaleString()}`);
+
+    // Step 3: Diff
+    const allDates=new Set([...Object.keys(PDF_COUNTS),...atDates]);
+    const results=[];
+    for(const date of [...allDates].sort()){
+      const pdfN=PDF_COUNTS[date]||0;
+      const atN=atCounts[date]||0;
+      const diff=atN-pdfN;
+      results.push({date,pdfCount:pdfN,atCount:atN,diff,status:
+        pdfN===0?'AT_ONLY':atN===0?'PDF_ONLY':diff===0?'MATCH':diff>0?'AT_MORE':'PDF_MORE'
+      });
+    }
+
+    const matched=results.filter(r=>r.status==='MATCH').length;
+    const pdfOnly=results.filter(r=>r.status==='PDF_ONLY').length;
+    const atOnly=results.filter(r=>r.status==='AT_ONLY').length;
+    const mismatch=results.filter(r=>r.status==='AT_MORE'||r.status==='PDF_MORE').length;
+
+    L(`MATCH: ${matched} dates`,'ok');
+    L(`MISMATCH (count differs): ${mismatch} dates`,mismatch>0?'warn':'ok');
+    L(`PDF_ONLY (not in AT): ${pdfOnly} dates`,pdfOnly>0?'warn':'ok');
+    L(`AT_ONLY (not in PDF): ${atOnly} dates`);
+
+    // Step 4: Save to Google Drive
+    L('Authenticating with Google Drive...');
+    const token=await new Promise((res,rej)=>{
+      const s=document.createElement('script');
+      s.src='https://accounts.google.com/gsi/client';
+      s.onload=()=>{
+        const c=google.accounts.oauth2.initTokenClient({
+          client_id:OAUTH_CLIENT,
+          scope:'https://www.googleapis.com/auth/drive',
+          callback:(resp)=>resp.error?rej(new Error(resp.error)):res(resp.access_token)
+        });
+        c.requestAccessToken();
+      };
+      document.head.appendChild(s);
+    });
+
+    const summary={
+      generated:new Date().toISOString(),
+      atTotal:atRecords.length,
+      pdfDatesInRange:Object.keys(PDF_COUNTS).length,
+      atDatesInRange:atDates.length,
+      matched,mismatch,pdfOnly,atOnly
+    };
+
+    const files=[
+      {name:'diff_by_date.json',data:results},
+      {name:'diff_summary.json',data:summary},
+      {name:'diff_mismatches.json',data:results.filter(r=>r.status!=='MATCH')}
+    ];
+
+    for(const f of files){
+      const content=JSON.stringify(f.data,null,2);
+      const meta=JSON.stringify({name:f.name,mimeType:'application/json'});
+      const form=new FormData();
+      form.append('metadata',new Blob([meta],{type:'application/json'}));
+      form.append('file',new Blob([content],{type:'application/json'}));
+      const resp=await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',{
+        method:'POST',headers:{'Authorization':'Bearer '+token},body:form
+      });
+      const saved=await resp.json();
+      L(`Saved to Drive: ${f.name} (id: ${saved.id})`,'ok');
+    }
+
+    L('DONE — check Claude chat for analysis','ok');
+    document.title='✅ Done';
+
+  }catch(err){
+    L('ERROR: '+err.message,'err');
+    document.title='❌ Error';
+  }
+}
+
+// Auto-run immediately
+run();
+</script></body></html>
