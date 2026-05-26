@@ -3,78 +3,65 @@
 <head>
 <meta charset="UTF-8">
 <title>Workout OCR Extractor</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,sans-serif;background:#0f0f0f;color:#e0e0e0;padding:20px}
 h1{font-size:1.3rem;color:#fff;margin-bottom:4px}
 .sub{color:#888;font-size:0.82rem;margin-bottom:20px}
-.upload-zone{border:2px dashed #444;border-radius:10px;padding:40px;text-align:center;cursor:pointer;margin-bottom:20px;transition:border-color .2s}
-.upload-zone:hover,.upload-zone.drag{border-color:#3b82f6;background:#0a1628}
-.upload-zone input{display:none}
-.upload-zone .icon{font-size:2rem;margin-bottom:10px}
-.upload-zone .label{color:#aaa;font-size:0.9rem}
-.progress{background:#1a1a1a;border:1px solid #333;border-radius:8px;padding:16px;margin-bottom:20px;display:none}
-.prog-bar-wrap{background:#333;border-radius:4px;height:6px;margin:10px 0}
-.prog-bar{background:#3b82f6;height:6px;border-radius:4px;width:0%;transition:width .3s}
-.prog-label{font-size:0.82rem;color:#aaa}
-.page-cards{display:flex;flex-direction:column;gap:16px}
+.progress{background:#1a1a1a;border:1px solid #333;border-radius:8px;padding:16px;margin-bottom:20px}
+.prog-bar-wrap{background:#333;border-radius:4px;height:8px;margin:10px 0}
+.prog-bar{background:#3b82f6;height:8px;border-radius:4px;width:0%;transition:width .3s}
+.prog-label{font-size:0.9rem;color:#fff;font-weight:600}
+.prog-sub{font-size:0.75rem;color:#666;margin-top:4px}
+.summary{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:20px;display:none}
+.scard{background:#1a1a1a;border:1px solid #333;border-radius:8px;padding:14px;min-width:120px}
+.scard .n{font-size:1.8rem;font-weight:700}
+.scard .l{font-size:0.72rem;color:#666;margin-top:2px}
+.n.ok{color:#4ade80}.n.bad{color:#f87171}.n.warn{color:#facc15}
+.page-cards{display:flex;flex-direction:column;gap:12px}
 .card{background:#1a1a1a;border:1px solid #333;border-radius:8px;overflow:hidden}
-.card-hdr{padding:10px 16px;background:#222;display:flex;align-items:center;gap:12px;border-bottom:1px solid #333}
-.card-hdr .pg{font-size:0.75rem;color:#888;font-family:monospace}
-.card-hdr .dates{font-size:0.9rem;font-weight:600;color:#fff}
-.card-hdr .status{margin-left:auto;font-size:0.75rem;padding:3px 10px;border-radius:12px}
-.status-ok{background:#052e16;color:#4ade80}
-.status-err{background:#2d0a0a;color:#f87171}
-.status-pending{background:#1e1b07;color:#facc15}
-.card-body{display:flex;gap:0}
-.img-side{width:45%;border-right:1px solid #333;padding:10px}
+.card-hdr{padding:10px 16px;background:#222;display:flex;align-items:center;gap:10px;border-bottom:1px solid #333}
+.pg{font-size:0.72rem;color:#666;font-family:monospace}
+.dates{font-size:0.9rem;font-weight:600;color:#fff;flex:1}
+.badge{font-size:0.72rem;padding:3px 10px;border-radius:12px}
+.b-ok{background:#052e16;color:#4ade80}.b-err{background:#2d0a0a;color:#f87171}.b-proc{background:#1c1700;color:#facc15}
+.card-body{display:grid;grid-template-columns:42% 58%;min-height:300px}
+.img-side{border-right:1px solid #333;padding:8px;background:#111}
 .img-side img{width:100%;height:auto;display:block}
-.data-side{flex:1;padding:12px;overflow-y:auto}
-.session-block{margin-bottom:16px}
-.session-title{font-size:0.75rem;font-weight:600;color:#3b82f6;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid #222}
-.set-row{display:grid;grid-template-columns:2fr 1fr 50px 60px 70px auto;gap:6px;align-items:center;margin-bottom:4px;font-size:0.78rem}
-.set-row input{background:#111;border:1px solid #333;color:#e0e0e0;padding:3px 6px;border-radius:4px;font-size:0.78rem;width:100%}
-.set-row input:focus{outline:none;border-color:#3b82f6}
-.set-row .del{background:none;border:none;color:#555;cursor:pointer;font-size:0.9rem;padding:2px 4px}
-.set-row .del:hover{color:#f87171}
-.col-hdr{font-size:0.68rem;color:#666;text-transform:uppercase;letter-spacing:0.5px;padding:2px 0}
-.add-btn{font-size:0.75rem;color:#3b82f6;background:none;border:none;cursor:pointer;padding:4px 0;margin-top:4px}
-.add-btn:hover{color:#60a5fa}
-.push-btn{background:#3b82f6;color:#fff;border:none;border-radius:6px;padding:8px 20px;font-size:0.82rem;cursor:pointer;margin-top:12px;font-weight:600}
+.data-side{padding:12px;overflow-y:auto;max-height:600px}
+.tbl{width:100%;border-collapse:collapse;font-size:0.78rem}
+.tbl th{font-size:0.68rem;color:#666;text-transform:uppercase;letter-spacing:0.5px;padding:4px 6px;text-align:left;border-bottom:1px solid #222}
+.tbl td{padding:3px 4px;border-bottom:1px solid #1a1a1a}
+.tbl td input{background:#111;border:1px solid #2a2a2a;color:#e0e0e0;padding:2px 5px;border-radius:3px;font-size:0.77rem;width:100%}
+.tbl td input:focus{outline:none;border-color:#3b82f6}
+.tbl tr:hover td{background:#161616}
+.del-btn{background:none;border:none;color:#444;cursor:pointer;font-size:0.9rem;padding:1px 4px}
+.del-btn:hover{color:#f87171}
+.add-row{font-size:0.75rem;color:#3b82f6;background:none;border:none;cursor:pointer;padding:6px 0;display:block}
+.add-row:hover{color:#60a5fa}
+.push-btn{background:#3b82f6;color:#fff;border:none;border-radius:6px;padding:8px 18px;font-size:0.82rem;cursor:pointer;margin-top:10px;font-weight:600;display:block;width:100%}
 .push-btn:hover{background:#2563eb}
-.push-btn:disabled{background:#333;color:#666;cursor:not-allowed}
+.push-btn:disabled{background:#222;color:#555;cursor:not-allowed}
 .push-btn.done{background:#16a34a}
-.error-box{background:#2d0a0a;border:1px solid #7f1d1d;border-radius:6px;padding:10px;font-size:0.78rem;color:#fca5a5;margin-top:8px;white-space:pre-wrap}
-.summary-bar{background:#1a1a1a;border:1px solid #333;border-radius:8px;padding:16px;margin-bottom:20px;display:none;font-size:0.85rem}
-.summary-bar .nums{display:flex;gap:24px;margin-top:8px}
-.summary-bar .n{font-size:1.5rem;font-weight:700}
-.n.ok{color:#4ade80} .n.warn{color:#facc15} .n.bad{color:#f87171}
+.err-box{background:#2d0a0a;border:1px solid #7f1d1d;border-radius:6px;padding:10px;font-size:0.78rem;color:#fca5a5;margin-top:8px}
+.retry-btn{background:#7f1d1d;color:#fca5a5;border:none;border-radius:4px;padding:4px 10px;font-size:0.75rem;cursor:pointer;margin-top:6px}
 </style>
 </head>
 <body>
-<h1>Workout OCR Extractor</h1>
-<div class="sub">Upload the 2026 workout ZIP → Vision API reads each page → review & push to Airtable</div>
+<h1>Workout OCR Extractor — 2026</h1>
+<div class="sub">Google Vision OCR → all 40 pages auto-loaded → review & push to Airtable</div>
 
-<div class="upload-zone" id="dropzone" onclick="document.getElementById('fileInput').click()">
-  <input type="file" id="fileInput" accept=".zip,.pdf" onchange="handleFile(this.files[0])">
-  <div class="icon">📂</div>
-  <div class="label">Click or drag to upload Workouts_2026.zip</div>
-</div>
-
-<div class="progress" id="progress">
-  <div class="prog-label" id="progLabel">Processing...</div>
+<div class="progress" id="progressBox">
+  <div class="prog-label" id="progLabel">Starting...</div>
   <div class="prog-bar-wrap"><div class="prog-bar" id="progBar"></div></div>
-  <div style="font-size:0.75rem;color:#666;margin-top:4px" id="progSub"></div>
+  <div class="prog-sub" id="progSub">Loading pages...</div>
 </div>
 
-<div class="summary-bar" id="summaryBar">
-  <div style="font-weight:600;color:#fff">Extraction Complete</div>
-  <div class="nums">
-    <div><div class="n ok" id="sOk">0</div><div style="color:#666;font-size:0.72rem">Pages OK</div></div>
-    <div><div class="n bad" id="sErr">0</div><div style="color:#666;font-size:0.72rem">Errors</div></div>
-    <div><div class="n ok" id="sSets">0</div><div style="color:#666;font-size:0.72rem">Total Sets</div></div>
-  </div>
+<div class="summary" id="summary">
+  <div class="scard"><div class="n ok" id="sOk">0</div><div class="l">Pages OK</div></div>
+  <div class="scard"><div class="n bad" id="sErr">0</div><div class="l">Errors</div></div>
+  <div class="scard"><div class="n ok" id="sSets">0</div><div class="l">Sets Extracted</div></div>
+  <div class="scard"><div class="n warn" id="sPushed">0</div><div class="l">Sets Pushed</div></div>
 </div>
 
 <div class="page-cards" id="cards"></div>
@@ -84,8 +71,8 @@ const VISION_KEY = 'AIzaSyD4qdnRn9LVzC8Nm55GYpsL3rjYe82MCCs';
 const AT_TOKEN = 'pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
 const AT_BASE = 'appmHDG4TGT1xy6R6';
 const AT_TABLE = 'tblKDqjy5RzqaJvjr';
+const BASE_URL = 'https://mikeblack001.github.io/health-protocol/w3_pages/';
 
-// Date map from confirmed visual inspection
 const DATE_MAP = {
   1:'2026-01-05',2:'2026-01-06',3:'2026-01-07',4:'2026-01-08',5:'2026-01-09',
   6:'2026-01-12',7:'2026-01-13',8:'2026-01-14',9:'2026-01-15',10:'2026-01-16',
@@ -96,8 +83,6 @@ const DATE_MAP = {
   31:'2026-02-16',32:'2026-02-17',33:'2026-04-27',34:'2026-04-28',35:'2026-04-29',
   36:'2026-04-30',37:'2026-05-11',38:'2026-05-12',39:'2026-05-18',40:'2026-05-20'
 };
-
-// Day type map
 const DAY_MAP = {
   1:'Push',2:'Pull',3:'Legs',4:'Arms',5:'Shoulders',
   6:'Push',7:'Pull',8:'Legs',9:'Arms',10:'Shoulders',
@@ -109,273 +94,219 @@ const DAY_MAP = {
   36:'Legs',37:'Push',38:'Pull',39:'Push',40:'Pull'
 };
 
-const dropzone = document.getElementById('dropzone');
-dropzone.addEventListener('dragover', e=>{e.preventDefault();dropzone.classList.add('drag')});
-dropzone.addEventListener('dragleave', ()=>dropzone.classList.remove('drag'));
-dropzone.addEventListener('drop', e=>{e.preventDefault();dropzone.classList.remove('drag');handleFile(e.dataTransfer.files[0])});
+let totalOk=0, totalErr=0, totalSets=0, totalPushed=0;
+const pageStore = {};
 
-async function handleFile(file) {
-  if (!file) return;
-  document.getElementById('progress').style.display='block';
-  document.getElementById('cards').innerHTML='';
-
-  const zip = await JSZip.loadAsync(file);
-  const jpegFiles = Object.keys(zip.files).filter(n=>n.endsWith('.jpeg')||n.endsWith('.jpg')).sort((a,b)=>{
-    const na=parseInt(a), nb=parseInt(b); return na-nb;
+async function imgToB64(url) {
+  const r = await fetch(url);
+  const blob = await r.blob();
+  return new Promise(res => {
+    const reader = new FileReader();
+    reader.onloadend = () => res(reader.result.split(',')[1]);
+    reader.readAsDataURL(blob);
   });
-
-  let ok=0, err=0, totalSets=0;
-
-  for (let i=0; i<jpegFiles.length; i++) {
-    const fname = jpegFiles[i];
-    const pageNum = parseInt(fname);
-    setProgress(i, jpegFiles.length, `Page ${pageNum}/${jpegFiles.length}: Running Vision OCR...`);
-
-    try {
-      const imgData = await zip.files[fname].async('base64');
-      const sets = await extractPage(imgData, pageNum);
-      totalSets += sets.length;
-      renderCard(pageNum, imgData, sets, null);
-      ok++;
-    } catch(e) {
-      renderCard(pageNum, null, [], e.message);
-      err++;
-    }
-  }
-
-  document.getElementById('sOk').textContent=ok;
-  document.getElementById('sErr').textContent=err;
-  document.getElementById('sSets').textContent=totalSets;
-  document.getElementById('summaryBar').style.display='block';
-  setProgress(jpegFiles.length, jpegFiles.length, 'Done');
 }
 
-function setProgress(done, total, label) {
-  document.getElementById('progBar').style.width = (done/total*100)+'%';
-  document.getElementById('progLabel').textContent = label;
-  document.getElementById('progSub').textContent = `${done} of ${total} pages`;
-}
-
-async function extractPage(b64, pageNum) {
-  const resp = await fetch(`https://vision.googleapis.com/v1/images:annotate?key=${VISION_KEY}`, {
+async function runVision(b64) {
+  const r = await fetch(`https://vision.googleapis.com/v1/images:annotate?key=${VISION_KEY}`, {
     method:'POST',
     headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({requests:[{
-      image:{content:b64},
-      features:[{type:'DOCUMENT_TEXT_DETECTION'}]
-    }]})
+    body:JSON.stringify({requests:[{image:{content:b64},features:[{type:'DOCUMENT_TEXT_DETECTION'}]}]})
   });
-  const data = await resp.json();
-  if (data.error) throw new Error(data.error.message);
-  const text = data.responses[0]?.fullTextAnnotation?.text || '';
-  return parseWorkoutText(text, pageNum);
+  const d = await r.json();
+  if (d.error) throw new Error(d.error.message);
+  return d.responses[0]?.fullTextAnnotation?.text || '';
 }
 
-function parseWorkoutText(text, pageNum) {
-  const date = DATE_MAP[pageNum] || '2026-01-01';
-  const day = DAY_MAP[pageNum] || 'Push';
-  const session = `${date} ${day}`;
-  const lines = text.split('\n').map(l=>l.trim()).filter(l=>l);
+function parseText(text, pageNum) {
+  const date = DATE_MAP[pageNum];
+  const day = DAY_MAP[pageNum];
+  const lines = text.split('\n').map(l=>l.trim()).filter(Boolean);
   const sets = [];
 
-  // Known exercise names to match against
-  const EXERCISES = [
-    'Bench Press','Incline Press','Decline Press','Incline Fly','Lateral Raises',
-    'Seated Shoulder Press','Tricep Pushdowns','Overhead Tricep Ext','High Cable Fly',
-    'Cable Cross Overs','Wrist Twist','Lat Pulldown','Bent Over Rows','Cable Rows',
-    'Face Pulls','Rear Delt Raises','Bicep Curls','Hammer Curls','Cable Shrugs',
-    'Cable Curls','Barbell Shrugs','Leg Press','Leg Extensions','Leg Curls',
-    'Hip Thrust','Nordic Curl','Reverse Hyper','DB Calf Raises','Smith Mach Calf Raises',
-    'Back Extension','Cable Press','Low Cable Fly','Incline Curls','Overhead Tricep Press',
-    'Curls','Tricep Ext Down','Tricep Ext Up','Forearm Raise'
-  ];
+  const KNOWN = ['Wrist Twist','Bench Press','Incline Press','Decline Press','Incline Fly',
+    'Lateral Raises','Seated Shoulder Press','Tricep Pushdowns','Overhead Tricep Ext',
+    'High Cable Fly','Cable Cross Overs','Cable Crossovers','Lat Pulldown','Bent Over Rows',
+    'Barbell Bent Over Rows','Cable Rows','Face Pulls','Rear Delt Raises','Bicep Curls',
+    'Hammer Curls','Barbell Shrugs','Cable Shrugs','Cable Curls','Leg Press',
+    'Leg Extensions','Leg Curls','Hip Thrust','Nordic Curl','Reverse Hyper',
+    'DB Calf Raises','Smith Mach Calf Raises','Back Extension','Cable Press',
+    'Low Cable Fly','Incline Curls','Overhead Tricep Press','Curls','Tricep Ext Down',
+    'Tricep Ext Up','Forearm Raise'];
 
-  let currentExercise = null;
-  let setNum = 0;
-
+  let curEx = null, setNum = 0;
   for (const line of lines) {
-    // Try to match exercise name
-    const matchedEx = EXERCISES.find(ex => line.toLowerCase().includes(ex.toLowerCase()));
-    if (matchedEx) {
-      currentExercise = matchedEx;
-      setNum = 0;
-    }
+    const up = line.toUpperCase();
+    const found = KNOWN.find(ex => up.includes(ex.toUpperCase()));
+    if (found) { curEx = found; setNum = 0; continue; }
+    if (!curEx) continue;
 
-    // Try to parse set data: numbers that look like reps/weight
-    if (currentExercise) {
-      // Look for patterns like: 1 25 160 or reps/weight pairs
-      const nums = line.match(/\b(\d{1,3})\b/g);
-      if (nums && nums.length >= 2) {
-        const reps = parseInt(nums[0]);
-        const weight = parseInt(nums[1]);
-        if (reps > 0 && reps <= 50 && weight > 0 && weight <= 1000) {
+    // Extract numbers — looking for reps + weight pattern
+    const nums = [...line.matchAll(/\b(\d{1,3})\b/g)].map(m=>parseInt(m[1]));
+    if (nums.length >= 2) {
+      for (let i=0; i+1<nums.length; i+=2) {
+        const reps=nums[i], wt=nums[i+1];
+        if (reps>=1 && reps<=50 && wt>=1 && wt<=999) {
           setNum++;
-          sets.push({
-            exercise: currentExercise,
-            variation: '',
-            set_number: setNum,
-            reps: reps,
-            weight: weight,
-            date: date,
-            day: day,
-            session: session
-          });
+          sets.push({date,day,session:`${date} ${day}`,exercise:curEx,variation:'',set_number:setNum,reps,weight:wt});
         }
       }
     }
   }
-
   return sets;
 }
 
-function renderCard(pageNum, imgB64, sets, error) {
-  const date = DATE_MAP[pageNum] || '?';
-  const day = DAY_MAP[pageNum] || '?';
-  const cardId = `card-${pageNum}`;
-
-  const card = document.createElement('div');
-  card.className = 'card';
-  card.id = cardId;
-
-  const statusClass = error ? 'status-err' : sets.length > 0 ? 'status-ok' : 'status-pending';
-  const statusText = error ? '⚠ Error' : `✓ ${sets.length} sets`;
-
-  card.innerHTML = `
-    <div class="card-hdr">
-      <span class="pg">Page ${pageNum}</span>
-      <span class="dates">${date} — ${day}</span>
-      <span class="status ${statusClass}">${statusText}</span>
-    </div>
-    <div class="card-body">
-      <div class="img-side">
-        ${imgB64 ? `<img src="data:image/jpeg;base64,${imgB64}" alt="Page ${pageNum}">` : '<div style="padding:20px;color:#555;font-size:0.8rem">No image</div>'}
-      </div>
-      <div class="data-side" id="data-${pageNum}">
-        ${error ? `<div class="error-box">${error}</div>` : renderSetsEditor(sets, pageNum)}
-      </div>
-    </div>`;
-
-  document.getElementById('cards').appendChild(card);
+function mkInput(val, cls='') {
+  return `<input class="${cls}" value="${String(val).replace(/"/g,'&quot;')}">`;
 }
 
-function renderSetsEditor(sets, pageNum) {
-  if (!sets.length) return '<div style="color:#666;font-size:0.8rem;padding:20px">No sets extracted — check image above and add manually</div>';
-
-  // Group by exercise
-  const byEx = {};
-  for (const s of sets) {
-    if (!byEx[s.exercise]) byEx[s.exercise] = [];
-    byEx[s.exercise].push(s);
-  }
-
-  let html = `<div id="sets-${pageNum}">`;
-  for (const [ex, exSets] of Object.entries(byEx)) {
-    html += `<div class="session-block">
-      <div class="session-title">${ex}</div>
-      <div class="col-hdr" style="display:grid;grid-template-columns:2fr 1fr 50px 60px 70px auto;gap:6px">
-        <span>Exercise</span><span>Variation</span><span>Set#</span><span>Reps</span><span>Weight</span><span></span>
-      </div>`;
-    exSets.forEach((s, i) => {
-      html += `<div class="set-row" id="row-${pageNum}-${ex.replace(/\s/g,'_')}-${i}">
-        <input value="${s.exercise}" placeholder="Exercise" oninput="updateSet(${pageNum},'${ex}',${i},'exercise',this.value)">
-        <input value="${s.variation||''}" placeholder="Variation" oninput="updateSet(${pageNum},'${ex}',${i},'variation',this.value)">
-        <input value="${s.set_number}" placeholder="#" oninput="updateSet(${pageNum},'${ex}',${i},'set_number',parseInt(this.value))">
-        <input value="${s.reps}" placeholder="Reps" oninput="updateSet(${pageNum},'${ex}',${i},'reps',parseInt(this.value))">
-        <input value="${s.weight}" placeholder="Weight" oninput="updateSet(${pageNum},'${ex}',${i},'weight',parseFloat(this.value))">
-        <button class="del" onclick="deleteSetRow(${pageNum},'${ex}',${i})">×</button>
-      </div>`;
-    });
-    html += `</div>`;
-  }
-  html += `</div>
-  <button class="push-btn" id="push-${pageNum}" onclick="pushPage(${pageNum})">Push Page ${pageNum} to Airtable</button>`;
-  return html;
+function renderTable(sets, pageNum) {
+  if (!sets.length) return '<div style="color:#555;padding:10px;font-size:0.8rem">No sets parsed — add manually below</div>';
+  let rows = sets.map((s,i) => `<tr id="sr-${pageNum}-${i}">
+    <td>${mkInput(s.exercise)}</td>
+    <td>${mkInput(s.variation)}</td>
+    <td>${mkInput(s.set_number)}</td>
+    <td>${mkInput(s.reps)}</td>
+    <td>${mkInput(s.weight)}</td>
+    <td><button class="del-btn" onclick="delRow('sr-${pageNum}-${i}')">×</button></td>
+  </tr>`).join('');
+  return `<table class="tbl"><thead><tr>
+    <th>Exercise</th><th>Variation</th><th>Set#</th><th>Reps</th><th>Wt</th><th></th>
+  </tr></thead><tbody id="tbody-${pageNum}">${rows}</tbody></table>
+  <button class="add-row" onclick="addRow(${pageNum})">+ Add row</button>`;
 }
 
-// Store extracted sets per page
-const pageData = {};
+function delRow(id) { const el=document.getElementById(id); if(el) el.remove(); }
 
-function updateSet(pageNum, ex, idx, field, val) {
-  if (pageData[pageNum]) {
-    const exSets = pageData[pageNum].filter(s=>s.exercise===ex);
-    if (exSets[idx]) exSets[idx][field] = val;
-  }
+function addRow(pageNum) {
+  const tb = document.getElementById(`tbody-${pageNum}`);
+  if (!tb) return;
+  const i = tb.children.length;
+  const tr = document.createElement('tr');
+  tr.id = `sr-${pageNum}-${i}`;
+  tr.innerHTML = `<td>${mkInput('')}</td><td>${mkInput('')}</td><td>${mkInput(i+1)}</td><td>${mkInput('')}</td><td>${mkInput('')}</td><td><button class="del-btn" onclick="delRow('sr-${pageNum}-${i}')">×</button></td>`;
+  tb.appendChild(tr);
 }
-function deleteSetRow(pageNum, ex, idx) {
-  // Simple: hide the row
-  const rows = document.querySelectorAll(`[id^="row-${pageNum}-${ex.replace(/\s/g,'_')}-"]`);
-  if (rows[idx]) rows[idx].style.display='none';
-}
-
-// Override renderCard to store data
-const origExtract = extractPage;
-window.extractPage = async function(b64, pageNum) {
-  const sets = await origExtract(b64, pageNum);
-  pageData[pageNum] = sets;
-  return sets;
-};
 
 async function pushPage(pageNum) {
-  const btn = document.getElementById(`push-${pageNum}`);
+  const btn = document.getElementById(`pbtn-${pageNum}`);
   btn.disabled = true;
-  btn.textContent = 'Pushing...';
-
-  // Collect current values from inputs
-  const container = document.getElementById(`sets-${pageNum}`);
-  if (!container) { btn.textContent='No data'; return; }
-
-  const rows = container.querySelectorAll('.set-row');
-  const records = [];
   const date = DATE_MAP[pageNum];
   const day = DAY_MAP[pageNum];
   const session = `${date} ${day}`;
+  const tb = document.getElementById(`tbody-${pageNum}`);
+  if (!tb) { btn.textContent='No table'; return; }
 
-  rows.forEach(row => {
-    if (row.style.display === 'none') return;
-    const inputs = row.querySelectorAll('input');
-    const exercise = inputs[0].value.trim();
-    const variation = inputs[1].value.trim();
-    const setNum = parseInt(inputs[2].value) || 1;
-    const reps = parseInt(inputs[3].value) || 0;
-    const weight = parseFloat(inputs[4].value) || 0;
-    if (!exercise || !reps) return;
-
-    const setId = `${date}-${exercise.replace(/\s+/g,'-').substring(0,10)}-${setNum}`;
+  const records = [];
+  tb.querySelectorAll('tr').forEach((tr,idx) => {
+    const inputs = tr.querySelectorAll('input');
+    if (inputs.length < 5) return;
+    const ex = inputs[0].value.trim();
+    const vari = inputs[1].value.trim();
+    const sn = parseInt(inputs[2].value)||1;
+    const reps = parseInt(inputs[3].value)||0;
+    const wt = parseFloat(inputs[4].value)||0;
+    if (!ex || !reps) return;
+    const setId = `${date}-${ex.replace(/\s+/g,'-').replace(/\//g,'').substring(0,12)}-${sn}`;
     records.push({fields:{
-      'fld4hUpEzC9IqN0xh': setId,
-      'fld75zYXknF0RtCWH': date,
-      'fldBChNmPkNg61oTN': session,
-      'fldZ93A1t7fGjjsSS': exercise,
-      'fld2TZdmCOloH0gAK': variation,
-      'fldNm9Ao0rmcwwDXo': setNum,
-      'fldelUngWHRTm48m1': reps,
-      'fldmrbBmfgSMtREMt': weight,
-      'fldypzlwqw9AzWrEE': day
+      'fld4hUpEzC9IqN0xh':setId,
+      'fld75zYXknF0RtCWH':date,
+      'fldBChNmPkNg61oTN':session,
+      'fldZ93A1t7fGjjsSS':ex,
+      'fld2TZdmCOloH0gAK':vari,
+      'fldNm9Ao0rmcwwDXo':sn,
+      'fldelUngWHRTm48m1':reps,
+      'fldmrbBmfgSMtREMt':wt,
+      'fldypzlwqw9AzWrEE':day
     }});
   });
 
   if (!records.length) { btn.textContent='Nothing to push'; return; }
-
-  // Push in batches of 10
-  let pushed = 0;
-  for (let i=0; i<records.length; i+=10) {
-    const batch = records.slice(i, i+10);
-    const r = await fetch(`https://api.airtable.com/v0/${AT_BASE}/${AT_TABLE}`, {
-      method:'POST',
-      headers:{'Authorization':'Bearer '+AT_TOKEN,'Content-Type':'application/json'},
-      body: JSON.stringify({records: batch, typecast: true})
+  let pushed=0;
+  for (let i=0;i<records.length;i+=10) {
+    const batch=records.slice(i,i+10);
+    btn.textContent=`Pushing ${i}/${records.length}...`;
+    const r = await fetch(`https://api.airtable.com/v0/${AT_BASE}/${AT_TABLE}`,{
+      method:'POST',headers:{'Authorization':'Bearer '+AT_TOKEN,'Content-Type':'application/json'},
+      body:JSON.stringify({records:batch,typecast:true})
     });
-    const d = await r.json();
-    if (d.error) { btn.textContent='Error: '+d.error.message; btn.disabled=false; return; }
-    pushed += batch.length;
-    btn.textContent = `Pushed ${pushed}/${records.length}...`;
+    const d=await r.json();
+    if (d.error){btn.textContent='Error: '+d.error.message;btn.disabled=false;return;}
+    pushed+=batch.length;
   }
-
   btn.className='push-btn done';
   btn.textContent=`✓ Pushed ${pushed} sets`;
-  document.querySelector(`#card-${pageNum} .status`).className='status status-ok';
-  document.querySelector(`#card-${pageNum} .status`).textContent=`✓ Pushed ${pushed}`;
+  totalPushed+=pushed;
+  document.getElementById('sPushed').textContent=totalPushed;
+  const badge=document.querySelector(`#card-${pageNum} .badge`);
+  if(badge){badge.className='badge b-ok';badge.textContent=`✓ Pushed ${pushed}`;}
 }
+
+async function processPage(pageNum) {
+  const url = `${BASE_URL}${pageNum}.jpeg`;
+  const date = DATE_MAP[pageNum]||'?';
+  const day = DAY_MAP[pageNum]||'?';
+
+  // Create card immediately with loading state
+  const card = document.createElement('div');
+  card.className='card'; card.id=`card-${pageNum}`;
+  card.innerHTML=`
+    <div class="card-hdr">
+      <span class="pg">Page ${pageNum}</span>
+      <span class="dates">${date} — ${day}</span>
+      <span class="badge b-proc" id="badge-${pageNum}">⏳ Processing</span>
+    </div>
+    <div class="card-body">
+      <div class="img-side"><img src="${url}" alt="Page ${pageNum}" loading="lazy"></div>
+      <div class="data-side" id="ds-${pageNum}"><div style="color:#555;padding:20px;font-size:0.8rem">Running Vision OCR...</div></div>
+    </div>`;
+  document.getElementById('cards').appendChild(card);
+
+  try {
+    const b64 = await imgToB64(url);
+    const text = await runVision(b64);
+    const sets = parseText(text, pageNum);
+    pageStore[pageNum] = sets;
+    totalSets += sets.length;
+    totalOk++;
+    document.getElementById('sOk').textContent=totalOk;
+    document.getElementById('sSets').textContent=totalSets;
+    document.getElementById(`ds-${pageNum}`).innerHTML=renderTable(sets,pageNum)+`<button class="push-btn" id="pbtn-${pageNum}" onclick="pushPage(${pageNum})">Push Page ${pageNum} → Airtable</button>`;
+    document.getElementById(`badge-${pageNum}`).className='badge b-ok';
+    document.getElementById(`badge-${pageNum}`).textContent=`✓ ${sets.length} sets`;
+  } catch(e) {
+    totalErr++;
+    document.getElementById('sErr').textContent=totalErr;
+    document.getElementById(`ds-${pageNum}`).innerHTML=`<div class="err-box">${e.message}<br><button class="retry-btn" onclick="retryPage(${pageNum})">Retry</button></div>`;
+    document.getElementById(`badge-${pageNum}`).className='badge b-err';
+    document.getElementById(`badge-${pageNum}`).textContent='⚠ Error';
+  }
+}
+
+async function retryPage(pageNum) {
+  document.getElementById(`ds-${pageNum}`).innerHTML='<div style="color:#555;padding:20px;font-size:0.8rem">Retrying...</div>';
+  await processPage(pageNum);
+}
+
+async function run() {
+  document.getElementById('summary').style.display='flex';
+  const pages = Array.from({length:40},(_,i)=>i+1);
+
+  // Process 3 at a time to avoid rate limits
+  for (let i=0; i<pages.length; i+=3) {
+    const batch = pages.slice(i, i+3);
+    document.getElementById('progLabel').textContent=`Processing pages ${batch[0]}–${batch[batch.length-1]} of 40`;
+    document.getElementById('progBar').style.width=(i/pages.length*100)+'%';
+    document.getElementById('progSub').textContent=`${i} of 40 complete`;
+    await Promise.all(batch.map(p=>processPage(p)));
+    await new Promise(r=>setTimeout(r,500)); // small delay between batches
+  }
+  document.getElementById('progLabel').textContent='All pages processed';
+  document.getElementById('progBar').style.width='100%';
+  document.getElementById('progSub').textContent='Review each page and push to Airtable';
+}
+
+run();
 </script>
 </body>
 </html>
