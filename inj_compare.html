@@ -109,7 +109,7 @@ const F={date:'fldhYEtLEGA4VxvvO',compound:'fldwVFyizH4mBANBa',dose:'fld8d8mtRap
 
 let parseurRows=[], atRows=[], compared=[];
 
-const DAY_OFF={mon:0,tue:1,wed:2,thu:3,thurs:3,fri:4,sat:5,sun:6};
+const DAY_OFF={mon:0,"mon a":0,"mon p":0,tue:1,"tue a":1,"tues":1,"tues ":1,wed:2,"wed a":2,"wed p":2,thu:3,thurs:3,fri:4,"fri a":4,"fri p":4,sat:5,"sat a":5,"sat p":5,sun:6,"sun a":6,"sun p":6};
 
 function parseWeekDate(s, yr){
   s=String(s||'').trim();
