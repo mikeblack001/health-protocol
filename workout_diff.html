@@ -116,6 +116,7 @@ async function fetchAllAT() {
   do {
     const url = new URL(`https://api.airtable.com/v0/${AT_BASE}/${AT_TABLE}`);
     url.searchParams.set('pageSize', '100');
+    url.searchParams.set('returnFieldsByFieldId', 'true');
     url.searchParams.set('fields[]', 'fld75zYXknF0RtCWH');
     url.searchParams.set('fields[]', 'fldBChNmPkNg61oTN');
     url.searchParams.set('fields[]', 'fldZ93A1t7fGjjsSS');
