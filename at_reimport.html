@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>AT Sets Reimport</title>
+<style>
+  body { font-family: monospace; background: #0d0d0d; color: #e0e0e0; margin: 0; padding: 20px; }
+  h1 { color: #fff; font-size: 18px; margin-bottom: 4px; }
+  .sub { color: #666; font-size: 12px; margin-bottom: 24px; }
+  .phase { background: #1a1a1a; border: 1px solid #333; border-radius: 6px; padding: 16px; margin-bottom: 16px; }
+  .phase h2 { margin: 0 0 12px; font-size: 14px; color: #aaa; }
+  .bar-wrap { background: #222; border-radius: 3px; height: 8px; margin: 8px 0; }
+  .bar { height: 8px; border-radius: 3px; background: #3b82f6; transition: width 0.3s; }
+  .bar.red { background: #ef4444; }
+  .bar.green { background: #22c55e; }
+  .stat { font-size: 13px; color: #aaa; margin: 4px 0; }
+  .stat span { color: #fff; }
+  .log { background: #111; border: 1px solid #222; border-radius: 4px; padding: 10px; height: 160px; overflow-y: auto; font-size: 11px; margin-top: 10px; }
+  .log .ok { color: #22c55e; }
+  .log .err { color: #ef4444; }
+  .log .info { color: #60a5fa; }
+  button { background: #2563eb; color: #fff; border: none; border-radius: 4px; padding: 10px 20px; font-size: 13px; cursor: pointer; margin-top: 8px; }
+  button:hover { background: #1d4ed8; }
+  button:disabled { background: #333; color: #666; cursor: not-allowed; }
+  button.red { background: #dc2626; }
+  button.red:hover { background: #b91c1c; }
+  .warn { color: #f59e0b; font-size: 12px; margin: 8px 0; }
+  #startBtn { width: 100%; padding: 14px; font-size: 15px; margin-top: 16px; }
+</style>
+</head>
+<body>
+
+<h1>⚡ AT Sets — Wipe + Reimport</h1>
+<div class="sub">Deletes all 8,072 records → reimports 6,207 from PDF extraction with canonical names</div>
+
+<div class="phase" id="phase1">
+  <h2>PHASE 1 — WIPE</h2>
+  <div class="stat">Records to delete: <span id="deleteTotal">loading...</span></div>
+  <div class="stat">Deleted: <span id="deleteCount">0</span></div>
+  <div class="bar-wrap"><div class="bar red" id="deleteBar" style="width:0%"></div></div>
+  <div class="log" id="deleteLog"></div>
+</div>
+
+<div class="phase" id="phase2">
+  <h2>PHASE 2 — REIMPORT</h2>
+  <div class="stat">Records to import: <span id="importTotal">—</span></div>
+  <div class="stat">Imported: <span id="importCount">0</span></div>
+  <div class="bar-wrap"><div class="bar green" id="importBar" style="width:0%"></div></div>
+  <div class="log" id="importLog"></div>
+</div>
+
+<div class="warn">⚠️ This will permanently delete all AT Sets records. at_names_backup.json is your safety net. Do not close this tab.</div>
+<button id="startBtn" class="red" onclick="startAll()">🗑️ WIPE + REIMPORT — EXECUTE</button>
+
+<script>
+const AT_TOKEN = 'pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
+const BASE = 'appmHDG4TGT1xy6R6';
+const TABLE = 'tblKDqjy5RzqaJvjr';
+const AT_BASE = `https://api.airtable.com/v0/${BASE}/${TABLE}`;
+
+// Field IDs
+const F = {
+  SetID: 'fld4hUpEzC9IqN0xh',
+  Date: 'fld75zYXknF0RtCWH',
+  Session: 'fldBChNmPkNg61oTN',
+  Exercise: 'fldZ93A1t7fGjjsSS',
+  Variation: 'fld2TZdmCOloH0gAK',
+  SetNum: 'fldNm9Ao0rmcwwDXo',
+  Reps: 'fldelUngWHRTm48m1',
+  Weight: 'fldmrbBmfgSMtREMt',
+  Day: 'fldypzlwqw9AzWrEE',
+  Notes: 'fldfR4vyBtj2VWB2b'
+};
+
+const NAME_MAP = {
+  'Barbell Bent Over Rows': 'Bent Over Rows',
+  'Barbell Curls': 'Bicep Curls-Preacher',
+  'Barbell Rows': 'Bent Over Rows',
+  'Bench Cable 1/2': 'Cable Press 1/2 ea',
+  'Bicep Curls': 'Bicep Curls-Preacher',
+  'Cable Abductions': 'Cable Hip Abduction',
+  'Cable CrossOvers 1/2': 'Cable Cross Overs 1/2 ea',
+  'Cable Crossovers': 'Cable Cross Overs 1/2 ea',
+  'Cable Fly': 'High Cable Fly 1/2 ea',
+  'Cable Hip Extensions': 'Cable Glute Kickback',
+  'Cable Kickbacks': 'Cable Glute Kickback',
+  'Cable Row': 'Cable Rows',
+  'EZ Bar Curls': 'Bicep Curls-Preacher',
+  'EZ Bar Overhead Tricep Ext': 'Overhead Tricep Ext',
+  'Forearm Raise': 'Forearm Raise - Cable 1/2',
+  'Glute Bridges': 'Hip Thrust',
+  'High Cable Fly 1/2 ea.': 'High Cable Fly 1/2 ea',
+  'High Cable Press 1/2': 'Cable Press 1/2 ea',
+  'High Cable Press 1/2 ea.': 'Cable Press 1/2 ea',
+  'Incline Dumbbell Curls': 'Incline Curls',
+  'Incline Dumbbell Press': 'Incline Press',
+  'Incline Fly - DBs': 'Incline Fly',
+  'Incline Press Decline': 'Decline Press',
+  'Lat Pulldown Supinate': 'Lat Pulldown',
+  'Overhead EZ Bar Tricep Press': 'Overhead Tricep Ext',
+  'Preacher Curls': 'Bicep Curls-Preacher',
+  'Rear Delt Dumbbell Raises': 'Rear Delt Raises',
+  'Sealed DB Press': 'Seated Shoulder Press',
+  'Seated Cable Row': 'Cable Rows',
+  'Seated DB Press': 'Seated Shoulder Press',
+  'Smith Match Calf Raises': 'Smith Mach Calf Raises',
+  'Standing EZ Curls': 'Bicep Curls-Preacher',
+  'Tricep Ext Down': 'Tricep Ext Down 1/2',
+  'Tricep Ext Up 1/2': 'Tricep Ext Up',
+  'Tricep Pushdowns 1/2 UA': 'Tricep Pushdowns 1/2',
+  'Tricep Pushdowns 1/2 ea': 'Tricep Pushdowns 1/2',
+  'Tricep Rope Ext': 'Overhead Tricep Ext',
+  'V Grip Lat Pulldown': 'Lat Pulldown',
+  'Wide Grip Lat Pulldown': 'Lat Pulldown',
+  'Wrist Twist - DBs': 'Wrist Twist'
+};
+
+const DAY_MAP = {
+  'Push': 'Push', 'Pull': 'Pull',
+  'Arms': 'Arms/Chest', 'Arms/Chest': 'Arms/Chest', 'Arms/Core': 'Arms/Chest',
+  'Arms / Chest': 'Arms/Chest', 'Arms + Chest': 'Arms/Chest',
+  'Legs': 'Legs/Core', 'Legs/Core': 'Legs/Core', 'Legs / Core': 'Legs/Core',
+  'Glutes + Core': 'Legs/Core', 'Shoulders': 'Shoulders', 'Back': 'Pull',
+  'Back + Biceps': 'Pull', 'Back + Shoulders + Chest': 'Shoulders',
+  'Chest + Triceps': 'Push', 'Monday': 'Push', 'Tuesday': 'Pull'
+};
+
+const ABBREV = {
+  'Push': 'PSH', 'Pull': 'PLL', 'Arms/Chest': 'ARM',
+  'Legs/Core': 'LEG', 'Shoulders': 'SHL'
+};
+
+function log(id, msg, cls='') {
+  const el = document.getElementById(id);
+  el.innerHTML += `<div class="${cls}">${msg}</div>`;
+  el.scrollTop = el.scrollHeight;
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+async function atFetch(url, opts={}) {
+  const r = await fetch(url, {
+    headers: { 'Authorization': `Bearer ${AT_TOKEN}`, 'Content-Type': 'application/json' },
+    ...opts
+  });
+  if (!r.ok) throw new Error(`AT ${r.status}: ${await r.text()}`);
+  return r.json();
+}
+
+async function getAllRecordIds() {
+  let ids = [], offset = null;
+  do {
+    const url = `${AT_BASE}?fields[]=fld4hUpEzC9IqN0xh&pageSize=100${offset ? `&offset=${offset}` : ''}`;
+    const d = await atFetch(url);
+    ids.push(...d.records.map(r => r.id));
+    offset = d.offset;
+  } while (offset);
+  return ids;
+}
+
+async function deleteChunk(ids) {
+  const params = ids.map(id => `records[]=${id}`).join('&');
+  await atFetch(`${AT_BASE}?${params}`, { method: 'DELETE' });
+}
+
+async function pushChunk(records) {
+  await atFetch(AT_BASE, {
+    method: 'POST',
+    body: JSON.stringify({ records, typecast: true })
+  });
+}
+
+async function loadPdfSets() {
+  const r = await fetch('https://raw.githubusercontent.com/mikeblack001/health-protocol/main/extract_progress.json', {
+    headers: { 'Authorization': `token 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` }
+  });
+  const d = await r.json();
+  const sets = Array.isArray(d) ? d : (d.all_sets || d.sets || []);
+  return sets.filter(s => (s.date || s.Date || '') >= '2024-10-28');
+}
+
+function buildRecord(s) {
+  const rawExercise = s.exercise || s.Exercise || '';
+  const exercise = NAME_MAP[rawExercise] || rawExercise;
+  const rawDay = s.day_type || s.Day || '';
+  const day = DAY_MAP[rawDay] || rawDay;
+  const abbrev = ABBREV[day] || 'UNK';
+  const date = s.date || s.Date || '';
+  const setNum = s.set_number || s.SetNum || 1;
+  const setId = `${date}-${abbrev}-${String(setNum).padStart(2,'0')}`;
+  const session = s.session || `${date} ${day}`;
+  const reps = parseInt(s.reps || s.Reps || 0);
+  const weight = parseFloat(s.weight || s.Weight || 0);
+  const variation = s.variation || s.Variation || '';
+
+  if (!date || reps === 0) return null;
+
+  const fields = {
+    [F.SetID]: setId,
+    [F.Date]: date,
+    [F.Session]: session,
+    [F.Exercise]: exercise,
+    [F.SetNum]: setNum,
+    [F.Reps]: reps,
+    [F.Day]: day
+  };
+  if (variation) fields[F.Variation] = variation;
+  if (weight > 0) fields[F.Weight] = weight;
+  return { fields };
+}
+
+async function startAll() {
+  document.getElementById('startBtn').disabled = true;
+
+  // ─── PHASE 1: WIPE ───
+  log('deleteLog', 'Fetching all record IDs...', 'info');
+  let allIds;
+  try {
+    allIds = await getAllRecordIds();
+  } catch(e) {
+    log('deleteLog', `ERROR: ${e.message}`, 'err'); return;
+  }
+  document.getElementById('deleteTotal').textContent = allIds.length;
+  log('deleteLog', `Found ${allIds.length} records. Deleting in batches of 10...`, 'info');
+
+  let deleted = 0;
+  for (let i = 0; i < allIds.length; i += 10) {
+    const chunk = allIds.slice(i, i+10);
+    let attempts = 0;
+    while (attempts < 3) {
+      try {
+        await deleteChunk(chunk);
+        break;
+      } catch(e) {
+        attempts++;
+        if (attempts >= 3) { log('deleteLog', `FAIL batch ${i}: ${e.message}`, 'err'); }
+        else await sleep(2000 * attempts);
+      }
+    }
+    deleted += chunk.length;
+    document.getElementById('deleteCount').textContent = deleted;
+    document.getElementById('deleteBar').style.width = `${(deleted/allIds.length*100).toFixed(1)}%`;
+    if (deleted % 100 === 0) log('deleteLog', `Deleted ${deleted}/${allIds.length}`, 'ok');
+    await sleep(250);
+  }
+  log('deleteLog', `✅ WIPE COMPLETE — ${deleted} records deleted`, 'ok');
+
+  // ─── PHASE 2: REIMPORT ───
+  log('importLog', 'Loading extract_progress.json from GitHub...', 'info');
+  let pdfSets;
+  try {
+    pdfSets = await loadPdfSets();
+  } catch(e) {
+    log('importLog', `ERROR loading PDF sets: ${e.message}`, 'err'); return;
+  }
+
+  const records = pdfSets.map(buildRecord).filter(Boolean);
+  document.getElementById('importTotal').textContent = records.length;
+  log('importLog', `${records.length} records to push. Starting...`, 'info');
+
+  let pushed = 0;
+  for (let i = 0; i < records.length; i += 10) {
+    const chunk = records.slice(i, i+10);
+    let attempts = 0;
+    while (attempts < 3) {
+      try {
+        await pushChunk(chunk);
+        break;
+      } catch(e) {
+        attempts++;
+        if (attempts >= 3) log('importLog', `FAIL batch ${i}: ${e.message}`, 'err');
+        else await sleep(2000 * attempts);
+      }
+    }
+    pushed += chunk.length;
+    document.getElementById('importCount').textContent = pushed;
+    document.getElementById('importBar').style.width = `${(pushed/records.length*100).toFixed(1)}%`;
+    if (pushed % 200 === 0) log('importLog', `Pushed ${pushed}/${records.length}`, 'ok');
+    await sleep(250);
+  }
+  log('importLog', `✅ REIMPORT COMPLETE — ${pushed} records pushed`, 'ok');
+  log('importLog', '🎉 Done. AT Sets now has correct dates + canonical names.', 'ok');
+}
+</script>
+</body>
+</html>
