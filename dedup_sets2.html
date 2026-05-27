@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>Sets_PDFExtract Dedup</title>
+<style>body{font-family:monospace;background:#111;color:#eee;padding:20px;}.ok{color:#4caf50}.err{color:#f44336}.info{color:#aaa}.warn{color:#ff9800}</style>
+</head><body><div id="log"></div>
+<script>
+const AT='pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
+const BASE='appmHDG4TGT1xy6R6';
+const TABLE='tbltiBtgBAIcKEjRu';
+function log(m,c){const e=document.getElementById('log');const d=document.createElement('div');d.className=c||'info';d.textContent='['+new Date().toLocaleTimeString()+'] '+m;e.appendChild(d);e.scrollTop=e.scrollHeight;}
+function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+async function fetchAll(){
+  let all=[],offset=null;
+  while(true){
+    let url='https://api.airtable.com/v0/'+BASE+'/'+TABLE+'?pageSize=100&fields[]=SetID';
+    if(offset) url+='&offset='+offset;
+    const r=await fetch(url,{headers:{'Authorization':'Bearer '+AT}});
+    const data=await r.json();
+    all=all.concat(data.records||[]);
+    if(all.length%1000===0&&all.length>0) log('Fetched '+all.length+'...','info');
+    offset=data.offset;
+    if(!offset) break;
+    await sleep(100);
+  }
+  return all;
+}
+async function run(){
+  log('Fetching all records...','info');
+  const records=await fetchAll();
+  log('Total fetched: '+records.length,'info');
+  const seen=new Map();
+  const toDelete=[];
+  for(const r of records){
+    const sid=(r.fields||{})['SetID']||'__blank__'+r.id;
+    if(!seen.has(sid)){seen.set(sid,r.id);}
+    else{toDelete.push(r.id);}
+  }
+  log('Unique SetIDs: '+seen.size,'ok');
+  log('Duplicates to delete: '+toDelete.length,'warn');
+  if(toDelete.length===0){log('No duplicates.','ok');return;}
+  // Safety check
+  if(toDelete.length>records.length*0.5){log('SAFETY STOP: >50% would be deleted ('+toDelete.length+'/'+records.length+'). Something is wrong.','err');return;}
+  let deleted=0,errors=0;
+  for(let i=0;i<toDelete.length;i+=10){
+    const batch=toDelete.slice(i,i+10);
+    const qs=batch.map(id=>'records[]='+id).join('&');
+    const r=await fetch('https://api.airtable.com/v0/'+BASE+'/'+TABLE+'?'+qs,{method:'DELETE',headers:{'Authorization':'Bearer '+AT}});
+    const data=await r.json();
+    if(r.ok&&data.records){deleted+=data.records.length;}
+    else{errors++;if(errors<=3)log('Error: '+JSON.stringify(data).substring(0,100),'err');}
+    if(i%200===0&&i>0) log(deleted+' deleted...','info');
+    await sleep(100);
+  }
+  log('DONE — Deleted: '+deleted+' | Errors: '+errors,errors===0?'ok':'warn');
+  log('Final count should be ~'+(records.length-deleted),'ok');
+}
+window.addEventListener('load',run);
+</script></body></html>

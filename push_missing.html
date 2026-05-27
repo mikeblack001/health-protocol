@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>Push Missing Records</title>
+<style>body{font-family:monospace;background:#111;color:#eee;padding:20px;}.ok{color:#4caf50}.err{color:#f44336}.info{color:#aaa}.warn{color:#ff9800}</style>
+</head><body><div id="log"></div>
+<script>
+const AT='pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
+const BASE='appmHDG4TGT1xy6R6';
+const TABLE='tbltiBtgBAIcKEjRu';
+function log(m,c){const e=document.getElementById('log');const d=document.createElement('div');d.className=c||'info';d.textContent='['+new Date().toLocaleTimeString()+'] '+m;e.appendChild(d);e.scrollTop=e.scrollHeight;}
+function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+async function run(){
+  log('Loading 1559 missing records...','info');
+  const r=await fetch('/health-protocol/records_missing.json');
+  if(!r.ok){log('Failed: HTTP '+r.status,'err');return;}
+  const records=await r.json();
+  log('Loaded '+records.length,'info');
+  let pushed=0,errors=0;
+  for(let i=0;i<records.length;i+=25){
+    const batch=records.slice(i,i+25);
+    const res=await fetch('https://api.airtable.com/v0/'+BASE+'/'+TABLE,{method:'POST',headers:{'Authorization':'Bearer '+AT,'Content-Type':'application/json'},body:JSON.stringify({records:batch,typecast:true})});
+    const data=await res.json();
+    if(res.ok&&data.records){pushed+=data.records.length;}
+    else{errors++;const msg=data.error?(data.error.type+': '+data.error.message):JSON.stringify(data).substring(0,150);if(errors<=3)log('Batch '+(Math.floor(i/25)+1)+': '+msg,'err');if(res.status===429){await sleep(30000);i-=25;continue;}}
+    await sleep(150);
+  }
+  log('DONE — Pushed: '+pushed+'/'+records.length+' | Errors: '+errors,errors===0?'ok':'warn');
+}
+window.addEventListener('load',run);
+</script></body></html>
