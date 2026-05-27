@@ -6,7 +6,7 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f6fa;color:#222;font-size:13px}
-header{background:#1a1d2e;color:#fff;padding:14px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+header{background:#1a1d2e;color:#fff;padding:14px 20px;display:flex;align-items:center;gap:16px}
 header h1{font-size:16px;font-weight:600}
 .badge{background:#2563eb;color:#fff;border-radius:10px;padding:2px 10px;font-size:11px}
 .stats{display:flex;gap:12px;padding:12px 20px;background:#fff;border-bottom:1px solid #e2e8f0;flex-wrap:wrap}
@@ -30,7 +30,7 @@ tr:hover td{background:#f8fafc}
 .tag{display:inline-block;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;text-transform:uppercase}
 .tag-match{background:#dcfce7;color:#16a34a}.tag-diff{background:#fed7aa;color:#c2410c}
 .tag-miss{background:#fee2e2;color:#dc2626}.tag-extra{background:#ede9fe;color:#7c3aed}
-#loadingMsg{padding:40px;text-align:center;color:#6b7280;font-size:14px}
+#loadingMsg{padding:60px;text-align:center;color:#6b7280;font-size:15px}
 .pbtn{padding:3px 10px;border:none;border-radius:3px;cursor:pointer;font-size:11px;font-weight:600;background:#2563eb;color:#fff}
 .pbtn:hover{background:#1d4ed8}
 #actionStatus{color:#16a34a;font-weight:600;font-size:12px;margin-left:8px}
@@ -76,11 +76,10 @@ tr:hover td{background:#f8fafc}
   </div>
   <div class="table-wrap">
     <table><thead><tr>
-      <th>Status</th><th>Date</th>
-      <th>Compound (Parseur)</th><th>Compound (AT)</th>
-      <th>Dose (Parseur)</th><th>Dose (AT)</th>
-      <th>Site (Parseur)</th><th>Site (AT)</th>
-      <th>Timing (Parseur)</th><th>Timing (AT)</th>
+      <th>Status</th><th>Date</th><th>Compound (Parseur)</th><th>Compound (AT)</th>
+      <th>Dose (P)</th><th>Dose (AT)</th>
+      <th>Site (P)</th><th>Site (AT)</th>
+      <th>Timing (P)</th><th>Timing (AT)</th>
       <th>Action</th>
     </tr></thead>
     <tbody id="tbody"></tbody></table>
@@ -90,82 +89,66 @@ tr:hover td{background:#f8fafc}
 <script>
 const AT='pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
 const BASE='appmHDG4TGT1xy6R6';
-const PARSEUR_TBL='tblCTOGIrF3NjdyTE';
-const AT_TBL='tblBvEaLkGGipnOFc';
+const AT_TBL='tblBvEaLkGGipnOFc';       // Injection Log (current AT)
+const P_TBL='tblCTOGIrF3NjdyTE';         // Parseur-Injections
 // AT field IDs
-const F={date:'fldhYEtLEGA4VxvvO',compound:'fldwVFyizH4mBANBa',dose:'fld8d8mtRapfaIyqL',site:'fldHDlJY8FpAvK018',timing:'fldIdzew4Jd0qO4Uc'};
+const AF={date:'fldhYEtLEGA4VxvvO',compound:'fldwVFyizH4mBANBa',dose:'fld8d8mtRapfaIyqL',site:'fldHDlJY8FpAvK018',timing:'fldIdzew4Jd0qO4Uc'};
+// Parseur field IDs
+const PF={date:'fldHglt7YNr37lkWV',compound:'fldONAad3wQQzQDKE',dose:'fldye77iWTIWaDNul',site:'fldDxPQRuQFZ9MJoG',timing:'fldIdHUojkqEFlCZL',medication:'fld4cK4dczgtTSdWq'};
 
 let parseurRows=[], atRows=[], compared=[];
 
 function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
 function norm(s){return String(s||'').toLowerCase().trim();}
+function makeKey(date,compound){return `${date||''}__${norm(compound)}`;}
 
-function parseMedication(s){
-  s=String(s||'').trim();
-  let timing='';
-  const tm=s.match(/\(([^)]+)\)/);
-  if(tm){timing=tm[1];s=s.slice(0,tm.index).trim();}
-  const parts=s.split(' - ',2);
-  const compound=parts[0].trim();
-  const dose=(parts[1]||'').trim();
-  return{compound,dose,timing};
-}
-
-async function fetchAll(tableId){
-  let all=[],offset=null;
+async function fetchAll(tbl){
+  const rows=[];let offset=null;
   while(true){
-    let url=`https://api.airtable.com/v0/${BASE}/${tableId}?pageSize=100`;
+    let url=`https://api.airtable.com/v0/${BASE}/${tbl}?pageSize=100`;
     if(offset) url+='&offset='+offset;
     const r=await fetch(url,{headers:{'Authorization':'Bearer '+AT}});
     const d=await r.json();
-    all=all.concat(d.records||[]);
+    rows.push(...(d.records||[]));
     offset=d.offset; if(!offset) break;
     await sleep(80);
   }
-  return all;
+  return rows;
+}
+
+function getField(rec, fieldId){
+  const v=(rec.fields||{})[fieldId] || (rec.cellValuesByFieldId||{})[fieldId] || '';
+  if(typeof v==='object'&&v!==null&&v.name) return v.name;
+  return String(v||'').trim();
 }
 
 async function loadData(){
-  // Load Parseur table
-  const pRecs=await fetchAll(PARSEUR_TBL);
-  parseurRows=pRecs.map(r=>{
-    const f=r.fields||{};
-    const{compound,dose,timing}=parseMedication(f['Medication']||f['Name']||'');
-    return{
-      _id:r.id,
-      date:f['Date']||'',
-      compound,
-      dose,
-      timing,
-      site:String(f['Location']||'').toUpperCase(),
-      dayOfWeek:f['Day of Week']||''
-    };
-  });
+  document.getElementById('badge').textContent='Loading Parseur...';
+  const pRecs=await fetchAll(P_TBL);
+  parseurRows=pRecs.map(r=>({
+    _id:r.id,
+    date:getField(r,PF.date),
+    compound:getField(r,PF.compound)||getField(r,PF.medication),
+    dose:getField(r,PF.dose),
+    site:getField(r,PF.site),
+    timing:getField(r,PF.timing)
+  }));
 
-  // Load AT Injection Log
+  document.getElementById('badge').textContent='Loading AT...';
   const atRecs=await fetchAll(AT_TBL);
-  atRows=atRecs.map(r=>{
-    const f=r.fields||{};
-    return{
-      _id:r.id,
-      date:f[F.date]||'',
-      compound:typeof f[F.compound]==='object'?f[F.compound].name:(f[F.compound]||''),
-      dose:String(f[F.dose]||'').trim(),
-      site:typeof f[F.site]==='object'?f[F.site].name:(f[F.site]||''),
-      timing:typeof f[F.timing]==='object'?f[F.timing].name:(f[F.timing]||'')
-    };
-  });
+  atRows=atRecs.map(r=>({
+    _id:r.id,
+    date:getField(r,AF.date),
+    compound:getField(r,AF.compound),
+    dose:getField(r,AF.dose),
+    site:getField(r,AF.site),
+    timing:getField(r,AF.timing)
+  }));
 }
-
-function makeKey(date,compound){return `${date}__${norm(compound)}`;}
 
 function compare(){
   const atMap=new Map();
-  atRows.forEach(r=>{
-    const k=makeKey(r.date,r.compound);
-    if(!atMap.has(k)) atMap.set(k,[]);
-    atMap.get(k).push(r);
-  });
+  atRows.forEach(r=>{const k=makeKey(r.date,r.compound);if(!atMap.has(k))atMap.set(k,[]);atMap.get(k).push(r);});
   compared=[];
   const used=new Set();
   parseurRows.forEach(p=>{
@@ -177,13 +160,10 @@ function compare(){
     if(p.dose&&at.dose&&norm(p.dose)!==norm(at.dose)) diffs.push('dose');
     if(p.site&&at.site&&norm(p.site)!==norm(at.site)) diffs.push('site');
     if(p.timing&&at.timing&&norm(p.timing)!==norm(at.timing)) diffs.push('timing');
-    if(norm(p.compound)!==norm(at.compound)) diffs.push('compound');
+    if(p.compound&&at.compound&&norm(p.compound)!==norm(at.compound)) diffs.push('compound');
     compared.push({status:diffs.length?'diff':'match',p,at,diffs});
   });
-  atRows.forEach(at=>{
-    const k=makeKey(at.date,at.compound);
-    if(!used.has(k)) compared.push({status:'extra',p:null,at,diffs:[]});
-  });
+  atRows.forEach(at=>{const k=makeKey(at.date,at.compound);if(!used.has(k))compared.push({status:'extra',p:null,at,diffs:[]});});
 }
 
 function buildUI(){
@@ -229,50 +209,49 @@ function render(){
   tbody.innerHTML='';
   rows.forEach(r=>{
     const p=r.p||{}; const at=r.at||{};
-    const ds=new Set(r.diffs||[]);
+    const ds=new Set(r.diffs);
+    const cls=`row-${r.status}`;
+    const tag=`<span class="tag tag-${r.status}">${r.status}</span>`;
     const cell=(field,pv,av)=>{
       const diff=ds.has(field);
       return`<td>${diff?`<span class="cell-diff">${pv||'—'}</span>`:pv||'—'}</td><td>${diff?`<span class="cell-diff">${av||'—'}</span>`:av||'—'}</td>`;
     };
     let action='';
-    const idx=compared.indexOf(r);
-    if(r.status==='miss') action=`<button class="pbtn" onclick="pushOne(${idx})">Push to AT</button>`;
-    else if(r.status==='diff') action=`<button class="pbtn" onclick="fixOne(${idx})">Fix in AT</button>`;
-    tbody.innerHTML+=`<tr class="row-${r.status}">
-      <td><span class="tag tag-${r.status}">${r.status}</span></td>
+    if(r.status==='miss') action=`<button class="pbtn" onclick="pushOne(${compared.indexOf(r)})">Push to AT</button>`;
+    else if(r.status==='diff') action=`<button class="pbtn" onclick="fixOne(${compared.indexOf(r)})">Fix in AT</button>`;
+    tbody.innerHTML+=`<tr class="${cls}"><td>${tag}</td>
       <td>${(r.p||r.at).date||'—'}</td>
       ${cell('compound',p.compound,at.compound)}
       ${cell('dose',p.dose,at.dose)}
       ${cell('site',p.site,at.site)}
       ${cell('timing',p.timing,at.timing)}
-      <td>${action}</td>
-    </tr>`;
+      <td>${action}</td></tr>`;
   });
 }
 
-function buildFields(p){
+function buildATFields(p){
   const f={};
-  if(p.date) f[F.date]=p.date;
-  if(p.compound) f[F.compound]=p.compound;
-  if(p.dose) f[F.dose]=p.dose;
-  if(p.site) f[F.site]=p.site;
-  if(p.timing) f[F.timing]=p.timing;
+  if(p.date) f[AF.date]=p.date;
+  if(p.compound) f[AF.compound]=p.compound;
+  if(p.dose) f[AF.dose]=p.dose;
+  if(p.site) f[AF.site]=p.site;
+  if(p.timing) f[AF.timing]=p.timing;
   return f;
 }
 
 async function pushOne(idx){
   const r=compared[idx]; if(!r||r.status!=='miss') return;
-  const res=await fetch(`https://api.airtable.com/v0/${BASE}/${AT_TBL}`,{method:'POST',headers:{'Authorization':'Bearer '+AT,'Content-Type':'application/json'},body:JSON.stringify({records:[{fields:buildFields(r.p)}],typecast:true})});
+  const res=await fetch(`https://api.airtable.com/v0/${BASE}/${AT_TBL}`,{method:'POST',headers:{'Authorization':'Bearer '+AT,'Content-Type':'application/json'},body:JSON.stringify({records:[{fields:buildATFields(r.p)}],typecast:true})});
   const d=await res.json();
   if(res.ok){r.status='match';r.at=r.p;render();updateStats();}
   else alert('Error: '+JSON.stringify(d.error));
 }
 
 async function fixOne(idx){
-  const r=compared[idx]; if(!r||r.status!=='diff'||!r.at._id) return;
-  const res=await fetch(`https://api.airtable.com/v0/${BASE}/${AT_TBL}/${r.at._id}`,{method:'PATCH',headers:{'Authorization':'Bearer '+AT,'Content-Type':'application/json'},body:JSON.stringify({fields:buildFields(r.p),typecast:true})});
+  const r=compared[idx]; if(!r||r.status!=='diff'||!r.at||!r.at._id) return;
+  const res=await fetch(`https://api.airtable.com/v0/${BASE}/${AT_TBL}/${r.at._id}`,{method:'PATCH',headers:{'Authorization':'Bearer '+AT,'Content-Type':'application/json'},body:JSON.stringify({fields:buildATFields(r.p),typecast:true})});
   const d=await res.json();
-  if(res.ok){r.status='match';r.diffs=[];render();updateStats();}
+  if(res.ok){r.status='match';r.diffs=[];r.at={...r.at,...r.p};render();updateStats();}
   else alert('Error: '+JSON.stringify(d.error));
 }
 
@@ -281,10 +260,10 @@ async function pushMissing(){
   document.getElementById('btnPushMissing').disabled=true;
   let done=0;
   for(let i=0;i<miss.length;i+=25){
-    const batch=miss.slice(i,i+25).map(r=>({fields:buildFields(r.p)}));
+    const batch=miss.slice(i,i+25).map(r=>({fields:buildATFields(r.p)}));
     const res=await fetch(`https://api.airtable.com/v0/${BASE}/${AT_TBL}`,{method:'POST',headers:{'Authorization':'Bearer '+AT,'Content-Type':'application/json'},body:JSON.stringify({records:batch,typecast:true})});
     const d=await res.json();
-    if(res.ok){done+=d.records.length;miss.slice(i,i+25).forEach(r=>{r.status='match';});}
+    if(res.ok){done+=d.records.length;miss.slice(i,i+25).forEach(r=>{r.status='match';r.at=r.p;});}
     await sleep(150);
   }
   document.getElementById('actionStatus').textContent=`✓ Pushed ${done}`;
@@ -296,7 +275,7 @@ async function fixDiffs(){
   document.getElementById('btnFixDiffs').disabled=true;
   let done=0;
   for(const r of diffs){
-    const res=await fetch(`https://api.airtable.com/v0/${BASE}/${AT_TBL}/${r.at._id}`,{method:'PATCH',headers:{'Authorization':'Bearer '+AT,'Content-Type':'application/json'},body:JSON.stringify({fields:buildFields(r.p),typecast:true})});
+    const res=await fetch(`https://api.airtable.com/v0/${BASE}/${AT_TBL}/${r.at._id}`,{method:'PATCH',headers:{'Authorization':'Bearer '+AT,'Content-Type':'application/json'},body:JSON.stringify({fields:buildATFields(r.p),typecast:true})});
     if(res.ok){done++;r.status='match';r.diffs=[];}
     await sleep(100);
   }
@@ -315,13 +294,9 @@ function exportCSV(){
 }
 
 window.addEventListener('load',async()=>{
-  try{
-    await loadData();
-    compare();
-    buildUI();
-  }catch(e){
-    document.getElementById('loadingMsg').textContent='Error: '+e.message;
-  }
+  await loadData();
+  compare();
+  buildUI();
 });
 </script>
 </body>
