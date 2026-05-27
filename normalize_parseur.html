@@ -1,146 +1,95 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>Normalize Parseur-Injections</title>
+<html><head><meta charset="UTF-8"><title>Normalize Parseur</title>
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,sans-serif;font-size:13px;background:#f4f5f7;padding:20px;max-width:900px}
-h1{font-size:16px;font-weight:900;margin-bottom:4px;color:#1e2433}
-.sub{font-size:12px;color:#6b7280;margin-bottom:20px}
-#status{background:#fff;border:1px solid #e2e5ea;border-radius:8px;padding:14px 16px;margin-bottom:16px}
-.ok{color:#166534;font-weight:700}.err{color:#dc2626;font-weight:700}
-#prog-wrap{background:#fff;border:1px solid #e2e5ea;border-radius:8px;padding:14px 16px;margin-bottom:16px;display:none}
-#prog-txt{font-weight:700;color:#1d4ed8;margin-bottom:8px}
-.bar{background:#e2e5ea;border-radius:4px;height:10px}
-.bar-fill{background:#2563eb;height:10px;border-radius:4px;transition:width .2s}
-#actions{margin-bottom:16px;display:none}
-.btn{padding:10px 20px;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;border:1px solid;margin-right:8px}
-.bg{background:#16a34a;color:#fff;border-color:#16a34a}.bg:hover{background:#15803d}
-.bs{background:#fff;border-color:#d1d5db;color:#374151}
-#prev-wrap{background:#fff;border:1px solid #e2e5ea;border-radius:8px;overflow:hidden;margin-bottom:16px;display:none}
-#prev-hdr{padding:10px 14px;background:#fafafa;border-bottom:1px solid #e2e5ea;font-size:13px;font-weight:800}
-table{width:100%;border-collapse:collapse;font-size:12px}
-th{background:#f8f9fa;padding:7px 10px;text-align:left;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:#6b7280;border-bottom:1px solid #e2e5ea}
-td{padding:6px 10px;border-bottom:1px solid #f3f4f6}
-.cn{font-weight:700;color:#1e2433}
-.pd{background:#dbeafe;color:#1d4ed8;padding:1px 6px;border-radius:10px;font-size:11px;font-weight:700}
-.pt{background:#f3f4f6;color:#374151;padding:1px 6px;border-radius:10px;font-size:11px;font-weight:700}
-.ps{background:#fef3c7;color:#92400e;padding:1px 6px;border-radius:10px;font-size:11px;font-weight:700}
-.raw{color:#9ca3af;font-style:italic}
-.warn{color:#dc2626}
-#done-wrap{background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:16px;display:none}
-#done-wrap h3{color:#166534;font-weight:800;margin-bottom:8px}
+body{font-family:-apple-system,sans-serif;font-size:14px;padding:30px;max-width:700px;background:#f4f5f7}
+h1{font-size:18px;font-weight:900;margin-bottom:6px}
+.sub{color:#6b7280;margin-bottom:24px;font-size:13px}
+#box{background:#fff;border:1px solid #e2e5ea;border-radius:10px;padding:20px;margin-bottom:16px}
+#counter{font-size:48px;font-weight:900;color:#2563eb;line-height:1}
+#sub-counter{font-size:14px;color:#6b7280;margin-top:4px}
+.bar-bg{background:#e2e5ea;border-radius:6px;height:12px;margin-top:16px}
+.bar-fg{background:#2563eb;height:12px;border-radius:6px;width:0%;transition:width .1s}
+#msg{margin-top:12px;font-size:13px;color:#374151;min-height:20px}
+.btn{padding:12px 24px;border-radius:7px;font-size:14px;font-weight:700;cursor:pointer;border:none;margin-top:16px}
+.go{background:#16a34a;color:#fff}.go:hover{background:#15803d}
+.done-box{background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:20px;display:none}
+.done-box h2{color:#166534;font-size:16px;font-weight:800;margin-bottom:8px}
 </style>
 </head>
 <body>
 <h1>🔧 Normalize Parseur-Injections</h1>
-<div class="sub">Parses Medication → Compound + Dose + Timing. Maps Location → Site. Preview shows first 50 rows.</div>
-<div id="status">⏳ Loading…</div>
-<div id="actions">
-  <button class="btn bg" onclick="runAll()">✓ Run — Populate Compound / Dose / Timing / Site</button>
-  <button class="btn bs" onclick="location.reload()">↻ Reload</button>
+<div class="sub">Parses Medication → Compound + Dose + Timing. Location → Site. 1553 records.</div>
+
+<div id="box">
+  <div id="counter">0</div>
+  <div id="sub-counter">records updated</div>
+  <div class="bar-bg"><div class="bar-fg" id="bar"></div></div>
+  <div id="msg">Click Run to start.</div>
+  <button class="btn go" id="btn" onclick="run()">▶ Run Normalization</button>
 </div>
-<div id="prog-wrap">
-  <div id="prog-txt">Starting…</div>
-  <div class="bar"><div class="bar-fill" id="bar" style="width:0%"></div></div>
-</div>
-<div id="prev-wrap">
-  <div id="prev-hdr"></div>
-  <table><thead><tr><th>Date</th><th>Raw Medication</th><th>→ Compound</th><th>→ Dose</th><th>→ Timing</th><th>Location → Site</th></tr></thead>
-  <tbody id="prev-body"></tbody></table>
-</div>
-<div id="done-wrap">
-  <h3>✓ Complete</h3>
+
+<div class="done-box" id="done">
+  <h2>✓ Done</h2>
   <div id="done-msg"></div>
 </div>
 
 <script>
 const TOK='pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
 const BASE='appmHDG4TGT1xy6R6',TBL='tblCTOGIrF3NjdyTE';
-const F_MED='fld4cK4dczgtTSdWq',F_LOC='fldSxewpSKtDcoDqV',F_DAT='fldHglt7YNr37lkWV';
+const F_MED='fld4cK4dczgtTSdWq',F_LOC='fldSxewpSKtDcoDqV';
 const F_CMP='fldONAad3wQQzQDKE',F_DOSE='fldye77iWTIWaDNul',F_TIM='fldIdHUojkqEFlCZL',F_SITE='fldDxPQRuQFZ9MJoG';
 
 const CMAP={'tesamorelin':'Tesamorelin','lipominomix':'LipoMinoMix','lipo mino mix':'LipoMinoMix',
   'lipo-mino-mix':'LipoMinoMix','ipamorelin':'Ipamorelin','cjc-1295 no dac':'CJC-1295 No DAC',
-  'cjc1295 no dac':'CJC-1295 No DAC','cjc-1295':'CJC-1295','cjc 1295':'CJC-1295',
-  'testosterone':'Testosterone','deca (nandrolone)':'Deca (Nandrolone)','deca':'Deca (Nandrolone)',
-  'nandrolone':'Deca (Nandrolone)','ghk-cu':'GHK-Cu','ghkcu':'GHK-Cu','ss-31':'SS-31',
-  'nad+':'NAD+','nad':'NAD+','bpc-157':'BPC-157','bpc157':'BPC-157','tb-500':'TB-500',
-  'tb500':'TB-500','dsip':'DSIP','kpv':'KPV','semax':'Semax','selank':'Selank',
-  'retatrutide':'Retatrutide','tirzepatide':'Tirzepatide','epitalon':'Epitalon',
-  'anavar':'Anavar (Oxandrolone)','oxandrolone':'Anavar (Oxandrolone)',
+  'cjc-1295':'CJC-1295','testosterone':'Testosterone','deca (nandrolone)':'Deca (Nandrolone)',
+  'deca':'Deca (Nandrolone)','nandrolone':'Deca (Nandrolone)','ghk-cu':'GHK-Cu','ss-31':'SS-31',
+  'nad+':'NAD+','nad':'NAD+','bpc-157':'BPC-157','tb-500':'TB-500','dsip':'DSIP','kpv':'KPV',
+  'semax':'Semax','selank':'Selank','retatrutide':'Retatrutide','tirzepatide':'Tirzepatide',
+  'epitalon':'Epitalon','anavar':'Anavar (Oxandrolone)','oxandrolone':'Anavar (Oxandrolone)',
   'anavar (oxandrolone)':'Anavar (Oxandrolone)','winstrol':'Winstrol (Stanozolol)',
-  'stanozolol':'Winstrol (Stanozolol)','cagrilintide':'Cagrilintide','mots-c':'Mots-C',
-  'motsc':'Mots-C','melanotan':'Melanotan II (MT2)','mt2':'Melanotan II (MT2)','ghk':'GHK-Cu'};
+  'cagrilintide':'Cagrilintide','mots-c':'Mots-C','melanotan':'Melanotan II (MT2)','ghk':'GHK-Cu'};
 
-function parseMed(med){
-  if(!med)return{c:'',d:'',t:''};
-  let m=med.match(/^(.+?)\s*-\s*(\S+)\s*\((\w+)\)\s*$/i);
+function parseMed(s){
+  if(!s)return{c:'',d:'',t:''};
+  let m=s.match(/^(.+?)\s*-\s*(\S+)\s*\((\w+)\)\s*$/i);
   if(m)return{c:can(m[1].trim()),d:m[2].trim(),t:canT(m[3].trim())};
-  m=med.match(/^(.+?)\s*-\s*(\S+)\s*$/i);
+  m=s.match(/^(.+?)\s*-\s*(\S+)\s*$/i);
   if(m)return{c:can(m[1].trim()),d:m[2].trim(),t:''};
-  return{c:can(med.trim()),d:'',t:''};
+  return{c:can(s.trim()),d:'',t:''};
 }
 function can(r){return CMAP[r.toLowerCase().trim()]||r;}
-function canT(t){return{'morning':'Morning','night':'Night','evening':'Evening','daily':'Daily','am':'Morning','pm':'Night'}[t.toLowerCase()]||t;}
-function canSite(loc){
-  if(!loc)return'';
-  // Keep X as X (not administered), map L/R/etc
-  const m={'l':'L','r':'R','left':'L','right':'R','pill':'Pill','x':'X','nasal':'Nasal','abd':'Abd','s':'S'};
-  return m[loc.toLowerCase().trim()]||loc.trim();
+function canT(t){return{morning:'Morning',night:'Night',evening:'Evening',daily:'Daily',am:'Morning',pm:'Night'}[t.toLowerCase()]||t;}
+function canSite(loc){if(!loc)return'';return{l:'L',r:'R',left:'L',right:'R',pill:'Pill',x:'X',nasal:'Nasal',abd:'Abd',s:'S'}[loc.toLowerCase().trim()]||loc.trim();}
+
+function ui(done,total,msg){
+  document.getElementById('counter').textContent=done;
+  document.getElementById('sub-counter').textContent='of '+total+' records updated';
+  document.getElementById('bar').style.width=Math.round(done/total*100)+'%';
+  document.getElementById('msg').textContent=msg||'';
 }
 
-async function atGet(path){
-  const r=await fetch('https://api.airtable.com/v0/'+BASE+'/'+path,{headers:{Authorization:'Bearer '+TOK}});
-  if(!r.ok)throw new Error('AT '+r.status);return r.json();
-}
-async function atPatch(body){
-  const r=await fetch('https://api.airtable.com/v0/'+BASE+'/'+TBL,{method:'PATCH',headers:{Authorization:'Bearer '+TOK,'Content-Type':'application/json'},body:JSON.stringify(body)});
-  if(!r.ok){const e=await r.json().catch(()=>({error:{message:r.status}}));throw new Error(e.error?.message||r.status);}
-  return r.json();
-}
+async function run(){
+  document.getElementById('btn').disabled=true;
+  document.getElementById('btn').textContent='Running…';
+  document.getElementById('msg').textContent='Loading records…';
 
-let recs=[];
+  // Load all records
+  let recs=[],off=null,total=0;
+  try{
+    do{
+      const url='https://api.airtable.com/v0/'+BASE+'/'+TBL+'?returnFieldsByFieldId=true&pageSize=100'+(off?'&offset='+off:'');
+      const r=await fetch(url,{headers:{Authorization:'Bearer '+TOK}});
+      if(!r.ok)throw new Error('Load failed: '+r.status);
+      const d=await r.json();
+      recs=recs.concat(d.records);off=d.offset;
+      document.getElementById('msg').textContent='Loading… '+recs.length+' records';
+    }while(off);
+    total=recs.length;
+    document.getElementById('msg').textContent='Loaded '+total+'. Starting updates…';
+  }catch(e){document.getElementById('msg').textContent='Load error: '+e.message;return;}
 
-async function load(){
-  let all=[],off=null;
-  do{
-    const url=TBL+'?returnFieldsByFieldId=true&pageSize=100'+(off?'&offset='+off:'');
-    const d=await atGet(url);all=all.concat(d.records);off=d.offset;
-    st('Loading… '+all.length);
-  }while(off);
-  recs=all;
-}
-
-function renderPreview(){
-  // Only render first 50 rows to avoid browser lock
-  const sample=recs.slice(0,50);
-  let warn=0;
-  // Count total warns
-  recs.forEach(r=>{const f=r.fields;const{c}=parseMed(f[F_MED]||'');if(!c)warn++;});
-  document.getElementById('prev-body').innerHTML=sample.map(r=>{
-    const f=r.fields,med=f[F_MED]||'',loc=f[F_LOC]||'';
-    const{c,d,t}=parseMed(med);const site=canSite(loc);
-    return`<tr><td>${f[F_DAT]||''}</td><td class="raw">${med||'—'}</td>
-    <td class="cn">${c||'<span class="warn">⚠ '+med+'</span>'}</td>
-    <td>${d?'<span class="pd">'+d+'</span>':''}</td>
-    <td>${t?'<span class="pt">'+t+'</span>':''}</td>
-    <td>${loc?'<span class="raw">'+loc+'</span> → ':''}<span class="ps">${site||'—'}</span></td></tr>`;
-  }).join('');
-  document.getElementById('prev-hdr').textContent=
-    'Preview — first 50 of '+recs.length+' records'+(warn?' | ⚠ '+warn+' unmapped':' | ✓ all parseable');
-  document.getElementById('prev-wrap').style.display='block';
-  document.getElementById('actions').style.display='block';
-  st('<span class="ok">✓ '+recs.length+' records loaded. Click Run to populate fields.</span>');
-}
-
-async function runAll(){
-  document.getElementById('actions').style.display='none';
-  document.getElementById('prev-wrap').style.display='none';
-  const pw=document.getElementById('prog-wrap');pw.style.display='block';
+  // Update in batches of 10
   let done=0,errs=0;
-
   for(let i=0;i<recs.length;i+=10){
     const batch=recs.slice(i,i+10);
     const updates=batch.map(r=>{
@@ -153,33 +102,34 @@ async function runAll(){
       if(t)fields[F_TIM]=t;
       if(site)fields[F_SITE]=site;
       return{id:r.id,fields};
-    }).filter(u=>Object.keys(u.fields).length>0);
-
-    if(updates.length){
-      try{await atPatch({records:updates});done+=updates.length;}
-      catch(e){errs+=batch.length;console.error(e);}
+    });
+    try{
+      const r=await fetch('https://api.airtable.com/v0/'+BASE+'/'+TBL,{
+        method:'PATCH',
+        headers:{Authorization:'Bearer '+TOK,'Content-Type':'application/json'},
+        body:JSON.stringify({records:updates})
+      });
+      if(!r.ok){const e=await r.json();throw new Error(e.error?.message||r.status);}
+      done+=batch.length;
+    }catch(e){
+      errs+=batch.length;
+      document.getElementById('msg').textContent='Batch error: '+e.message;
     }
-    // Yield to browser every batch
-    await new Promise(res=>setTimeout(res,0));
-    const pct=Math.round((i+batch.length)/recs.length*100);
-    document.getElementById('prog-txt').textContent='Updated '+done+' / '+recs.length+' records…';
-    document.getElementById('bar').style.width=pct+'%';
+    ui(done,total,'Batch '+(Math.floor(i/10)+1)+' of '+Math.ceil(total/10)+' — '+errs+' errors');
+    // Yield to UI thread
+    await new Promise(r=>setTimeout(r,50));
   }
 
-  pw.style.display='none';
-  const dw=document.getElementById('done-wrap');dw.style.display='block';
+  // Done
+  document.getElementById('box').style.display='none';
+  const dv=document.getElementById('done');dv.style.display='';
   document.getElementById('done-msg').innerHTML=
-    '<b>'+done+' records updated</b>'+(errs?` <span style="color:#dc2626">(${errs} errors)</span>`:'')+'<br><br>'+
-    'Parseur-Injections now has matching fields:<br>'+
-    '<ul style="margin:8px 0 0 20px;line-height:2">'+
-    '<li><b>Compound</b> — e.g. Tesamorelin, Testosterone</li>'+
-    '<li><b>Dose</b> — e.g. 5u, 75u, 30u</li>'+
-    '<li><b>Timing</b> — Morning / Night / Evening / Daily</li>'+
-    '<li><b>Site</b> — L / R / X / Pill / Nasal</li></ul>';
+    '<b>'+done+' records updated</b>'+(errs?' <span style="color:#dc2626">'+errs+' errors</span>':'')+'<br><br>'+
+    'Parseur-Injections now has:<br><ul style="margin:8px 0 0 20px;line-height:2">'+
+    '<li><b>Compound</b> — canonical name</li>'+
+    '<li><b>Dose</b> — e.g. 5u, 75u</li>'+
+    '<li><b>Timing</b> — Morning / Night / Daily</li>'+
+    '<li><b>Site</b> — L / R / X / Pill</li></ul>';
 }
-
-function st(h){document.getElementById('status').innerHTML=h;}
-window.onload=async()=>{try{await load();renderPreview();}catch(e){st('<span class="err">Error: '+e.message+'</span>');}};
 </script>
-</body>
-</html>
+</body></html>
