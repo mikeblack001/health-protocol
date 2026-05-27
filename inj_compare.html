@@ -6,7 +6,7 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f6fa;color:#222;font-size:13px}
-header{background:#1a1d2e;color:#fff;padding:14px 20px;display:flex;align-items:center;gap:16px}
+header{background:#1a1d2e;color:#fff;padding:14px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
 header h1{font-size:16px;font-weight:600}
 .badge{background:#2563eb;color:#fff;border-radius:10px;padding:2px 10px;font-size:11px}
 .stats{display:flex;gap:12px;padding:12px 20px;background:#fff;border-bottom:1px solid #e2e8f0;flex-wrap:wrap}
@@ -30,11 +30,7 @@ tr:hover td{background:#f8fafc}
 .tag{display:inline-block;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;text-transform:uppercase}
 .tag-match{background:#dcfce7;color:#16a34a}.tag-diff{background:#fed7aa;color:#c2410c}
 .tag-miss{background:#fee2e2;color:#dc2626}.tag-extra{background:#ede9fe;color:#7c3aed}
-.upload-zone{border:2px dashed #d1d5db;border-radius:8px;padding:40px;text-align:center;background:#fafafa;margin:24px auto;max-width:500px;cursor:pointer}
-.upload-zone:hover{border-color:#2563eb;background:#eff6ff}
-.upload-zone h3{color:#374151;margin-bottom:8px;font-size:15px}
-.upload-zone p{color:#9ca3af;font-size:12px;margin-top:4px}
-#loadingMsg{display:none;padding:40px;text-align:center;color:#6b7280;font-size:14px}
+#loadingMsg{padding:40px;text-align:center;color:#6b7280;font-size:14px}
 .pbtn{padding:3px 10px;border:none;border-radius:3px;cursor:pointer;font-size:11px;font-weight:600;background:#2563eb;color:#fff}
 .pbtn:hover{background:#1d4ed8}
 #actionStatus{color:#16a34a;font-weight:600;font-size:12px;margin-left:8px}
@@ -43,19 +39,10 @@ tr:hover td{background:#f8fafc}
 <body>
 <header>
   <h1>💉 Injection Log — Parseur vs AT</h1>
-  <span class="badge" id="badge">Upload Parseur CSV</span>
+  <span class="badge" id="badge">Loading...</span>
 </header>
 
-<div id="uploadSection" style="padding:20px">
-  <div class="upload-zone" onclick="document.getElementById('fi').click()">
-    <h3>📂 Upload Parseur Export</h3>
-    <p>Accepts CSV, JSON, or Excel (.xlsx/.xls)</p>
-    <p style="color:#2563eb;font-weight:600;margin-top:10px">Click to select file</p>
-    <input type="file" id="fi" accept=".csv,.json,.xlsx,.xls" style="display:none" onchange="handleFile(this)">
-  </div>
-</div>
-
-<div id="loadingMsg">Loading and comparing...</div>
+<div id="loadingMsg">Loading Parseur and AT data...</div>
 
 <div id="mainUI" style="display:none">
   <div class="stats">
@@ -89,7 +76,8 @@ tr:hover td{background:#f8fafc}
   </div>
   <div class="table-wrap">
     <table><thead><tr>
-      <th>Status</th><th>Date</th><th>Compound</th>
+      <th>Status</th><th>Date</th>
+      <th>Compound (Parseur)</th><th>Compound (AT)</th>
       <th>Dose (Parseur)</th><th>Dose (AT)</th>
       <th>Site (Parseur)</th><th>Site (AT)</th>
       <th>Timing (Parseur)</th><th>Timing (AT)</th>
@@ -99,28 +87,18 @@ tr:hover td{background:#f8fafc}
   </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 const AT='pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
 const BASE='appmHDG4TGT1xy6R6';
-const TBL='tblBvEaLkGGipnOFc';
+const PARSEUR_TBL='tblCTOGIrF3NjdyTE';
+const AT_TBL='tblBvEaLkGGipnOFc';
 // AT field IDs
 const F={date:'fldhYEtLEGA4VxvvO',compound:'fldwVFyizH4mBANBa',dose:'fld8d8mtRapfaIyqL',site:'fldHDlJY8FpAvK018',timing:'fldIdzew4Jd0qO4Uc'};
 
 let parseurRows=[], atRows=[], compared=[];
 
-const DAY_OFF={mon:0,"mon a":0,"mon p":0,tue:1,"tue a":1,"tues":1,"tues ":1,wed:2,"wed a":2,"wed p":2,thu:3,thurs:3,fri:4,"fri a":4,"fri p":4,sat:5,"sat a":5,"sat p":5,sun:6,"sun a":6,"sun p":6};
-
-function parseWeekDate(s, yr){
-  s=String(s||'').trim();
-  if(!s) return null;
-  const p=s.split('/');
-  if(p.length===3){const y=parseInt(p[2]);return new Date(y<100?2000+y:y,parseInt(p[0])-1,parseInt(p[1]));}
-  if(p.length===2){return new Date(yr||2025,parseInt(p[0])-1,parseInt(p[1]));}
-  return null;
-}
-function addDays(d,n){const r=new Date(d);r.setDate(r.getDate()+n);return r;}
-function isoDate(d){return d.toISOString().split('T')[0];}
+function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+function norm(s){return String(s||'').toLowerCase().trim();}
 
 function parseMedication(s){
   s=String(s||'').trim();
@@ -128,124 +106,66 @@ function parseMedication(s){
   const tm=s.match(/\(([^)]+)\)/);
   if(tm){timing=tm[1];s=s.slice(0,tm.index).trim();}
   const parts=s.split(' - ',2);
-  return{compound:parts[0].trim(), dose:(parts[1]||'').trim(), timing};
+  const compound=parts[0].trim();
+  const dose=(parts[1]||'').trim();
+  return{compound,dose,timing};
 }
 
-function parseCSV(text){
-  const lines=text.split(/\r?\n/);
-  let inData=false, rows=[], currentWeek=null, yr=2025;
-  for(const line of lines){
-    if(!line.trim()) continue;
-    const cols=line.split(',');
-    if(cols[0]==='week_start_date'){inData=true;continue;}
-    if(!inData) continue;
-    if(cols.length<4) continue;
-    const[wk,med,day,dv,notes='']= cols.map(c=>c.trim().replace(/^"|"$/g,''));
-    if(wk){
-      const d=parseWeekDate(wk,yr);
-      if(d){
-        // Year bump detection
-        if(currentWeek && d.getMonth()<currentWeek.getMonth()-3) yr++;
-        currentWeek=parseWeekDate(wk,yr);
-      }
-    }
-    if(!currentWeek) continue;
-    const dayKey=day.toLowerCase().substring(0,5);
-    const off=DAY_OFF[dayKey];
-    if(off===undefined) continue;
-    const actualDate=addDays(currentWeek,off);
-    const{compound,dose,timing}=parseMedication(med);
-    const site=dv.toUpperCase();
-    rows.push({date:isoDate(actualDate),compound,dose,timing,site,notes});
-  }
-  return rows;
-}
-
-function parseJSON(text){
-  const d=JSON.parse(text);
-  const rows=Array.isArray(d)?d:(d.data||d.records||[]);
-  return rows.map(r=>({
-    date:String(r.date||r.Date||'').trim(),
-    compound:String(r.compound||r.Compound||r.medication||'').trim(),
-    dose:String(r.dose||r.Dose||'').trim(),
-    site:String(r.site||r.Site||'').trim(),
-    timing:String(r.timing||r.Timing||'').trim(),
-    notes:String(r.notes||r.Notes||'').trim()
-  }));
-}
-
-function parseExcel(buf){
-  const wb=XLSX.read(buf,{type:'array'});
-  const ws=wb.Sheets[wb.SheetNames[0]];
-  return XLSX.utils.sheet_to_json(ws,{defval:''}).map(r=>({
-    date:String(r.date||r.Date||r.week_start_date||'').trim(),
-    compound:String(r.compound||r.Compound||r.medication||'').trim(),
-    dose:String(r.dose||r.Dose||'').trim(),
-    site:String(r.site||r.Site||'').trim(),
-    timing:String(r.timing||r.Timing||'').trim(),
-    notes:String(r.notes||r.Notes||'').trim()
-  }));
-}
-
-async function handleFile(inp){
-  const file=inp.files[0]; if(!file) return;
-  document.getElementById('uploadSection').style.display='none';
-  document.getElementById('loadingMsg').style.display='block';
-  try{
-    const ext=file.name.split('.').pop().toLowerCase();
-    if(ext==='csv'){
-      const text=await file.text();
-      parseurRows=parseCSV(text);
-    } else if(ext==='json'){
-      const text=await file.text();
-      parseurRows=parseJSON(text);
-    } else {
-      const buf=await file.arrayBuffer();
-      parseurRows=parseExcel(buf);
-    }
-    document.getElementById('badge').textContent='Parseur: '+parseurRows.length+' — Loading AT...';
-    await loadAT();
-    compare();
-    buildUI();
-  }catch(e){
-    alert('Error: '+e.message+'\n'+e.stack);
-    document.getElementById('loadingMsg').style.display='none';
-    document.getElementById('uploadSection').style.display='block';
-  }
-}
-
-function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
-
-async function loadAT(){
-  atRows=[];
-  let offset=null;
+async function fetchAll(tableId){
+  let all=[],offset=null;
   while(true){
-    let url=`https://api.airtable.com/v0/${BASE}/${TBL}?pageSize=100`;
+    let url=`https://api.airtable.com/v0/${BASE}/${tableId}?pageSize=100`;
     if(offset) url+='&offset='+offset;
     const r=await fetch(url,{headers:{'Authorization':'Bearer '+AT}});
     const d=await r.json();
-    for(const rec of (d.records||[])){
-      const f=rec.fields||{};
-      atRows.push({
-        _id:rec.id,
-        date:f[F.date]||'',
-        compound:typeof f[F.compound]==='object'?f[F.compound].name:(f[F.compound]||''),
-        dose:String(f[F.dose]||'').trim(),
-        site:typeof f[F.site]==='object'?f[F.site].name:(f[F.site]||''),
-        timing:typeof f[F.timing]==='object'?f[F.timing].name:(f[F.timing]||'')
-      });
-    }
+    all=all.concat(d.records||[]);
     offset=d.offset; if(!offset) break;
     await sleep(80);
   }
+  return all;
 }
 
-function normalize(s){return String(s||'').toLowerCase().trim();}
-function makeKey(date,compound){return `${date}__${normalize(compound)}`;}
+async function loadData(){
+  // Load Parseur table
+  const pRecs=await fetchAll(PARSEUR_TBL);
+  parseurRows=pRecs.map(r=>{
+    const f=r.fields||{};
+    const{compound,dose,timing}=parseMedication(f['Medication']||f['Name']||'');
+    return{
+      _id:r.id,
+      date:f['Date']||'',
+      compound,
+      dose,
+      timing,
+      site:String(f['Location']||'').toUpperCase(),
+      dayOfWeek:f['Day of Week']||''
+    };
+  });
+
+  // Load AT Injection Log
+  const atRecs=await fetchAll(AT_TBL);
+  atRows=atRecs.map(r=>{
+    const f=r.fields||{};
+    return{
+      _id:r.id,
+      date:f[F.date]||'',
+      compound:typeof f[F.compound]==='object'?f[F.compound].name:(f[F.compound]||''),
+      dose:String(f[F.dose]||'').trim(),
+      site:typeof f[F.site]==='object'?f[F.site].name:(f[F.site]||''),
+      timing:typeof f[F.timing]==='object'?f[F.timing].name:(f[F.timing]||'')
+    };
+  });
+}
+
+function makeKey(date,compound){return `${date}__${norm(compound)}`;}
 
 function compare(){
   const atMap=new Map();
-  atRows.forEach(r=>{const k=makeKey(r.date,r.compound);if(!atMap.has(k))atMap.set(k,[]);atMap.get(k).push(r);});
+  atRows.forEach(r=>{
+    const k=makeKey(r.date,r.compound);
+    if(!atMap.has(k)) atMap.set(k,[]);
+    atMap.get(k).push(r);
+  });
   compared=[];
   const used=new Set();
   parseurRows.forEach(p=>{
@@ -254,13 +174,16 @@ function compare(){
     if(!matches.length){compared.push({status:'miss',p,at:null,diffs:[]});return;}
     const at=matches.shift();
     const diffs=[];
-    // Only flag dose diff if both have values and they differ
-    if(p.dose&&at.dose&&normalize(p.dose)!==normalize(at.dose)) diffs.push('dose');
-    if(p.site&&at.site&&normalize(p.site)!==normalize(at.site)) diffs.push('site');
-    if(p.timing&&at.timing&&normalize(p.timing)!==normalize(at.timing)) diffs.push('timing');
+    if(p.dose&&at.dose&&norm(p.dose)!==norm(at.dose)) diffs.push('dose');
+    if(p.site&&at.site&&norm(p.site)!==norm(at.site)) diffs.push('site');
+    if(p.timing&&at.timing&&norm(p.timing)!==norm(at.timing)) diffs.push('timing');
+    if(norm(p.compound)!==norm(at.compound)) diffs.push('compound');
     compared.push({status:diffs.length?'diff':'match',p,at,diffs});
   });
-  atRows.forEach(at=>{const k=makeKey(at.date,at.compound);if(!used.has(k))compared.push({status:'extra',p:null,at,diffs:[]});});
+  atRows.forEach(at=>{
+    const k=makeKey(at.date,at.compound);
+    if(!used.has(k)) compared.push({status:'extra',p:null,at,diffs:[]});
+  });
 }
 
 function buildUI(){
@@ -279,7 +202,6 @@ function buildUI(){
 function updateStats(){
   const c={match:0,diff:0,miss:0,extra:0};
   compared.forEach(r=>c[r.status]++);
-  ['Match','Diff','Miss','Extra','Parseur','AT'].forEach((k,i)=>{});
   document.getElementById('sMatch').textContent=c.match;
   document.getElementById('sDiff').textContent=c.diff;
   document.getElementById('sMiss').textContent=c.miss;
@@ -305,19 +227,26 @@ function render(){
   });
   const tbody=document.getElementById('tbody');
   tbody.innerHTML='';
-  rows.forEach((r,idx)=>{
+  rows.forEach(r=>{
     const p=r.p||{}; const at=r.at||{};
-    const ds=new Set(r.diffs);
-    const cls=`row-${r.status}`;
-    const tag=`<span class="tag tag-${r.status}">${r.status}</span>`;
+    const ds=new Set(r.diffs||[]);
     const cell=(field,pv,av)=>{
       const diff=ds.has(field);
       return`<td>${diff?`<span class="cell-diff">${pv||'—'}</span>`:pv||'—'}</td><td>${diff?`<span class="cell-diff">${av||'—'}</span>`:av||'—'}</td>`;
     };
     let action='';
-    if(r.status==='miss') action=`<button class="pbtn" onclick="pushOne(${compared.indexOf(r)})">Push to AT</button>`;
-    else if(r.status==='diff') action=`<button class="pbtn" onclick="fixOne(${compared.indexOf(r)})">Fix in AT</button>`;
-    tbody.innerHTML+=`<tr class="${cls}"><td>${tag}</td><td>${(r.p||r.at).date||'—'}</td><td>${(r.p||r.at).compound||'—'}</td>${cell('dose',p.dose,at.dose)}${cell('site',p.site,at.site)}${cell('timing',p.timing,at.timing)}<td>${action}</td></tr>`;
+    const idx=compared.indexOf(r);
+    if(r.status==='miss') action=`<button class="pbtn" onclick="pushOne(${idx})">Push to AT</button>`;
+    else if(r.status==='diff') action=`<button class="pbtn" onclick="fixOne(${idx})">Fix in AT</button>`;
+    tbody.innerHTML+=`<tr class="row-${r.status}">
+      <td><span class="tag tag-${r.status}">${r.status}</span></td>
+      <td>${(r.p||r.at).date||'—'}</td>
+      ${cell('compound',p.compound,at.compound)}
+      ${cell('dose',p.dose,at.dose)}
+      ${cell('site',p.site,at.site)}
+      ${cell('timing',p.timing,at.timing)}
+      <td>${action}</td>
+    </tr>`;
   });
 }
 
@@ -333,7 +262,7 @@ function buildFields(p){
 
 async function pushOne(idx){
   const r=compared[idx]; if(!r||r.status!=='miss') return;
-  const res=await fetch(`https://api.airtable.com/v0/${BASE}/${TBL}`,{method:'POST',headers:{'Authorization':'Bearer '+AT,'Content-Type':'application/json'},body:JSON.stringify({records:[{fields:buildFields(r.p)}],typecast:true})});
+  const res=await fetch(`https://api.airtable.com/v0/${BASE}/${AT_TBL}`,{method:'POST',headers:{'Authorization':'Bearer '+AT,'Content-Type':'application/json'},body:JSON.stringify({records:[{fields:buildFields(r.p)}],typecast:true})});
   const d=await res.json();
   if(res.ok){r.status='match';r.at=r.p;render();updateStats();}
   else alert('Error: '+JSON.stringify(d.error));
@@ -341,9 +270,9 @@ async function pushOne(idx){
 
 async function fixOne(idx){
   const r=compared[idx]; if(!r||r.status!=='diff'||!r.at._id) return;
-  const res=await fetch(`https://api.airtable.com/v0/${BASE}/${TBL}/${r.at._id}`,{method:'PATCH',headers:{'Authorization':'Bearer '+AT,'Content-Type':'application/json'},body:JSON.stringify({fields:buildFields(r.p),typecast:true})});
+  const res=await fetch(`https://api.airtable.com/v0/${BASE}/${AT_TBL}/${r.at._id}`,{method:'PATCH',headers:{'Authorization':'Bearer '+AT,'Content-Type':'application/json'},body:JSON.stringify({fields:buildFields(r.p),typecast:true})});
   const d=await res.json();
-  if(res.ok){r.status='match';r.diffs=[];r.at={...r.at,...r.p};render();updateStats();}
+  if(res.ok){r.status='match';r.diffs=[];render();updateStats();}
   else alert('Error: '+JSON.stringify(d.error));
 }
 
@@ -353,9 +282,9 @@ async function pushMissing(){
   let done=0;
   for(let i=0;i<miss.length;i+=25){
     const batch=miss.slice(i,i+25).map(r=>({fields:buildFields(r.p)}));
-    const res=await fetch(`https://api.airtable.com/v0/${BASE}/${TBL}`,{method:'POST',headers:{'Authorization':'Bearer '+AT,'Content-Type':'application/json'},body:JSON.stringify({records:batch,typecast:true})});
+    const res=await fetch(`https://api.airtable.com/v0/${BASE}/${AT_TBL}`,{method:'POST',headers:{'Authorization':'Bearer '+AT,'Content-Type':'application/json'},body:JSON.stringify({records:batch,typecast:true})});
     const d=await res.json();
-    if(res.ok){done+=d.records.length;miss.slice(i,i+25).forEach(r=>{r.status='match';r.at=r.p;});}
+    if(res.ok){done+=d.records.length;miss.slice(i,i+25).forEach(r=>{r.status='match';});}
     await sleep(150);
   }
   document.getElementById('actionStatus').textContent=`✓ Pushed ${done}`;
@@ -367,7 +296,7 @@ async function fixDiffs(){
   document.getElementById('btnFixDiffs').disabled=true;
   let done=0;
   for(const r of diffs){
-    const res=await fetch(`https://api.airtable.com/v0/${BASE}/${TBL}/${r.at._id}`,{method:'PATCH',headers:{'Authorization':'Bearer '+AT,'Content-Type':'application/json'},body:JSON.stringify({fields:buildFields(r.p),typecast:true})});
+    const res=await fetch(`https://api.airtable.com/v0/${BASE}/${AT_TBL}/${r.at._id}`,{method:'PATCH',headers:{'Authorization':'Bearer '+AT,'Content-Type':'application/json'},body:JSON.stringify({fields:buildFields(r.p),typecast:true})});
     if(res.ok){done++;r.status='match';r.diffs=[];}
     await sleep(100);
   }
@@ -377,13 +306,23 @@ async function fixDiffs(){
 
 function exportCSV(){
   const rows=compared.filter(r=>r.status!=='match');
-  const lines=[['Status','Date','Compound','Parseur_Dose','AT_Dose','Parseur_Site','AT_Site','Parseur_Timing','AT_Timing'].join(',')];
+  const lines=[['Status','Date','Parseur_Compound','AT_Compound','Parseur_Dose','AT_Dose','Parseur_Site','AT_Site','Parseur_Timing','AT_Timing'].join(',')];
   rows.forEach(r=>{
     const p=r.p||{};const at=r.at||{};
-    lines.push([r.status,p.date||at.date,p.compound||at.compound,p.dose,at.dose,p.site,at.site,p.timing,at.timing].map(v=>`"${v||''}"`).join(','));
+    lines.push([r.status,p.date||at.date,p.compound,at.compound,p.dose,at.dose,p.site,at.site,p.timing,at.timing].map(v=>`"${v||''}"`).join(','));
   });
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([lines.join('\n')],{type:'text/csv'}));a.download='injection_diff.csv';a.click();
 }
+
+window.addEventListener('load',async()=>{
+  try{
+    await loadData();
+    compare();
+    buildUI();
+  }catch(e){
+    document.getElementById('loadingMsg').textContent='Error: '+e.message;
+  }
+});
 </script>
 </body>
 </html>
