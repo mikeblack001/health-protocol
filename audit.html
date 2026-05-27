@@ -374,10 +374,12 @@ function initAuth() {
 }
 
 function signIn() {
-  const redirect = location.href.split('#')[0].split('?')[0];
+  // Route OAuth through pdf_qa.html (registered redirect URI) — bounces back here via sessionStorage
+  const pdfQaUrl = 'https://mikeblack001.github.io/health-protocol/pdf_qa.html';
+  sessionStorage.setItem('mb_oauth_return', location.href.split('#')[0].split('?')[0]);
   location.href = 'https://accounts.google.com/o/oauth2/v2/auth' +
     '?client_id=' + encodeURIComponent(GCL_ID) +
-    '&redirect_uri=' + encodeURIComponent(redirect) +
+    '&redirect_uri=' + encodeURIComponent(pdfQaUrl) +
     '&response_type=token' +
     '&scope=' + encodeURIComponent(GSCOPE);
 }
