@@ -1065,16 +1065,13 @@
     <div id="changes-content"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
   </div>
 
-  <div id="view-injaudit" class="view" style="display:flex;flex-direction:column;padding:0;overflow:hidden">
-    <div class="filter-bar" style="flex-shrink:0">
-      <span style="font-size:13px;font-weight:500;color:var(--text)">💉 Injection Log Audit</span>
-      <a href="/health-protocol/injection_audit.html" target="_blank" style="font-size:11px;color:var(--accent);text-decoration:none;padding:4px 10px;border:1px solid var(--accent);border-radius:5px">Open Full Screen ↗</a>
+  <div id="view-injaudit" class="view">
+    <div class="filter-bar">
+      <span style="font-size:13px;font-weight:500;color:var(--text)">Injection Log Audit</span>
+      <span id="injaudit-status" style="font-size:11px;color:var(--muted)">Loading...</span>
     </div>
-    <iframe id="injaudit-frame" src="" data-src="/health-protocol/injection_audit.html"
-      style="flex:1;border:none;width:100%;min-height:0" loading="lazy"></iframe>
-    <span id="injaudit-status" style="display:none"></span>
-    <div id="injaudit-nav" style="display:none"></div>
-    <div id="injaudit-content" style="display:none"></div>
+    <div id="injaudit-nav" style="display:flex;gap:4px;flex-wrap:wrap;padding:8px 12px;border-bottom:1px solid var(--border)"></div>
+    <div id="injaudit-content" style="padding:16px;overflow-x:auto;width:100%"></div>
   </div>
 
   <div id="view-pdfqa" class="view">
@@ -3086,9 +3083,6 @@ function showView(name, e) {
 
 
 async function loadInjAudit() {
-  // Load iframe on first visit
-  const frame = document.getElementById('injaudit-frame');
-  if (frame && !frame.src) frame.src = frame.dataset.src;
   const statusEl = document.getElementById('injaudit-status');
   const navEl = document.getElementById('injaudit-nav');
   const contentEl = document.getElementById('injaudit-content');
