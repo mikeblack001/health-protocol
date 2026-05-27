@@ -31,7 +31,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 /* LAYOUT */
 #body{display:flex;flex:1;overflow:hidden}
 /* PDF PANEL */
-#pdf-panel{width:310px;min-width:220px;background:#fff;border-right:2px solid #e2e5ea;display:flex;flex-direction:column;flex-shrink:0;overflow:hidden}
+#pdf-panel{width:310px;min-width:220px;background:#fff;border-right:2px solid #e2e5ea;display:flex;flex-direction:column;flex-shrink:0}
 .phdr{padding:8px 10px;background:#fafafa;border-bottom:1px solid #e2e5ea;flex-shrink:0}
 .plbl{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#9ca3af;display:block;margin-bottom:5px}
 .row{display:flex;gap:4px;align-items:center;margin-bottom:4px}
@@ -42,8 +42,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .bg{background:#16a34a;color:#fff;border-color:#16a34a}.bg:hover{background:#15803d}
 .bsm{padding:3px 8px;font-size:10px}
 #pdf-msg{font-size:10px;color:#9ca3af}
-#pdf-area{flex:1;overflow-y:auto;background:#e5e7eb;display:flex;align-items:flex-start;justify-content:center;padding:8px;min-height:200px}
-#pdf-canvas{max-width:100%;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+#pdf-area{flex:1;overflow-y:auto;background:#e5e7eb;padding:8px;min-height:0}
+#pdf-canvas{max-width:100%;box-shadow:0 2px 8px rgba(0,0,0,.2);display:none}
 #pdf-ph{color:#9ca3af;font-size:12px;text-align:center;padding:30px;width:100%}
 #pdf-nav-bar{display:flex;align-items:center;gap:5px;padding:6px 8px;border-top:1px solid #e2e5ea;background:#fafafa;flex-shrink:0;min-height:36px}
 #pdf-nav-bar button{padding:4px 9px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;font-size:11px;background:#fff}
@@ -167,7 +167,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <span id="pdf-msg">No PDF loaded</span>
       </div>
     </div>
-    <div id="pdf-area"><div id="pdf-ph">Load PDF above to view alongside data</div><canvas id="pdf-canvas" style="display:none"></canvas></div>
+    <div id="pdf-area"><div id="pdf-ph">Load PDF above to view alongside data</div><canvas id="pdf-canvas"></canvas></div>
     <div id="pdf-nav-bar">
       <button onclick="pgGo(pdfPage-1)">◀</button>
       <input id="pdf-jp" type="number" min="1" onchange="pgGo(+this.value)" placeholder="—">
@@ -342,7 +342,7 @@ function loadLocal(inp){if(inp.files[0])inp.files[0].arrayBuffer().then(buf=>{re
 async function renderPDF(buf){
   pdfDoc=await pdfjsLib.getDocument({data:buf}).promise;pdfPage=1;
   document.getElementById('pdf-ph').style.display='none';
-  document.getElementById('pdf-canvas').style.display='block';
+  document.getElementById('pdf-canvas').style.display='';
   await renderPage(1);setPM(pdfDoc.numPages+' pages loaded ✓');
 }
 async function renderPage(n){
