@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Injection Audit — Build 1</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f2f5; color: #1a1a2e; font-size: 13px; }
+
+  /* HEADER */
+  #header { background: #fff; border-bottom: 2px solid #e0e3e8; padding: 10px 16px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; position: sticky; top: 0; z-index: 100; }
+  #header h1 { font-size: 16px; font-weight: 700; color: #1a1a2e; white-space: nowrap; }
+  .stat-badge { background: #f0f2f5; border: 1px solid #e0e3e8; border-radius: 6px; padding: 4px 10px; font-size: 12px; font-weight: 600; }
+  .stat-badge.green { background: #dcfce7; border-color: #86efac; color: #166534; }
+  .stat-badge.red { background: #fee2e2; border-color: #fca5a5; color: #991b1b; }
+  .stat-badge.amber { background: #fef3c7; border-color: #fcd34d; color: #92400e; }
+  .stat-badge.blue { background: #dbeafe; border-color: #93c5fd; color: #1d4ed8; }
+  #status-msg { font-size: 12px; color: #6b7280; margin-left: auto; }
+
+  /* DATE NAV */
+  #date-nav { background: #fff; border-bottom: 1px solid #e0e3e8; padding: 8px 16px; display: flex; align-items: center; gap: 10px; }
+  #date-nav button { padding: 5px 12px; border: 1px solid #d1d5db; background: #fff; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; }
+  #date-nav button:hover { background: #f3f4f6; }
+  #date-nav button.active { background: #2563eb; color: #fff; border-color: #2563eb; }
+  #date-select { padding: 5px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; min-width: 180px; }
+  #match-indicator { margin-left: 12px; font-weight: 700; font-size: 13px; }
+
+  /* LAYOUT */
+  #main { display: grid; grid-template-columns: 420px 1fr; gap: 0; height: calc(100vh - 90px); overflow: hidden; }
+
+  /* PDF PANEL */
+  #pdf-panel { background: #fff; border-right: 2px solid #e0e3e8; display: flex; flex-direction: column; overflow: hidden; }
+  #pdf-upload-area { padding: 16px; border-bottom: 1px solid #e0e3e8; background: #f8f9fa; }
+  #pdf-upload-area label { display: block; font-weight: 600; margin-bottom: 6px; font-size: 12px; color: #374151; }
+  #pdf-upload-area input { width: 100%; }
+  #pdf-viewer { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; align-items: center; gap: 8px; background: #e5e7eb; }
+  #pdf-canvas { max-width: 100%; border: 1px solid #ccc; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+  #pdf-controls { display: flex; align-items: center; gap: 8px; padding: 8px 16px; border-top: 1px solid #e0e3e8; background: #f8f9fa; }
+  #pdf-controls button { padding: 4px 12px; border: 1px solid #d1d5db; border-radius: 5px; cursor: pointer; background: #fff; font-size: 12px; }
+  #pdf-controls button:hover { background: #f3f4f6; }
+  #pdf-page-info { font-size: 12px; color: #6b7280; }
+  #pdf-date-label { font-size: 11px; color: #9ca3af; flex: 1; text-align: center; }
+
+  /* DATA PANEL */
+  #data-panel { display: flex; flex-direction: column; overflow: hidden; }
+
+  /* TABS */
+  #tabs { display: flex; background: #fff; border-bottom: 2px solid #e0e3e8; }
+  .tab { padding: 10px 20px; cursor: pointer; font-weight: 600; font-size: 12px; border-bottom: 3px solid transparent; margin-bottom: -2px; color: #6b7280; }
+  .tab.active { border-bottom-color: #2563eb; color: #2563eb; }
+  .tab:hover { color: #1a1a2e; }
+
+  /* CONTENT AREA */
+  #content-area { flex: 1; overflow-y: auto; padding: 0; display: flex; gap: 0; }
+  #compare-view { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+  #edit-view { flex: 1; overflow-y: auto; padding: 16px; display: none; }
+
+  /* RECORD CARDS */
+  .record-col { padding: 12px; border-right: 1px solid #e0e3e8; overflow-y: auto; }
+  .record-col:last-child { border-right: none; }
+  .col-header { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: #6b7280; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+  .col-header span { background: #f0f2f5; border: 1px solid #e0e3e8; border-radius: 20px; padding: 2px 8px; font-size: 10px; }
+  .record-card { background: #fff; border: 1px solid #e0e3e8; border-radius: 8px; padding: 12px; margin-bottom: 10px; position: relative; }
+  .record-card.match { border-left: 4px solid #16a34a; }
+  .record-card.mismatch { border-left: 4px solid #d97706; }
+  .record-card.missing { border-left: 4px solid #dc2626; background: #fff5f5; }
+  .record-card.extra { border-left: 4px solid #7c3aed; background: #faf5ff; }
+  .field-row { display: flex; margin-bottom: 6px; gap: 8px; }
+  .field-label { font-size: 11px; color: #9ca3af; font-weight: 600; min-width: 72px; }
+  .field-val { font-size: 12px; color: #1a1a2e; font-weight: 500; word-break: break-all; }
+  .field-val.diff { background: #fef3c7; padding: 1px 4px; border-radius: 3px; color: #92400e; }
+  .card-actions { position: absolute; top: 8px; right: 8px; display: flex; gap: 4px; }
+  .btn-sm { padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; cursor: pointer; border: 1px solid; }
+  .btn-edit { background: #eff6ff; border-color: #bfdbfe; color: #2563eb; }
+  .btn-del { background: #fee2e2; border-color: #fca5a5; color: #dc2626; }
+  .btn-add { background: #dcfce7; border-color: #86efac; color: #166534; }
+  .btn-push { background: #2563eb; border-color: #2563eb; color: #fff; }
+  .empty-state { text-align: center; padding: 40px 20px; color: #9ca3af; font-size: 13px; }
+
+  /* EDIT FORM */
+  .form-section { background: #fff; border: 1px solid #e0e3e8; border-radius: 8px; padding: 16px; margin-bottom: 12px; }
+  .form-section h3 { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: #374151; margin-bottom: 12px; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .form-grid.wide { grid-template-columns: 1fr; }
+  label.fld { display: block; font-size: 11px; font-weight: 600; color: #374151; margin-bottom: 3px; }
+  input.fld, select.fld, textarea.fld { width: 100%; padding: 7px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; background: #fff; color: #1a1a2e; }
+  input.fld:focus, select.fld:focus, textarea.fld:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 2px #dbeafe; }
+  textarea.fld { min-height: 60px; resize: vertical; }
+  .form-actions { display: flex; gap: 8px; margin-top: 12px; }
+  .btn-lg { padding: 8px 20px; border-radius: 6px; font-size: 13px; font-weight: 700; cursor: pointer; border: 2px solid; transition: all .15s; }
+  .btn-save { background: #2563eb; border-color: #2563eb; color: #fff; }
+  .btn-save:hover { background: #1d4ed8; }
+  .btn-cancel { background: #fff; border-color: #d1d5db; color: #374151; }
+  .btn-cancel:hover { background: #f3f4f6; }
+  .btn-delete-full { background: #fee2e2; border-color: #fca5a5; color: #dc2626; }
+  .rec-id-note { font-size: 11px; color: #9ca3af; font-style: italic; }
+
+  /* BOTTOM BAR */
+  #bottom-bar { background: #fff; border-top: 1px solid #e0e3e8; padding: 8px 16px; display: flex; align-items: center; gap: 16px; font-size: 12px; }
+  #bottom-bar label { font-weight: 600; color: #374151; }
+  #parseur-input { font-size: 12px; }
+  .save-indicator { margin-left: auto; color: #6b7280; }
+  .save-indicator.saving { color: #d97706; }
+  .save-indicator.saved { color: #16a34a; }
+
+  /* LOADER */
+  #loader { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,0.85); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; z-index: 999; }
+  .spinner { width: 32px; height: 32px; border: 3px solid #e0e3e8; border-top-color: #2563eb; border-radius: 50%; animation: spin .7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #loader-msg { font-size: 14px; color: #374151; font-weight: 600; }
+
+  /* MISC */
+  .diff-badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 700; margin-left: 6px; }
+  .diff-badge.match { background: #dcfce7; color: #166534; }
+  .diff-badge.diff { background: #fef3c7; color: #92400e; }
+  .diff-badge.missing { background: #fee2e2; color: #991b1b; }
+  .diff-badge.extra { background: #ede9fe; color: #5b21b6; }
+  .no-records-msg { padding: 12px; background: #f9fafb; border: 1px dashed #d1d5db; border-radius: 6px; color: #9ca3af; text-align: center; font-size: 12px; }
+  #all-dates-list { max-height: 300px; overflow-y: auto; }
+  .date-list-item { padding: 6px 10px; cursor: pointer; border-bottom: 1px solid #f0f2f5; display: flex; align-items: center; gap: 8px; font-size: 12px; }
+  .date-list-item:hover { background: #f0f2f5; }
+  .date-list-item.current { background: #dbeafe; font-weight: 700; }
+</style>
+</head>
+<body>
+
+<!-- LOADER -->
+<div id="loader">
+  <div class="spinner"></div>
+  <div id="loader-msg">Loading Injection Log from Airtable...</div>
+</div>
+
+<!-- HEADER -->
+<div id="header">
+  <h1>💉 Injection Audit — Build 1</h1>
+  <div class="stat-badge blue" id="stat-at">AT: —</div>
+  <div class="stat-badge" id="stat-parseur">Parseur: —</div>
+  <div class="stat-badge green" id="stat-match">✓ Match: —</div>
+  <div class="stat-badge amber" id="stat-diff">⚠ Diff: —</div>
+  <div class="stat-badge red" id="stat-missing">✗ Missing: —</div>
+  <div class="stat-badge" id="stat-extra">+ Extra: —</div>
+  <div id="status-msg">Loading...</div>
+</div>
+
+<!-- DATE NAV -->
+<div id="date-nav">
+  <button onclick="prevDate()">← Prev</button>
+  <select id="date-select" onchange="goToDate(this.value)">
+    <option value="">— Select Date —</option>
+  </select>
+  <button onclick="nextDate()">Next →</button>
+  <span id="match-indicator"></span>
+  <button onclick="showTab('compare')" id="tab-compare" class="active">Compare</button>
+  <button onclick="showTab('edit')" id="tab-edit">Edit / Add</button>
+  <button onclick="showAllDates()" id="btn-all-dates">All Dates</button>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+
+  <!-- PDF PANEL -->
+  <div id="pdf-panel">
+    <div id="pdf-upload-area">
+      <label>📄 Injections PDF</label>
+      <input type="file" id="pdf-file-input" accept=".pdf" onchange="loadPDF(this)">
+    </div>
+    <div id="pdf-viewer">
+      <div class="empty-state">Upload Injections.pdf above to view pages</div>
+      <canvas id="pdf-canvas" style="display:none;"></canvas>
+    </div>
+    <div id="pdf-controls">
+      <button onclick="pdfPrevPage()">◀</button>
+      <span id="pdf-page-info">— / —</span>
+      <button onclick="pdfNextPage()">▶</button>
+      <span id="pdf-date-label">No PDF loaded</span>
+    </div>
+  </div>
+
+  <!-- DATA PANEL -->
+  <div id="data-panel">
+    <div id="content-area">
+      <!-- COMPARE VIEW -->
+      <div id="compare-view">
+        <div class="record-col" id="at-col">
+          <div class="col-header">AIRTABLE RECORD <span id="at-col-count">0</span></div>
+          <div id="at-records-container"><div class="empty-state">Select a date to view</div></div>
+        </div>
+        <div class="record-col" id="parseur-col">
+          <div class="col-header">PARSEUR DATA <span id="parseur-col-count">0</span></div>
+          <div id="parseur-records-container"><div class="empty-state">Upload Parseur file below</div></div>
+        </div>
+      </div>
+
+      <!-- EDIT VIEW -->
+      <div id="edit-view">
+        <div class="form-section">
+          <h3 id="edit-form-title">New Injection Record</h3>
+          <div class="rec-id-note" id="edit-rec-id-note"></div>
+          <div style="height:8px;"></div>
+          <div class="form-grid">
+            <div>
+              <label class="fld">Date *</label>
+              <input type="date" class="fld" id="f-date">
+            </div>
+            <div>
+              <label class="fld">Compound</label>
+              <select class="fld" id="f-compound">
+                <option value="">— Select —</option>
+              </select>
+            </div>
+            <div>
+              <label class="fld">Dose</label>
+              <input type="text" class="fld" id="f-dose" placeholder="e.g. 0.5mL, 200mg">
+            </div>
+            <div>
+              <label class="fld">Site</label>
+              <select class="fld" id="f-site">
+                <option value="">— Select —</option>
+              </select>
+            </div>
+            <div>
+              <label class="fld">Timing</label>
+              <select class="fld" id="f-timing">
+                <option value="">— Select —</option>
+              </select>
+            </div>
+            <div>
+              <label class="fld">Status</label>
+              <select class="fld" id="f-status">
+                <option value="">— Select —</option>
+              </select>
+            </div>
+            <div>
+              <label class="fld">Name / Label</label>
+              <input type="text" class="fld" id="f-name" placeholder="e.g. Testosterone Cyp">
+            </div>
+          </div>
+          <div class="form-grid wide" style="margin-top:10px;">
+            <div>
+              <label class="fld">Notes</label>
+              <textarea class="fld" id="f-notes" placeholder="Optional notes..."></textarea>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button class="btn-lg btn-save" onclick="saveRecord()">💾 Save to Airtable</button>
+            <button class="btn-lg btn-cancel" onclick="clearForm()">Clear</button>
+            <button class="btn-lg btn-delete-full" id="btn-delete-form" onclick="deleteCurrentRecord()" style="display:none;">🗑 Delete</button>
+          </div>
+        </div>
+
+        <!-- Quick-fill from Parseur -->
+        <div class="form-section" id="parseur-fill-section" style="display:none;">
+          <h3>Auto-Fill from Parseur</h3>
+          <div id="parseur-fill-rows"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BOTTOM BAR -->
+    <div id="bottom-bar">
+      <label>📂 Parseur File:</label>
+      <input type="file" id="parseur-input" accept=".csv,.json,.xlsx,.xls" onchange="loadParseur(this)">
+      <span id="parseur-status" style="color:#6b7280;"></span>
+      <span class="save-indicator" id="save-indicator">—</span>
+    </div>
+  </div>
+</div>
+
+<!-- ALL DATES MODAL -->
+<div id="modal-overlay" style="display:none; position:fixed; top:0;left:0;right:0;bottom:0; background:rgba(0,0,0,.45); z-index:200;" onclick="closeModal()">
+  <div style="background:#fff; border-radius:10px; padding:20px; width:400px; max-height:80vh; overflow:hidden; margin:10vh auto; display:flex; flex-direction:column;" onclick="event.stopPropagation()">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <strong>All Dates</strong>
+      <button onclick="closeModal()" style="border:none;background:none;font-size:18px;cursor:pointer;">✕</button>
+    </div>
+    <div id="all-dates-list"></div>
+  </div>
+</div>
+
+<script>
+// ── CONFIG ──────────────────────────────────────────────────────────────────
+const AT_TOKEN = 'pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
+const AT_BASE  = 'appmHDG4TGT1xy6R6';
+const AT_TABLE = 'tblBvEaLkGGipnOFc';
+const GH_TOKEN = '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';
+const GH_REPO  = 'mikeblack001/health-protocol';
+const FIELDS = {
+  name:     'fldt9vYT8Tm37Gf3k',
+  date:     'fldhYEtLEGA4VxvvO',
+  compound: 'fldwVFyizH4mBANBa',
+  site:     'fldHDlJY8FpAvK018',
+  timing:   'fldIdzew4Jd0qO4Uc',
+  dose:     'fld8d8mtRapfaIyqL',
+  notes:    'fldAbczu73mINwLmx',
+  status:   'fldD9kegiwk6mINV8'
+};
+
+// ── STATE ────────────────────────────────────────────────────────────────────
+let atRecords = [];       // all AT records (raw)
+let atByDate  = {};       // { 'YYYY-MM-DD': [rec, ...] }
+let parseurData = [];     // raw parsed rows
+let parseurByDate = {};   // { 'YYYY-MM-DD': [row, ...] }
+let allDates  = [];       // sorted union of AT + parseur dates
+let currentDate = null;
+let editRecordId = null;
+let pdfDoc = null;
+let pdfCurrentPage = 1;
+let selectOptions = { compound:[], site:[], timing:[], status:[] };
+
+// ── AT API ──────────────────────────────────────────────────────────────────
+async function fetchAllAT() {
+  let records = [], offset = null;
+  const headers = { 'Authorization': 'Bearer ' + AT_TOKEN };
+  do {
+    let url = `https://api.airtable.com/v0/${AT_BASE}/${AT_TABLE}?pageSize=100`;
+    if (offset) url += `&offset=${offset}`;
+    const r = await fetch(url, {headers});
+    if (!r.ok) throw new Error('AT fetch failed: ' + r.status);
+    const d = await r.json();
+    records = records.concat(d.records);
+    offset = d.offset;
+    setStatus(`Loading AT... ${records.length} records`);
+  } while (offset);
+  return records;
+}
+
+async function fetchATSchema() {
+  const url = `https://api.airtable.com/v0/meta/bases/${AT_BASE}/tables`;
+  const r = await fetch(url, { headers:{'Authorization':'Bearer '+AT_TOKEN} });
+  if (!r.ok) return;
+  const d = await r.json();
+  const tbl = d.tables.find(t => t.id === AT_TABLE);
+  if (!tbl) return;
+  tbl.fields.forEach(f => {
+    if (f.options && f.options.choices) {
+      const names = f.options.choices.map(c => c.name);
+      if (f.id === FIELDS.compound) selectOptions.compound = names;
+      if (f.id === FIELDS.site)     selectOptions.site     = names;
+      if (f.id === FIELDS.timing)   selectOptions.timing   = names;
+      if (f.id === FIELDS.status)   selectOptions.status   = names;
+    }
+  });
+  populateSelects();
+}
+
+function populateSelects() {
+  ['compound','site','timing','status'].forEach(k => {
+    const sel = document.getElementById('f-'+k);
+    // keep existing first option
+    const first = sel.options[0];
+    sel.innerHTML = '';
+    sel.appendChild(first);
+    selectOptions[k].forEach(v => {
+      const o = document.createElement('option');
+      o.value = o.textContent = v;
+      sel.appendChild(o);
+    });
+    // Add "Other / New" for compound
+    if (k === 'compound') {
+      const o = document.createElement('option');
+      o.value = '__other__'; o.textContent = '+ Add new...';
+      sel.appendChild(o);
+    }
+  });
+}
+
+async function saveRecordToAT(fields, recordId) {
+  const url = recordId
+    ? `https://api.airtable.com/v0/${AT_BASE}/${AT_TABLE}/${recordId}`
+    : `https://api.airtable.com/v0/${AT_BASE}/${AT_TABLE}`;
+  const method = recordId ? 'PATCH' : 'POST';
+  const body = { fields };
+  const r = await fetch(url, {
+    method, headers: { 'Authorization':'Bearer '+AT_TOKEN, 'Content-Type':'application/json' },
+    body: JSON.stringify(body)
+  });
+  if (!r.ok) { const e = await r.json(); throw new Error(JSON.stringify(e.error)); }
+  return r.json();
+}
+
+async function deleteRecordFromAT(recordId) {
+  const url = `https://api.airtable.com/v0/${AT_BASE}/${AT_TABLE}/${recordId}`;
+  const r = await fetch(url, { method:'DELETE', headers:{'Authorization':'Bearer '+AT_TOKEN} });
+  if (!r.ok) throw new Error('Delete failed');
+}
+
+// ── INDEX DATA ───────────────────────────────────────────────────────────────
+function indexATRecords() {
+  atByDate = {};
+  atRecords.forEach(rec => {
+    const d = rec.fields[FIELDS.date];
+    if (!d) return;
+    if (!atByDate[d]) atByDate[d] = [];
+    atByDate[d].push(rec);
+  });
+}
+
+function buildAllDates() {
+  const s = new Set([...Object.keys(atByDate), ...Object.keys(parseurByDate)]);
+  allDates = [...s].sort();
+  const sel = document.getElementById('date-select');
+  sel.innerHTML = '<option value="">— Select Date —</option>';
+  allDates.forEach(d => {
+    const o = document.createElement('option');
+    o.value = d;
+    const atN = (atByDate[d]||[]).length;
+    const pN  = (parseurByDate[d]||[]).length;
+    const status = atN && pN ? '✓' : (!atN ? '✗AT' : '✗P');
+    o.textContent = `${d}  [AT:${atN} P:${pN}] ${status}`;
+    sel.appendChild(o);
+  });
+  updateStats();
+}
+
+function updateStats() {
+  const allD = [...new Set([...Object.keys(atByDate),...Object.keys(parseurByDate)])];
+  let match=0, diff=0, missingAT=0, extraAT=0;
+  allD.forEach(d => {
+    const at = atByDate[d]||[];
+    const p  = parseurByDate[d]||[];
+    if (!at.length && p.length) missingAT++;
+    else if (at.length && !p.length) extraAT++;
+    else if (at.length && p.length) {
+      // simple check: same count = possible match
+      at.length === p.length ? match++ : diff++;
+    }
+  });
+  document.getElementById('stat-at').textContent     = 'AT: '+atRecords.length;
+  document.getElementById('stat-parseur').textContent = 'Parseur: '+parseurData.length;
+  document.getElementById('stat-match').textContent   = '✓ Match: '+match;
+  document.getElementById('stat-diff').textContent    = '⚠ Diff: '+diff;
+  document.getElementById('stat-missing').textContent = '✗ Missing: '+missingAT;
+  document.getElementById('stat-extra').textContent   = '+ Extra: '+extraAT;
+}
+
+// ── RENDER DATE ──────────────────────────────────────────────────────────────
+function renderDate(date) {
+  currentDate = date;
+  document.getElementById('date-select').value = date;
+  renderATCol(atByDate[date]||[]);
+  renderParseurCol(parseurByDate[date]||[]);
+  updateMatchIndicator(date);
+  prefillEditFromDate(date);
+}
+
+function renderATCol(recs) {
+  const c = document.getElementById('at-records-container');
+  document.getElementById('at-col-count').textContent = recs.length;
+  if (!recs.length) {
+    c.innerHTML = '<div class="no-records-msg">No AT record for this date<br><button class="btn-sm btn-add" onclick="showTab(\'edit\');newRecord()">+ Add Record</button></div>';
+    return;
+  }
+  c.innerHTML = recs.map(rec => renderATCard(rec)).join('');
+}
+
+function renderATCard(rec) {
+  const f = rec.fields;
+  const compound = f[FIELDS.compound]||'—';
+  const dose     = f[FIELDS.dose]||'—';
+  const site     = f[FIELDS.site]||'—';
+  const timing   = f[FIELDS.timing]||'—';
+  const status   = f[FIELDS.status]||'—';
+  const notes    = f[FIELDS.notes]||'';
+  const name     = f[FIELDS.name]||'';
+  return `<div class="record-card">
+    <div class="card-actions">
+      <button class="btn-sm btn-edit" onclick="editRecord('${rec.id}')">Edit</button>
+      <button class="btn-sm btn-del" onclick="confirmDelete('${rec.id}')">Del</button>
+    </div>
+    <div class="field-row"><span class="field-label">ID</span><span class="field-val" style="font-size:10px;color:#9ca3af;">${rec.id}</span></div>
+    ${name ? `<div class="field-row"><span class="field-label">Name</span><span class="field-val">${name}</span></div>` : ''}
+    <div class="field-row"><span class="field-label">Compound</span><span class="field-val">${compound}</span></div>
+    <div class="field-row"><span class="field-label">Dose</span><span class="field-val">${dose}</span></div>
+    <div class="field-row"><span class="field-label">Site</span><span class="field-val">${site}</span></div>
+    <div class="field-row"><span class="field-label">Timing</span><span class="field-val">${timing}</span></div>
+    <div class="field-row"><span class="field-label">Status</span><span class="field-val">${status}</span></div>
+    ${notes ? `<div class="field-row"><span class="field-label">Notes</span><span class="field-val">${notes}</span></div>` : ''}
+  </div>`;
+}
+
+function renderParseurCol(rows) {
+  const c = document.getElementById('parseur-records-container');
+  document.getElementById('parseur-col-count').textContent = rows.length;
+  if (!parseurData.length) {
+    c.innerHTML = '<div class="empty-state">Upload Parseur file (bottom bar)</div>';
+    return;
+  }
+  if (!rows.length) {
+    c.innerHTML = '<div class="no-records-msg">No Parseur data for this date</div>';
+    return;
+  }
+  c.innerHTML = rows.map((row, i) => renderParseurCard(row, i)).join('');
+}
+
+function renderParseurCard(row, i) {
+  const entries = Object.entries(row).filter(([k]) => k !== '_date_key');
+  const fields = entries.map(([k,v]) => `<div class="field-row"><span class="field-label">${k}</span><span class="field-val">${v||'—'}</span></div>`).join('');
+  return `<div class="record-card extra">
+    <div class="card-actions">
+      <button class="btn-sm btn-push" onclick="fillFromParseur(${i})">→ Fill Form</button>
+    </div>
+    ${fields}
+  </div>`;
+}
+
+function updateMatchIndicator(date) {
+  const ind = document.getElementById('match-indicator');
+  const atR = atByDate[date]||[];
+  const pR  = parseurByDate[date]||[];
+  if (!pR.length && !atR.length) { ind.innerHTML = ''; return; }
+  if (!atR.length) { ind.innerHTML = '<span style="color:#dc2626;font-size:13px;">✗ Missing in AT</span>'; return; }
+  if (!pR.length)  { ind.innerHTML = '<span style="color:#7c3aed;font-size:13px;">+ AT only (no Parseur)</span>'; return; }
+  ind.innerHTML = '<span style="color:#d97706;font-size:13px;">⚠ Both have data — verify</span>';
+}
+
+// ── EDIT FORM ─────────────────────────────────────────────────────────────────
+function editRecord(recId) {
+  const rec = atRecords.find(r => r.id === recId);
+  if (!rec) return;
+  editRecordId = recId;
+  const f = rec.fields;
+  document.getElementById('f-date').value     = f[FIELDS.date]||'';
+  document.getElementById('f-compound').value = f[FIELDS.compound]||'';
+  document.getElementById('f-dose').value     = f[FIELDS.dose]||'';
+  document.getElementById('f-site').value     = f[FIELDS.site]||'';
+  document.getElementById('f-timing').value   = f[FIELDS.timing]||'';
+  document.getElementById('f-status').value   = f[FIELDS.status]||'';
+  document.getElementById('f-name').value     = f[FIELDS.name]||'';
+  document.getElementById('f-notes').value    = f[FIELDS.notes]||'';
+  document.getElementById('edit-form-title').textContent = 'Edit Record';
+  document.getElementById('edit-rec-id-note').textContent = 'ID: ' + recId;
+  document.getElementById('btn-delete-form').style.display = '';
+  showTab('edit');
+}
+
+function newRecord() {
+  editRecordId = null;
+  clearForm();
+  if (currentDate) document.getElementById('f-date').value = currentDate;
+  document.getElementById('edit-form-title').textContent = 'New Injection Record';
+  document.getElementById('edit-rec-id-note').textContent = '';
+  document.getElementById('btn-delete-form').style.display = 'none';
+}
+
+function clearForm() {
+  ['f-date','f-dose','f-name','f-notes'].forEach(id => document.getElementById(id).value = '');
+  ['f-compound','f-site','f-timing','f-status'].forEach(id => document.getElementById(id).selectedIndex = 0);
+  editRecordId = null;
+  document.getElementById('btn-delete-form').style.display = 'none';
+  document.getElementById('edit-form-title').textContent = 'New Injection Record';
+  document.getElementById('edit-rec-id-note').textContent = '';
+}
+
+function prefillEditFromDate(date) {
+  // pre-fill date field in edit view
+  document.getElementById('f-date').value = date||'';
+}
+
+function fillFromParseur(i) {
+  const rows = parseurByDate[currentDate]||[];
+  const row = rows[i];
+  if (!row) return;
+  // Try to map common parseur fields
+  const mapping = {
+    'date':'f-date','compound':'f-compound','dose':'f-dose','site':'f-site',
+    'timing':'f-timing','status':'f-status','notes':'f-notes','name':'f-name',
+    'drug':'f-compound','medication':'f-compound','amount':'f-dose','location':'f-site'
+  };
+  Object.entries(row).forEach(([k, v]) => {
+    const id = mapping[k.toLowerCase().trim()];
+    if (id && v) {
+      const el = document.getElementById(id);
+      if (el) el.value = v;
+    }
+  });
+  showTab('edit');
+}
+
+async function saveRecord() {
+  const date = document.getElementById('f-date').value;
+  if (!date) { alert('Date is required.'); return; }
+  const fields = {};
+  fields[FIELDS.date]     = date;
+  const compound = document.getElementById('f-compound').value;
+  if (compound && compound !== '__other__') fields[FIELDS.compound] = compound;
+  const dose = document.getElementById('f-dose').value;
+  if (dose) fields[FIELDS.dose] = dose;
+  const site = document.getElementById('f-site').value;
+  if (site) fields[FIELDS.site] = site;
+  const timing = document.getElementById('f-timing').value;
+  if (timing) fields[FIELDS.timing] = timing;
+  const status = document.getElementById('f-status').value;
+  if (status) fields[FIELDS.status] = status;
+  const name = document.getElementById('f-name').value;
+  if (name) fields[FIELDS.name] = name;
+  const notes = document.getElementById('f-notes').value;
+  if (notes) fields[FIELDS.notes] = notes;
+
+  setSaveState('saving');
+  try {
+    const result = await saveRecordToAT(fields, editRecordId);
+    if (editRecordId) {
+      const idx = atRecords.findIndex(r => r.id === editRecordId);
+      if (idx >= 0) atRecords[idx] = result;
+    } else {
+      atRecords.push(result);
+    }
+    indexATRecords();
+    buildAllDates();
+    renderDate(date);
+    setSaveState('saved');
+    showTab('compare');
+    await saveAuditState();
+  } catch(e) {
+    alert('Save failed: ' + e.message);
+    setSaveState('error');
+  }
+}
+
+async function deleteCurrentRecord() {
+  if (!editRecordId) return;
+  if (!confirm('Delete this record from Airtable?')) return;
+  setSaveState('saving');
+  try {
+    await deleteRecordFromAT(editRecordId);
+    atRecords = atRecords.filter(r => r.id !== editRecordId);
+    indexATRecords();
+    buildAllDates();
+    if (currentDate) renderDate(currentDate);
+    clearForm();
+    showTab('compare');
+    setSaveState('saved');
+    await saveAuditState();
+  } catch(e) {
+    alert('Delete failed: ' + e.message);
+    setSaveState('error');
+  }
+}
+
+async function confirmDelete(recId) {
+  if (!confirm('Delete record ' + recId + '?')) return;
+  setSaveState('saving');
+  try {
+    await deleteRecordFromAT(recId);
+    atRecords = atRecords.filter(r => r.id !== recId);
+    indexATRecords();
+    buildAllDates();
+    if (currentDate) renderDate(currentDate);
+    setSaveState('saved');
+    await saveAuditState();
+  } catch(e) {
+    alert('Delete failed: ' + e.message);
+    setSaveState('error');
+  }
+}
+
+// ── PARSEUR ───────────────────────────────────────────────────────────────────
+function loadParseur(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const ext = file.name.split('.').pop().toLowerCase();
+  const reader = new FileReader();
+  if (ext === 'json') {
+    reader.onload = e => { try { parseParseurJSON(JSON.parse(e.target.result)); } catch(err){ alert('JSON parse error: '+err.message); } };
+    reader.readAsText(file);
+  } else if (ext === 'csv') {
+    reader.onload = e => parseParseurCSV(e.target.result);
+    reader.readAsText(file);
+  } else {
+    reader.onload = e => parseParseurExcel(e.target.result);
+    reader.readAsArrayBuffer(file);
+  }
+}
+
+function parseParseurJSON(data) {
+  const arr = Array.isArray(data) ? data : (data.records || data.data || Object.values(data));
+  parseurData = arr;
+  indexParseur();
+}
+
+function parseParseurCSV(text) {
+  const lines = text.trim().split('\n');
+  const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g,''));
+  parseurData = lines.slice(1).filter(l=>l.trim()).map(line => {
+    // handle quoted commas
+    const vals = [];
+    let cur = '', inQ = false;
+    for(let i=0;i<line.length;i++){
+      if(line[i]==='"') inQ=!inQ;
+      else if(line[i]===',' && !inQ){ vals.push(cur.trim()); cur=''; }
+      else cur+=line[i];
+    }
+    vals.push(cur.trim());
+    const obj = {};
+    headers.forEach((h,i) => obj[h] = (vals[i]||'').replace(/^"|"$/g,''));
+    return obj;
+  });
+  indexParseur();
+}
+
+function parseParseurExcel(buf) {
+  const wb = XLSX.read(buf, {type:'arraybuffer'});
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  parseurData = XLSX.utils.sheet_to_json(ws);
+  indexParseur();
+}
+
+function indexParseur() {
+  parseurByDate = {};
+  // Try to find date column
+  const dateKeys = ['date','Date','DATE','injection_date','log_date','timestamp'];
+  parseurData.forEach(row => {
+    let dateVal = null;
+    for(const k of dateKeys) {
+      if (row[k]) { dateVal = row[k]; break; }
+    }
+    if (!dateVal) {
+      // try any key with 'date' in it
+      const k = Object.keys(row).find(k => k.toLowerCase().includes('date'));
+      if (k) dateVal = row[k];
+    }
+    if (!dateVal) return;
+    // normalize to YYYY-MM-DD
+    let d = String(dateVal).trim();
+    // handle M/D/YYYY, M/D/YY etc
+    if (/^\d{1,2}\/\d{1,2}\/\d{2,4}$/.test(d)) {
+      const parts = d.split('/');
+      const yr = parts[2].length===2 ? '20'+parts[2] : parts[2];
+      d = `${yr}-${parts[0].padStart(2,'0')}-${parts[1].padStart(2,'0')}`;
+    }
+    if (!/^\d{4}-\d{2}-\d{2}/.test(d)) return;
+    d = d.substring(0,10);
+    if (!parseurByDate[d]) parseurByDate[d] = [];
+    row._date_key = d;
+    parseurByDate[d].push(row);
+  });
+  document.getElementById('parseur-status').textContent = `✓ ${parseurData.length} rows loaded`;
+  buildAllDates();
+  if (currentDate) renderDate(currentDate);
+  updateStats();
+}
+
+// ── PDF ───────────────────────────────────────────────────────────────────────
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+async function loadPDF(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const buf = await file.arrayBuffer();
+  pdfDoc = await pdfjsLib.getDocument({data:buf}).promise;
+  pdfCurrentPage = 1;
+  document.querySelector('#pdf-viewer .empty-state') && (document.querySelector('#pdf-viewer .empty-state').remove());
+  document.getElementById('pdf-canvas').style.display = '';
+  renderPDFPage(pdfCurrentPage);
+}
+
+async function renderPDFPage(pageNum) {
+  if (!pdfDoc) return;
+  pageNum = Math.max(1, Math.min(pageNum, pdfDoc.numPages));
+  pdfCurrentPage = pageNum;
+  const page = await pdfDoc.getPage(pageNum);
+  const canvas = document.getElementById('pdf-canvas');
+  const ctx = canvas.getContext('2d');
+  const vp = page.getViewport({scale: 1.2});
+  canvas.width = vp.width;
+  canvas.height = vp.height;
+  await page.render({canvasContext:ctx, viewport:vp}).promise;
+  document.getElementById('pdf-page-info').textContent = `${pageNum} / ${pdfDoc.numPages}`;
+}
+
+function pdfNextPage() { if (pdfDoc) renderPDFPage(pdfCurrentPage + 1); }
+function pdfPrevPage() { if (pdfDoc) renderPDFPage(pdfCurrentPage - 1); }
+
+// ── NAV ───────────────────────────────────────────────────────────────────────
+function goToDate(d) {
+  if (!d) return;
+  renderDate(d);
+}
+function prevDate() {
+  if (!currentDate || !allDates.length) return;
+  const i = allDates.indexOf(currentDate);
+  if (i > 0) renderDate(allDates[i-1]);
+}
+function nextDate() {
+  if (!currentDate || !allDates.length) return;
+  const i = allDates.indexOf(currentDate);
+  if (i < allDates.length-1) renderDate(allDates[i+1]);
+}
+function showTab(tab) {
+  const cv = document.getElementById('compare-view');
+  const ev = document.getElementById('edit-view');
+  const tc = document.getElementById('tab-compare');
+  const te = document.getElementById('tab-edit');
+  if (tab === 'compare') {
+    cv.style.display = ''; ev.style.display = 'none';
+    tc.classList.add('active'); te.classList.remove('active');
+  } else {
+    cv.style.display = 'none'; ev.style.display = '';
+    te.classList.add('active'); tc.classList.remove('active');
+    if (!editRecordId && currentDate) newRecord();
+  }
+}
+function showAllDates() {
+  const list = document.getElementById('all-dates-list');
+  list.innerHTML = allDates.map(d => {
+    const atN = (atByDate[d]||[]).length;
+    const pN  = (parseurByDate[d]||[]).length;
+    const cls = d===currentDate?'date-list-item current':'date-list-item';
+    const status = !atN ? '🔴 No AT' : !pN ? '🟣 AT only' : atN===pN ? '🟢 OK' : '🟡 Diff';
+    return `<div class="${cls}" onclick="closeModal();renderDate('${d}')">${d} — AT:${atN} P:${pN} ${status}</div>`;
+  }).join('');
+  document.getElementById('modal-overlay').style.display = '';
+}
+function closeModal() { document.getElementById('modal-overlay').style.display = 'none'; }
+
+// ── GITHUB SAVE ───────────────────────────────────────────────────────────────
+async function saveAuditState() {
+  try {
+    const state = {
+      lastSaved: new Date().toISOString(),
+      atRecordCount: atRecords.length,
+      parseurCount: parseurData.length,
+      reviewedDates: allDates.filter(d => atByDate[d] && atByDate[d].length),
+      currentDate
+    };
+    const content = btoa(unescape(encodeURIComponent(JSON.stringify(state, null, 2))));
+    // get current sha
+    const getR = await fetch(`https://api.github.com/repos/${GH_REPO}/contents/injection_audit_state.json`, {
+      headers: { Authorization:'token '+GH_TOKEN, Accept:'application/vnd.github.v3+json' }
+    });
+    const sha = getR.ok ? (await getR.json()).sha : undefined;
+    await fetch(`https://api.github.com/repos/${GH_REPO}/contents/injection_audit_state.json`, {
+      method: 'PUT',
+      headers: { Authorization:'token '+GH_TOKEN, 'Content-Type':'application/json' },
+      body: JSON.stringify({ message:'Audit state update', content, ...(sha?{sha}:{}) })
+    });
+    setSaveState('saved');
+  } catch(e) { console.warn('GH save failed', e); setSaveState('error'); }
+}
+
+function setSaveState(state) {
+  const el = document.getElementById('save-indicator');
+  if (state==='saving') { el.textContent='⏳ Saving...'; el.className='save-indicator saving'; }
+  else if (state==='saved') { el.textContent='✓ Saved '+new Date().toLocaleTimeString(); el.className='save-indicator saved'; }
+  else { el.textContent='⚠ Save error'; el.className='save-indicator'; }
+}
+
+function setStatus(msg) { document.getElementById('status-msg').textContent = msg; }
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+window.onload = async () => {
+  try {
+    document.getElementById('loader-msg').textContent = 'Fetching schema from Airtable...';
+    await fetchATSchema();
+    document.getElementById('loader-msg').textContent = 'Loading injection records...';
+    atRecords = await fetchAllAT();
+    indexATRecords();
+    buildAllDates();
+    document.getElementById('loader').style.display = 'none';
+    setStatus(`Ready — ${atRecords.length} AT records | ${allDates.length} dates`);
+    // go to most recent date if available
+    if (allDates.length) {
+      const latest = allDates[allDates.length-1];
+      renderDate(latest);
+    }
+  } catch(e) {
+    document.getElementById('loader-msg').textContent = 'Error: '+e.message;
+    document.getElementById('loader').style.background = '#fee2e2';
+  }
+};
+</script>
+</body>
+</html>
