@@ -248,6 +248,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/p
 const AT_TOKEN='pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
 const AT_BASE='appmHDG4TGT1xy6R6';
 const WORKER='https://anthropic-proxy.mikeblack01.workers.dev';
+const ANT_KEY='sk-ant-api03-jWnl5azwXKPce1ZVdPZ8_8edO87_hOD8uZpDXQFa4ByFkqqdJOzouZo6uZo6xiVwxykvwcp5MVNeYIaYn0dDE_dVAA-H3QK9wAA';
 const GCL_ID='478191426516-94rflpalsl5ev56ptck62k5imes6jk8l.apps.googleusercontent.com';
 const GSCOPE='https://www.googleapis.com/auth/drive.readonly';
 const PDF_QA='https://mikeblack001.github.io/health-protocol/pdf_qa.html';
@@ -477,7 +478,7 @@ async function extractPage(){
   document.getElementById('cld-cnt').textContent='…';
   document.getElementById('cld-body').innerHTML='<div class="col-empty">Claude is analyzing…</div>';
   try{
-    const res=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:4000,messages:[{role:'user',content:[{type:'image',source:{type:'base64',media_type:'image/jpeg',data:img}},{type:'text',text:prompt}]}]})});
+    const res=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json','x-api-key':ANT_KEY,'anthropic-version':'2023-06-01'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:4000,messages:[{role:'user',content:[{type:'image',source:{type:'base64',media_type:'image/jpeg',data:img}},{type:'text',text:prompt}]}]})});
     if(!res.ok){const t=await res.text().catch(()=>'');throw new Error('API '+res.status+': '+t.substring(0,150));}
     const data=await res.json();
     if(data.error)throw new Error(data.error.message||'API error');
