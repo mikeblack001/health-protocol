@@ -1,0 +1,1145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MB Workout Audit</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #eef0f4;
+  --surface: #ffffff;
+  --surface2: #f7f8fa;
+  --border: #e0e3ea;
+  --border2: #c5cad6;
+  --text: #111827;
+  --text2: #4b5563;
+  --text3: #9ca3af;
+  --blue: #2563eb;
+  --blue-bg: #eff6ff;
+  --blue-bd: #bfdbfe;
+  --green: #16a34a;
+  --green-bg: #f0fdf4;
+  --green-bd: #bbf7d0;
+  --orange: #d97706;
+  --orange-bg: #fffbeb;
+  --orange-bd: #fde68a;
+  --red: #dc2626;
+  --red-bg: #fef2f2;
+  --red-bd: #fecaca;
+  --purple: #7c3aed;
+  --purple-bg: #f5f3ff;
+  --purple-bd: #ddd6fe;
+  --r: 7px;
+  --shadow: 0 1px 3px rgba(0,0,0,.10),0 1px 2px rgba(0,0,0,.06);
+  --shadow-md: 0 4px 12px rgba(0,0,0,.10);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',system-ui,sans-serif;font-size:13px;background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+
+/* HEADER */
+.hd{background:white;border-bottom:1px solid var(--border);padding:9px 16px;display:flex;align-items:center;gap:14px;flex-shrink:0;box-shadow:var(--shadow);z-index:100;}
+.hd-logo{font-size:14px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:7px;white-space:nowrap;}
+.hd-logo em{color:var(--blue);font-style:normal;}
+.hd-right{display:flex;align-items:center;gap:10px;margin-left:auto;}
+.status-pill{display:flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:500;border:1px solid var(--border);background:var(--surface2);white-space:nowrap;}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--text3);flex-shrink:0;}
+.dot.ok{background:var(--green);}
+.dot.load{background:var(--orange);animation:pulse 1s infinite;}
+.dot.err{background:var(--red);}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.35;}}
+
+/* BTN */
+.btn{padding:6px 13px;border-radius:6px;font-size:12px;font-weight:500;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all .12s;font-family:inherit;}
+.btn:disabled{opacity:.5;cursor:not-allowed;}
+.btn-primary{background:var(--blue);color:white;}
+.btn-primary:hover:not(:disabled){background:#1d4ed8;}
+.btn-secondary{background:white;color:var(--text);border:1px solid var(--border2);}
+.btn-secondary:hover:not(:disabled){background:var(--surface2);}
+.btn-danger{background:var(--red-bg);color:var(--red);border:1px solid var(--red-bd);}
+.btn-danger:hover:not(:disabled){background:#fee2e2;}
+.btn-success{background:var(--green-bg);color:var(--green);border:1px solid var(--green-bd);}
+.btn-success:hover:not(:disabled){background:#dcfce7;}
+.btn-sm{padding:3px 9px;font-size:11px;}
+.btn-xs{padding:2px 6px;font-size:10px;}
+.btn-icon{padding:4px 6px;}
+
+/* LAYOUT */
+.body{display:flex;flex:1;overflow:hidden;}
+
+/* SIDEBAR */
+.sb{width:230px;flex-shrink:0;background:white;border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
+.sb-head{padding:10px 10px 8px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.sb-head h4{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text2);margin-bottom:7px;}
+.sb-search{width:100%;padding:5px 9px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:inherit;background:var(--surface2);outline:none;color:var(--text);}
+.sb-search:focus{border-color:var(--blue);background:white;}
+.pills{display:flex;gap:4px;margin-top:7px;}
+.pill{padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:white;color:var(--text2);transition:all .12s;white-space:nowrap;}
+.pill.on{background:var(--blue);color:white;border-color:var(--blue);}
+.sb-list{flex:1;overflow-y:auto;}
+.di{display:flex;align-items:center;gap:7px;padding:7px 10px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .1s;}
+.di:hover{background:var(--surface2);}
+.di.active{background:var(--blue-bg);}
+.di.active .dl{color:var(--blue);font-weight:600;}
+.di.verified .dl::after{content:' ✓';color:var(--green);font-size:10px;}
+.dm{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.dm.ok{background:var(--green);}
+.dm.warn{background:var(--orange);}
+.dm.miss{background:var(--red);}
+.dm.unk{background:var(--text3);}
+.dl{font-size:12px;font-weight:500;font-variant-numeric:tabular-nums;}
+.dy{font-size:10px;color:var(--text3);}
+.dc{font-size:10px;color:var(--text3);margin-left:auto;white-space:nowrap;}
+.sb-foot{padding:8px 10px;border-top:1px solid var(--border);font-size:10px;color:var(--text3);flex-shrink:0;}
+
+/* MAIN */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.sess-bar{background:white;border-bottom:1px solid var(--border);padding:7px 14px;display:flex;align-items:center;gap:14px;flex-shrink:0;min-height:44px;}
+.sess-date{font-size:16px;font-weight:700;}
+.sess-day{font-size:12px;color:var(--text2);}
+.sess-nav{display:flex;gap:3px;}
+.chips{display:flex;gap:6px;margin-left:auto;}
+.chip{padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700;border:1px solid;}
+.chip.at{background:var(--blue-bg);color:var(--blue);border-color:var(--blue-bd);}
+.chip.ext{background:var(--purple-bg);color:var(--purple);border-color:var(--purple-bd);}
+.chip.pars{background:var(--orange-bg);color:var(--orange);border-color:var(--orange-bd);}
+.chip.match{background:var(--green-bg);color:var(--green);border-color:var(--green-bd);}
+.chip.diff{background:var(--red-bg);color:var(--red);border-color:var(--red-bd);}
+
+/* EMPTY */
+.no-sess{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;gap:10px;color:var(--text3);text-align:center;padding:40px;}
+.no-sess .ico{font-size:36px;}
+.no-sess h3{font-size:14px;color:var(--text2);font-weight:600;}
+.no-sess p{font-size:12px;line-height:1.5;}
+
+/* COLUMNS */
+.cols{flex:1;display:flex;overflow:hidden;gap:1px;background:var(--border);}
+.col{background:white;display:flex;flex-direction:column;overflow:hidden;}
+.col-pdf{flex:0 0 360px;}
+.col-at{flex:1;min-width:280px;}
+.col-ext{flex:1;min-width:260px;}
+.col-pars{flex:0 0 210px;}
+.col-hd{padding:7px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:7px;flex-shrink:0;background:var(--surface2);}
+.col-label{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;}
+.col-label.at{color:var(--blue);}
+.col-label.ext{color:var(--purple);}
+.col-label.pars{color:var(--orange);}
+.col-label.pdf{color:var(--text2);}
+.col-acts{display:flex;gap:4px;margin-left:auto;}
+.col-body{flex:1;overflow-y:auto;overflow-x:hidden;}
+
+/* PDF VIEWER */
+.pdf-wrap{padding:10px;display:flex;flex-direction:column;gap:8px;}
+.page-ctrls{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.page-ctrls label{font-size:10px;color:var(--text2);white-space:nowrap;}
+.pc-sel,.pc-num{font-size:11px;padding:4px 7px;border:1px solid var(--border);border-radius:5px;font-family:inherit;background:white;outline:none;color:var(--text);}
+.pc-sel:focus,.pc-num:focus{border-color:var(--blue);}
+.pc-num{width:54px;}
+.pdf-indicator{font-size:10px;color:var(--text2);text-align:center;padding:3px 0;}
+.pdf-img-box{border:1px solid var(--border);border-radius:var(--r);overflow:hidden;background:var(--surface2);min-height:250px;display:flex;align-items:center;justify-content:center;position:relative;}
+.pdf-img-box img{width:100%;display:block;}
+.pdf-ph{display:flex;flex-direction:column;align-items:center;gap:7px;padding:30px 20px;text-align:center;color:var(--text3);}
+.pdf-ph .ico{font-size:28px;}
+.pdf-ph p{font-size:11px;line-height:1.4;}
+.half-overlay{position:absolute;left:0;right:0;background:rgba(37,99,235,.07);border:2px dashed var(--blue);pointer-events:none;transition:top .2s,height .2s;}
+
+/* TABLE */
+.dt{width:100%;border-collapse:collapse;font-size:12px;}
+.dt th{position:sticky;top:0;background:var(--surface2);border-bottom:2px solid var(--border);padding:5px 8px;text-align:left;font-size:9px;font-weight:800;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;z-index:10;white-space:nowrap;}
+.dt td{padding:5px 8px;border-bottom:1px solid var(--border);vertical-align:middle;}
+.dt tr:last-child td{border-bottom:none;}
+.dt tr:hover td{background:var(--surface2);}
+.dt tr.row-match td{background:#f0fdf4;}
+.dt tr.row-warn td{background:#fffbeb;}
+.dt tr.row-miss td{background:#fef2f2;}
+.num{font-family:'DM Mono',monospace;font-size:11px;}
+.cell-ex{max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.cell-var{max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text2);font-size:11px;}
+.row-acts{display:flex;gap:2px;opacity:0;transition:opacity .1s;}
+.dt tr:hover .row-acts{opacity:1;}
+
+/* FORM */
+.form-row{display:flex;align-items:center;gap:8px;margin-bottom:9px;}
+.form-lbl{font-size:11px;color:var(--text2);font-weight:600;width:75px;flex-shrink:0;}
+.form-inp,.form-sel{flex:1;padding:6px 9px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:inherit;background:white;outline:none;color:var(--text);}
+.form-inp:focus,.form-sel:focus{border-color:var(--blue);}
+
+/* PARSEUR */
+.pars-ph{padding:20px 14px;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;}
+.pars-ico{width:44px;height:44px;border-radius:50%;background:var(--orange-bg);border:2px solid var(--orange-bd);display:flex;align-items:center;justify-content:center;font-size:18px;}
+.pars-title{font-weight:700;font-size:12px;}
+.pars-desc{font-size:10px;color:var(--text2);line-height:1.5;}
+.upload-zone{width:100%;border:2px dashed var(--orange-bd);border-radius:var(--r);padding:14px 10px;text-align:center;cursor:pointer;transition:all .2s;font-size:10px;color:var(--text2);}
+.upload-zone:hover{border-color:var(--orange);background:var(--orange-bg);}
+
+/* STATUS BAR */
+.statusbar{background:white;border-top:1px solid var(--border);padding:5px 14px;display:flex;align-items:center;gap:10px;flex-shrink:0;font-size:11px;color:var(--text2);}
+.sm{flex:1;}
+.sm.ok{color:var(--green);}
+.sm.err{color:var(--red);}
+.sm.load{color:var(--blue);}
+
+/* LOADING */
+.overlay{position:fixed;inset:0;background:rgba(255,255,255,.9);display:flex;align-items:center;justify-content:center;z-index:1000;backdrop-filter:blur(3px);}
+.ov-card{background:white;border:1px solid var(--border);border-radius:12px;padding:28px 36px;text-align:center;box-shadow:var(--shadow-md);}
+.spin{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin .65s linear infinite;margin:0 auto 10px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.ov-card h3{font-size:14px;margin-bottom:4px;}
+.ov-card p{font-size:12px;color:var(--text2);}
+
+/* MODAL */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:500;display:flex;align-items:center;justify-content:center;}
+.modal{background:white;border-radius:12px;box-shadow:0 20px 40px rgba(0,0,0,.15);padding:22px;width:420px;max-height:85vh;overflow-y:auto;}
+.modal h3{font-size:14px;font-weight:700;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border);}
+.modal-acts{display:flex;justify-content:flex-end;gap:7px;margin-top:18px;padding-top:14px;border-top:1px solid var(--border);}
+
+/* TOAST */
+.toasts{position:fixed;bottom:18px;right:18px;z-index:2000;display:flex;flex-direction:column;gap:6px;}
+.toast{padding:9px 14px;border-radius:var(--r);font-size:12px;font-weight:500;box-shadow:var(--shadow-md);animation:slideIn .18s ease;max-width:280px;border:1px solid;}
+.toast.ok{background:var(--green-bg);color:var(--green);border-color:var(--green-bd);}
+.toast.err{background:var(--red-bg);color:var(--red);border-color:var(--red-bd);}
+.toast.info{background:var(--blue-bg);color:var(--blue);border-color:var(--blue-bd);}
+@keyframes slideIn{from{transform:translateX(14px);opacity:0;}to{transform:translateX(0);opacity:1;}}
+
+/* SCROLLBARS */
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px 16px;text-align:center;color:var(--text3);min-height:140px;}
+.empty .ico{font-size:22px;margin-bottom:6px;}
+.empty p{font-size:11px;}
+.diff-badge{display:inline-block;padding:1px 5px;border-radius:4px;font-size:9px;font-weight:700;}
+.diff-badge.ok{background:var(--green-bg);color:var(--green);}
+.diff-badge.warn{background:var(--orange-bg);color:var(--orange);}
+.diff-badge.miss{background:var(--red-bg);color:var(--red);}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div class="overlay" id="ov">
+  <div class="ov-card">
+    <div class="spin"></div>
+    <h3>MB Workout Audit</h3>
+    <p id="ovMsg">Loading extracted JSON...</p>
+  </div>
+</div>
+
+<!-- HEADER -->
+<header class="hd">
+  <div class="hd-logo">📋 <em>MB</em> Workout Audit</div>
+  <div class="hd-right">
+    <div class="status-pill"><div class="dot" id="extDot"></div><span id="extLbl">Extracted JSON</span></div>
+    <div class="status-pill"><div class="dot" id="atDot"></div><span id="atLbl">Airtable</span></div>
+    <div class="status-pill"><div class="dot" id="driveDot"></div><span id="driveLbl">Drive</span></div>
+    <button class="btn btn-primary" id="signInBtn" onclick="signIn()">🔑 Sign in with Google</button>
+    <button class="btn btn-secondary" id="signOutBtn" onclick="signOut()" style="display:none">Sign out</button>
+    <button class="btn btn-secondary btn-icon" title="Configure tokens" onclick="openCfg()">⚙</button>
+  </div>
+</header>
+
+<!-- BODY -->
+<div class="body">
+
+  <!-- SIDEBAR -->
+  <aside class="sb">
+    <div class="sb-head">
+      <h4>Sessions <span id="sbCount" style="font-weight:400;color:var(--text3)"></span></h4>
+      <input type="text" class="sb-search" id="search" placeholder="Search date or day..." oninput="doFilter()">
+      <div class="pills">
+        <span class="pill on" onclick="setFilter('all',this)">All</span>
+        <span class="pill" onclick="setFilter('diff',this)">⚠ Diff</span>
+        <span class="pill" onclick="setFilter('miss',this)">✕ Miss</span>
+        <span class="pill" onclick="setFilter('ok',this)">✓ OK</span>
+      </div>
+    </div>
+    <div class="sb-list" id="sbList"></div>
+    <div class="sb-foot" id="sbFoot">Loading...</div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- SESSION BAR -->
+    <div class="sess-bar" id="sessBar" style="display:none">
+      <div>
+        <div class="sess-date" id="sessDate">—</div>
+        <div class="sess-day" id="sessDay"></div>
+      </div>
+      <div class="sess-nav">
+        <button class="btn btn-secondary btn-icon" title="Previous" onclick="nav(-1)">‹</button>
+        <button class="btn btn-secondary btn-icon" title="Next" onclick="nav(1)">›</button>
+      </div>
+      <div class="chips">
+        <div class="chip at" id="atChip">AT: —</div>
+        <div class="chip ext" id="extChip">Ext: —</div>
+        <div class="chip pars" id="parsChip">Parseur: —</div>
+        <div class="chip" id="matchChip">—</div>
+      </div>
+      <button class="btn btn-success btn-sm" onclick="markVerified()">✓ Verified</button>
+    </div>
+
+    <!-- NO SESSION -->
+    <div class="no-sess" id="noSess">
+      <div class="ico">📅</div>
+      <h3>Select a session</h3>
+      <p>Sign in with Google for PDF access, then pick a date from the sidebar to start auditing.</p>
+    </div>
+
+    <!-- COLUMNS -->
+    <div class="cols" id="colsArea" style="display:none">
+
+      <!-- PDF -->
+      <div class="col col-pdf">
+        <div class="col-hd">
+          <span class="col-label pdf">📄 PDF Page</span>
+          <div class="col-acts">
+            <button class="btn btn-secondary btn-sm" id="loadBtn" onclick="loadPage()">Load Page</button>
+          </div>
+        </div>
+        <div class="col-body">
+          <div class="pdf-wrap">
+            <div class="page-ctrls">
+              <label>File:</label>
+              <select class="pc-sel" id="pdfFile" onchange="pageCtrlChange()">
+                <option value="W1">W1 — 2024/25</option>
+                <option value="W2">W2 — 2025</option>
+                <option value="W3">W3 — 2026</option>
+              </select>
+              <label>Page:</label>
+              <input type="number" class="pc-num" id="pdfPage" min="1" max="64" value="1" onchange="pageCtrlChange()">
+              <label>Half:</label>
+              <select class="pc-sel" id="pdfHalf">
+                <option value="top">Top ↑</option>
+                <option value="bottom">Bottom ↓</option>
+              </select>
+            </div>
+            <div class="pdf-indicator" id="pdfInd">Select file and page, then click Load Page</div>
+            <div class="pdf-img-box" id="pdfBox">
+              <div class="pdf-ph">
+                <div class="ico">🖼️</div>
+                <p>Click "Load Page" to display the workout page from Google Drive.</p>
+                <p style="margin-top:6px;font-size:10px">Requires Google sign-in. Each ZIP is cached after first download.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- AIRTABLE -->
+      <div class="col col-at">
+        <div class="col-hd">
+          <span class="col-label at">● Airtable Live</span>
+          <div class="col-acts">
+            <button class="btn btn-primary btn-sm" onclick="openAdd()">+ Add</button>
+            <button class="btn btn-secondary btn-sm" onclick="loadAT()">↻</button>
+          </div>
+        </div>
+        <div class="col-body" id="atBody">
+          <div class="empty"><div class="ico">⏳</div><p>Select a session</p></div>
+        </div>
+      </div>
+
+      <!-- EXTRACTED -->
+      <div class="col col-ext">
+        <div class="col-hd">
+          <span class="col-label ext">◆ Extracted JSON</span>
+          <div class="col-acts">
+            <span style="font-size:9px;color:var(--text3);font-weight:600">READ ONLY</span>
+          </div>
+        </div>
+        <div class="col-body" id="extBody">
+          <div class="empty"><div class="ico">📂</div><p>Select a session</p></div>
+        </div>
+      </div>
+
+      <!-- PARSEUR -->
+      <div class="col col-pars">
+        <div class="col-hd">
+          <span class="col-label pars">✦ Parseur</span>
+          <div class="col-acts">
+            <button class="btn btn-secondary btn-xs" onclick="document.getElementById('parsFile').click()">Upload</button>
+            <input type="file" id="parsFile" accept=".json,.csv" style="display:none" onchange="loadParseur(event)">
+          </div>
+        </div>
+        <div class="col-body" id="parsBody">
+          <div class="pars-ph">
+            <div class="pars-ico">✦</div>
+            <div class="pars-title">Parseur</div>
+            <div class="pars-desc">Upload Parseur's JSON export to compare all three sources side by side.</div>
+            <div class="upload-zone" onclick="document.getElementById('parsFile').click()">
+              📁 Upload Parseur JSON / CSV
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /cols -->
+
+    <!-- STATUS BAR -->
+    <div class="statusbar">
+      <div class="sm" id="smsg">Ready — sign in with Google to begin</div>
+      <div id="verCount" style="color:var(--green);font-weight:600;font-size:11px"></div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /body -->
+
+<!-- EDIT/ADD MODAL -->
+<div class="modal-bg" id="modal" style="display:none" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <h3 id="modalTitle">Add Set</h3>
+    <div class="form-row">
+      <label class="form-lbl">Exercise</label>
+      <select class="form-sel" id="mEx" onchange="fillVars()"></select>
+    </div>
+    <div class="form-row">
+      <label class="form-lbl">Variation</label>
+      <select class="form-sel" id="mVar"></select>
+    </div>
+    <div class="form-row">
+      <label class="form-lbl">Set #</label>
+      <input type="number" class="form-inp" id="mSet" min="1" max="20" value="1">
+    </div>
+    <div class="form-row">
+      <label class="form-lbl">Reps</label>
+      <input type="number" class="form-inp" id="mReps" min="1">
+    </div>
+    <div class="form-row">
+      <label class="form-lbl">Weight (lbs)</label>
+      <input type="number" class="form-inp" id="mWt" step="0.5" min="0">
+    </div>
+    <div class="form-row">
+      <label class="form-lbl">Day Type</label>
+      <select class="form-sel" id="mDay">
+        <option>Push</option><option>Pull</option><option>Legs</option>
+        <option>Arms</option><option>Shoulders</option><option>Chest</option><option>Core</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <label class="form-lbl">Notes</label>
+      <input type="text" class="form-inp" id="mNotes">
+    </div>
+    <div class="modal-acts">
+      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-danger" id="mDelBtn" onclick="doDelete()" style="display:none">Delete</button>
+      <button class="btn btn-primary" id="mSaveBtn" onclick="doSave()">Save to AT</button>
+    </div>
+  </div>
+</div>
+
+<div class="toasts" id="toasts"></div>
+
+<!-- CONFIG MODAL -->
+<div class="modal-bg" id="cfgModal" style="display:none" onclick="if(event.target===this)closeCfg()">
+  <div class="modal">
+    <h3>⚙ Token Configuration</h3>
+    <p style="font-size:11px;color:var(--text2);margin-bottom:14px">Saved to browser localStorage. Never committed to GitHub.</p>
+    <div class="form-row">
+      <label class="form-lbl">AT Token</label>
+      <input type="password" class="form-inp" id="cfgAT" placeholder="pat45cU4...">
+    </div>
+    <div class="form-row">
+      <label class="form-lbl">GH Token</label>
+      <input type="password" class="form-inp" id="cfgGH" placeholder="ghp_...">
+    </div>
+    <div class="form-row">
+      <label class="form-lbl">OAuth ID</label>
+      <input type="text" class="form-inp" id="cfgOA" placeholder="xxxxxxxx.apps.googleusercontent.com">
+    </div>
+    <div style="margin:10px 0 6px;font-size:11px;font-weight:700;color:var(--text2)">Drive File IDs (Google Drive ZIP files)</div>
+    <div class="form-row">
+      <label class="form-lbl">W1 Drive ID</label>
+      <input type="text" class="form-inp" id="cfgW1" placeholder="2024/25 ZIP file ID">
+    </div>
+    <div class="form-row">
+      <label class="form-lbl">W2 Drive ID</label>
+      <input type="text" class="form-inp" id="cfgW2" placeholder="2025 ZIP file ID">
+    </div>
+    <div class="form-row">
+      <label class="form-lbl">W3 Drive ID</label>
+      <input type="text" class="form-inp" id="cfgW3" placeholder="2026 ZIP file ID — required">
+    </div>
+    <div class="modal-acts">
+      <button class="btn btn-secondary" onclick="closeCfg()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveCfg()">Save & Apply</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://accounts.google.com/gsi/client" async></script>
+<script>
+// ─── CONFIG ────────────────────────────────────────────────
+// Tokens stored in localStorage — no secrets in source
+// First run: click ⚙ Config to enter tokens (saved permanently)
+let AT_TOKEN = localStorage.getItem('mb_at_token') || '';
+let GH_TOKEN = localStorage.getItem('mb_gh_token') || '';
+const AT_BASE  = ['appmHDG4','TGT1xy6R6'].join('');
+const AT_SETS  = ['tblKDqjy','5RzqaJvjr'].join('');
+const GH_REPO  = 'mikeblack001/health-protocol';
+let OAUTH_ID = localStorage.getItem('mb_oauth_id') || '';
+const DRIVE    = {
+  W1: localStorage.getItem('mb_w1_id') || '1eYtQT3c14psKbxRkKtbLoNtiLFEnOFhF',
+  W2: localStorage.getItem('mb_w2_id') || '1VgIqXOQUc5qLzzAaWQ1FQZxIMBAacGP9',
+  W3: localStorage.getItem('mb_w3_id') || ''   // verify this ID
+};
+const MAX = { W1:48, W2:64, W3:40 };
+const F = {
+  setID:['fld4hUpE','zC9IqN0xh'].join(''), date:['fld75zYX','knF0RtCWH'].join(''), session:['fldBChNm','PkNg61oTN'].join(''),
+  exercise:['fldZ93A1','t7fGjjsSS'].join(''), variation:['fld2TZdm','COloH0gAK'].join(''), setNum:['fldNm9Ao','0rmcwwDXo'].join(''),
+  reps:['fldelUng','WHRTm48m1'].join(''), weight:['fldmrbBm','fgSMtREMt'].join(''), day:['fldypzlw','qw9AzWrEE'].join(''), notes:['fldfR4vy','Btj2VWB2b'].join('')
+};
+
+const EXERCISES = {
+  'Bench Press':         ['45-35 - DBs - Cable','DBs','Cable - 2 Hand','Bar',''],
+  'Incline Press':       ['45-35 - DBs - Cable','DBs','Cable - 2 Hand','Bar',''],
+  'Decline Press':       ['Cable - 2 Hand','DBs','Bar',''],
+  'Incline Fly':         ['DBs','cable',''],
+  'High Cable Fly':      ['1/2 ea',''],
+  'Low Cable Fly':       ['1/2 ea',''],
+  'Cable Cross Overs':   ['1/2 ea',''],
+  'Lateral Raises':      ['DBs','Cable - 2 Hand','DBs -',''],
+  'Seated Shoulder Press':['45-35 - DBs - Cable','DBs',''],
+  'Tricep Pushdowns':    ['VBar Straight Rope','Rope 1/2','V-Bar','Bar',''],
+  'Overhead Tricep Ext': ['EZ - Bar DBS - Rope','Rope 1/2','DBs',''],
+  'Wrist Twist':         ['DBs',''],
+  'Cable Press':         ['1/2 ea',''],
+  'Lat Pulldown':        ['Machine - Cable','Supinate - Machine - Cable','Cable - 2 Hand',''],
+  'Bent Over Rows':      ['45lb','DBs','Bar',''],
+  'Cable Rows':          ['V-Bar','Rope 1/2','Cable - 2 Hand',''],
+  'Face Pulls':          ['Rope 1/2',''],
+  'Rear Delt Raises':    ['DBs',''],
+  'Bicep Curls - Preacher':['EZ-Bar Preacher','DBs',''],
+  'Hammer Curls':        ['Rope 1/2','DBs',''],
+  'Barbell Shrugs':      ['45lb',''],
+  'Cable Shrugs':        ['1/2',''],
+  'Cable Curls':         ['1/2 ea',''],
+  'Forearm Raise - Cable':['1/2',''],
+  'Incline Curls':       ['DBs',''],
+  'Curls (Standing)':    ['DBs','Bar',''],
+  'Overhead Tricep Press':['Rope 1/2',''],
+  'Tricep Ext Down':     ['1/2',''],
+  'Tricep Ext Up':       [''],
+  'Leg Press':           [''],
+  'Leg Extensions':      [''],
+  'Leg Curls':           [''],
+  'Hip Thrust':          [''],
+  'Nordic Curl':         [''],
+  'Reverse Hyper':       [''],
+  'DB Calf Raises':      ['DBs',''],
+  'Smith Mach Calf Raises':['Smith Machine',''],
+  'Back Extension':      [''],
+  'Forward Back Stretch':[''],
+};
+
+// ─── STATE ─────────────────────────────────────────────────
+let token = null;
+let extByDate = {};
+let atByDate  = {};
+let parsByDate= {};
+let atCounts  = {};
+let allDates  = [];
+let filtDates = [];
+let selDate   = null;
+let selIdx    = 0;
+let activeFilter = 'all';
+let zipCache  = {};
+let verifiedDates = new Set(JSON.parse(localStorage.getItem('mbVerified')||'[]'));
+let editRecId = null;
+
+// ─── INIT ──────────────────────────────────────────────────
+window.onload = async () => {
+  ovMsg('Loading extracted JSON from GitHub...');
+  dot('extDot','load');
+  try {
+    await loadJSON();
+    dot('extDot','ok');
+    el('extLbl').textContent = `Extracted (${allDates.length} sessions)`;
+    buildSidebar();
+    // Load AT counts in background
+    loadATCounts();
+  } catch(e) {
+    dot('extDot','err');
+    el('extLbl').textContent = 'Extracted — Error';
+    toast('Failed to load JSON: '+e.message,'err');
+  }
+  el('ov').style.display='none';
+  status('Ready — sign in with Google to load PDF pages','');
+};
+
+async function loadJSON() {
+  const res = await fetch(`https://raw.githubusercontent.com/${GH_REPO}/main/extract_progress.json`,{
+    headers:{Authorization:`token ${GH_TOKEN}`}
+  });
+  if(!res.ok) throw new Error(`GitHub ${res.status}`);
+  const data = await res.json();
+  const sets = data.all_sets || (Array.isArray(data)?data:[]);
+  extByDate = {};
+  for(const s of sets){
+    const d = s.date||s.Date||'';
+    if(!d||d<'2024-10-28') continue;
+    if(!extByDate[d]) extByDate[d]=[];
+    extByDate[d].push(s);
+  }
+  allDates = Object.keys(extByDate).sort();
+  filtDates = [...allDates];
+}
+
+async function loadATCounts() {
+  dot('atDot','load');
+  el('atLbl').textContent='AT (loading...)';
+  let offset=null, all=[];
+  try {
+    do {
+      const url=`https://api.airtable.com/v0/${AT_BASE}/${AT_SETS}?returnFieldsByFieldId=true&fields[]=${F.date}&pageSize=100${offset?`&offset=${offset}`:''}`;
+      const r=await fetch(url,{headers:{Authorization:`Bearer ${AT_TOKEN}`}});
+      const d=await r.json();
+      all.push(...(d.records||[]));
+      offset=d.offset;
+    } while(offset);
+    atCounts={};
+    for(const r of all){const d=r.fields[F.date];if(d) atCounts[d]=(atCounts[d]||0)+1;}
+    dot('atDot','ok');
+    el('atLbl').textContent=`AT (${Object.keys(atCounts).length} sessions)`;
+    buildSidebar();
+    el('sbFoot').textContent=`${all.length} AT records loaded`;
+  } catch(e){
+    dot('atDot','err');
+    el('atLbl').textContent='AT — Error';
+    el('sbFoot').textContent='AT load failed';
+  }
+}
+
+// ─── GOOGLE OAUTH ──────────────────────────────────────────
+let tokenClient;
+function signIn(){
+  if(!tokenClient){
+    tokenClient=google.accounts.oauth2.initTokenClient({
+      client_id:OAUTH_ID||localStorage.getItem('mb_oauth_id')||'',
+      scope:'https://www.googleapis.com/auth/drive.readonly',
+      callback:(r)=>{
+        if(r.error){toast('Auth failed: '+r.error,'err');return;}
+        token=r.access_token;
+        el('signInBtn').style.display='none';
+        el('signOutBtn').style.display='inline-flex';
+        dot('driveDot','ok');
+        el('driveLbl').textContent='Drive ✓';
+        toast('Signed in — Drive access ready','ok');
+        status('Signed in. Select a session and click Load Page to view the PDF.','');
+      }
+    });
+  }
+  tokenClient.requestAccessToken();
+}
+function signOut(){
+  if(token) google.accounts.oauth2.revoke(token);
+  token=null;
+  el('signInBtn').style.display='inline-flex';
+  el('signOutBtn').style.display='none';
+  dot('driveDot','');
+  el('driveLbl').textContent='Drive';
+}
+
+// ─── SIDEBAR ───────────────────────────────────────────────
+function buildSidebar(){
+  const list=el('sbList');
+  el('sbCount').textContent=`(${filtDates.length})`;
+  list.innerHTML='';
+  for(const d of filtDates){
+    const extN=(extByDate[d]||[]).length;
+    const atN=atCounts[d];
+    let cls='unk',tip='AT not loaded';
+    if(atN!==undefined){
+      if(atN===extN){cls='ok';tip=`Match (${atN})`;}
+      else if(atN===0){cls='miss';tip='Not in AT';}
+      else{cls='warn';tip=`AT:${atN} vs Ext:${extN}`;}
+    }
+    const days=[...new Set((extByDate[d]||[]).map(s=>s.day_type||s.day||''))].join('/');
+    const isVer=verifiedDates.has(d);
+    const isActive=d===selDate;
+    const div=document.createElement('div');
+    div.className=`di${isActive?' active':''}${isVer?' verified':''}`;
+    div.dataset.date=d;
+    div.onclick=()=>select(d);
+    div.innerHTML=`<div class="dm ${cls}" title="${tip}"></div>
+      <div>
+        <div class="dl">${d}</div>
+        <div class="dy">${days}</div>
+      </div>
+      <div class="dc">${extN}s</div>`;
+    list.appendChild(div);
+  }
+}
+
+function doFilter(){
+  const q=el('search').value.toLowerCase();
+  filtDates=allDates.filter(d=>{
+    const days=(extByDate[d]||[]).map(s=>(s.day_type||s.day||'').toLowerCase()).join(' ');
+    const txt=d.includes(q)||days.includes(q);
+    if(!txt) return false;
+    if(activeFilter==='all') return true;
+    const atN=atCounts[d]; const extN=(extByDate[d]||[]).length;
+    if(activeFilter==='diff') return atN!==undefined&&atN!==extN;
+    if(activeFilter==='miss') return atN===0||atN===undefined;
+    if(activeFilter==='ok')   return atN===extN;
+    return true;
+  });
+  buildSidebar();
+}
+
+function setFilter(f,el_){
+  activeFilter=f;
+  document.querySelectorAll('.pill').forEach(p=>p.classList.remove('on'));
+  el_.classList.add('on');
+  doFilter();
+}
+
+// ─── SELECT SESSION ────────────────────────────────────────
+async function select(d){
+  selDate=d;
+  selIdx=allDates.indexOf(d);
+  document.querySelectorAll('.di').forEach(e=>e.classList.toggle('active',e.dataset.date===d));
+  el('noSess').style.display='none';
+  el('colsArea').style.display='flex';
+  el('sessBar').style.display='flex';
+  const sets=extByDate[d]||[];
+  const day=[...new Set(sets.map(s=>s.day_type||s.day||''))].join('/');
+  el('sessDate').textContent=d;
+  el('sessDay').textContent=day||'Unknown day';
+  el('extChip').textContent=`Ext: ${sets.length}`;
+  el('atChip').textContent='AT: loading...';
+  el('parsChip').textContent=parsByDate[d]?`Parseur: ${parsByDate[d].length}`:'Parseur: —';
+  // PDF page estimate
+  const pg=estimatePage(d);
+  if(pg){
+    el('pdfFile').value=pg.file;
+    el('pdfPage').value=pg.page;
+    el('pdfPage').max=MAX[pg.file];
+    el('pdfHalf').value=pg.half;
+    el('pdfInd').textContent=`Est: ${pg.file} p${pg.page} ${pg.half} — adjust if wrong`;
+  }
+  renderExt(d);
+  if(parsByDate[d]) renderParseur(d);
+  await loadAT();
+}
+
+function nav(dir){
+  const n=selIdx+dir;
+  if(n<0||n>=allDates.length) return;
+  select(allDates[n]);
+}
+
+// ─── PAGE ESTIMATION ───────────────────────────────────────
+function estimatePage(d){
+  // W3 = 2026, W1 = 2024, W2 = 2025
+  const yr=d.substring(0,4);
+  let fileDates,file;
+  if(yr==='2026'){file='W3';fileDates=allDates.filter(x=>x.startsWith('2026'));}
+  else if(yr==='2024'){file='W1';fileDates=allDates.filter(x=>x.startsWith('2024'));}
+  else{
+    // 2025 dates: first portion in W1 remainder after 2024 pages, rest in W2
+    const d24=allDates.filter(x=>x.startsWith('2024'));
+    const d25=allDates.filter(x=>x.startsWith('2025'));
+    const w1Used=d24.length;
+    const w1Left=Math.max(0,Math.floor((MAX.W1-Math.ceil(w1Used/2))*2));
+    const inW1=d25.slice(0,Math.floor(w1Left));
+    if(inW1.includes(d)){file='W1';fileDates=[...d24,...inW1];}
+    else{file='W2';fileDates=d25.slice(Math.floor(w1Left));}
+  }
+  const idx=fileDates.indexOf(d);
+  if(idx<0) return null;
+  return{file,page:Math.floor(idx/2)+1,half:idx%2===0?'top':'bottom'};
+}
+
+function pageCtrlChange(){
+  el('pdfInd').textContent=`${el('pdfFile').value} — Page ${el('pdfPage').value} (${el('pdfHalf').value} session)`;
+}
+
+// ─── PDF LOADING ───────────────────────────────────────────
+async function loadPage(){
+  if(!token){toast('Sign in with Google first to access PDF pages','err');return;}
+  const file=el('pdfFile').value;
+  const page=parseInt(el('pdfPage').value);
+  const half=el('pdfHalf').value;
+  const maxP=MAX[file];
+  if(page<1||page>maxP){toast(`Page out of range (1-${maxP})`, 'err');return;}
+  const btn=el('loadBtn');
+  btn.textContent='Loading...';btn.disabled=true;
+  status(`Downloading ${file} ZIP from Drive...`,'load');
+  try{
+    if(!zipCache[file]){
+      const r=await fetch(`https://www.googleapis.com/drive/v3/files/${DRIVE[file]}?alt=media`,{
+        headers:{Authorization:`Bearer ${token}`}
+      });
+      if(!r.ok){
+        const txt=await r.text();
+        throw new Error(`Drive ${r.status}: ${txt.substring(0,120)}`);
+      }
+      const buf=await r.arrayBuffer();
+      zipCache[file]=await JSZip.loadAsync(buf);
+      status(`${file} ZIP cached (${(buf.byteLength/1024/1024).toFixed(1)}MB)`,'' );
+    }
+    const zip=zipCache[file];
+    const imgFile=zip.file(`${page}.jpeg`);
+    if(!imgFile) throw new Error(`${page}.jpeg not found in ZIP`);
+    const blob=await imgFile.async('blob');
+    const url=URL.createObjectURL(blob);
+    el('pdfBox').innerHTML=`
+      <img src="${url}" alt="Page ${page}" id="pdfImg" style="width:100%;display:block">
+      <div class="half-overlay" id="halfOv"></div>`;
+    showHalfOverlay(half);
+    el('pdfInd').textContent=`${file} — Page ${page}/${maxP} • showing ${half} session`;
+    el('pdfHalf').onchange=()=>showHalfOverlay(el('pdfHalf').value);
+    status(`Page ${page} loaded from ${file}`,'' );
+  }catch(e){
+    toast('PDF error: '+e.message,'err');
+    status('PDF load failed: '+e.message,'err');
+  }
+  btn.textContent='Load Page';btn.disabled=false;
+}
+
+function showHalfOverlay(half){
+  const ov2=document.getElementById('halfOv');
+  const img=document.getElementById('pdfImg');
+  if(!ov2||!img) return;
+  const h=img.offsetHeight||500;
+  ov2.style.top=half==='top'?'0':Math.floor(h/2)+'px';
+  ov2.style.height=Math.floor(h/2)+'px';
+}
+
+// ─── AIRTABLE ──────────────────────────────────────────────
+async function loadAT(){
+  if(!selDate) return;
+  status(`Fetching AT records for ${selDate}...`,'load');
+  try{
+    const f=encodeURIComponent(`{Date}='${selDate}'`);
+    const url=`https://api.airtable.com/v0/${AT_BASE}/${AT_SETS}?filterByFormula=${f}&returnFieldsByFieldId=true&sort[0][field]=${F.exercise}&sort[0][direction]=asc&sort[1][field]=${F.setNum}&sort[1][direction]=asc`;
+    const r=await fetch(url,{headers:{Authorization:`Bearer ${AT_TOKEN}`}});
+    if(!r.ok) throw new Error(`AT ${r.status}`);
+    const data=await r.json();
+    const recs=data.records||[];
+    atByDate[selDate]=recs;
+    atCounts[selDate]=recs.length;
+    el('atChip').textContent=`AT: ${recs.length}`;
+    // Update match chip
+    const extN=(extByDate[selDate]||[]).length;
+    const mc=el('matchChip');
+    if(recs.length===extN){mc.textContent='✓ Match';mc.className='chip match';}
+    else{mc.textContent=`Δ ${Math.abs(recs.length-extN)}`;mc.className='chip diff';}
+    // Update sidebar dot
+    const dm=document.querySelector(`.di[data-date="${selDate}"] .dm`);
+    if(dm) dm.className=`dm ${recs.length===extN?'ok':recs.length===0?'miss':'warn'}`;
+    renderAT(recs);
+    status(`AT: ${recs.length} records | Ext: ${extN} records`,'' );
+  }catch(e){
+    toast('AT error: '+e.message,'err');
+    status('AT fetch failed','err');
+    el('atBody').innerHTML=`<div class="empty"><div class="ico">⚠️</div><p>${e.message}</p></div>`;
+  }
+}
+
+function renderAT(recs){
+  if(!recs.length){
+    el('atBody').innerHTML=`<div class="empty"><div class="ico">📭</div><p>No AT records for this date</p><button class="btn btn-primary btn-sm" style="margin-top:8px" onclick="openAdd()">+ Add first set</button></div>`;
+    return;
+  }
+  const extSets=extByDate[selDate]||[];
+  let h=`<table class="dt"><thead><tr>
+    <th>#</th><th>Exercise</th><th>Var</th><th>Reps</th><th>Wt</th><th>Day</th><th></th>
+  </tr></thead><tbody>`;
+  for(const r of recs){
+    const f=r.fields;
+    const sn=f[F.setNum]||'';
+    const ex=f[F.exercise]||'';
+    const va=f[F.variation]||'';
+    const rp=f[F.reps]||'';
+    const wt=f[F.weight]||'';
+    const dy=f[F.day]||'';
+    const notes=f[F.notes]||'';
+    // Match vs extracted
+    const ext=extSets.find(s=>{
+      const sn2=s.set_number||s['set#']||0;
+      return String(sn2)===String(sn)&&norm(s.exercise||s.Exercise)===norm(ex);
+    });
+    let rc='';
+    if(ext){
+      const rm=String(ext.reps||ext.Reps||'')===String(rp);
+      const wm=String(ext.weight||ext.Weight||'')===String(wt);
+      rc=(rm&&wm)?'row-match':'row-warn';
+    }
+    const ntitle=notes?` title="${notes}"`:'';
+    h+=`<tr class="${rc}" data-id="${r.id}"${ntitle}>
+      <td class="num">${sn}</td>
+      <td class="cell-ex" title="${ex}">${ex}</td>
+      <td class="cell-var" title="${va}">${va||'—'}</td>
+      <td class="num">${rp}</td>
+      <td class="num">${wt}</td>
+      <td style="font-size:10px;color:var(--text3)">${dy}</td>
+      <td><div class="row-acts">
+        <button class="btn btn-secondary btn-xs btn-icon" title="Edit" onclick="openEdit('${r.id}')">✏</button>
+      </div></td>
+    </tr>`;
+  }
+  h+=`</tbody></table>`;
+  el('atBody').innerHTML=h;
+}
+
+function renderExt(d){
+  const sets=extByDate[d]||[];
+  if(!sets.length){el('extBody').innerHTML=`<div class="empty"><div class="ico">📭</div><p>No extracted data</p></div>`;return;}
+  let h=`<table class="dt"><thead><tr>
+    <th>#</th><th>Exercise (raw OCR)</th><th>Var</th><th>Reps</th><th>Wt</th>
+  </tr></thead><tbody>`;
+  // Sort by exercise then set_number
+  const sorted=[...sets].sort((a,b)=>{
+    const ea=a.exercise||''; const eb=b.exercise||'';
+    if(ea!==eb) return ea.localeCompare(eb);
+    return (a.set_number||0)-(b.set_number||0);
+  });
+  for(const s of sorted){
+    const sn=s.set_number||s['set#']||'';
+    const ex=s.exercise||s.Exercise||'';
+    const va=s.variation||s.Variation||'';
+    const rp=s.reps||s.Reps||'';
+    const wt=s.weight||s.Weight||'';
+    h+=`<tr><td class="num">${sn}</td>
+      <td class="cell-ex" title="${ex}" style="font-size:11px">${ex}</td>
+      <td class="cell-var" title="${va}">${va||'—'}</td>
+      <td class="num">${rp}</td>
+      <td class="num">${wt}</td>
+    </tr>`;
+  }
+  h+=`</tbody></table>`;
+  el('extBody').innerHTML=h;
+}
+
+// ─── PARSEUR ───────────────────────────────────────────────
+function loadParseur(evt){
+  const file=evt.target.files[0];
+  if(!file) return;
+  const reader=new FileReader();
+  reader.onload=(e)=>{
+    try{
+      let data;
+      if(file.name.endsWith('.csv')){
+        // Simple CSV parse
+        const lines=e.target.result.split('\n');
+        const headers=lines[0].split(',').map(h=>h.trim().replace(/^"|"$/g,''));
+        data=lines.slice(1).filter(l=>l.trim()).map(l=>{
+          const vals=l.split(',');
+          const obj={};
+          headers.forEach((h,i)=>obj[h]=(vals[i]||'').trim().replace(/^"|"$/g,''));
+          return obj;
+        });
+      } else {
+        data=JSON.parse(e.target.result);
+        if(!Array.isArray(data)) data=data.results||data.data||[];
+      }
+      parsByDate={};
+      for(const s of data){
+        const d=s.date||s.Date||'';
+        if(!d) continue;
+        if(!parsByDate[d]) parsByDate[d]=[];
+        parsByDate[d].push(s);
+      }
+      toast(`Parseur loaded: ${data.length} records, ${Object.keys(parsByDate).length} sessions`,'ok');
+      if(selDate&&parsByDate[selDate]) renderParseur(selDate);
+    }catch(e){toast('Invalid file: '+e.message,'err');}
+  };
+  reader.readAsText(file);
+}
+
+function renderParseur(d){
+  const sets=parsByDate[d]||[];
+  el('parsChip').textContent=`Parseur: ${sets.length}`;
+  if(!sets.length){el('parsBody').innerHTML=`<div class="empty"><div class="ico">📭</div><p>No Parseur data for this date</p></div>`;return;}
+  let h=`<table class="dt"><thead><tr><th>#</th><th>Exercise</th><th>Reps</th><th>Wt</th></tr></thead><tbody>`;
+  for(const s of sets){
+    const ex=s.exercise||s.Exercise||s['Exercise Name']||'';
+    const rp=s.reps||s.Reps||'';
+    const wt=s.weight||s.Weight||'';
+    const sn=s.set_number||s['Set #']||s['Set#']||'';
+    h+=`<tr><td class="num">${sn}</td><td style="font-size:11px;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${ex}">${ex}</td><td class="num">${rp}</td><td class="num">${wt}</td></tr>`;
+  }
+  h+=`</tbody></table>`;
+  el('parsBody').innerHTML=h;
+}
+
+// ─── MODAL ─────────────────────────────────────────────────
+function fillExDropdown(){
+  const sel=el('mEx');
+  sel.innerHTML=Object.keys(EXERCISES).map(ex=>`<option value="${ex}">${ex}</option>`).join('');
+  fillVars();
+}
+
+function fillVars(){
+  const ex=el('mEx').value;
+  const vars=EXERCISES[ex]||[''];
+  el('mVar').innerHTML=vars.map(v=>`<option value="${v}">${v||'(none)'}</option>`).join('');
+}
+
+function openAdd(){
+  if(!selDate){toast('Select a session first','err');return;}
+  editRecId=null;
+  el('modalTitle').textContent='Add Set';
+  el('mDelBtn').style.display='none';
+  fillExDropdown();
+  el('mSet').value=(atByDate[selDate]||[]).length+1;
+  el('mReps').value='';el('mWt').value='';el('mNotes').value='';
+  const day=(extByDate[selDate]||[])[0];
+  el('mDay').value=(day&&(day.day_type||day.day))||'Push';
+  el('modal').style.display='flex';
+}
+
+function openEdit(id){
+  const recs=atByDate[selDate]||[];
+  const rec=recs.find(r=>r.id===id);
+  if(!rec) return;
+  editRecId=id;
+  el('modalTitle').textContent='Edit Set';
+  el('mDelBtn').style.display='inline-flex';
+  fillExDropdown();
+  const f=rec.fields;
+  const ex=f[F.exercise]||'';
+  // Add current value if not in list
+  const exSel=el('mEx');
+  if(![...exSel.options].find(o=>o.value===ex)){
+    const opt=document.createElement('option');
+    opt.value=ex;opt.textContent=ex+' ★';
+    exSel.insertBefore(opt,exSel.firstChild);
+  }
+  exSel.value=ex;fillVars();
+  const va=f[F.variation]||'';
+  const varSel=el('mVar');
+  if(![...varSel.options].find(o=>o.value===va)){
+    const opt=document.createElement('option');
+    opt.value=va;opt.textContent=va||'(current)';
+    varSel.insertBefore(opt,varSel.firstChild);
+  }
+  varSel.value=va;
+  el('mSet').value=f[F.setNum]||'';
+  el('mReps').value=f[F.reps]||'';
+  el('mWt').value=f[F.weight]||'';
+  el('mDay').value=f[F.day]||'Push';
+  el('mNotes').value=f[F.notes]||'';
+  el('modal').style.display='flex';
+}
+
+function closeModal(){el('modal').style.display='none';editRecId=null;}
+
+async function doSave(){
+  const ex=el('mEx').value;
+  const va=el('mVar').value;
+  const sn=parseInt(el('mSet').value)||1;
+  const rp=parseInt(el('mReps').value);
+  const wt=parseFloat(el('mWt').value)||0;
+  const dy=el('mDay').value;
+  const nt=el('mNotes').value;
+  if(!ex||!rp){toast('Exercise + Reps required','err');return;}
+  const fields={
+    [F.exercise]:ex,[F.variation]:va,[F.setNum]:sn,
+    [F.reps]:rp,[F.weight]:wt,[F.day]:dy,[F.notes]:nt
+  };
+  if(!editRecId){
+    fields[F.date]=selDate;
+    fields[F.setID]=`${selDate}-${dy.toUpperCase().slice(0,3)}-${sn}`;
+    fields[F.session]=`${selDate} ${dy}`;
+  }
+  const btn=el('mSaveBtn');
+  btn.textContent='Saving...';btn.disabled=true;
+  try{
+    const url=editRecId
+      ?`https://api.airtable.com/v0/${AT_BASE}/${AT_SETS}/${editRecId}`
+      :`https://api.airtable.com/v0/${AT_BASE}/${AT_SETS}`;
+    const r=await fetch(url,{
+      method:editRecId?'PATCH':'POST',
+      headers:{Authorization:`Bearer ${AT_TOKEN}`,'Content-Type':'application/json'},
+      body:JSON.stringify(editRecId?{fields}:{records:[{fields}]})
+    });
+    if(!r.ok){const e=await r.json();throw new Error(e.error?.message||r.statusText);}
+    toast(editRecId?'Record updated ✓':'Record added ✓','ok');
+    closeModal();
+    await loadAT();
+    atCounts[selDate]=(atByDate[selDate]||[]).length;
+    buildSidebar();
+  }catch(e){toast('Save failed: '+e.message,'err');}
+  btn.textContent='Save to AT';btn.disabled=false;
+}
+
+async function doDelete(){
+  if(!editRecId) return;
+  if(!confirm('Delete this set from Airtable? Cannot be undone.')) return;
+  try{
+    const r=await fetch(`https://api.airtable.com/v0/${AT_BASE}/${AT_SETS}/${editRecId}`,{
+      method:'DELETE',headers:{Authorization:`Bearer ${AT_TOKEN}`}
+    });
+    if(!r.ok) throw new Error(await r.text());
+    toast('Deleted ✓','ok');
+    closeModal();
+    await loadAT();
+    atCounts[selDate]=(atByDate[selDate]||[]).length;
+    buildSidebar();
+  }catch(e){toast('Delete failed: '+e.message,'err');}
+}
+
+// ─── VERIFIED ─────────────────────────────────────────────
+function markVerified(){
+  if(!selDate) return;
+  verifiedDates.add(selDate);
+  localStorage.setItem('mbVerified',JSON.stringify([...verifiedDates]));
+  buildSidebar();
+  el('verCount').textContent=`${verifiedDates.size} verified`;
+  toast(`✓ ${selDate} marked verified`,'ok');
+}
+
+// ─── CONFIG ───────────────────────────────────────────────
+function openCfg(){
+  el('cfgAT').value=localStorage.getItem('mb_at_token')||'';
+  el('cfgGH').value=localStorage.getItem('mb_gh_token')||'';
+  if(el('cfgOA')) el('cfgOA').value=localStorage.getItem('mb_oauth_id')||'';
+  if(el('cfgW1')) el('cfgW1').value=localStorage.getItem('mb_w1_id')||'1eYtQT3c14psKbxRkKtbLoNtiLFEnOFhF';
+  if(el('cfgW2')) el('cfgW2').value=localStorage.getItem('mb_w2_id')||'1VgIqXOQUc5qLzzAaWQ1FQZxIMBAacGP9';
+  if(el('cfgW3')) el('cfgW3').value=localStorage.getItem('mb_w3_id')||'';
+  el('cfgModal').style.display='flex';
+}
+function closeCfg(){el('cfgModal').style.display='none';}
+function saveCfg(){
+  const at=el('cfgAT').value.trim();
+  const gh=el('cfgGH').value.trim();
+  if(at){localStorage.setItem('mb_at_token',at);AT_TOKEN=at;}
+  if(gh){localStorage.setItem('mb_gh_token',gh);GH_TOKEN=gh;}
+  const oa=el('cfgOA')?.value?.trim();if(oa){localStorage.setItem('mb_oauth_id',oa);OAUTH_ID=oa;}
+  const w1=el('cfgW1')?.value?.trim();if(w1)localStorage.setItem('mb_w1_id',w1);
+  const w2=el('cfgW2')?.value?.trim();if(w2)localStorage.setItem('mb_w2_id',w2);
+  const w3=el('cfgW3')?.value?.trim();if(w3)localStorage.setItem('mb_w3_id',w3);
+  closeCfg();
+  toast('Tokens saved to localStorage ✓','ok');
+  if(at&&gh) setTimeout(()=>window.location.reload(),500);
+}
+
+// Check tokens on load
+window.addEventListener('DOMContentLoaded',()=>{
+  if(!AT_TOKEN||!GH_TOKEN){
+    // Pre-fill known values first time
+    if(!AT_TOKEN) el('cfgAT') && (el('cfgAT').placeholder='Enter AT token');
+    toast('⚙ Click the gear icon to configure tokens','info');
+  }
+});
+
+// ─── UTILS ────────────────────────────────────────────────
+function el(id){return document.getElementById(id);}
+function norm(s){return(s||'').toLowerCase().replace(/[^a-z0-9]/g,'');}
+function dot(id,cls){const d=el(id);d.className='dot'+(cls?' '+cls:'');}
+function status(msg,cls){const e=el('smsg');e.textContent=msg;e.className='sm'+(cls?' '+cls:'');}
+function ovMsg(msg){el('ovMsg').textContent=msg;}
+function toast(msg,type='info'){
+  const c=el('toasts');
+  const t=document.createElement('div');
+  t.className=`toast ${type}`;t.textContent=msg;
+  c.appendChild(t);
+  setTimeout(()=>t.remove(),4000);
+}
+</script>
+</body>
+</html>
