@@ -49,6 +49,11 @@
   <div class="log" id="importLog"></div>
 </div>
 
+<div class="phase">
+  <h2>GITHUB TOKEN</h2>
+  <input id="ghToken" type="password" placeholder="Paste GitHub token (ghp_...)" style="width:100%;padding:8px;background:#111;border:1px solid #444;color:#fff;border-radius:4px;font-family:monospace;font-size:12px;box-sizing:border-box;">
+  <div style="color:#666;font-size:11px;margin-top:4px;">Needed to fetch extract_progress.json from private repo. Never stored.</div>
+</div>
 <div class="warn">⚠️ This will permanently delete all AT Sets records. at_names_backup.json is your safety net. Do not close this tab.</div>
 <button id="startBtn" class="red" onclick="startAll()">🗑️ WIPE + REIMPORT — EXECUTE</button>
 
@@ -171,8 +176,9 @@ async function pushChunk(records) {
 }
 
 async function loadPdfSets() {
+  const ghToken = document.getElementById('ghToken').value.trim();
   const r = await fetch('https://raw.githubusercontent.com/mikeblack001/health-protocol/main/extract_progress.json', {
-    headers: { 'Authorization': `token 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` }
+    headers: ghToken ? { 'Authorization': `token ${ghToken}` } : {}
   });
   const d = await r.json();
   const sets = Array.isArray(d) ? d : (d.all_sets || d.sets || []);
