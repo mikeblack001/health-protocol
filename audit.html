@@ -179,13 +179,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <!-- COMPARISON -->
   <div id="cmp-area">
     <div id="date-bar">
-      <span style="font-size:11px;font-weight:700;color:#6b7280">DATE:</span>
-      <input id="date-inp" type="date" onchange="onDateChange()">
-      <span id="date-lbl"></span>
+      <button class="btn bs bsm" onclick="navDate(-1)">◀</button>
+      <select id="date-sel" onchange="onSelDate()" style="padding:5px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:12px;font-weight:700;min-width:160px"><option value="">— Select Date —</option></select>
+      <button class="btn bs bsm" onclick="navDate(1)">▶</button>
+      <input id="date-inp" type="date" onchange="onDateChange()" style="padding:5px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:12px;font-weight:700">
       <button class="btn bp bsm" onclick="onDateChange()">Load AT</button>
-      <div id="date-bar-r">
-        <button class="btn bg bsm" onclick="acceptAllMissing()">✓ Accept All Missing → AT</button>
-      </div>
+      <div id="date-bar-r"><button class="btn bg bsm" onclick="acceptAllMissing()">✓ Accept All Missing → AT</button></div>
     </div>
     <div id="cols">
       <!-- PARSEUR -->
@@ -459,7 +458,25 @@ function parseParseurData(arr){
     return o;
   });
   document.getElementById('b-par').textContent='Parseur: '+parseurAll.length;
-  if(curDate)filterParseurToDate(curDate);else renderParseur([]);
+  buildDateDrop();
+  const allDates=[...new Set(parseurAll.map(r=>r._date).filter(Boolean))].sort();
+  if(allDates.length){const latest=allDates[allDates.length-1];setDate(latest);}
+  else renderParseur([]);
+}
+function buildDateDrop(){
+  const dates=[...new Set(parseurAll.map(r=>r._date).filter(Boolean))].sort();
+  const sel=document.getElementById('date-sel');
+  sel.innerHTML='<option value="">— Select Date —</option>';
+  dates.forEach(d=>{const n=parseurAll.filter(r=>r._date===d).length;const o=document.createElement('option');o.value=d;o.textContent=d+' ('+n+')';sel.appendChild(o);});
+  if(curDate)sel.value=curDate;
+}
+function onSelDate(){const d=document.getElementById('date-sel').value;if(d)setDate(d);}
+function navDate(dir){
+  const dates=[...new Set(parseurAll.map(r=>r._date).filter(Boolean))].sort();
+  if(!dates.length)return;
+  const i=curDate?dates.indexOf(curDate):-1;
+  const d=dates[Math.max(0,Math.min(dates.length-1,i+dir))];
+  setDate(d);
 }
 function parseCSV(text){
   const lines=text.trim().split('\n').filter(l=>l.trim());if(!lines.length)return;
@@ -528,6 +545,8 @@ async function loadATForDate(date){
 }
 async function setDate(date){
   curDate=date;
+  document.getElementById('date-inp').value=date;
+  document.getElementById('date-sel').value=date;
   document.getElementById('at-dlbl').textContent=date;
   document.getElementById('at-src-lbl').textContent='Loading…';
   setSave('Loading AT…');
@@ -539,7 +558,7 @@ async function setDate(date){
     renderAT();filterParseurToDate(date);updateBadges();setSave('');
   }catch(e){setSave('AT error: '+e.message);}
 }
-async function onDateChange(){const d=document.getElementById('date-inp').value;if(!d)return;document.getElementById('date-lbl').textContent=d;document.getElementById('date-lbl').style.display='';await setDate(d);}
+async function onDateChange(){const d=document.getElementById('date-inp').value;if(!d)return;await setDate(d);}
 async function reloadAT(){if(!curDate)return;atRecs=await loadATForDate(curDate);document.getElementById('at-cnt').textContent=atRecs.length;renderAT();updateBadges();}
 function renderAT(){
   const b=document.getElementById('at-body');
