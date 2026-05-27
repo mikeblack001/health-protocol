@@ -43,7 +43,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .bsm{padding:3px 8px;font-size:10px}
 #pdf-msg{font-size:10px;color:#9ca3af}
 #pdf-area{flex:1;overflow-y:auto;background:#e5e7eb;display:flex;align-items:flex-start;justify-content:center;padding:8px;min-height:200px}
-#pdf-canvas{max-width:100%;box-shadow:0 2px 8px rgba(0,0,0,.2);display:none}
+#pdf-canvas{max-width:100%;box-shadow:0 2px 8px rgba(0,0,0,.2)}
 #pdf-ph{color:#9ca3af;font-size:12px;text-align:center;padding:30px;width:100%}
 #pdf-nav-bar{display:flex;align-items:center;gap:5px;padding:6px 8px;border-top:1px solid #e2e5ea;background:#fafafa;flex-shrink:0;min-height:36px}
 #pdf-nav-bar button{padding:4px 9px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;font-size:11px;background:#fff}
@@ -167,7 +167,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <span id="pdf-msg">No PDF loaded</span>
       </div>
     </div>
-    <div id="pdf-area"><div id="pdf-ph">Load PDF above to view alongside data</div><canvas id="pdf-canvas"></canvas></div>
+    <div id="pdf-area"><div id="pdf-ph">Load PDF above to view alongside data</div><canvas id="pdf-canvas" style="display:none"></canvas></div>
     <div id="pdf-nav-bar">
       <button onclick="pgGo(pdfPage-1)">◀</button>
       <input id="pdf-jp" type="number" min="1" onchange="pgGo(+this.value)" placeholder="—">
@@ -332,15 +332,17 @@ async function loadDrive(){
   try{
     const r=await fetch('https://www.googleapis.com/drive/v3/files/'+id+'?alt=media',{headers:{Authorization:'Bearer '+gToken}});
     if(!r.ok){if(r.status===401||r.status===403){localStorage.removeItem('mb_pdfqat');gToken=null;setDriveNo();signIn();}else throw new Error('Drive '+r.status);return;}
-    await renderPDF(await r.arrayBuffer());
+    const buf=await r.arrayBuffer();
+    await renderPDF(buf);
     LS.set('pdf_id_'+mode,id);
+    saveRecent('pdf',id,document.getElementById('pdf-id').value);
   }catch(e){setPM('Error: '+e.message);}
 }
 function loadLocal(inp){if(inp.files[0])inp.files[0].arrayBuffer().then(buf=>{renderPDF(buf);setPM(inp.files[0].name+' loaded ✓');});}
 async function renderPDF(buf){
   pdfDoc=await pdfjsLib.getDocument({data:buf}).promise;pdfPage=1;
   document.getElementById('pdf-ph').style.display='none';
-  document.getElementById('pdf-canvas').style.display='';
+  document.getElementById('pdf-canvas').style.display='block';
   await renderPage(1);setPM(pdfDoc.numPages+' pages loaded ✓');
 }
 async function renderPage(n){
@@ -363,7 +365,7 @@ async function openPicker(target){
   pickerTarget=target;pickerStack=[{id:'root',name:'My Drive'}];
   document.getElementById('dp-title').textContent=target==='pdf'?'Select PDF from Drive':'Select Parseur Export from Drive';
   document.getElementById('dp-qi').value='';
-  renderShortcuts();renderBC();
+  renderShortcuts();renderRecents();renderBC();
   document.getElementById('dpbg').classList.add('on');
   await loadFolder('root');
 }
@@ -388,6 +390,23 @@ function renderBC(){
     el.appendChild(sp);
   });
 }
+function renderRecents(){
+  const recents=getRecents(pickerTarget);
+  const el=document.getElementById('dp-sc');
+  if(!recents.length)return;
+  // Add recent section after shortcuts
+  const existing=el.innerHTML;
+  const recHtml=recents.map((r,i)=>'<button class="sc-b" style="background:#e0f2fe;border-color:#7dd3fc;color:#0369a1" onclick="dpRecentClick('+i+')">🕐 '+r.name.substring(0,25)+'</button>').join('');
+  el.innerHTML=existing+'<span style="font-size:10px;font-weight:800;color:#9ca3af;align-self:center;margin-left:6px">RECENT: </span>'+recHtml;
+  window._dpRecents=recents;
+}
+function dpRecentClick(i){
+  const r=window._dpRecents[i];if(!r)return;
+  closePicker();
+  if(pickerTarget==='pdf'){document.getElementById('pdf-id').value=r.id;LS.set('pdf_id_'+mode,r.id);loadDrive();}
+  else loadParseurFromDrive(r.id,r.name);
+}
+
 async function loadFolder(fid){
   document.getElementById('dp-list').innerHTML='<div style="text-align:center;padding:30px;color:#9ca3af">Loading…</div>';
   renderBC();
@@ -765,6 +784,18 @@ function setMode(m){
   document.getElementById('pdf-id').value=sid;
 }
 function setSave(m){document.getElementById('save-st').textContent=m;}
+
+// Recent files tracking
+function saveRecent(type, id, name){
+  const key='recent_'+type+'_'+mode;
+  let recents=JSON.parse(LS.get(key)||'[]');
+  recents=recents.filter(r=>r.id!==id);
+  recents.unshift({id,name:name||id});
+  LS.set(key, JSON.stringify(recents.slice(0,5)));
+}
+function getRecents(type){
+  return JSON.parse(LS.get('recent_'+type+'_'+mode)||'[]');
+}
 
 function setPDFDate(){
   const d=document.getElementById('pdf-date').value;
