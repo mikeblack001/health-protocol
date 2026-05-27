@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>Delete Table</title>
+<style>body{font-family:monospace;background:#111;color:#eee;padding:20px;}.ok{color:#4caf50}.err{color:#f44336}.info{color:#aaa}</style>
+</head><body><div id="log"></div>
+<script>
+const AT='pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
+const BASE='appmHDG4TGT1xy6R6';
+const TABLE='tbl7NO5G6QeCPuFzA'; // InjectionLog_PDFExtract
+function log(m,c){const e=document.getElementById('log');const d=document.createElement('div');d.className=c||'info';d.textContent='['+new Date().toLocaleTimeString()+'] '+m;e.appendChild(d);}
+async function run(){
+  log('Deleting InjectionLog_PDFExtract...','info');
+  const r=await fetch('https://api.airtable.com/v0/meta/bases/'+BASE+'/tables/'+TABLE,{method:'DELETE',headers:{'Authorization':'Bearer '+AT}});
+  const data=await r.json();
+  if(r.ok) log('DONE — table deleted','ok');
+  else log('Error: '+JSON.stringify(data),'err');
+}
+window.addEventListener('load',run);
+</script></body></html>
