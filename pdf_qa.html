@@ -486,6 +486,9 @@ function initAuth() {
       gTok = params.access_token;
       saveTok(params.access_token, parseInt(params.expires_in) || 3600);
       history.replaceState(null, "", window.location.pathname);
+      // If another tool triggered this auth, bounce back to it
+      var ret = sessionStorage.getItem("mb_oauth_return");
+      if (ret) { sessionStorage.removeItem("mb_oauth_return"); location.href = ret; return; }
       setDot("d", "ok", "DRIVE"); loadMappedFiles(); return;
     }
   }
