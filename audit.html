@@ -505,21 +505,33 @@ function parseParData(rows) {
   parAll = (Array.isArray(rows) ? rows : []).map(r => {
     const o = {...r};
     // Try known date field names
-    const dkeys = ['date','Date','DATE','injection_date','log_date','Date/Time','datetime','Injection Date','Log Date'];
+    // Check all known date field names including Parseur's week_start_date
+    const dkeys = ['date','Date','DATE','week_start_date','injection_date','log_date','Date/Time','datetime','Injection Date','Log Date'];
     let dv = null;
-    for (const k of dkeys) { if (o[k]) { dv = String(o[k]); break; } }
+    for (const k of dkeys) { if (o[k] && String(o[k]).trim()) { dv = String(o[k]); break; } }
     // Fallback: any key containing 'date'
     if (!dv) {
       const k = Object.keys(o).find(k => k.toLowerCase().includes('date'));
-      if (k) dv = String(o[k]);
+      if (k && String(o[k]).trim()) dv = String(o[k]);
     }
     if (dv) {
       dv = dv.trim();
-      if (/^\d{1,2}\/\d{1,2}\/\d{2,4}/.test(dv)) {
+      const now = new Date();
+      const curYear = now.getFullYear();
+      // Format: 7/28/25 or 7/28/2025
+      if (/^\d{1,2}\/\d{1,2}\/\d{2,4}$/.test(dv)) {
         const parts = dv.split('/');
         const m = parts[0], d = parts[1], y = parts[2];
         const yr = y.length === 2 ? '20' + y : y;
         o._date = yr + '-' + m.padStart(2,'0') + '-' + d.padStart(2,'0');
+      // Format: 8/4 (no year — assume current or most recent year)
+      } else if (/^\d{1,2}\/\d{1,2}$/.test(dv)) {
+        const parts = dv.split('/');
+        const m = parseInt(parts[0]), d = parseInt(parts[1]);
+        // If month is ahead of current month, use previous year
+        const yr = m > now.getMonth() + 1 ? curYear - 1 : curYear;
+        o._date = yr + '-' + String(m).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+      // Format: 2025-07-28
       } else if (/^\d{4}-\d{2}-\d{2}/.test(dv)) {
         o._date = dv.substring(0, 10);
       } else {
