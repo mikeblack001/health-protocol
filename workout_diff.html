@@ -116,10 +116,10 @@ async function fetchAllAT() {
   do {
     const url = new URL(`https://api.airtable.com/v0/${AT_BASE}/${AT_TABLE}`);
     url.searchParams.set('pageSize', '100');
-    url.searchParams.set('fields[]', 'Date');
-    url.searchParams.set('fields[]', 'Session');
-    url.searchParams.set('fields[]', 'Exercise');
-    url.searchParams.set('fields[]', 'Set#');
+    url.searchParams.set('fields[]', 'fld75zYXknF0RtCWH');
+    url.searchParams.set('fields[]', 'fldBChNmPkNg61oTN');
+    url.searchParams.set('fields[]', 'fldZ93A1t7fGjjsSS');
+    url.searchParams.set('fields[]', 'fldNm9Ao0rmcwwDXo');
     if (offset) url.searchParams.set('offset', offset);
     const r = await fetch(url, { headers: { Authorization: `Bearer ${AT_TOKEN}` } });
     const j = await r.json();
@@ -229,8 +229,8 @@ async function main() {
     // Build atByDate
     const atSessions = {};
     for (const rec of atRecords) {
-      const date = rec.fields['Date'];
-      const sess = rec.fields['Session'] || date;
+      const date = rec.fields['fld75zYXknF0RtCWH'];
+      const sess = rec.fields['fldBChNmPkNg61oTN'] || date;
       if (!date || date < '2024-10-28') continue;
       atByDate[date] = (atByDate[date] || 0) + 1;
       if (!atSessions[date]) atSessions[date] = {};
