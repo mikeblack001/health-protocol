@@ -5,208 +5,181 @@
 <title>Normalize Parseur-Injections</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,sans-serif;font-size:13px;background:#f4f5f7;padding:20px}
+body{font-family:-apple-system,sans-serif;font-size:13px;background:#f4f5f7;padding:20px;max-width:900px}
 h1{font-size:16px;font-weight:900;margin-bottom:4px;color:#1e2433}
 .sub{font-size:12px;color:#6b7280;margin-bottom:20px}
 #status{background:#fff;border:1px solid #e2e5ea;border-radius:8px;padding:14px 16px;margin-bottom:16px}
 .ok{color:#166534;font-weight:700}.err{color:#dc2626;font-weight:700}
-#prog{background:#dbeafe;border-radius:6px;padding:10px 14px;margin-bottom:16px;display:none;font-weight:600;color:#1d4ed8}
-.bar{background:#e2e5ea;border-radius:4px;height:8px;margin-top:6px}
-.bar-fill{background:#2563eb;height:8px;border-radius:4px;transition:width .3s}
-#actions{display:none;margin-bottom:16px;display:flex;gap:10px;flex-wrap:wrap}
-.btn{padding:10px 20px;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;border:1px solid}
-.bp{background:#2563eb;color:#fff;border-color:#2563eb}.bp:hover{background:#1d4ed8}
-.bg{background:#16a34a;color:#fff;border-color:#16a34a}
+#prog-wrap{background:#fff;border:1px solid #e2e5ea;border-radius:8px;padding:14px 16px;margin-bottom:16px;display:none}
+#prog-txt{font-weight:700;color:#1d4ed8;margin-bottom:8px}
+.bar{background:#e2e5ea;border-radius:4px;height:10px}
+.bar-fill{background:#2563eb;height:10px;border-radius:4px;transition:width .2s}
+#actions{margin-bottom:16px;display:none}
+.btn{padding:10px 20px;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;border:1px solid;margin-right:8px}
+.bg{background:#16a34a;color:#fff;border-color:#16a34a}.bg:hover{background:#15803d}
 .bs{background:#fff;border-color:#d1d5db;color:#374151}
-#preview{background:#fff;border:1px solid #e2e5ea;border-radius:8px;overflow:auto;margin-bottom:16px;max-height:500px;display:none}
-#preview h2{padding:10px 14px;background:#fafafa;border-bottom:1px solid #e2e5ea;font-size:13px;font-weight:800;position:sticky;top:0}
+#prev-wrap{background:#fff;border:1px solid #e2e5ea;border-radius:8px;overflow:hidden;margin-bottom:16px;display:none}
+#prev-hdr{padding:10px 14px;background:#fafafa;border-bottom:1px solid #e2e5ea;font-size:13px;font-weight:800}
 table{width:100%;border-collapse:collapse;font-size:12px}
-th{background:#f8f9fa;padding:7px 10px;text-align:left;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:#6b7280;border-bottom:1px solid #e2e5ea;white-space:nowrap}
-td{padding:6px 10px;border-bottom:1px solid #f3f4f6;vertical-align:middle}
-.cn{font-weight:700;color:#1e2433}.dose{background:#dbeafe;color:#1d4ed8;padding:1px 6px;border-radius:10px;font-size:11px;font-weight:700}
-.timing{background:#f3f4f6;color:#374151;padding:1px 6px;border-radius:10px;font-size:11px;font-weight:700}
-.site{background:#fef3c7;color:#92400e;padding:1px 6px;border-radius:10px;font-size:11px;font-weight:700}
-.raw{color:#9ca3af;font-style:italic;font-size:11px}.warn{color:#dc2626;font-size:11px}
-#done{background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:16px;display:none}
-#done h3{color:#166534;font-size:14px;font-weight:800;margin-bottom:8px}
+th{background:#f8f9fa;padding:7px 10px;text-align:left;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:#6b7280;border-bottom:1px solid #e2e5ea}
+td{padding:6px 10px;border-bottom:1px solid #f3f4f6}
+.cn{font-weight:700;color:#1e2433}
+.pd{background:#dbeafe;color:#1d4ed8;padding:1px 6px;border-radius:10px;font-size:11px;font-weight:700}
+.pt{background:#f3f4f6;color:#374151;padding:1px 6px;border-radius:10px;font-size:11px;font-weight:700}
+.ps{background:#fef3c7;color:#92400e;padding:1px 6px;border-radius:10px;font-size:11px;font-weight:700}
+.raw{color:#9ca3af;font-style:italic}
+.warn{color:#dc2626}
+#done-wrap{background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:16px;display:none}
+#done-wrap h3{color:#166534;font-weight:800;margin-bottom:8px}
 </style>
 </head>
 <body>
 <h1>🔧 Normalize Parseur-Injections</h1>
-<div class="sub">Reads Medication field → parses into Compound + Dose + Timing. Maps Location → Site. Auto-runs on load.</div>
-
-<div id="status">⏳ Loading records…</div>
-<div id="prog"><span id="prog-txt">Starting…</span><div class="bar"><div class="bar-fill" id="bar-fill" style="width:0%"></div></div></div>
-
-<div id="actions" style="display:none">
-  <button class="btn bg" id="run-btn" onclick="runAll()">✓ Populate All — Compound / Dose / Timing / Site</button>
+<div class="sub">Parses Medication → Compound + Dose + Timing. Maps Location → Site. Preview shows first 50 rows.</div>
+<div id="status">⏳ Loading…</div>
+<div id="actions">
+  <button class="btn bg" onclick="runAll()">✓ Run — Populate Compound / Dose / Timing / Site</button>
   <button class="btn bs" onclick="location.reload()">↻ Reload</button>
 </div>
-
-<div id="preview">
-  <h2 id="prev-hdr">Preview</h2>
-  <table><thead><tr><th>Date</th><th>Raw Medication</th><th>Compound</th><th>Dose</th><th>Timing</th><th>Location → Site</th></tr></thead>
+<div id="prog-wrap">
+  <div id="prog-txt">Starting…</div>
+  <div class="bar"><div class="bar-fill" id="bar" style="width:0%"></div></div>
+</div>
+<div id="prev-wrap">
+  <div id="prev-hdr"></div>
+  <table><thead><tr><th>Date</th><th>Raw Medication</th><th>→ Compound</th><th>→ Dose</th><th>→ Timing</th><th>Location → Site</th></tr></thead>
   <tbody id="prev-body"></tbody></table>
 </div>
-
-<div id="done">
-  <h3>✓ Done</h3>
+<div id="done-wrap">
+  <h3>✓ Complete</h3>
   <div id="done-msg"></div>
 </div>
 
 <script>
-const TOK  = 'pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
-const BASE = 'appmHDG4TGT1xy6R6';
-const TBL  = 'tblCTOGIrF3NjdyTE';
+const TOK='pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
+const BASE='appmHDG4TGT1xy6R6',TBL='tblCTOGIrF3NjdyTE';
+const F_MED='fld4cK4dczgtTSdWq',F_LOC='fldSxewpSKtDcoDqV',F_DAT='fldHglt7YNr37lkWV';
+const F_CMP='fldONAad3wQQzQDKE',F_DOSE='fldye77iWTIWaDNul',F_TIM='fldIdHUojkqEFlCZL',F_SITE='fldDxPQRuQFZ9MJoG';
 
-// Source fields (existing)
-const F_MED = 'fld4cK4dczgtTSdWq'; // Medication
-const F_LOC = 'fldSxewpSKtDcoDqV'; // Location
-const F_DAT = 'fldHglt7YNr37lkWV'; // Date
-// Destination fields (just created)
-const F_CMP  = 'fldONAad3wQQzQDKE'; // Compound
-const F_DOSE = 'fldye77iWTIWaDNul'; // Dose
-const F_TIM  = 'fldIdHUojkqEFlCZL'; // Timing
-const F_SITE = 'fldDxPQRuQFZ9MJoG'; // Site
+const CMAP={'tesamorelin':'Tesamorelin','lipominomix':'LipoMinoMix','lipo mino mix':'LipoMinoMix',
+  'lipo-mino-mix':'LipoMinoMix','ipamorelin':'Ipamorelin','cjc-1295 no dac':'CJC-1295 No DAC',
+  'cjc1295 no dac':'CJC-1295 No DAC','cjc-1295':'CJC-1295','cjc 1295':'CJC-1295',
+  'testosterone':'Testosterone','deca (nandrolone)':'Deca (Nandrolone)','deca':'Deca (Nandrolone)',
+  'nandrolone':'Deca (Nandrolone)','ghk-cu':'GHK-Cu','ghkcu':'GHK-Cu','ss-31':'SS-31',
+  'nad+':'NAD+','nad':'NAD+','bpc-157':'BPC-157','bpc157':'BPC-157','tb-500':'TB-500',
+  'tb500':'TB-500','dsip':'DSIP','kpv':'KPV','semax':'Semax','selank':'Selank',
+  'retatrutide':'Retatrutide','tirzepatide':'Tirzepatide','epitalon':'Epitalon',
+  'anavar':'Anavar (Oxandrolone)','oxandrolone':'Anavar (Oxandrolone)',
+  'anavar (oxandrolone)':'Anavar (Oxandrolone)','winstrol':'Winstrol (Stanozolol)',
+  'stanozolol':'Winstrol (Stanozolol)','cagrilintide':'Cagrilintide','mots-c':'Mots-C',
+  'motsc':'Mots-C','melanotan':'Melanotan II (MT2)','mt2':'Melanotan II (MT2)','ghk':'GHK-Cu'};
 
-const CMAP = {
-  'tesamorelin':'Tesamorelin','lipominomix':'LipoMinoMix','lipo mino mix':'LipoMinoMix',
-  'ipamorelin':'Ipamorelin','cjc-1295 no dac':'CJC-1295 No DAC','cjc1295 no dac':'CJC-1295 No DAC',
-  'cjc-1295':'CJC-1295','cjc 1295':'CJC-1295','testosterone':'Testosterone',
-  'deca (nandrolone)':'Deca (Nandrolone)','deca':'Deca (Nandrolone)','nandrolone':'Deca (Nandrolone)',
-  'ghk-cu':'GHK-Cu','ghkcu':'GHK-Cu','ss-31':'SS-31','nad+':'NAD+','nad':'NAD+',
-  'bpc-157':'BPC-157','bpc157':'BPC-157','tb-500':'TB-500','tb500':'TB-500',
-  'dsip':'DSIP','kpv':'KPV','semax':'Semax','selank':'Selank','retatrutide':'Retatrutide',
-  'tirzepatide':'Tirzepatide','epitalon':'Epitalon','anavar':'Anavar (Oxandrolone)',
-  'oxandrolone':'Anavar (Oxandrolone)','anavar (oxandrolone)':'Anavar (Oxandrolone)',
-  'winstrol':'Winstrol (Stanozolol)','stanozolol':'Winstrol (Stanozolol)',
-  'cagrilintide':'Cagrilintide','mots-c':'Mots-C','motsc':'Mots-C',
-  'melanotan':'Melanotan II (MT2)','mt2':'Melanotan II (MT2)','ghk':'GHK-Cu',
-  'lipo-mino-mix':'LipoMinoMix','retatrutide':'Retatrutide'
-};
-
-function parseMed(med) {
-  if (!med) return {c:'',d:'',t:''};
-  // "Compound - Dose (Timing)"
-  let m = med.match(/^(.+?)\s*-\s*(\S+)\s*\((\w+)\)\s*$/i);
-  if (m) return {c:canonical(m[1].trim()), d:m[2].trim(), t:canonT(m[3].trim())};
-  // "Compound - Dose"
-  m = med.match(/^(.+?)\s*-\s*(\S+)\s*$/i);
-  if (m) return {c:canonical(m[1].trim()), d:m[2].trim(), t:''};
-  return {c:canonical(med.trim()), d:'', t:''};
+function parseMed(med){
+  if(!med)return{c:'',d:'',t:''};
+  let m=med.match(/^(.+?)\s*-\s*(\S+)\s*\((\w+)\)\s*$/i);
+  if(m)return{c:can(m[1].trim()),d:m[2].trim(),t:canT(m[3].trim())};
+  m=med.match(/^(.+?)\s*-\s*(\S+)\s*$/i);
+  if(m)return{c:can(m[1].trim()),d:m[2].trim(),t:''};
+  return{c:can(med.trim()),d:'',t:''};
+}
+function can(r){return CMAP[r.toLowerCase().trim()]||r;}
+function canT(t){return{'morning':'Morning','night':'Night','evening':'Evening','daily':'Daily','am':'Morning','pm':'Night'}[t.toLowerCase()]||t;}
+function canSite(loc){
+  if(!loc)return'';
+  // Keep X as X (not administered), map L/R/etc
+  const m={'l':'L','r':'R','left':'L','right':'R','pill':'Pill','x':'X','nasal':'Nasal','abd':'Abd','s':'S'};
+  return m[loc.toLowerCase().trim()]||loc.trim();
 }
 
-function canonical(raw) { return CMAP[raw.toLowerCase().trim()] || raw; }
-function canonT(t) { return {'morning':'Morning','night':'Night','evening':'Evening','daily':'Daily','am':'Morning','pm':'Night'}[t.toLowerCase()] || t; }
-function canonSite(loc) {
-  if (!loc) return '';
-  return {'l':'L','r':'R','left':'L','right':'R','l+r':'L+R','both':'L+R','pill':'Pill','x':'X','nasal':'Nasal','abd':'Abd','s':'S'}[loc.toLowerCase().trim()] || loc.trim();
+async function atGet(path){
+  const r=await fetch('https://api.airtable.com/v0/'+BASE+'/'+path,{headers:{Authorization:'Bearer '+TOK}});
+  if(!r.ok)throw new Error('AT '+r.status);return r.json();
 }
-
-async function atGet(path) {
-  const r = await fetch('https://api.airtable.com/v0/'+BASE+'/'+path, {headers:{Authorization:'Bearer '+TOK}});
-  if (!r.ok) throw new Error('AT '+r.status);
-  return r.json();
-}
-async function atPatch(path, body) {
-  const r = await fetch('https://api.airtable.com/v0/'+BASE+'/'+path, {method:'PATCH', headers:{Authorization:'Bearer '+TOK,'Content-Type':'application/json'}, body:JSON.stringify(body)});
-  if (!r.ok) { const e=await r.json().catch(()=>({error:{message:r.status}})); throw new Error(e.error?.message||r.status); }
+async function atPatch(body){
+  const r=await fetch('https://api.airtable.com/v0/'+BASE+'/'+TBL,{method:'PATCH',headers:{Authorization:'Bearer '+TOK,'Content-Type':'application/json'},body:JSON.stringify(body)});
+  if(!r.ok){const e=await r.json().catch(()=>({error:{message:r.status}}));throw new Error(e.error?.message||r.status);}
   return r.json();
 }
 
-let recs = [];
+let recs=[];
 
-async function loadRecs() {
-  let all=[], off=null;
-  do {
-    const url = TBL+'?returnFieldsByFieldId=true&pageSize=100'+(off?'&offset='+off:'');
-    const d = await atGet(url);
-    all = all.concat(d.records); off = d.offset;
-    setStatus('Loading… '+all.length);
-  } while(off);
-  recs = all;
+async function load(){
+  let all=[],off=null;
+  do{
+    const url=TBL+'?returnFieldsByFieldId=true&pageSize=100'+(off?'&offset='+off:'');
+    const d=await atGet(url);all=all.concat(d.records);off=d.offset;
+    st('Loading… '+all.length);
+  }while(off);
+  recs=all;
 }
 
-function renderPreview() {
-  const tbody = document.getElementById('prev-body');
-  let warn = 0;
-  tbody.innerHTML = recs.map(r => {
-    const f=r.fields, med=f[F_MED]||'', loc=f[F_LOC]||'', date=f[F_DAT]||'';
-    const {c,d,t} = parseMed(med);
-    const site = canonSite(loc);
-    if (!c) warn++;
-    return `<tr>
-      <td>${date}</td>
-      <td class="raw">${med||'—'}</td>
-      <td class="cn">${c||'<span class="warn">⚠</span>'}</td>
-      <td>${d?'<span class="dose">'+d+'</span>':''}</td>
-      <td>${t?'<span class="timing">'+t+'</span>':''}</td>
-      <td>${loc?'<span class="raw">'+loc+'</span> → ':''}<span class="site">${site||'—'}</span></td>
-    </tr>`;
+function renderPreview(){
+  // Only render first 50 rows to avoid browser lock
+  const sample=recs.slice(0,50);
+  let warn=0;
+  // Count total warns
+  recs.forEach(r=>{const f=r.fields;const{c}=parseMed(f[F_MED]||'');if(!c)warn++;});
+  document.getElementById('prev-body').innerHTML=sample.map(r=>{
+    const f=r.fields,med=f[F_MED]||'',loc=f[F_LOC]||'';
+    const{c,d,t}=parseMed(med);const site=canSite(loc);
+    return`<tr><td>${f[F_DAT]||''}</td><td class="raw">${med||'—'}</td>
+    <td class="cn">${c||'<span class="warn">⚠ '+med+'</span>'}</td>
+    <td>${d?'<span class="pd">'+d+'</span>':''}</td>
+    <td>${t?'<span class="pt">'+t+'</span>':''}</td>
+    <td>${loc?'<span class="raw">'+loc+'</span> → ':''}<span class="ps">${site||'—'}</span></td></tr>`;
   }).join('');
-  document.getElementById('prev-hdr').textContent = recs.length+' records'+(warn?' — ⚠ '+warn+' compounds not mapped':'  ✓ all parseable');
-  document.getElementById('preview').style.display = '';
-  document.getElementById('actions').style.display = 'flex';
-  setStatus('<span class="ok">✓ Loaded '+recs.length+' records. Review below then click Run.</span>');
+  document.getElementById('prev-hdr').textContent=
+    'Preview — first 50 of '+recs.length+' records'+(warn?' | ⚠ '+warn+' unmapped':' | ✓ all parseable');
+  document.getElementById('prev-wrap').style.display='';
+  document.getElementById('actions').style.display='';
+  st('<span class="ok">✓ '+recs.length+' records loaded. Click Run to populate fields.</span>');
 }
 
-async function runAll() {
-  document.getElementById('actions').style.display = 'none';
-  document.getElementById('preview').style.display = 'none';
-  const prog = document.getElementById('prog');
-  prog.style.display = '';
-  let done=0, errs=0;
-  const BATCH=10;
+async function runAll(){
+  document.getElementById('actions').style.display='none';
+  document.getElementById('prev-wrap').style.display='none';
+  const pw=document.getElementById('prog-wrap');pw.style.display='';
+  let done=0,errs=0;
 
-  for (let i=0; i<recs.length; i+=BATCH) {
-    const batch = recs.slice(i, i+BATCH);
-    const updates = batch.map(r => {
+  for(let i=0;i<recs.length;i+=10){
+    const batch=recs.slice(i,i+10);
+    const updates=batch.map(r=>{
       const f=r.fields;
-      const {c,d,t} = parseMed(f[F_MED]||'');
-      const site = canonSite(f[F_LOC]||'');
-      const fields = {};
-      if (c) fields[F_CMP]=c;
-      if (d) fields[F_DOSE]=d;
-      if (t) fields[F_TIM]=t;
-      if (site) fields[F_SITE]=site;
-      return {id:r.id, fields};
-    });
-    try {
-      await atPatch(TBL, {records:updates});
-      done += batch.length;
-    } catch(e) {
-      errs += batch.length;
+      const{c,d,t}=parseMed(f[F_MED]||'');
+      const site=canSite(f[F_LOC]||'');
+      const fields={};
+      if(c)fields[F_CMP]=c;
+      if(d)fields[F_DOSE]=d;
+      if(t)fields[F_TIM]=t;
+      if(site)fields[F_SITE]=site;
+      return{id:r.id,fields};
+    }).filter(u=>Object.keys(u.fields).length>0);
+
+    if(updates.length){
+      try{await atPatch({records:updates});done+=updates.length;}
+      catch(e){errs+=batch.length;console.error(e);}
     }
-    const pct = Math.round((done+errs)/recs.length*100);
-    document.getElementById('prog-txt').textContent = 'Updated '+done+' / '+recs.length+'…';
-    document.getElementById('bar-fill').style.width = pct+'%';
-    await new Promise(r=>setTimeout(r,120));
+    // Yield to browser every batch
+    await new Promise(res=>setTimeout(res,0));
+    const pct=Math.round((i+batch.length)/recs.length*100);
+    document.getElementById('prog-txt').textContent='Updated '+done+' / '+recs.length+' records…';
+    document.getElementById('bar').style.width=pct+'%';
   }
 
-  prog.style.display='none';
-  document.getElementById('done').style.display='';
-  document.getElementById('done-msg').innerHTML =
+  pw.style.display='none';
+  const dw=document.getElementById('done-wrap');dw.style.display='';
+  document.getElementById('done-msg').innerHTML=
     '<b>'+done+' records updated</b>'+(errs?` <span style="color:#dc2626">(${errs} errors)</span>`:'')+'<br><br>'+
-    'Parseur-Injections now has:<br>'+
+    'Parseur-Injections now has matching fields:<br>'+
     '<ul style="margin:8px 0 0 20px;line-height:2">'+
-    '<li><b>Compound</b> — canonical name</li>'+
-    '<li><b>Dose</b> — e.g. 5u, 75u, 50u</li>'+
+    '<li><b>Compound</b> — e.g. Tesamorelin, Testosterone</li>'+
+    '<li><b>Dose</b> — e.g. 5u, 75u, 30u</li>'+
     '<li><b>Timing</b> — Morning / Night / Evening / Daily</li>'+
-    '<li><b>Site</b> — L / R / L+R / Pill / etc.</li>'+
-    '</ul><br>'+
-    'Table now matches Injection Log structure. ✓';
+    '<li><b>Site</b> — L / R / X / Pill / Nasal</li></ul>';
 }
 
-function setStatus(html) { document.getElementById('status').innerHTML=html; }
-
-window.onload = async () => {
-  try {
-    await loadRecs();
-    renderPreview();
-  } catch(e) {
-    setStatus('<span class="err">Error: '+e.message+'</span>');
-  }
-};
+function st(h){document.getElementById('status').innerHTML=h;}
+window.onload=async()=>{try{await load();renderPreview();}catch(e){st('<span class="err">Error: '+e.message+'</span>');}};
 </script>
 </body>
 </html>
