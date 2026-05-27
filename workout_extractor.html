@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Workout Extractor</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #080810; color: #ccc; font-family: 'Courier New', monospace; padding: 20px; min-height: 100vh; font-size: 13px; }
+h1 { color: #00ff88; font-size: 16px; margin-bottom: 18px; letter-spacing: 3px; border-bottom: 1px solid #1a1a30; padding-bottom: 10px; }
+h2 { color: #00cc66; font-size: 12px; margin-bottom: 12px; letter-spacing: 2px; }
+.card { background: #0e0e1c; border: 1px solid #1e1e38; padding: 16px; margin-bottom: 14px; border-radius: 2px; }
+.file-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.file-label { color: #666; font-size: 11px; min-width: 220px; }
+input[type=file] { color: #aaa; font-size: 11px; background: #13131f; border: 1px solid #2a2a44; padding: 5px 8px; border-radius: 2px; flex: 1; cursor: pointer; }
+.fs { font-size: 11px; color: #00ff88; min-width: 180px; }
+.btn { background: #00cc66; color: #000; border: none; padding: 9px 18px; cursor: pointer; font-family: monospace; font-weight: bold; font-size: 12px; border-radius: 2px; letter-spacing: 1px; }
+.btn:hover { background: #00ff88; }
+.btn:disabled { background: #222; color: #444; cursor: not-allowed; }
+.btn-red { background: #cc3300; color: #fff; }
+.btn-red:hover { background: #ff4400; }
+.btn-blue { background: #0066cc; color: #fff; }
+.btn-blue:hover { background: #0088ff; }
+.progress-wrap { background: #0a0a16; height: 16px; border-radius: 2px; overflow: hidden; margin: 8px 0; }
+.progress-bar { height: 100%; background: linear-gradient(90deg, #006633, #00ff88); transition: width 0.3s; width: 0%; }
+.pct { font-size: 11px; color: #555; margin-bottom: 8px; }
+.log { background: #050509; border: 1px solid #111120; padding: 10px; max-height: 280px; overflow-y: auto; font-size: 11px; line-height: 1.7; border-radius: 2px; }
+.lk { color: #888; } .lok { color: #00cc66; } .lerr { color: #ff4444; } .linfo { color: #4488ff; } .lwarn { color: #ffaa00; }
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 14px; }
+.stat { background: #0a0a18; padding: 14px; border-radius: 2px; text-align: center; border: 1px solid #1a1a30; }
+.sv { color: #00ff88; font-size: 28px; font-weight: bold; font-family: monospace; }
+.sl { color: #555; font-size: 10px; margin-top: 4px; letter-spacing: 1px; }
+.hidden { display: none; }
+.note { color: #555; font-size: 11px; margin-top: 8px; }
+.or-div { text-align: center; color: #333; margin: 10px 0; font-size: 11px; }
+#resume-area { margin-top: 10px; }
+</style>
+</head>
+<body>
+<h1>⚡ WORKOUT EXTRACTOR — FULL REIMPORT</h1>
+
+<!-- PHASE 1: Upload -->
+<div id="ph-upload" class="card">
+  <h2>STEP 1 — SELECT ZIP FILES</h2>
+  <div class="file-row">
+    <span class="file-label">20242025.pdf (Oct 2024 – early 2025)</span>
+    <input type="file" id="f0" accept=".pdf,.zip" onchange="fileSelected(0,this)">
+    <span class="fs" id="fs0">—</span>
+  </div>
+  <div class="file-row">
+    <span class="file-label">Workouts_2025.pdf (2025)</span>
+    <input type="file" id="f1" accept=".pdf,.zip" onchange="fileSelected(1,this)">
+    <span class="fs" id="fs1">—</span>
+  </div>
+  <div class="file-row">
+    <span class="file-label">Workouts_01_05_26_05_21_26.pdf (2026)</span>
+    <input type="file" id="f2" accept=".pdf,.zip" onchange="fileSelected(2,this)">
+    <span class="fs" id="fs2">—</span>
+  </div>
+  <br>
+  <button class="btn" id="start-btn" onclick="startExtraction()" disabled>▶ EXTRACT ALL PAGES</button>
+
+  <div class="or-div">── OR RESUME FROM SAVED JSON ──</div>
+  <div id="resume-area">
+    <div class="file-row">
+      <span class="file-label">Load workout_extracted.json</span>
+      <input type="file" id="resume-file" accept=".json" onchange="loadResume(this)">
+    </div>
+  </div>
+  <p class="note">⚠ Files stay local in browser — never uploaded. Each file is ~7MB.</p>
+</div>
+
+<!-- PHASE 2: Processing -->
+<div id="ph-proc" class="card hidden">
+  <h2>STEP 2 — EXTRACTING (152 PAGES → CLAUDE API)</h2>
+  <div id="proc-status" style="color:#00ff88; margin-bottom:6px;"></div>
+  <div class="progress-wrap"><div class="progress-bar" id="proc-bar"></div></div>
+  <div class="pct" id="proc-pct"></div>
+  <div class="log" id="proc-log"></div>
+</div>
+
+<!-- PHASE 3: Review + Push -->
+<div id="ph-results" class="card hidden">
+  <h2>STEP 3 — RESULTS &amp; PUSH TO AIRTABLE</h2>
+  <div class="stats">
+    <div class="stat"><div class="sv" id="s-pages">0</div><div class="sl">PAGES</div></div>
+    <div class="stat"><div class="sv" id="s-sessions">0</div><div class="sl">SESSIONS</div></div>
+    <div class="stat"><div class="sv" id="s-sets">0</div><div class="sl">SETS</div></div>
+    <div class="stat"><div class="sv" id="s-errors">0</div><div class="sl">ERRORS</div></div>
+  </div>
+  <button class="btn btn-blue" onclick="downloadJSON()" style="margin-right:10px">⬇ DOWNLOAD JSON</button>
+  <button class="btn btn-red" id="push-btn" onclick="wipeAndPush()">🗑 WIPE AT + PUSH ALL</button>
+  <p class="note">Download JSON first as backup. Wipe+Push deletes ALL existing Sets + Sessions then reimports.</p>
+</div>
+
+<!-- PHASE 4: AT Push -->
+<div id="ph-push" class="card hidden">
+  <h2>STEP 4 — AIRTABLE WIPE + REIMPORT</h2>
+  <div id="push-status" style="color:#00ff88; margin-bottom:6px;"></div>
+  <div class="progress-wrap"><div class="progress-bar" id="push-bar"></div></div>
+  <div class="pct" id="push-pct"></div>
+  <div class="log" id="push-log"></div>
+</div>
+
+<script>
+// ═══════════════ CONFIG ═══════════════
+const AT_TOKEN = 'pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
+const AT_BASE  = 'appmHDG4TGT1xy6R6';
+const TBL_SETS = 'tblKDqjy5RzqaJvjr';
+const TBL_SESS = 'tblk9tTYIcIY4tWjF';
+
+// Sets field IDs
+const SF = {
+  SetID:     'fld4hUpEzC9IqN0xh',
+  Date:      'fld75zYXknF0RtCWH',
+  Session:   'fldBChNmPkNg61oTN',
+  Exercise:  'fldZ93A1t7fGjjsSS',
+  Variation: 'fld2TZdmCOloH0gAK',
+  SetNum:    'fldNm9Ao0rmcwwDXo',
+  Reps:      'fldelUngWHRTm48m1',
+  Weight:    'fldmrbBmfgSMtREMt',
+  Day:       'fldypzlwqw9AzWrEE',
+  Notes:     'fldfR4vyBtj2VWB2b'
+};
+
+// Sessions field IDs
+const SESSF = {
+  Session: 'fldtyX5g2302mdKRM',
+  Date:    'fld0NOLsoRvUklsUx',
+  Day:     'fldCOlVjVlkvg7xQ6'
+};
+
+// Exercise → short abbreviation (for SetID)
+const ABBREVS = {
+  'Bench Press':'BP','Incline Press':'IP','Decline Press':'DP',
+  'Incline Fly':'IF','Lateral Raises':'LR','Seated Shoulder Press':'SSP',
+  'Tricep Pushdowns':'TPD','Overhead Tricep Ext':'OTE','High Cable Fly':'HCF',
+  'Cable Cross Overs':'CCO','Wrist Twist':'WT','Lat Pulldown':'LPD',
+  'Bent Over Rows':'BOR','Cable Rows':'CR','Face Pulls':'FP',
+  'Rear Delt Raises':'RDR','Bicep Curls - Preacher':'BCP','Hammer Curls':'HC',
+  'Cable Shrugs':'CSH','Cable Curls':'CCU','Barbell Shrugs':'BSH',
+  'Leg Press':'LGP','Leg Extensions':'LEX','Leg Curls':'LCU',
+  'Hip Thrust':'HT','Nordic Curl':'NC','Reverse Hyper':'RH',
+  'DB Calf Raises':'DCR','Smith Mach Calf Raises':'SCR','Back Extension':'BE',
+  'Forward Back Stretch':'FBS','Cable Press':'CP','Low Cable Fly':'LCF',
+  'Incline Curls':'IC','Overhead Tricep Press':'OTP','Curls (Standing)':'CUS',
+  'Tricep Ext Down':'TED','Tricep Ext Up':'TEU','Forearm Raise - Cable':'FRC'
+};
+
+// Day label → day type
+const DAY_TYPES = {
+  'Mon':'Push','Monday':'Push','Monday - Push':'Push',
+  'Tues':'Pull','Tuesday':'Pull','Tuesday - Pull':'Pull',
+  'Wed':'Legs / Core','Wednesday':'Legs / Core','Wednesday - Legs / Core':'Legs / Core',
+  'Thurs':'Arms / Chest','Thursday':'Arms / Chest','Thursday - Arms / Chest':'Arms / Chest',
+  'Fri':'Shoulders','Friday':'Shoulders','Friday - Shoulders':'Shoulders',
+  'Sat':'Cardio','Saturday':'Cardio','Saturday - Cardio':'Cardio'
+};
+
+// Week 1 Monday = Oct 28, 2024
+const WEEK1 = new Date('2024-10-28T00:00:00');
+const DAY_OFFSETS_A = {'Mon':0,'Tues':1,'Wed':2,'Thurs':3,'Fri':4,'Sat':5};
+
+// ═══════════════ STATE ═══════════════
+const FILES = [null, null, null];
+let rawPages = [];
+let allSets = [];
+let allSessions = [];
+let errCount = 0;
+
+// ═══════════════ FILE SELECTION ═══════════════
+function fileSelected(idx, input) {
+  FILES[idx] = input.files[0] || null;
+  const fs = document.getElementById('fs' + idx);
+  fs.textContent = FILES[idx]
+    ? `✓ ${FILES[idx].name} (${(FILES[idx].size/1048576).toFixed(1)}MB)`
+    : '—';
+  document.getElementById('start-btn').disabled = !FILES.every(f => f);
+}
+
+// ═══════════════ EXTRACTION PROMPT ═══════════════
+const PROMPT = `Extract workout data from this gym log page. Return ONLY valid JSON, no markdown.
+
+FORMAT A: Handwritten 2024 notebook. Session headers like "Mon 1" or "Thurs 3". Exercises inline: "Bench Press 35x20 40x15 50x12" (weight × reps). Multiple sessions per page.
+
+FORMAT B: Printed 2025 template. Header "Monday - Push" etc. Date field M/D. Grid: Exercise | S1 Reps | S1 Weight | S2 Reps | S2 Weight | S3 Reps | S3 Weight | S4 Reps | S4 Weight.
+
+FORMAT C: Printed 2026 template. Header "Monday - Push" etc. Date M/D. Sleep and duration fields. Grid: Exercise | Variation | Set1 Reps | Set1 Weight | Set2 Reps | Set2 Weight | Set3 Reps | Set3 Weight. Notes row.
+
+CANONICAL EXERCISES (use EXACT names from this list):
+Push: Bench Press, Incline Press, Decline Press, Incline Fly, Lateral Raises, Seated Shoulder Press, Tricep Pushdowns, Overhead Tricep Ext, High Cable Fly, Cable Cross Overs, Wrist Twist
+Pull: Lat Pulldown, Bent Over Rows, Cable Rows, Face Pulls, Rear Delt Raises, Bicep Curls - Preacher, Hammer Curls, Cable Shrugs, Cable Curls, Barbell Shrugs
+Legs: Leg Press, Leg Extensions, Leg Curls, Hip Thrust, Nordic Curl, Reverse Hyper, DB Calf Raises, Smith Mach Calf Raises, Back Extension, Forward Back Stretch
+Arms/Chest: Cable Press, Low Cable Fly, Incline Curls, Overhead Tricep Press, Curls (Standing), Tricep Ext Down, Tricep Ext Up, Forearm Raise - Cable
+
+VARIATION FIELD (what implement or style):
+- "Rope 1/2" = rope on cable (2:1 machine)
+- "Bar 1/2" = straight bar on cable
+- "V-Bar" = V-bar attachment
+- "EZ-Bar" = EZ-bar
+- "DBs" = dumbbells
+- "DBs ea" = dumbbells each arm
+- "Cable - 2 Hand" = two-hand cable
+- "Lat Machine" = lat pulldown machine (1:1)
+- "Smith Machine" = smith machine
+- "Rope" = rope (no cable ratio)
+- Use variation column directly for Format C
+
+RULES:
+- For "1/2" exercises: already cable ratio noted in name, variation = implement used
+- Crossed-out numbers: use the correction/replacement value
+- Weight × reps format in handwritten: first number = weight, second = reps
+- SKIP sets where reps = 0 or both reps and weight are blank/illegible
+- Blank pages, note-only pages: return {"format":"A","sessions":[]}
+- For Format B/C: use values in Weight column as-is
+
+Return this exact JSON structure:
+{"format":"A","sessions":[{"label":"Mon 2","date_explicit":null,"sleep_hrs":null,"duration_min":null,"exercises":[{"canonical":"Incline Press","variation":"DBs","sets":[{"set":1,"weight":35,"reps":20},{"set":2,"weight":40,"reps":15}]}]}]}`;
+
+// ═══════════════ MAIN EXTRACTION ═══════════════
+async function startExtraction() {
+  document.getElementById('ph-upload').classList.add('hidden');
+  document.getElementById('ph-proc').classList.remove('hidden');
+  
+  rawPages = [];
+  errCount = 0;
+  
+  // Build image list from all 3 ZIPs
+  const allImages = [];
+  const sourceNames = ['zip1','zip2','zip3'];
+  
+  for (let zi = 0; zi < 3; zi++) {
+    procLog(`Unzipping ${FILES[zi].name}...`, 'linfo');
+    try {
+      const buf = await FILES[zi].arrayBuffer();
+      const zip = await JSZip.loadAsync(buf);
+      const jpegs = Object.keys(zip.files)
+        .filter(n => /\.(jpeg|jpg)$/i.test(n))
+        .sort((a, b) => parseInt(a) - parseInt(b));
+      
+      procLog(`  → ${jpegs.length} images`, 'lok');
+      for (const name of jpegs) {
+        allImages.push({ source: sourceNames[zi], pageNum: parseInt(name), zipEntry: zip.files[name] });
+      }
+    } catch (e) {
+      procLog(`  ERROR: ${e.message}`, 'lerr');
+      errCount++;
+    }
+  }
+  
+  procLog(`Total: ${allImages.length} images to process`, 'linfo');
+  
+  for (let i = 0; i < allImages.length; i++) {
+    const img = allImages[i];
+    updateProcProgress(i + 1, allImages.length, img.source, img.pageNum);
+    
+    try {
+      const b64 = await zipEntryToBase64(img.zipEntry);
+      const result = await callClaudeVision(b64);
+      result._source = img.source;
+      result._page = img.pageNum;
+      rawPages.push(result);
+      
+      const ns = (result.sessions||[]).length;
+      const nx = (result.sessions||[]).reduce((a,s)=>a+(s.exercises||[]).length,0);
+      const nsets = (result.sessions||[]).reduce((a,s)=>a+(s.exercises||[]).reduce((b,e)=>b+(e.sets||[]).length,0),0);
+      if (ns > 0) procLog(`[${img.source} p${img.pageNum}] ${ns} sessions · ${nx} exercises · ${nsets} sets`, 'lok');
+      else procLog(`[${img.source} p${img.pageNum}] blank/note`, 'lk');
+    } catch (e) {
+      procLog(`[${img.source} p${img.pageNum}] ERROR: ${e.message}`, 'lerr');
+      errCount++;
+      rawPages.push({ _source: img.source, _page: img.pageNum, sessions: [], error: e.message });
+    }
+    
+    if (i < allImages.length - 1) await sleep(1800);
+  }
+  
+  procLog('─── EXTRACTION COMPLETE ───', 'linfo');
+  buildFinalData();
+}
+
+function updateProcProgress(cur, total, source, page) {
+  const pct = (cur / total * 100).toFixed(1);
+  document.getElementById('proc-bar').style.width = pct + '%';
+  document.getElementById('proc-pct').textContent = `${cur}/${total} pages (${pct}%)`;
+  document.getElementById('proc-status').textContent = `Processing ${source} page ${page}...`;
+}
+
+async function zipEntryToBase64(entry) {
+  const buf = await entry.async('arraybuffer');
+  const bytes = new Uint8Array(buf);
+  let bin = '';
+  for (let i = 0; i < bytes.length; i += 8192)
+    bin += String.fromCharCode(...bytes.subarray(i, i + 8192));
+  return btoa(bin);
+}
+
+async function callClaudeVision(base64) {
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 4096,
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: base64 } },
+          { type: 'text', text: PROMPT }
+        ]
+      }]
+    })
+  });
+  if (!resp.ok) throw new Error(`API ${resp.status}: ${(await resp.text()).slice(0, 120)}`);
+  const data = await resp.json();
+  let text = data.content[0].text.trim().replace(/^```json\s*/,'').replace(/\s*```$/,'').trim();
+  return JSON.parse(text);
+}
+
+// ═══════════════ POST-PROCESSING ═══════════════
+function getDate(session) {
+  if (session.date_explicit) {
+    const [m, d] = session.date_explicit.split('/').map(Number);
+    const y = session._source === 'zip3' ? 2026 : 2025;
+    return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+  }
+  const match = (session.label||'').match(/^(Mon|Tues|Wed|Thurs|Fri|Sat)\s+(\d+)/i);
+  if (match) {
+    const day = match[1], wk = parseInt(match[2]);
+    const offset = DAY_OFFSETS_A[day] ?? 0;
+    const dt = new Date(WEEK1);
+    dt.setDate(dt.getDate() + (wk - 1) * 7 + offset);
+    return dt.toISOString().split('T')[0];
+  }
+  return null;
+}
+
+function getDayType(label) {
+  if (!label) return 'Unknown';
+  if (DAY_TYPES[label]) return DAY_TYPES[label];
+  for (const k of Object.keys(DAY_TYPES))
+    if (label.startsWith(k)) return DAY_TYPES[k];
+  const m = label.match(/^(Mon|Tues|Wed|Thurs|Fri|Sat)/i);
+  return m ? (DAY_TYPES[m[1]] || 'Unknown') : 'Unknown';
+}
+
+function buildFinalData() {
+  const sets = [];
+  const sessMap = new Map();
+  
+  for (const page of rawPages) {
+    if (!page.sessions) continue;
+    for (const sess of page.sessions) {
+      // Attach source to session for date logic
+      sess._source = page._source;
+      const date = getDate(sess);
+      if (!date) continue;
+      
+      const dayType = getDayType(sess.label);
+      const sessionStr = `${date} ${dayType}`;
+      const key = `${date}|${dayType}`;
+      if (!sessMap.has(key)) sessMap.set(key, { session: sessionStr, date, day: dayType });
+      
+      for (const ex of (sess.exercises || [])) {
+        const canonical = ex.canonical || 'Unknown';
+        const abbrev = ABBREVS[canonical] || canonical.replace(/[^A-Za-z]/g,'').slice(0,5).toUpperCase();
+        for (const s of (ex.sets || [])) {
+          if (!s.reps || s.reps === 0) continue;
+          sets.push({
+            [SF.SetID]:     `${date}-${abbrev}-${s.set}`,
+            [SF.Date]:      date,
+            [SF.Session]:   sessionStr,
+            [SF.Exercise]:  canonical,
+            [SF.Variation]: ex.variation || '',
+            [SF.SetNum]:    s.set,
+            [SF.Reps]:      s.reps,
+            [SF.Weight]:    s.weight || 0,
+            [SF.Day]:       dayType
+          });
+        }
+      }
+    }
+  }
+  
+  allSets = sets;
+  allSessions = Array.from(sessMap.values());
+  
+  // Show results
+  document.getElementById('ph-proc').classList.add('hidden');
+  document.getElementById('ph-results').classList.remove('hidden');
+  document.getElementById('s-pages').textContent = rawPages.length;
+  document.getElementById('s-sessions').textContent = allSessions.length;
+  document.getElementById('s-sets').textContent = allSets.length;
+  document.getElementById('s-errors').textContent = errCount;
+}
+
+// ═══════════════ RESUME ═══════════════
+function loadResume(input) {
+  const f = input.files[0];
+  if (!f) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      rawPages = data.raw || [];
+      errCount = rawPages.filter(p => p.error).length;
+      buildFinalData();
+      document.getElementById('ph-upload').classList.add('hidden');
+    } catch (err) {
+      alert('Invalid JSON: ' + err.message);
+    }
+  };
+  reader.readAsText(f);
+}
+
+// ═══════════════ DOWNLOAD ═══════════════
+function downloadJSON() {
+  const data = { sessions: allSessions, sets: allSets, raw: rawPages,
+    meta: { pages: rawPages.length, sessions: allSessions.length, sets: allSets.length, errors: errCount }
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'workout_extracted.json';
+  a.click();
+}
+
+// ═══════════════ AIRTABLE ═══════════════
+async function atFetch(path, opts = {}) {
+  const resp = await fetch(`https://api.airtable.com/v0${path}`, {
+    ...opts,
+    headers: {
+      'Authorization': `Bearer ${AT_TOKEN}`,
+      'Content-Type': 'application/json',
+      ...(opts.headers || {})
+    }
+  });
+  if (!resp.ok) {
+    const txt = await resp.text();
+    throw new Error(`AT ${resp.status}: ${txt.slice(0, 160)}`);
+  }
+  return resp.json();
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function pushLog(msg, cls = 'lk') {
+  const log = document.getElementById('push-log');
+  const el = document.createElement('div');
+  el.className = cls;
+  el.textContent = msg;
+  log.appendChild(el);
+  log.scrollTop = log.scrollHeight;
+}
+
+function procLog(msg, cls = 'lk') {
+  const log = document.getElementById('proc-log');
+  const el = document.createElement('div');
+  el.className = cls;
+  el.textContent = msg;
+  log.appendChild(el);
+  log.scrollTop = log.scrollHeight;
+}
+
+async function wipeTable(tableId, name) {
+  pushLog(`Fetching all ${name} IDs...`, 'linfo');
+  let offset = null;
+  const ids = [];
+  
+  do {
+    let url = `/${AT_BASE}/${tableId}?pageSize=100&fields%5B%5D=fldmrbBmfgSMtREMt`;
+    if (tableId === TBL_SESS) url = `/${AT_BASE}/${tableId}?pageSize=100&fields%5B%5D=fldCOlVjVlkvg7xQ6`;
+    if (offset) url += `&offset=${offset}`;
+    
+    const data = await atFetch(url);
+    ids.push(...data.records.map(r => r.id));
+    offset = data.offset || null;
+    if (ids.length % 500 === 0 || !offset) pushLog(`  ${name}: ${ids.length} IDs fetched`, 'lk');
+    await sleep(100);
+  } while (offset);
+  
+  pushLog(`Deleting ${ids.length} ${name} records...`, 'lwarn');
+  
+  for (let i = 0; i < ids.length; i += 10) {
+    const batch = ids.slice(i, i + 10);
+    const qs = batch.map(id => `records[]=${id}`).join('&');
+    await atFetch(`/${AT_BASE}/${tableId}?${qs}`, { method: 'DELETE' });
+    if ((i + 10) % 200 === 0 || i + 10 >= ids.length)
+      pushLog(`  Deleted ${Math.min(i + 10, ids.length)}/${ids.length}`, 'lk');
+    await sleep(100);
+  }
+  pushLog(`✓ ${name} wiped`, 'lok');
+}
+
+async function pushBatch(tableId, records, name) {
+  const size = 50;
+  let pushed = 0;
+  
+  for (let i = 0; i < records.length; i += size) {
+    const batch = records.slice(i, i + size);
+    await atFetch(`/${AT_BASE}/${tableId}`, {
+      method: 'POST',
+      body: JSON.stringify({ records: batch, typecast: true })
+    });
+    pushed += batch.length;
+    const pct = (pushed / records.length * 100).toFixed(0);
+    document.getElementById('push-bar').style.width = pct + '%';
+    document.getElementById('push-pct').textContent = `${name}: ${pushed}/${records.length} (${pct}%)`;
+    if (pushed % 500 === 0 || pushed === records.length)
+      pushLog(`  ${name}: pushed ${pushed}/${records.length}`, 'lok');
+    await sleep(150);
+  }
+}
+
+async function wipeAndPush() {
+  document.getElementById('ph-results').classList.add('hidden');
+  document.getElementById('ph-push').classList.remove('hidden');
+  
+  try {
+    document.getElementById('push-status').textContent = 'Wiping Sets...';
+    await wipeTable(TBL_SETS, 'Sets');
+    
+    document.getElementById('push-status').textContent = 'Wiping Sessions...';
+    await wipeTable(TBL_SESS, 'Sessions');
+    
+    document.getElementById('push-status').textContent = 'Pushing Sessions...';
+    await pushBatch(TBL_SESS, allSessions.map(s => ({
+      fields: { [SESSF.Session]: s.session, [SESSF.Date]: s.date, [SESSF.Day]: s.day }
+    })), 'Sessions');
+    
+    document.getElementById('push-status').textContent = 'Pushing Sets...';
+    await pushBatch(TBL_SETS, allSets.map(s => ({ fields: s })), 'Sets');
+    
+    document.getElementById('push-status').textContent = '✅ COMPLETE';
+    pushLog(`Done! ${allSessions.length} sessions + ${allSets.length} sets in Airtable.`, 'lok');
+  } catch (e) {
+    pushLog(`FATAL: ${e.message}`, 'lerr');
+    document.getElementById('push-status').textContent = '❌ ERROR — check log';
+  }
+}
+</script>
+</body>
+</html>
