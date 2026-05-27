@@ -3,727 +3,388 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Injection Audit — Build 1</title>
+<title>Injection Audit — Build 2</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f0f2f5;color:#1a1a2e;font-size:13px;height:100vh;overflow:hidden;display:flex;flex-direction:column}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f1f3f6;color:#1a1a2e;font-size:13px;height:100vh;display:flex;flex-direction:column;overflow:hidden}
 
 /* LOADER */
-#loader{position:fixed;inset:0;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;z-index:999}
-.spinner{width:36px;height:36px;border:3px solid #e0e3e8;border-top-color:#2563eb;border-radius:50%;animation:spin .7s linear infinite}
+#loader{position:fixed;inset:0;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;z-index:999}
+.spin{width:32px;height:32px;border:3px solid #e2e5ea;border-top-color:#2563eb;border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
-#loader-msg{font-size:15px;font-weight:600;color:#374151}
-#loader-err{color:#dc2626;font-size:13px;max-width:400px;text-align:center}
-#loader-retry{padding:8px 20px;background:#2563eb;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:14px;font-weight:600}
+#loader-msg{font-size:14px;font-weight:600;color:#374151}
+#loader-err{color:#dc2626;font-size:12px;max-width:360px;text-align:center;display:none}
+#loader-retry{display:none;padding:7px 18px;background:#2563eb;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600;font-size:13px}
 
 /* HEADER */
-#hdr{background:#fff;border-bottom:2px solid #e0e3e8;padding:8px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;flex-shrink:0}
-#hdr h1{font-size:15px;font-weight:800;letter-spacing:-.3px;white-space:nowrap}
+#hdr{background:#1e2433;color:#fff;padding:7px 14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex-shrink:0;min-height:44px}
+#hdr h1{font-size:14px;font-weight:800;letter-spacing:-.2px;white-space:nowrap;color:#fff}
 .badge{padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;border:1px solid}
-.b-blue{background:#dbeafe;border-color:#93c5fd;color:#1d4ed8}
-.b-green{background:#dcfce7;border-color:#86efac;color:#166534}
-.b-red{background:#fee2e2;border-color:#fca5a5;color:#991b1b}
-.b-amber{background:#fef3c7;border-color:#fcd34d;color:#92400e}
-.b-purple{background:#ede9fe;border-color:#c4b5fd;color:#5b21b6}
-.b-gray{background:#f3f4f6;border-color:#d1d5db;color:#374151}
-#hdr-status{font-size:11px;color:#6b7280;margin-left:auto;white-space:nowrap}
+.b-blue{background:#1e3a8a;border-color:#3b82f6;color:#93c5fd}
+.b-green{background:#14532d;border-color:#22c55e;color:#86efac}
+.b-amber{background:#78350f;border-color:#f59e0b;color:#fcd34d}
+.b-gray{background:#374151;border-color:#6b7280;color:#d1d5db}
+#hdr-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+#save-ind{font-size:11px;color:#9ca3af}
+#save-ind.ok{color:#4ade80}
+#save-ind.err{color:#f87171}
 
-/* DATE NAV */
-#dnav{background:#fff;border-bottom:1px solid #e0e3e8;padding:6px 14px;display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap}
-.nav-btn{padding:5px 12px;border:1px solid #d1d5db;background:#fff;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap}
-.nav-btn:hover{background:#f3f4f6}
-.nav-btn.primary{background:#2563eb;color:#fff;border-color:#2563eb}
-#date-sel{padding:5px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:12px;min-width:200px}
-#match-tag{font-size:12px;font-weight:700;padding:3px 10px;border-radius:12px}
-
-/* MAIN LAYOUT */
-#main{display:grid;grid-template-columns:380px 1fr;flex:1;overflow:hidden}
+/* BODY LAYOUT */
+#body{display:flex;flex:1;overflow:hidden}
 
 /* PDF PANEL */
-#pdf-panel{background:#fff;border-right:2px solid #e0e3e8;display:flex;flex-direction:column;overflow:hidden}
-#pdf-sources{padding:10px;border-bottom:1px solid #e0e3e8;background:#f8f9fa;display:flex;flex-direction:column;gap:6px}
-#pdf-sources label{font-size:11px;font-weight:700;color:#374151;margin-bottom:2px;display:block}
-.src-row{display:flex;gap:6px;align-items:center}
-.src-row input[type=text]{flex:1;padding:5px 8px;border:1px solid #d1d5db;border-radius:5px;font-size:12px}
-.src-row input[type=file]{font-size:11px;flex:1}
-.src-btn{padding:5px 10px;border:1px solid #d1d5db;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;background:#fff}
-.src-btn.gdrive{background:#4285f4;color:#fff;border-color:#4285f4}
-.src-btn.gdrive:hover{background:#3367d6}
-#pdf-viewer-area{flex:1;overflow-y:auto;background:#e5e7eb;display:flex;align-items:flex-start;justify-content:center;padding:10px}
-#pdf-canvas{max-width:100%;border:1px solid #ccc;border-radius:3px;box-shadow:0 2px 8px rgba(0,0,0,.2)}
-#pdf-empty{padding:30px;text-align:center;color:#9ca3af;font-size:12px}
-#pdf-nav{display:flex;align-items:center;gap:8px;padding:7px 12px;border-top:1px solid #e0e3e8;background:#f8f9fa;flex-shrink:0}
-#pdf-nav button{padding:4px 10px;border:1px solid #d1d5db;border-radius:5px;cursor:pointer;font-size:12px;background:#fff}
+#pdf-panel{width:360px;min-width:280px;background:#fff;border-right:2px solid #e2e5ea;display:flex;flex-direction:column;flex-shrink:0}
+#pdf-hdr{padding:8px 10px;border-bottom:1px solid #e2e5ea;background:#f8f9fa}
+#pdf-hdr label{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:#6b7280;display:block;margin-bottom:5px}
+.pdf-row{display:flex;gap:5px;align-items:center}
+#pdf-drive-id{flex:1;padding:5px 7px;border:1px solid #d1d5db;border-radius:5px;font-size:11px;min-width:0}
+.btn{padding:5px 10px;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid;white-space:nowrap}
+.btn-blue{background:#2563eb;color:#fff;border-color:#2563eb}
+.btn-blue:hover{background:#1d4ed8}
+.btn-gray{background:#fff;border-color:#d1d5db;color:#374151}
+.btn-gray:hover{background:#f3f4f6}
+.btn-sm{padding:3px 8px;font-size:10px}
+#pdf-file-input{display:none}
+#pdf-local-label{cursor:pointer}
+#pdf-status{font-size:10px;color:#9ca3af;margin-top:4px}
+#pdf-viewer{flex:1;overflow-y:auto;background:#e5e7eb;display:flex;align-items:flex-start;justify-content:center;padding:8px}
+#pdf-canvas{max-width:100%;box-shadow:0 2px 8px rgba(0,0,0,.2);display:none}
+#pdf-empty{color:#9ca3af;font-size:12px;text-align:center;padding:30px;width:100%}
+#pdf-nav{display:flex;align-items:center;gap:6px;padding:6px 10px;border-top:1px solid #e2e5ea;background:#f8f9fa;flex-shrink:0}
+#pdf-nav button{padding:4px 10px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;font-size:11px;background:#fff}
 #pdf-pg{font-size:11px;color:#6b7280;flex:1;text-align:center}
+#pdf-jump{width:50px;padding:3px 5px;border:1px solid #d1d5db;border-radius:4px;font-size:11px;text-align:center}
 
-/* RIGHT PANEL */
-#right-panel{display:flex;flex-direction:column;overflow:hidden}
+/* AUDIT PANEL */
+#audit-panel{flex:1;display:flex;flex-direction:column;overflow:hidden}
 
-/* TAB BAR */
-#tabs{display:flex;background:#fff;border-bottom:2px solid #e0e3e8;flex-shrink:0}
-.tab{padding:9px 18px;cursor:pointer;font-weight:700;font-size:12px;border-bottom:3px solid transparent;margin-bottom:-2px;color:#6b7280;white-space:nowrap}
-.tab.on{border-bottom-color:#2563eb;color:#2563eb}
-.tab:hover{color:#374151}
+/* DATE NAV */
+#date-nav{background:#fff;border-bottom:2px solid #e2e5ea;padding:7px 12px;display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap}
+.nav-btn{padding:5px 12px;border:1px solid #d1d5db;background:#fff;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700}
+.nav-btn:hover{background:#f3f4f6}
+.nav-btn.primary{background:#2563eb;color:#fff;border-color:#2563eb}
+#date-sel{padding:5px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:12px;min-width:180px}
+#date-count{font-size:11px;color:#9ca3af;margin-left:auto}
+#btn-add-date{margin-left:auto}
 
-/* COMPARE VIEW */
-#compare-view{display:grid;grid-template-columns:1fr 1fr;flex:1;overflow:hidden}
-.rec-col{padding:10px;overflow-y:auto;display:flex;flex-direction:column;gap:8px}
-.rec-col:first-child{border-right:1px solid #e0e3e8}
-.col-hdr{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#6b7280;display:flex;align-items:center;gap:6px;margin-bottom:4px;flex-shrink:0}
-.col-hdr span{background:#f0f2f5;border:1px solid #e0e3e8;border-radius:20px;padding:1px 7px;font-size:10px}
+/* RECORDS AREA */
+#records-area{flex:1;overflow-y:auto;padding:10px}
+#records-empty{color:#9ca3af;font-size:13px;text-align:center;padding:40px}
 
-.rcard{background:#fff;border:1px solid #e0e3e8;border-radius:8px;padding:10px;position:relative}
-.rcard.at-ok{border-left:4px solid #16a34a}
-.rcard.at-diff{border-left:4px solid #d97706}
-.rcard.at-miss{border-left:4px solid #dc2626;background:#fff8f8}
-.rcard.p-row{border-left:4px solid #7c3aed;background:#faf8ff}
-.frow{display:flex;gap:6px;margin-bottom:5px;align-items:flex-start}
-.flbl{font-size:10px;color:#9ca3af;font-weight:700;min-width:65px;flex-shrink:0;padding-top:1px}
-.fval{font-size:12px;color:#1a1a2e;font-weight:500;word-break:break-word}
-.fval.hi{background:#fef3c7;padding:1px 4px;border-radius:3px;color:#92400e}
-.card-btns{position:absolute;top:7px;right:7px;display:flex;gap:4px}
-.cbtn{padding:3px 8px;border-radius:4px;font-size:10px;font-weight:700;cursor:pointer;border:1px solid;white-space:nowrap}
-.cbtn.edit{background:#eff6ff;border-color:#bfdbfe;color:#2563eb}
-.cbtn.del{background:#fee2e2;border-color:#fca5a5;color:#dc2626}
-.cbtn.fill{background:#ede9fe;border-color:#c4b5fd;color:#5b21b6}
-.cbtn.push{background:#dcfce7;border-color:#86efac;color:#166534}
-.empty-col{padding:20px;text-align:center;color:#9ca3af;font-size:12px}
-.add-btn-col{margin-top:4px;text-align:center}
-.add-btn-col button{padding:6px 16px;background:#2563eb;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer}
+/* RECORD CARD */
+.rcard{background:#fff;border:1px solid #e2e5ea;border-left:4px solid #93c5fd;border-radius:8px;padding:10px 12px;margin-bottom:8px;position:relative}
+.rcard.status-done{border-left-color:#4ade80}
+.rcard.status-todo{border-left-color:#f59e0b}
+.rcard-top{display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap}
+.rcard-compound{font-weight:800;font-size:13px;color:#1e2433}
+.rcard-dose{background:#dbeafe;color:#1d4ed8;padding:2px 7px;border-radius:12px;font-size:11px;font-weight:700}
+.rcard-timing{color:#6b7280;font-size:11px}
+.rcard-site{background:#f3f4f6;color:#374151;padding:2px 6px;border-radius:4px;font-size:11px;font-weight:600}
+.rcard-notes{font-size:11px;color:#6b7280;margin-top:4px;font-style:italic}
+.rcard-status{font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;background:#f3f4f6;color:#6b7280}
+.rcard-status.done{background:#dcfce7;color:#166534}
+.rcard-status.todo{background:#fef3c7;color:#92400e}
+.card-edit-btn{position:absolute;top:8px;right:8px;padding:3px 8px;font-size:10px;font-weight:700;border:1px solid #bfdbfe;background:#eff6ff;color:#2563eb;border-radius:4px;cursor:pointer}
+.card-edit-btn:hover{background:#dbeafe}
 
-/* EDIT VIEW */
-#edit-view{flex:1;overflow-y:auto;padding:14px;display:none}
-.fsec{background:#fff;border:1px solid #e0e3e8;border-radius:8px;padding:14px;margin-bottom:12px}
-.fsec h3{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#374151;margin-bottom:12px}
-.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.fgrid.wide{grid-template-columns:1fr}
-.fg label{font-size:11px;font-weight:700;color:#374151;display:block;margin-bottom:3px}
-.fg input,.fg select,.fg textarea{width:100%;padding:7px 9px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;background:#fff;color:#1a1a2e}
-.fg input:focus,.fg select:focus,.fg textarea:focus{outline:none;border-color:#2563eb;box-shadow:0 0 0 2px #dbeafe}
-.fg textarea{min-height:55px;resize:vertical}
-.fact{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
-.abtn{padding:8px 18px;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer;border:2px solid}
-.abtn.save{background:#2563eb;border-color:#2563eb;color:#fff}
-.abtn.save:hover{background:#1d4ed8}
-.abtn.cancel{background:#fff;border-color:#d1d5db;color:#374151}
-.abtn.delbtn{background:#fee2e2;border-color:#fca5a5;color:#dc2626}
-.rec-note{font-size:10px;color:#9ca3af;font-style:italic;margin-bottom:4px}
-
-/* BOTTOM */
-#bottom{background:#fff;border-top:1px solid #e0e3e8;padding:7px 14px;display:flex;align-items:center;gap:12px;flex-shrink:0;flex-wrap:wrap}
-#bottom label{font-size:11px;font-weight:700;color:#374151;white-space:nowrap}
-#p-file-input{font-size:11px}
-.p-drive-row{display:flex;gap:6px;align-items:center}
-.p-drive-row input{padding:5px 8px;border:1px solid #d1d5db;border-radius:5px;font-size:12px;width:220px}
-#p-status{font-size:11px;color:#16a34a;white-space:nowrap}
-#save-ind{margin-left:auto;font-size:11px;white-space:nowrap}
-.si-ok{color:#16a34a} .si-saving{color:#d97706} .si-err{color:#dc2626}
-
-/* MODAL */
-#modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;align-items:center;justify-content:center}
-#modal.show{display:flex}
-#modal-box{background:#fff;border-radius:10px;padding:18px;width:420px;max-height:80vh;overflow:hidden;display:flex;flex-direction:column;gap:10px}
-#modal-box h3{font-size:14px;font-weight:700;display:flex;justify-content:space-between}
-#modal-box h3 button{border:none;background:none;font-size:18px;cursor:pointer;color:#9ca3af}
-#date-list{overflow-y:auto;flex:1}
-.dli{padding:7px 10px;cursor:pointer;border-bottom:1px solid #f0f2f5;display:flex;align-items:center;gap:8px;font-size:12px}
-.dli:hover{background:#f8f9fa}
-.dli.cur{background:#dbeafe;font-weight:700}
-
-/* RECENTS DROPDOWN */
-.recent-wrap{position:relative;display:inline-block}
-.recent-btn{padding:4px 8px;border:1px solid #d1d5db;border-radius:5px;font-size:11px;background:#fff;cursor:pointer;white-space:nowrap}
-.recent-btn:hover{background:#f3f4f6}
-.recent-menu{display:none;position:absolute;top:100%;left:0;background:#fff;border:1px solid #e0e3e8;border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,.12);z-index:50;min-width:260px;max-height:200px;overflow-y:auto;margin-top:2px}
-.recent-wrap:hover .recent-menu,.recent-menu:hover{display:block}
-.recent-item{padding:7px 12px;font-size:12px;cursor:pointer;border-bottom:1px solid #f0f2f5;display:flex;justify-content:space-between;align-items:center;gap:8px}
-.recent-item:hover{background:#f8f9fa}
-.recent-item .ri-name{font-weight:600;color:#1a1a2e;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.recent-item .ri-id{font-size:10px;color:#9ca3af;font-family:monospace}
-.recent-item .ri-del{color:#dc2626;font-size:11px;cursor:pointer;padding:0 4px;flex-shrink:0}
-.recent-empty{padding:12px;font-size:12px;color:#9ca3af;text-align:center}
+/* EDIT MODAL */
+#modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:100;align-items:center;justify-content:center}
+#modal-overlay.show{display:flex}
+#modal{background:#fff;border-radius:10px;padding:20px;width:420px;max-width:96vw;max-height:90vh;overflow-y:auto;box-shadow:0 10px 40px rgba(0,0,0,.2)}
+#modal h2{font-size:15px;font-weight:800;margin-bottom:14px;color:#1e2433}
+.ef-row{margin-bottom:10px}
+.ef-row label{display:block;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:#6b7280;margin-bottom:4px}
+.ef-row input,.ef-row select,.ef-row textarea{width:100%;padding:7px 9px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;font-family:inherit}
+.ef-row textarea{min-height:60px;resize:vertical}
+.modal-btns{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+.modal-btns button{padding:8px 16px;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer;border:1px solid}
+#btn-save{background:#2563eb;color:#fff;border-color:#2563eb}
+#btn-cancel{background:#fff;color:#374151;border-color:#d1d5db}
+#btn-delete{background:#fee2e2;color:#991b1b;border-color:#fca5a5;margin-left:auto}
+#modal-id{font-size:10px;color:#9ca3af;margin-top:8px}
 </style>
 </head>
 <body>
 
 <div id="loader">
-  <div class="spinner"></div>
-  <div id="loader-msg">Connecting to Airtable...</div>
+  <div class="spin"></div>
+  <div id="loader-msg">Loading injection records…</div>
   <div id="loader-err"></div>
-  <button id="loader-retry" style="display:none" onclick="initLoad()">Retry</button>
+  <button id="loader-retry" onclick="init()">Retry</button>
 </div>
 
 <!-- HEADER -->
 <div id="hdr">
-  <h1>💉 Injection Audit <span style="font-weight:400;color:#6b7280;font-size:12px">Build 1</span></h1>
-  <div class="badge b-blue" id="b-at">AT: —</div>
-  <div class="badge b-gray" id="b-p">Parseur: —</div>
-  <div class="badge b-green" id="b-ok">✓ —</div>
-  <div class="badge b-amber" id="b-diff">⚠ —</div>
-  <div class="badge b-red" id="b-miss">✗ —</div>
-  <div class="badge b-purple" id="b-extra">+ —</div>
-  <div id="hdr-status">Loading...</div>
+  <h1>💉 Injection Audit</h1>
+  <span class="badge b-blue" id="b-at">AT: 0</span>
+  <span class="badge b-green" id="b-dates">0 dates</span>
+  <span class="badge b-amber" id="b-cur">—</span>
+  <div id="hdr-right">
+    <span id="save-ind"></span>
+  </div>
 </div>
 
-<!-- DATE NAV -->
-<div id="dnav">
-  <button class="nav-btn" onclick="prevDate()">← Prev</button>
-  <select id="date-sel" onchange="goDate(this.value)">
-    <option value="">— Select Date —</option>
-  </select>
-  <button class="nav-btn" onclick="nextDate()">Next →</button>
-  <span id="match-tag"></span>
-  <button class="nav-btn" onclick="toggleView('compare')" id="tv-compare">Compare</button>
-  <button class="nav-btn" onclick="toggleView('edit')" id="tv-edit">Edit / Add</button>
-  <button class="nav-btn" onclick="openModal()">All Dates</button>
-  <button class="nav-btn primary" onclick="newRecord()" style="margin-left:auto">+ New Record</button>
-</div>
+<!-- BODY -->
+<div id="body">
 
-<!-- MAIN -->
-<div id="main">
-  <!-- PDF -->
+  <!-- PDF PANEL -->
   <div id="pdf-panel">
-    <div id="pdf-sources">
-      <div>
-        <label>📄 PDF — Upload local file or load from Google Drive</label>
-        <div class="src-row">
-          <input type="file" id="pdf-local" accept=".pdf" onchange="loadPDFLocal(this)">
-        </div>
-        <div class="src-row" style="margin-top:5px">
-          <input type="text" id="pdf-drive-id" placeholder="Google Drive file ID">
-          <button class="src-btn gdrive" onclick="loadPDFDrive()">📂 Load</button>
-          <div class="recent-wrap">
-            <button class="recent-btn">Recent ▾</button>
-            <div class="recent-menu" id="pdf-recents-menu"></div>
-          </div>
-        </div>
+    <div id="pdf-hdr">
+      <label>PDF — Injections Log</label>
+      <div class="pdf-row">
+        <input id="pdf-drive-id" type="text" placeholder="Google Drive file ID" value="1Yk3aWqXPWRpFWCvXYasWoo9hA202KQG6">
+        <button class="btn btn-blue" onclick="loadPDFFromDrive()">📂 Load</button>
       </div>
+      <div class="pdf-row" style="margin-top:5px">
+        <label id="pdf-local-label" class="btn btn-gray btn-sm" style="cursor:pointer">Local File
+          <input id="pdf-file-input" type="file" accept=".pdf" onchange="loadPDFLocal(this)">
+        </label>
+      </div>
+      <div id="pdf-status">No PDF loaded</div>
     </div>
-    <div id="pdf-viewer-area">
-      <div id="pdf-empty">Upload Injections.pdf or enter Drive ID above</div>
-      <canvas id="pdf-canvas" style="display:none"></canvas>
+    <div id="pdf-viewer">
+      <div id="pdf-empty">Load PDF above to view alongside AT records</div>
+      <canvas id="pdf-canvas"></canvas>
     </div>
     <div id="pdf-nav">
       <button onclick="pdfPrev()">◀</button>
-      <span id="pdf-pg">No PDF</span>
+      <input id="pdf-jump" type="number" min="1" placeholder="pg" onchange="renderPage(+this.value)">
+      <span id="pdf-pg">— / —</span>
       <button onclick="pdfNext()">▶</button>
-      <input type="number" id="pdf-jump" min="1" placeholder="Go to page" style="width:80px;padding:4px 6px;border:1px solid #d1d5db;border-radius:5px;font-size:12px" onchange="jumpPage(this.value)">
     </div>
   </div>
 
-  <!-- RIGHT -->
-  <div id="right-panel">
-    <div id="tabs">
-      <div class="tab on" id="tab-compare" onclick="toggleView('compare')">Compare</div>
-      <div class="tab" id="tab-edit" onclick="toggleView('edit')">Edit / Add</div>
+  <!-- AUDIT PANEL -->
+  <div id="audit-panel">
+    <div id="date-nav">
+      <button class="nav-btn" onclick="prevDate()">← Prev</button>
+      <select id="date-sel" onchange="if(this.value) goDate(this.value)"><option value="">— Select Date —</option></select>
+      <button class="nav-btn" onclick="nextDate()">Next →</button>
+      <span id="date-count"></span>
+      <button class="nav-btn primary" id="btn-add-date" onclick="openAdd()">+ Add Record</button>
     </div>
-
-    <!-- COMPARE -->
-    <div id="compare-view">
-      <div class="rec-col" id="at-col">
-        <div class="col-hdr">Airtable Record <span id="at-cnt">0</span></div>
-        <div id="at-body"><div class="empty-col">Select a date</div></div>
-        <div class="add-btn-col"><button onclick="newRecord()">+ Add for this date</button></div>
-      </div>
-      <div class="rec-col" id="p-col">
-        <div class="col-hdr">Parseur Data <span id="p-cnt">0</span></div>
-        <div id="p-body"><div class="empty-col">Load Parseur file (bottom bar)</div></div>
-      </div>
-    </div>
-
-    <!-- EDIT -->
-    <div id="edit-view">
-      <div class="fsec">
-        <h3 id="ef-title">New Injection Record</h3>
-        <div class="rec-note" id="ef-id"></div>
-        <div class="fgrid">
-          <div class="fg"><label>Date *</label><input type="date" id="ef-date"></div>
-          <div class="fg"><label>Compound</label>
-            <select id="ef-compound"><option value="">— Select —</option></select>
-          </div>
-          <div class="fg"><label>Dose</label><input type="text" id="ef-dose" placeholder="e.g. 0.5mL, 200mg/mL"></div>
-          <div class="fg"><label>Site</label>
-            <select id="ef-site"><option value="">— Select —</option></select>
-          </div>
-          <div class="fg"><label>Timing</label>
-            <select id="ef-timing"><option value="">— Select —</option></select>
-          </div>
-          <div class="fg"><label>Status</label>
-            <select id="ef-status"><option value="">— Select —</option></select>
-          </div>
-          <div class="fg"><label>Name / Label</label><input type="text" id="ef-name" placeholder="e.g. Test Cyp 200mg/mL"></div>
-        </div>
-        <div class="fgrid wide" style="margin-top:8px">
-          <div class="fg"><label>Notes</label><textarea id="ef-notes" placeholder="Optional..."></textarea></div>
-        </div>
-        <div class="fact">
-          <button class="abtn save" onclick="saveRecord()">💾 Save to Airtable</button>
-          <button class="abtn cancel" onclick="clearForm()">Clear</button>
-          <button class="abtn delbtn" id="ef-del" onclick="deleteRecord()" style="display:none">🗑 Delete</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- BOTTOM -->
-    <div id="bottom">
-      <label>📂 Parseur:</label>
-      <input type="file" id="p-file-input" accept=".csv,.json,.xlsx,.xls" onchange="loadParseurFile(this)">
-      <div class="p-drive-row">
-        <input type="text" id="p-drive-id" placeholder="or Drive file ID">
-        <button class="src-btn gdrive" onclick="loadParseurDrive()">Load</button>
-        <div class="recent-wrap">
-          <button class="recent-btn">Recent ▾</button>
-          <div class="recent-menu" id="p-recents-menu"></div>
-        </div>
-      </div>
-      <span id="p-status"></span>
-      <span id="save-ind">—</span>
+    <div id="records-area">
+      <div id="records-empty">Select a date to view records</div>
     </div>
   </div>
+
 </div>
 
-<!-- ALL DATES MODAL -->
-<div id="modal" onclick="if(event.target===this)closeModal()">
-  <div id="modal-box">
-    <h3>All Dates <button onclick="closeModal()">✕</button></h3>
-    <div id="date-list"></div>
+<!-- EDIT / ADD MODAL -->
+<div id="modal-overlay" onclick="if(event.target===this)closeModal()">
+  <div id="modal">
+    <h2 id="modal-title">Edit Record</h2>
+    <div class="ef-row">
+      <label>Date</label>
+      <input id="ef-date" type="date">
+    </div>
+    <div class="ef-row">
+      <label>Compound</label>
+      <select id="ef-compound">
+        <option value="">— Select —</option>
+        <option>NAD+</option><option>LipoMinoMix</option><option>Tesamorelin</option>
+        <option>Tirzepatide</option><option>Anavar (Oxandrolone)</option><option>BPC-157</option>
+        <option>TB-500</option><option>CJC-1295</option><option>Ipamorelin</option>
+        <option>GHK-Cu</option><option>Retatrutide</option><option>Selank</option>
+        <option>DSIP</option><option>KPV</option><option>Semax</option><option>Mots-C</option>
+        <option>SS-31</option><option>CJC-1295 No DAC</option><option>Epitalon</option>
+        <option>Melanotan II (MT2)</option><option>Deca (Nandrolone)</option>
+        <option>Testosterone</option><option>Winstrol (Stanozolol)</option><option>Cagrilintide</option>
+      </select>
+    </div>
+    <div class="ef-row">
+      <label>Dose</label>
+      <input id="ef-dose" type="text" placeholder="e.g. 200mg, 2.5u">
+    </div>
+    <div class="ef-row">
+      <label>Site</label>
+      <select id="ef-site">
+        <option value="">— Select —</option>
+        <option>L</option><option>R</option><option>L+R</option>
+        <option>Pill</option><option>X</option><option>Nasal</option>
+        <option>Abd</option><option>S</option>
+      </select>
+    </div>
+    <div class="ef-row">
+      <label>Timing</label>
+      <select id="ef-timing">
+        <option value="">— Select —</option>
+        <option>Morning</option><option>Night</option>
+        <option>Evening</option><option>Daily</option>
+      </select>
+    </div>
+    <div class="ef-row">
+      <label>Status</label>
+      <select id="ef-status">
+        <option value="">— Select —</option>
+        <option>Todo</option><option>In progress</option><option>Done</option>
+      </select>
+    </div>
+    <div class="ef-row">
+      <label>Notes</label>
+      <textarea id="ef-notes" placeholder="Optional notes"></textarea>
+    </div>
+    <div id="modal-id"></div>
+    <div class="modal-btns">
+      <button id="btn-save" onclick="saveRecord()">Save</button>
+      <button id="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button id="btn-delete" style="display:none" onclick="deleteRecord()">Delete</button>
+    </div>
   </div>
 </div>
 
 <script>
 pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-// ── CONFIG ────────────────────────────────────────────────────────────────
+// ── CONFIG ─────────────────────────────────────────────────────────────────
 const AT_TOKEN = 'pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
 const AT_BASE  = 'appmHDG4TGT1xy6R6';
 const AT_TBL   = 'tblBvEaLkGGipnOFc';
 const GCL_ID   = '478191426516-94rflpalsl5ev56ptck62k5imes6jk8l.apps.googleusercontent.com';
 const F = {
-  name:'fldt9vYT8Tm37Gf3k', date:'fldhYEtLEGA4VxvvO',
-  compound:'fldwVFyizH4mBANBa', site:'fldHDlJY8FpAvK018',
-  timing:'fldIdzew4Jd0qO4Uc', dose:'fld8d8mtRapfaIyqL',
-  notes:'fldAbczu73mINwLmx', status:'fldD9kegiwk6mINV8'
+  name:     'fldt9vYT8Tm37Gf3k',
+  date:     'fldhYEtLEGA4VxvvO',
+  compound: 'fldwVFyizH4mBANBa',
+  site:     'fldHDlJY8FpAvK018',
+  timing:   'fldIdzew4Jd0qO4Uc',
+  dose:     'fld8d8mtRapfaIyqL',
+  notes:    'fldAbczu73mINwLmx',
+  status:   'fldD9kegiwk6mINV8'
 };
 
-// ── STATE ─────────────────────────────────────────────────────────────────
-let atRecs=[], atByDate={}, parseurRows=[], parseurByDate={};
-let allDates=[], curDate=null, editId=null;
-let pdfDoc=null, pdfPage=1;
-let gToken=null; // Google OAuth token
+// ── STATE ──────────────────────────────────────────────────────────────────
+let atRecs = [], byDate = {}, allDates = [], curDate = null;
+let editId = null, pdfDoc = null, pdfPage = 1, gToken = null;
 
-// ── AIRTABLE ──────────────────────────────────────────────────────────────
+// ── AIRTABLE ───────────────────────────────────────────────────────────────
 async function atFetch(path, opts={}) {
   const r = await fetch(`https://api.airtable.com/v0/${AT_BASE}/${path}`, {
     ...opts,
     headers: { 'Authorization':'Bearer '+AT_TOKEN, 'Content-Type':'application/json', ...(opts.headers||{}) }
   });
-  if (!r.ok) { const e = await r.json().catch(()=>({error:{message:r.status}})); throw new Error(e.error?.message || r.status); }
+  if (!r.ok) { const e = await r.json().catch(()=>({error:{message:r.status}})); throw new Error(e.error?.message||r.status); }
   return r.json();
 }
 
 async function loadAllAT() {
   let recs=[], offset=null;
   do {
-    let url = `${AT_TBL}?pageSize=100`;
-    if (offset) url += `&offset=${offset}`;
+    // CRITICAL: returnFieldsByFieldId=true so fields are keyed by ID, not name
+    let url = `${AT_TBL}?pageSize=100&returnFieldsByFieldId=true`;
+    if (offset) url += '&offset='+offset;
+    setMsg('Loading… ' + recs.length + ' records');
     const d = await atFetch(url);
     recs = recs.concat(d.records);
     offset = d.offset;
-    setHdrStatus(`Loading AT... ${recs.length}`);
   } while(offset);
   return recs;
 }
 
-async function loadATSchema() {
-  const d = await fetch(`https://api.airtable.com/v0/meta/bases/${AT_BASE}/tables`, {
-    headers:{'Authorization':'Bearer '+AT_TOKEN}
-  }).then(r=>r.json());
-  const tbl = d.tables?.find(t=>t.id===AT_TBL);
-  if (!tbl) return;
-  const map = {[F.compound]:'ef-compound',[F.site]:'ef-site',[F.timing]:'ef-timing',[F.status]:'ef-status'};
-  tbl.fields.forEach(f => {
-    const selId = map[f.id];
-    if (!selId || !f.options?.choices) return;
-    const sel = document.getElementById(selId);
-    f.options.choices.forEach(c => {
-      const o = document.createElement('option');
-      o.value = o.textContent = c.name;
-      sel.appendChild(o);
-    });
-  });
-}
-
 function indexAT() {
-  atByDate = {};
+  byDate = {};
   atRecs.forEach(r => {
-    const d = r.fields[F.date]; if (!d) return;
-    (atByDate[d] = atByDate[d]||[]).push(r);
+    const d = r.fields[F.date];
+    if (!d) return;
+    const key = d.substring(0,10); // normalize to YYYY-MM-DD
+    (byDate[key] = byDate[key]||[]).push(r);
   });
-}
-
-async function saveToAT(fields, id=null) {
-  const method = id ? 'PATCH' : 'POST';
-  const url = id ? `${AT_TBL}/${id}` : AT_TBL;
-  return atFetch(url, { method, body: JSON.stringify({fields}) });
-}
-
-async function deleteFromAT(id) {
-  return atFetch(`${AT_TBL}/${id}`, { method:'DELETE' });
-}
-
-// ── GOOGLE DRIVE ──────────────────────────────────────────────────────────
-function getGoogleToken(cb) {
-  if (gToken) { cb(gToken); return; }
-  // Use popup OAuth
-  const scope = encodeURIComponent('https://www.googleapis.com/auth/drive.readonly');
-  const redirect = encodeURIComponent(location.origin + location.pathname);
-  const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GCL_ID}&redirect_uri=${redirect}&response_type=token&scope=${scope}`;
-  const w = window.open(url, 'gauth', 'width=500,height=600');
-  const check = setInterval(() => {
-    try {
-      if (w.closed) { clearInterval(check); return; }
-      const hash = w.location.hash;
-      if (hash && hash.includes('access_token')) {
-        clearInterval(check);
-        w.close();
-        const params = new URLSearchParams(hash.substring(1));
-        gToken = params.get('access_token');
-        cb(gToken);
-      }
-    } catch(e) {}
-  }, 200);
-}
-
-async function fetchDriveFile(fileId, isBinary=false) {
-  return new Promise((res, rej) => {
-    getGoogleToken(async token => {
-      try {
-        const r = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
-          headers: { 'Authorization': 'Bearer ' + token }
-        });
-        if (!r.ok) { rej(new Error('Drive fetch failed: ' + r.status)); return; }
-        if (isBinary) res(await r.arrayBuffer());
-        else res(await r.text());
-      } catch(e) { rej(e); }
-    });
-  });
-}
-
-// ── PDF ───────────────────────────────────────────────────────────────────
-async function loadPDFLocal(input) {
-  const file = input.files[0]; if (!file) return;
-  const buf = await file.arrayBuffer();
-  await renderPDFFromBuffer(buf);
-}
-
-
-// ── DRIVE RECENTS ─────────────────────────────────────────────────────────
-const RECENTS_KEY = 'drive_recents';
-function getRecents() { try { return JSON.parse(localStorage.getItem(RECENTS_KEY)||'[]'); } catch(e){return[];} }
-function saveRecent(id, name, type) {
-  let recents = getRecents().filter(r => r.id !== id);
-  recents.unshift({id, name, type, ts: Date.now()});
-  if (recents.length > 10) recents = recents.slice(0,10);
-  localStorage.setItem(RECENTS_KEY, JSON.stringify(recents));
-  renderRecents();
-}
-function removeRecent(id) {
-  const recents = getRecents().filter(r => r.id !== id);
-  localStorage.setItem(RECENTS_KEY, JSON.stringify(recents));
-  renderRecents();
-}
-function renderRecents() {
-  const recents = getRecents();
-  ['pdf','p'].forEach(type => {
-    const menu = document.getElementById(type+'-recents-menu');
-    if (!menu) return;
-    const filtered = recents.filter(r => r.type === type || r.type === 'any');
-    if (!filtered.length) { menu.innerHTML = '<div class="recent-empty">No saved files yet</div>'; return; }
-    menu.innerHTML = filtered.map(r =>
-      `<div class="recent-item">
-        <span class="ri-name" title="${r.id}">${r.name||r.id}</span>
-        <span class="ri-id">${r.id.substring(0,12)}...</span>
-        <span class="ri-del" onclick="event.stopPropagation();removeRecent('${r.id}')" title="Remove">✕</span>
-        <button class="cbtn edit" style="font-size:10px;padding:2px 6px" onclick="selectRecent('${type}','${r.id}')">Use</button>
-      </div>`
-    ).join('');
-  });
-}
-function selectRecent(type, id) {
-  if (type==='pdf') {
-    document.getElementById('pdf-drive-id').value = id;
-    loadPDFDrive();
-  } else {
-    document.getElementById('p-drive-id').value = id;
-    loadParseurDrive();
-  }
-}
-
-async function getDriveFileName(id, token) {
-  try {
-    const r = await fetch(`https://www.googleapis.com/drive/v3/files/${id}?fields=name`, {
-      headers:{Authorization:'Bearer '+token}
-    });
-    if (r.ok) { const d = await r.json(); return d.name||id; }
-  } catch(e){}
-  return id;
-}
-
-async function loadPDFDrive() {
-  const id = document.getElementById('pdf-drive-id').value.trim();
-  if (!id) { alert('Enter a Drive file ID'); return; }
-  setHdrStatus('Loading PDF from Drive...');
-  try {
-    const buf = await fetchDriveFile(id, true);
-    await renderPDFFromBuffer(buf);
-    getGoogleToken(async tok => {
-      const name = await getDriveFileName(id, tok);
-      saveRecent(id, name, 'pdf');
-    });
-  } catch(e) { alert('Drive load failed: ' + e.message); }
-}
-
-async function renderPDFFromBuffer(buf) {
-  pdfDoc = await pdfjsLib.getDocument({data: buf}).promise;
-  pdfPage = 1;
-  document.getElementById('pdf-empty').style.display = 'none';
-  document.getElementById('pdf-canvas').style.display = '';
-  await renderPage(pdfPage);
-}
-
-async function renderPage(n) {
-  if (!pdfDoc) return;
-  n = Math.max(1, Math.min(n, pdfDoc.numPages));
-  pdfPage = n;
-  const page = await pdfDoc.getPage(n);
-  const canvas = document.getElementById('pdf-canvas');
-  const ctx = canvas.getContext('2d');
-  const vp = page.getViewport({scale: 1.3});
-  canvas.width = vp.width; canvas.height = vp.height;
-  await page.render({canvasContext: ctx, viewport: vp}).promise;
-  document.getElementById('pdf-pg').textContent = `${n} / ${pdfDoc.numPages}`;
-}
-function pdfNext() { if (pdfDoc) renderPage(pdfPage+1); }
-function pdfPrev() { if (pdfDoc) renderPage(pdfPage-1); }
-function jumpPage(v) { const n=parseInt(v); if (!isNaN(n)) renderPage(n); }
-
-// ── PARSEUR ───────────────────────────────────────────────────────────────
-async function loadParseurFile(input) {
-  const file = input.files[0]; if (!file) return;
-  const ext = file.name.split('.').pop().toLowerCase();
-  if (ext === 'json') {
-    const txt = await file.text();
-    parseParseurJSON(JSON.parse(txt));
-  } else if (ext === 'csv') {
-    parseParseurCSV(await file.text());
-  } else {
-    parseParseurExcel(await file.arrayBuffer());
-  }
-}
-
-async function loadParseurDrive() {
-  const id = document.getElementById('p-drive-id').value.trim();
-  if (!id) { alert('Enter Drive file ID'); return; }
-  setHdrStatus('Loading Parseur from Drive...');
-  try {
-    const txt = await fetchDriveFile(id, false);
-    if (txt.trim().startsWith('[') || txt.trim().startsWith('{')) parseParseurJSON(JSON.parse(txt));
-    else parseParseurCSV(txt);
-    getGoogleToken(async tok => {
-      const name = await getDriveFileName(id, tok);
-      saveRecent(id, name, 'p');
-    });
-  } catch(e) {
-    try {
-      const buf = await fetchDriveFile(id, true);
-      parseParseurExcel(buf);
-      getGoogleToken(async tok => {
-        const name = await getDriveFileName(id, tok);
-        saveRecent(id, name, 'p');
-      });
-    } catch(e2) { alert('Drive Parseur load failed: ' + e2.message); }
-  }
-}
-
-function parseParseurJSON(data) {
-  const arr = Array.isArray(data) ? data : (data.records||data.data||Object.values(data));
-  parseurRows = arr.filter(r => typeof r === 'object');
-  indexParseur();
-}
-
-function parseParseurCSV(text) {
-  const lines = text.trim().split('\n').filter(l=>l.trim());
-  if (!lines.length) return;
-  const headers = parseCSVLine(lines[0]);
-  parseurRows = lines.slice(1).map(line => {
-    const vals = parseCSVLine(line);
-    const obj = {};
-    headers.forEach((h,i) => obj[h] = (vals[i]||'').trim());
-    return obj;
-  }).filter(r => Object.values(r).some(v=>v));
-  indexParseur();
-}
-
-function parseCSVLine(line) {
-  const vals=[]; let cur='', inQ=false;
-  for(let i=0;i<line.length;i++){
-    const c=line[i];
-    if(c==='"'){inQ=!inQ;}
-    else if(c===','&&!inQ){vals.push(cur.replace(/^"|"$/g,'').trim());cur='';}
-    else cur+=c;
-  }
-  vals.push(cur.replace(/^"|"$/g,'').trim());
-  return vals;
-}
-
-function parseParseurExcel(buf) {
-  const wb = XLSX.read(buf, {type:'arraybuffer'});
-  const ws = wb.Sheets[wb.SheetNames[0]];
-  parseurRows = XLSX.utils.sheet_to_json(ws);
-  indexParseur();
-}
-
-function indexParseur() {
-  parseurByDate = {};
-  const dateKeys = ['date','Date','DATE','injection_date','Date/Time','datetime','log_date'];
-  parseurRows.forEach(row => {
-    let dv = null;
-    for(const k of dateKeys) { if (row[k]) { dv = row[k]; break; } }
-    if (!dv) { const k = Object.keys(row).find(k=>k.toLowerCase().includes('date')); if(k) dv=row[k]; }
-    if (!dv) return;
-    let d = String(dv).trim();
-    if (/^\d{1,2}\/\d{1,2}\/\d{2,4}/.test(d)) {
-      const [m,dd,y] = d.split('/');
-      const yr = y.length===2?'20'+y:y;
-      d = `${yr}-${m.padStart(2,'0')}-${dd.padStart(2,'0')}`;
-    }
-    if (!/^\d{4}-\d{2}-\d{2}/.test(d)) return;
-    d = d.substring(0,10);
-    (parseurByDate[d] = parseurByDate[d]||[]).push(row);
-  });
-  document.getElementById('p-status').textContent = `✓ ${parseurRows.length} rows`;
-  rebuildDates();
-  if (curDate) renderDate(curDate);
-}
-
-// ── RENDER ────────────────────────────────────────────────────────────────
-function rebuildDates() {
-  const s = new Set([...Object.keys(atByDate), ...Object.keys(parseurByDate)]);
-  allDates = [...s].sort();
-  const sel = document.getElementById('date-sel');
-  sel.innerHTML = '<option value="">— Select Date —</option>';
-  allDates.forEach(d => {
-    const an = (atByDate[d]||[]).length, pn = (parseurByDate[d]||[]).length;
-    const st = !an?'✗AT':!pn?'○':an===pn?'✓':'△';
-    const o = document.createElement('option');
-    o.value = d;
-    o.textContent = `${d}  AT:${an} P:${pn} ${st}`;
-    sel.appendChild(o);
-  });
+  allDates = Object.keys(byDate).sort();
+  buildDateSel();
   updateBadges();
 }
 
-function updateBadges() {
-  let match=0,diff=0,missAT=0,extra=0;
+function buildDateSel() {
+  const sel = document.getElementById('date-sel');
+  sel.innerHTML = '<option value="">— Select Date —</option>';
   allDates.forEach(d => {
-    const an=(atByDate[d]||[]).length, pn=(parseurByDate[d]||[]).length;
-    if (!an&&pn) missAT++;
-    else if (an&&!pn) extra++;
-    else if (an&&pn) an===pn?match++:diff++;
+    const n = (byDate[d]||[]).length;
+    const o = document.createElement('option');
+    o.value = d;
+    o.textContent = `${d}  (${n} record${n!==1?'s':''})`;
+    sel.appendChild(o);
   });
-  document.getElementById('b-at').textContent    = `AT: ${atRecs.length}`;
-  document.getElementById('b-p').textContent     = `Parseur: ${parseurRows.length}`;
-  document.getElementById('b-ok').textContent    = `✓ ${match}`;
-  document.getElementById('b-diff').textContent  = `⚠ ${diff}`;
-  document.getElementById('b-miss').textContent  = `✗ ${missAT}`;
-  document.getElementById('b-extra').textContent = `+ ${extra}`;
 }
 
-function renderDate(d) {
+function updateBadges() {
+  document.getElementById('b-at').textContent    = 'AT: ' + atRecs.length;
+  document.getElementById('b-dates').textContent  = allDates.length + ' dates';
+  document.getElementById('date-count').textContent = `${allDates.length} dates`;
+}
+
+// ── RENDER ─────────────────────────────────────────────────────────────────
+function goDate(d) {
   curDate = d;
   document.getElementById('date-sel').value = d;
-  const atList = atByDate[d]||[], pList = parseurByDate[d]||[];
-  document.getElementById('at-cnt').textContent = atList.length;
-  document.getElementById('p-cnt').textContent  = pList.length;
-
-  // AT col
-  const atBody = document.getElementById('at-body');
-  if (!atList.length) {
-    atBody.innerHTML = '<div class="empty-col">No AT record<br><em style="font-size:11px;color:#9ca3af">Use "Edit / Add" tab to add</em></div>';
-  } else {
-    atBody.innerHTML = atList.map(r => renderATCard(r, pList)).join('');
-  }
-
-  // Parseur col
-  const pBody = document.getElementById('p-body');
-  if (!parseurRows.length) {
-    pBody.innerHTML = '<div class="empty-col">Load Parseur file from bottom bar</div>';
-  } else if (!pList.length) {
-    pBody.innerHTML = '<div class="empty-col">No Parseur data for this date</div>';
-  } else {
-    pBody.innerHTML = pList.map((r,i)=>renderParseurCard(r,i)).join('');
-  }
-
-  // Match tag
-  const tag = document.getElementById('match-tag');
-  if (!atList.length && !pList.length) { tag.textContent=''; tag.style.cssText=''; }
-  else if (!atList.length) { tag.textContent='✗ Missing in AT'; tag.style.cssText='background:#fee2e2;color:#991b1b;padding:3px 10px;border-radius:12px'; }
-  else if (!pList.length)  { tag.textContent='○ AT only'; tag.style.cssText='background:#ede9fe;color:#5b21b6;padding:3px 10px;border-radius:12px'; }
-  else if (atList.length===pList.length) { tag.textContent='✓ Counts match'; tag.style.cssText='background:#dcfce7;color:#166534;padding:3px 10px;border-radius:12px'; }
-  else { tag.textContent='⚠ Count mismatch'; tag.style.cssText='background:#fef3c7;color:#92400e;padding:3px 10px;border-radius:12px'; }
-
-  // Pre-fill date in edit form
-  document.getElementById('ef-date').value = d;
+  document.getElementById('b-cur').textContent = d || '—';
+  renderRecords();
+}
+function prevDate() {
+  if (!curDate || !allDates.length) return;
+  const i = allDates.indexOf(curDate);
+  if (i > 0) goDate(allDates[i-1]);
+}
+function nextDate() {
+  if (!curDate || !allDates.length) return;
+  const i = allDates.indexOf(curDate);
+  if (i < allDates.length-1) goDate(allDates[i+1]);
 }
 
-function renderATCard(rec, pList) {
-  const f = rec.fields;
-  const compound = f[F.compound]||'—', dose=f[F.dose]||'—', site=f[F.site]||'—',
-        timing=f[F.timing]||'—', status=f[F.status]||'—', notes=f[F.notes]||'', name=f[F.name]||'';
-  // diff check against first parseur row
-  const p0 = pList[0]||{};
-  const pCompound = findParseurVal(p0,'compound','drug','medication','compound_name');
-  const cdiff = pCompound && pCompound.toLowerCase()!==compound.toLowerCase();
-  return `<div class="rcard at-ok">
-    <div class="card-btns">
-      <button class="cbtn edit" onclick="editRecord('${rec.id}')">Edit</button>
-      <button class="cbtn del" onclick="confirmDel('${rec.id}')">Del</button>
+function renderRecords() {
+  const area = document.getElementById('records-area');
+  const recs = byDate[curDate] || [];
+  if (!curDate) { area.innerHTML = '<div id="records-empty">Select a date to view records</div>'; return; }
+  if (!recs.length) {
+    area.innerHTML = '<div id="records-empty">No records for this date — use + Add Record to create one</div>';
+    return;
+  }
+  // Sort by timing: Morning → Evening → Night → Daily → blank
+  const order = {'Morning':0,'Evening':1,'Night':2,'Daily':3};
+  const sorted = [...recs].sort((a,b) => {
+    const ta = order[a.fields[F.timing]]??9, tb = order[b.fields[F.timing]]??9;
+    if (ta!==tb) return ta-tb;
+    return (a.fields[F.compound]||'').localeCompare(b.fields[F.compound]||'');
+  });
+  area.innerHTML = sorted.map(r => buildCard(r)).join('');
+}
+
+function buildCard(r) {
+  const f = r.fields;
+  const compound = f[F.compound] || '?';
+  const dose     = f[F.dose]     || '';
+  const site     = f[F.site]     || '';
+  const timing   = f[F.timing]   || '';
+  const notes    = f[F.notes]    || '';
+  const status   = f[F.status]   || '';
+  const statusClass = status==='Done'?'done':status==='Todo'?'todo':'';
+  const cardClass   = status==='Done'?'status-done':status==='Todo'?'status-todo':'';
+  return `<div class="rcard ${cardClass}">
+    <button class="card-edit-btn" onclick="openEdit('${r.id}')">✎ Edit</button>
+    <div class="rcard-top">
+      <span class="rcard-compound">${compound}</span>
+      ${dose?`<span class="rcard-dose">${dose}</span>`:''}
+      ${timing?`<span class="rcard-timing">${timing}</span>`:''}
+      ${site?`<span class="rcard-site">${site}</span>`:''}
+      ${status?`<span class="rcard-status ${statusClass}">${status}</span>`:''}
     </div>
-    <div class="frow"><span class="flbl">ID</span><span class="fval" style="font-size:10px;color:#9ca3af">${rec.id}</span></div>
-    ${name?`<div class="frow"><span class="flbl">Name</span><span class="fval">${name}</span></div>`:''}
-    <div class="frow"><span class="flbl">Compound</span><span class="fval ${cdiff?'hi':''}">${compound}</span></div>
-    <div class="frow"><span class="flbl">Dose</span><span class="fval">${dose}</span></div>
-    <div class="frow"><span class="flbl">Site</span><span class="fval">${site}</span></div>
-    <div class="frow"><span class="flbl">Timing</span><span class="fval">${timing}</span></div>
-    <div class="frow"><span class="flbl">Status</span><span class="fval">${status}</span></div>
-    ${notes?`<div class="frow"><span class="flbl">Notes</span><span class="fval">${notes}</span></div>`:''}
+    ${notes?`<div class="rcard-notes">${notes}</div>`:''}
   </div>`;
 }
 
-function renderParseurCard(row, idx) {
-  const entries = Object.entries(row).filter(([k])=>k!=='_dk');
-  const rows = entries.map(([k,v])=>`<div class="frow"><span class="flbl">${k}</span><span class="fval">${v||'—'}</span></div>`).join('');
-  return `<div class="rcard p-row">
-    <div class="card-btns">
-      <button class="cbtn fill" onclick="fillFromParseur(${idx})">→ Fill Form</button>
-    </div>
-    ${rows}
-  </div>`;
+// ── EDIT / ADD ─────────────────────────────────────────────────────────────
+function openAdd() {
+  editId = null;
+  clearForm();
+  if (curDate) document.getElementById('ef-date').value = curDate;
+  document.getElementById('modal-title').textContent = 'New Injection Record';
+  document.getElementById('btn-delete').style.display = 'none';
+  document.getElementById('modal-id').textContent = '';
+  showModal();
 }
 
-function findParseurVal(row,...keys) {
-  for (const k of keys) {
-    const match = Object.keys(row).find(rk => rk.toLowerCase() === k.toLowerCase());
-    if (match && row[match]) return String(row[match]);
-  }
-  return null;
-}
-
-// ── EDIT FORM ─────────────────────────────────────────────────────────────
-function editRecord(id) {
-  const rec = atRecs.find(r=>r.id===id); if (!rec) return;
+function openEdit(id) {
+  const rec = atRecs.find(r=>r.id===id);
+  if (!rec) return;
   editId = id;
   const f = rec.fields;
   document.getElementById('ef-date').value     = f[F.date]||'';
@@ -732,175 +393,160 @@ function editRecord(id) {
   document.getElementById('ef-site').value     = f[F.site]||'';
   document.getElementById('ef-timing').value   = f[F.timing]||'';
   document.getElementById('ef-status').value   = f[F.status]||'';
-  document.getElementById('ef-name').value     = f[F.name]||'';
   document.getElementById('ef-notes').value    = f[F.notes]||'';
-  document.getElementById('ef-title').textContent = 'Edit Record';
-  document.getElementById('ef-id').textContent = 'ID: '+id;
-  document.getElementById('ef-del').style.display = '';
-  toggleView('edit');
-}
-
-function newRecord() {
-  editId = null;
-  clearForm();
-  if (curDate) document.getElementById('ef-date').value = curDate;
-  document.getElementById('ef-title').textContent = 'New Injection Record';
-  document.getElementById('ef-id').textContent = '';
-  document.getElementById('ef-del').style.display = 'none';
-  toggleView('edit');
+  document.getElementById('modal-title').textContent = 'Edit Record';
+  document.getElementById('btn-delete').style.display = '';
+  document.getElementById('modal-id').textContent = 'ID: '+id;
+  showModal();
 }
 
 function clearForm() {
-  ['ef-dose','ef-name','ef-notes'].forEach(id=>document.getElementById(id).value='');
-  ['ef-compound','ef-site','ef-timing','ef-status'].forEach(id=>{document.getElementById(id).selectedIndex=0;});
-  if (!editId) document.getElementById('ef-date').value = curDate||'';
-  editId = null;
-  document.getElementById('ef-del').style.display='none';
-  document.getElementById('ef-title').textContent='New Injection Record';
-  document.getElementById('ef-id').textContent='';
-}
-
-function fillFromParseur(idx) {
-  const rows = parseurByDate[curDate]||[];
-  const row = rows[idx]; if (!row) return;
-  const mp = {
-    'date':'ef-date','compound':'ef-compound','dose':'ef-dose','site':'ef-site',
-    'timing':'ef-timing','status':'ef-status','notes':'ef-notes','name':'ef-name',
-    'drug':'ef-compound','medication':'ef-compound','amount':'ef-dose','location':'ef-site',
-    'injection site':'ef-site','compound name':'ef-compound','dose amount':'ef-dose'
-  };
-  Object.entries(row).forEach(([k,v]) => {
-    const id = mp[k.toLowerCase().trim()];
-    if (id && v) document.getElementById(id).value = v;
-  });
-  toggleView('edit');
+  ['ef-dose','ef-notes'].forEach(id=>document.getElementById(id).value='');
+  ['ef-compound','ef-site','ef-timing','ef-status'].forEach(id=>document.getElementById(id).selectedIndex=0);
+  document.getElementById('ef-date').value = curDate||'';
 }
 
 async function saveRecord() {
   const date = document.getElementById('ef-date').value;
   if (!date) { alert('Date is required.'); return; }
   const fields = { [F.date]: date };
-  const compound=document.getElementById('ef-compound').value;  if(compound) fields[F.compound]=compound;
-  const dose=document.getElementById('ef-dose').value;          if(dose) fields[F.dose]=dose;
-  const site=document.getElementById('ef-site').value;          if(site) fields[F.site]=site;
-  const timing=document.getElementById('ef-timing').value;      if(timing) fields[F.timing]=timing;
-  const status=document.getElementById('ef-status').value;      if(status) fields[F.status]=status;
-  const name=document.getElementById('ef-name').value;          if(name) fields[F.name]=name;
-  const notes=document.getElementById('ef-notes').value;        if(notes) fields[F.notes]=notes;
-  setSaveInd('saving');
+  const compound = document.getElementById('ef-compound').value; if(compound) fields[F.compound]=compound;
+  const dose     = document.getElementById('ef-dose').value;     if(dose)     fields[F.dose]=dose;
+  const site     = document.getElementById('ef-site').value;     if(site)     fields[F.site]=site;
+  const timing   = document.getElementById('ef-timing').value;   if(timing)   fields[F.timing]=timing;
+  const status   = document.getElementById('ef-status').value;   if(status)   fields[F.status]=status;
+  const notes    = document.getElementById('ef-notes').value;    if(notes)    fields[F.notes]=notes;
+  if(compound) fields[F.name] = compound; // keep name field in sync
+  setSave('saving');
   try {
-    const result = await saveToAT(fields, editId||null);
+    let result;
     if (editId) {
+      result = await atFetch(AT_TBL+'/'+editId, {method:'PATCH',body:JSON.stringify({fields})});
       const idx = atRecs.findIndex(r=>r.id===editId);
-      if (idx>=0) atRecs[idx]=result;
+      if (idx>=0) atRecs[idx] = result;
     } else {
+      result = await atFetch(AT_TBL, {method:'POST',body:JSON.stringify({fields})});
       atRecs.push(result);
     }
-    indexAT(); rebuildDates(); renderDate(date);
-    clearForm(); toggleView('compare');
-    setSaveInd('ok');
-    saveStateToGH();
-  } catch(e) { alert('Save failed: '+e.message); setSaveInd('err'); }
+    indexAT();
+    closeModal();
+    goDate(date);
+    setSave('ok');
+  } catch(e) { alert('Save failed: '+e.message); setSave('err'); }
 }
 
 async function deleteRecord() {
   if (!editId) return;
-  if (!confirm('Delete record '+editId+' from Airtable?')) return;
-  setSaveInd('saving');
+  if (!confirm('Delete this record from Airtable?')) return;
+  setSave('saving');
   try {
-    await deleteFromAT(editId);
+    await atFetch(AT_TBL+'/'+editId, {method:'DELETE'});
     atRecs = atRecs.filter(r=>r.id!==editId);
-    indexAT(); rebuildDates();
-    if (curDate) renderDate(curDate);
-    clearForm(); toggleView('compare');
-    setSaveInd('ok');
-    saveStateToGH();
-  } catch(e) { alert('Delete failed: '+e.message); setSaveInd('err'); }
+    indexAT();
+    closeModal();
+    if (curDate) renderRecords();
+    setSave('ok');
+  } catch(e) { alert('Delete failed: '+e.message); setSave('err'); }
 }
 
-async function confirmDel(id) {
-  if (!confirm('Delete this record?')) return;
-  setSaveInd('saving');
-  try {
-    await deleteFromAT(id);
-    atRecs = atRecs.filter(r=>r.id!==id);
-    indexAT(); rebuildDates();
-    if (curDate) renderDate(curDate);
-    setSaveInd('ok');
-    saveStateToGH();
-  } catch(e) { alert('Delete failed: '+e.message); setSaveInd('err'); }
-}
-
-// ── GITHUB STATE SAVE ─────────────────────────────────────────────────────
-function saveStateToGH() {
-  try {
-    const state = { saved: new Date().toISOString(), atCount: atRecs.length, parseurCount: parseurRows.length, curDate };
-    localStorage.setItem('injection_audit_state', JSON.stringify(state));
-    setSaveInd('ok');
-  } catch(e) { console.warn('State save failed', e); }
-}
-
-// ── UI HELPERS ────────────────────────────────────────────────────────────
-function toggleView(v) {
-  const ce = v==='compare';
-  document.getElementById('compare-view').style.display = ce ? '' : 'none';
-  document.getElementById('edit-view').style.display    = ce ? 'none' : '';
-  document.getElementById('tab-compare').className = 'tab'+(ce?' on':'');
-  document.getElementById('tab-edit').className    = 'tab'+(ce?'':' on');
-}
-function goDate(d) { if (d) renderDate(d); }
-function prevDate() {
-  if (!curDate||!allDates.length) return;
-  const i = allDates.indexOf(curDate);
-  if (i>0) renderDate(allDates[i-1]);
-}
-function nextDate() {
-  if (!curDate||!allDates.length) return;
-  const i = allDates.indexOf(curDate);
-  if (i<allDates.length-1) renderDate(allDates[i+1]);
-}
-function openModal() {
-  const list = document.getElementById('date-list');
-  list.innerHTML = allDates.map(d => {
-    const an=(atByDate[d]||[]).length, pn=(parseurByDate[d]||[]).length;
-    const icon = !an?'🔴':!pn?'🟣':an===pn?'🟢':'🟡';
-    return `<div class="dli ${d===curDate?'cur':''}" onclick="closeModal();renderDate('${d}')">${icon} ${d} — AT:${an} P:${pn}</div>`;
-  }).join('');
-  document.getElementById('modal').classList.add('show');
-}
-function closeModal() { document.getElementById('modal').classList.remove('show'); }
-function setHdrStatus(msg) { document.getElementById('hdr-status').textContent=msg; }
-function setSaveInd(state) {
+function showModal() { document.getElementById('modal-overlay').classList.add('show'); }
+function closeModal() { document.getElementById('modal-overlay').classList.remove('show'); editId=null; }
+function setSave(s) {
   const el=document.getElementById('save-ind');
-  if(state==='saving'){el.textContent='⏳ Saving...';el.className='si-saving';}
-  else if(state==='ok'){el.textContent='✓ Saved '+new Date().toLocaleTimeString();el.className='si-ok';}
-  else{el.textContent='⚠ Error';el.className='si-err';}
+  if(s==='saving'){el.textContent='⏳ Saving…';el.className='';}
+  else if(s==='ok'){el.textContent='✓ Saved';el.className='ok';}
+  else{el.textContent='⚠ Error';el.className='err';}
 }
 
-// ── INIT ──────────────────────────────────────────────────────────────────
-async function initLoad() {
-  document.getElementById('loader-err').textContent = '';
-  document.getElementById('loader-retry').style.display = 'none';
-  document.getElementById('loader').style.display = 'flex';
+// ── PDF ────────────────────────────────────────────────────────────────────
+function getGoogleToken(cb) {
+  if (gToken) { cb(gToken); return; }
+  const scope = encodeURIComponent('https://www.googleapis.com/auth/drive.readonly');
+  const redirect = encodeURIComponent(location.origin + location.pathname);
+  const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GCL_ID}&redirect_uri=${redirect}&response_type=token&scope=${scope}`;
+  const w = window.open(url,'gauth','width=500,height=600');
+  if (!w) { alert('Pop-up blocked — allow pop-ups for this site'); return; }
+  const chk = setInterval(()=>{
+    try {
+      if(w.closed){clearInterval(chk);return;}
+      const hash=w.location.hash;
+      if(hash&&hash.includes('access_token')){
+        clearInterval(chk); w.close();
+        gToken=new URLSearchParams(hash.substring(1)).get('access_token');
+        cb(gToken);
+      }
+    } catch(e){}
+  },300);
+}
+
+function loadPDFFromDrive() {
+  const id = document.getElementById('pdf-drive-id').value.trim();
+  if (!id) { document.getElementById('pdf-status').textContent='Enter a Drive file ID first'; return; }
+  document.getElementById('pdf-status').textContent='Authenticating with Google…';
+  getGoogleToken(async token => {
+    try {
+      document.getElementById('pdf-status').textContent='Downloading PDF…';
+      const r = await fetch(`https://www.googleapis.com/drive/v3/files/${id}?alt=media`,{headers:{Authorization:'Bearer '+token}});
+      if (!r.ok) throw new Error('Drive error '+r.status);
+      const buf = await r.arrayBuffer();
+      await renderPDFBuffer(buf);
+      document.getElementById('pdf-status').textContent='Injections.pdf loaded ✓';
+    } catch(e) { document.getElementById('pdf-status').textContent='Error: '+e.message; }
+  });
+}
+
+function loadPDFLocal(input) {
+  const file = input.files[0]; if (!file) return;
+  file.arrayBuffer().then(renderPDFBuffer);
+}
+
+async function renderPDFBuffer(buf) {
+  pdfDoc = await pdfjsLib.getDocument({data:buf}).promise;
+  pdfPage = 1;
+  document.getElementById('pdf-empty').style.display='none';
+  document.getElementById('pdf-canvas').style.display='';
+  await renderPage(1);
+}
+
+async function renderPage(n) {
+  if (!pdfDoc) return;
+  n = Math.max(1,Math.min(n,pdfDoc.numPages));
+  pdfPage = n;
+  const page = await pdfDoc.getPage(n);
+  const canvas = document.getElementById('pdf-canvas');
+  const vp = page.getViewport({scale:1.3});
+  canvas.width=vp.width; canvas.height=vp.height;
+  await page.render({canvasContext:canvas.getContext('2d'),viewport:vp}).promise;
+  document.getElementById('pdf-pg').textContent=`${n} / ${pdfDoc.numPages}`;
+  document.getElementById('pdf-jump').value=n;
+}
+function pdfPrev(){if(pdfDoc)renderPage(pdfPage-1);}
+function pdfNext(){if(pdfDoc)renderPage(pdfPage+1);}
+
+// ── INIT ───────────────────────────────────────────────────────────────────
+function setMsg(m){ document.getElementById('loader-msg').textContent=m; }
+
+async function init() {
+  document.getElementById('loader-err').style.display='none';
+  document.getElementById('loader-retry').style.display='none';
+  document.getElementById('loader').style.display='flex';
   try {
-    document.getElementById('loader-msg').textContent = 'Loading dropdown options...';
-    await loadATSchema();
-    document.getElementById('loader-msg').textContent = 'Loading injection records...';
+    setMsg('Loading injection records…');
     atRecs = await loadAllAT();
     indexAT();
-    rebuildDates();
-    document.getElementById('loader').style.display = 'none';
-    renderRecents();
-    setHdrStatus(`Ready — ${atRecs.length} AT records | ${allDates.length} dates`);
-    if (allDates.length) renderDate(allDates[allDates.length-1]);
+    document.getElementById('loader').style.display='none';
+    // Jump to most recent date
+    if (allDates.length) goDate(allDates[allDates.length-1]);
   } catch(e) {
-    document.getElementById('loader-msg').textContent = 'Failed to load Airtable';
-    document.getElementById('loader-err').textContent = 'Error: '+e.message+' — Check your network connection and try again.';
-    document.getElementById('loader-retry').style.display = 'inline-block';
+    setMsg('Failed to load Airtable');
+    const err = document.getElementById('loader-err');
+    err.textContent = 'Error: '+e.message;
+    err.style.display='block';
+    document.getElementById('loader-retry').style.display='inline-block';
   }
 }
 
-window.onload = initLoad;
+window.onload = init;
 </script>
 </body>
 </html>
