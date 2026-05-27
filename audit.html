@@ -3,71 +3,75 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MB Audit Tool</title>
+<title>MB Audit</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f4f5f7;color:#1a1a2e;font-size:13px;height:100vh;display:flex;flex-direction:column;overflow:hidden}
-#loader{position:fixed;inset:0;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;z-index:999}
-.spin{width:32px;height:32px;border:3px solid #e2e5ea;border-top-color:#2563eb;border-radius:50%;animation:spin .7s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;background:#f4f5f7;color:#1a1a2e;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+
 /* HEADER */
-#hdr{background:#fff;border-bottom:2px solid #e2e5ea;padding:7px 12px;display:flex;align-items:center;gap:7px;flex-wrap:wrap;flex-shrink:0;min-height:46px}
-#hdr h1{font-size:15px;font-weight:900;color:#1e2433;white-space:nowrap}
-.mode-btn{padding:5px 13px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;border:2px solid #e2e5ea;background:#f4f5f7;color:#6b7280}
-.mode-btn.on{background:#2563eb;color:#fff;border-color:#2563eb}
+#hdr{background:#fff;border-bottom:2px solid #e2e5ea;padding:0 14px;height:46px;display:flex;align-items:center;gap:8px;flex-shrink:0}
+#hdr h1{font-size:15px;font-weight:900;color:#1e2433}
+.mbtn{padding:5px 13px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;border:2px solid #e2e5ea;background:#f4f5f7;color:#6b7280}
+.mbtn.on{background:#2563eb;color:#fff;border-color:#2563eb}
 .badge{padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;border:1px solid}
-.b-blue{background:#dbeafe;border-color:#93c5fd;color:#1d4ed8}
-.b-green{background:#dcfce7;border-color:#86efac;color:#166534}
-.b-amber{background:#fef3c7;border-color:#fcd34d;color:#92400e}
-.b-red{background:#fee2e2;border-color:#fca5a5;color:#991b1b}
-.b-purple{background:#ede9fe;border-color:#c4b5fd;color:#6d28d9}
-#hdr-r{margin-left:auto;display:flex;align-items:center;gap:6px}
-#save-st{font-size:11px;color:#9ca3af;white-space:nowrap}
-#drive-st{font-size:11px;font-weight:700;padding:3px 9px;border-radius:12px;cursor:pointer}
-#drive-st.ok{background:#dcfce7;color:#166534}
-#drive-st.no{background:#fee2e2;color:#991b1b}
-/* LAYOUT */
+.bp{background:#dbeafe;border-color:#93c5fd;color:#1d4ed8}
+.bg{background:#dcfce7;border-color:#86efac;color:#166534}
+.ba{background:#fef3c7;border-color:#fcd34d;color:#92400e}
+.br{background:#fee2e2;border-color:#fca5a5;color:#991b1b}
+.bv{background:#ede9fe;border-color:#c4b5fd;color:#6d28d9}
+#hdr-r{margin-left:auto;display:flex;align-items:center;gap:8px}
+#drive-btn{padding:5px 12px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid}
+#drive-btn.ok{background:#dcfce7;border-color:#86efac;color:#166534}
+#drive-btn.no{background:#fee2e2;border-color:#fca5a5;color:#991b1b}
+#st{font-size:11px;color:#9ca3af}
+
+/* BODY */
 #body{display:flex;flex:1;overflow:hidden}
+
 /* PDF PANEL */
-#pdf-panel{width:420px;min-width:300px;background:#fff;border-right:2px solid #e2e5ea;display:flex;flex-direction:column;flex-shrink:0}
-.phdr{padding:8px 10px;background:#fafafa;border-bottom:1px solid #e2e5ea;flex-shrink:0}
-.plbl{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#9ca3af;display:block;margin-bottom:5px}
-.row{display:flex;gap:4px;align-items:center;margin-bottom:4px}
-.idf{flex:1;padding:5px 7px;border:1px solid #d1d5db;border-radius:5px;font-size:11px;min-width:0}
+#pp{width:400px;min-width:300px;background:#fff;border-right:2px solid #e2e5ea;display:flex;flex-direction:column;flex-shrink:0}
+#pp-top{padding:8px 10px;background:#fafafa;border-bottom:1px solid #e2e5ea;flex-shrink:0}
+#pp-top label{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#9ca3af;display:block;margin-bottom:5px}
+.prow{display:flex;gap:4px;align-items:center;margin-bottom:4px}
+#pp-id{flex:1;padding:5px 7px;border:1px solid #d1d5db;border-radius:5px;font-size:11px;min-width:0}
 .btn{padding:5px 9px;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid;white-space:nowrap}
-.bp{background:#2563eb;color:#fff;border-color:#2563eb}.bp:hover{background:#1d4ed8}
-.bs{background:#fff;border-color:#d1d5db;color:#374151}.bs:hover{background:#f3f4f6}
-.bg{background:#16a34a;color:#fff;border-color:#16a34a}.bg:hover{background:#15803d}
-.bsm{padding:3px 8px;font-size:10px}
-#pdf-msg{font-size:10px;color:#9ca3af}
-#pdf-area{flex:1;overflow-y:auto;background:#e5e7eb;padding:8px;min-height:0}
-#pdf-canvas{max-width:100%;box-shadow:0 2px 8px rgba(0,0,0,.2);display:none}
-#pdf-ph{color:#9ca3af;font-size:12px;text-align:center;padding:30px;width:100%}
-#pdf-nav-bar{display:flex;align-items:center;gap:5px;padding:6px 8px;border-top:1px solid #e2e5ea;background:#fafafa;flex-shrink:0;min-height:36px}
-#pdf-nav-bar button{padding:4px 9px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;font-size:11px;background:#fff}
-#pdf-nav-bar button:hover{background:#f3f4f6}
-#pdf-pg{font-size:11px;color:#6b7280;flex:1;text-align:center}
-#pdf-jp{width:44px;padding:3px 5px;border:1px solid #d1d5db;border-radius:4px;font-size:11px;text-align:center}
-/* CMP AREA */
-#cmp-area{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
-#date-bar{background:#fff;border-bottom:2px solid #e2e5ea;padding:6px 12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex-shrink:0}
-#date-inp{padding:5px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;font-weight:700;transition:border-color .3s,background .3s}
-#date-inp.flash{border-color:#2563eb;background:#dbeafe}
-#date-lbl{font-size:12px;font-weight:700;color:#2563eb;background:#dbeafe;padding:3px 10px;border-radius:20px;display:none}
-#date-bar-r{margin-left:auto}
+.bblue{background:#2563eb;color:#fff;border-color:#2563eb}.bblue:hover{background:#1d4ed8}
+.bgray{background:#fff;border-color:#d1d5db;color:#374151}.bgray:hover{background:#f3f4f6}
+.bgreen{background:#16a34a;color:#fff;border-color:#16a34a}
+.bxs{padding:3px 8px;font-size:10px}
+#pp-msg{font-size:10px;color:#9ca3af}
+#pp-area{flex:1;overflow-y:auto;background:#e5e7eb;padding:8px}
+#pp-canvas{max-width:100%;box-shadow:0 2px 8px rgba(0,0,0,.2);display:none}
+#pp-nav{display:flex;align-items:center;gap:5px;padding:6px 8px;border-top:1px solid #e2e5ea;background:#fafafa;flex-shrink:0}
+#pp-nav button{padding:4px 10px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;font-size:11px;background:#fff}
+#pp-nav button:hover{background:#f3f4f6}
+#pp-pg{font-size:11px;color:#6b7280;flex:1;text-align:center}
+#pp-jp{width:44px;padding:3px 5px;border:1px solid #d1d5db;border-radius:4px;font-size:11px;text-align:center}
+
+/* MAIN */
+#main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+
+/* DATE NAV */
+#dnav{background:#fff;border-bottom:2px solid #e2e5ea;padding:7px 12px;display:flex;align-items:center;gap:8px;flex-shrink:0}
+#dnav button{padding:5px 12px;border:1px solid #d1d5db;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700;background:#fff}
+#dnav button:hover{background:#f3f4f6}
+#d-sel{padding:5px 9px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;font-weight:700;min-width:200px}
+#d-lbl{font-size:11px;color:#9ca3af}
+#dnav-r{margin-left:auto}
+
+/* TWO COLUMNS */
 #cols{display:grid;grid-template-columns:1fr 1fr;flex:1;overflow:hidden}
-#cols.with-claude{grid-template-columns:1fr 1fr 1fr}
 .col{display:flex;flex-direction:column;overflow:hidden;border-right:1px solid #e2e5ea}
 .col:last-child{border-right:none}
-.col-hdr{padding:8px 12px;background:#fafafa;border-bottom:1px solid #e2e5ea;flex-shrink:0;display:flex;align-items:center;gap:7px;min-height:40px}
-.col-title{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#6b7280}
-.col-cnt{font-size:11px;font-weight:700;background:#e5e7eb;border-radius:10px;padding:2px 8px;color:#374151}
-.src-bar{padding:6px 10px;border-bottom:1px solid #e2e5ea;display:flex;align-items:center;gap:5px;flex-wrap:wrap;flex-shrink:0;font-size:10px}
-.src-lbl{font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:#9ca3af;white-space:nowrap}
-.col-body{flex:1;overflow-y:auto;padding:10px}
-.col-empty{color:#9ca3af;font-size:12px;text-align:center;padding:30px;font-style:italic}
+.chdr{padding:8px 12px;background:#fafafa;border-bottom:1px solid #e2e5ea;flex-shrink:0;display:flex;align-items:center;gap:7px}
+.ctitle{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#6b7280}
+.ccnt{font-size:11px;font-weight:700;background:#e5e7eb;border-radius:10px;padding:2px 8px;color:#374151}
+.csrc{padding:5px 10px;border-bottom:1px solid #e2e5ea;display:flex;align-items:center;gap:5px;flex-wrap:wrap;flex-shrink:0;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:#9ca3af}
+.cbody{flex:1;overflow-y:auto;padding:10px}
+.cempty{color:#9ca3af;font-size:12px;text-align:center;padding:30px;font-style:italic}
+
 /* CARDS */
 .card{background:#fff;border:1px solid #e2e5ea;border-radius:8px;padding:10px 12px;margin-bottom:8px}
 .card.match{border-left:4px solid #4ade80}
@@ -77,20 +81,26 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .ch{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:5px}
 .cn{font-weight:800;font-size:14px;color:#1e2433}
 .pill{padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700}
-.pd{background:#dbeafe;color:#1d4ed8}.pt{background:#f3f4f6;color:#374151}
-.ps{background:#fef3c7;color:#92400e}.pk{background:#dcfce7;color:#166534}.pn{background:#fee2e2;color:#991b1b}
-.cnotes{font-size:11px;color:#9ca3af;margin-top:3px;font-style:italic}
-.dr{font-size:11px;margin-top:4px;padding:3px 7px;background:#fef9c3;border-radius:4px;color:#92400e}
+.pd{background:#dbeafe;color:#1d4ed8}
+.pt{background:#f3f4f6;color:#374151}
+.ps{background:#fef3c7;color:#92400e}
+.pk{background:#dcfce7;color:#166534}
+.pn{background:#fee2e2;color:#991b1b}
+.mtag{font-size:10px;font-weight:800;padding:2px 7px;border-radius:8px;margin-left:auto}
+.tm{background:#dcfce7;color:#166534}
+.td{background:#fef3c7;color:#92400e}
+.tx{background:#fee2e2;color:#991b1b}
+.te{background:#dbeafe;color:#1d4ed8}
+.dr{font-size:11px;padding:3px 7px;background:#fef9c3;border-radius:4px;color:#92400e;margin-top:4px}
 .dr .old{text-decoration:line-through;color:#9ca3af;margin-right:4px}
 .dr .nw{color:#166534;font-weight:700}
-.mtag{font-size:10px;font-weight:800;padding:2px 6px;border-radius:8px;margin-left:auto;white-space:nowrap}
-.mtag.m{background:#dcfce7;color:#166534}.mtag.d{background:#fef3c7;color:#92400e}
-.mtag.x{background:#fee2e2;color:#991b1b}.mtag.e{background:#dbeafe;color:#1d4ed8}
-.cbtns{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap}
+.notes{font-size:11px;color:#9ca3af;margin-top:3px;font-style:italic}
+.cbtns{display:flex;gap:4px;margin-top:7px}
 .cbtn{padding:3px 9px;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid}
-.cb-e{background:#eff6ff;border-color:#bfdbfe;color:#2563eb}
-.cb-a{background:#f0fdf4;border-color:#86efac;color:#166534}
-.cb-d{background:#fff1f2;border-color:#fecdd3;color:#9f1239}
+.ce{background:#eff6ff;border-color:#bfdbfe;color:#2563eb}
+.ca{background:#f0fdf4;border-color:#86efac;color:#166534}
+.cd{background:#fff1f2;border-color:#fecdd3;color:#9f1239}
+
 /* DRIVE PICKER */
 #dpbg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;align-items:center;justify-content:center}
 #dpbg.on{display:flex}
@@ -98,150 +108,141 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 #dp-hdr{padding:12px 16px;border-bottom:1px solid #e2e5ea;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
 #dp-hdr h3{font-size:14px;font-weight:800}
 #dp-bc{padding:6px 14px;border-bottom:1px solid #e2e5ea;display:flex;align-items:center;gap:4px;flex-wrap:wrap;background:#f8f9fa;min-height:34px;flex-shrink:0}
-.bc-i{font-size:11px;font-weight:700;color:#2563eb;cursor:pointer;padding:2px 4px;border-radius:3px}.bc-i:hover{background:#dbeafe}
-.bc-s{font-size:11px;color:#9ca3af}
-.bc-c{font-size:11px;font-weight:700;color:#374151}
-#dp-sc{padding:6px 10px;border-bottom:1px solid #e2e5ea;display:flex;gap:5px;flex-wrap:wrap;background:#fffbeb;flex-shrink:0}
-.sc-b{padding:3px 10px;border:1px solid #fcd34d;background:#fef9c3;border-radius:12px;font-size:11px;font-weight:700;cursor:pointer;color:#92400e}
-.sc-b:hover{background:#fef3c7}
+.bci{font-size:11px;font-weight:700;color:#2563eb;cursor:pointer;padding:2px 4px;border-radius:3px}.bci:hover{background:#dbeafe}
+.bcs{font-size:11px;color:#9ca3af}
+.bcc{font-size:11px;font-weight:700;color:#374151}
+#dp-sc{padding:6px 10px;border-bottom:1px solid #e2e5ea;display:flex;gap:5px;flex-wrap:wrap;background:#fffbeb;flex-shrink:0;min-height:36px;align-items:center}
 #dp-qi-wrap{padding:7px 14px;border-bottom:1px solid #e2e5ea;flex-shrink:0}
 #dp-qi{width:100%;padding:7px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px}
 #dp-list{flex:1;overflow-y:auto;padding:10px}
-.dp-item{display:flex;align-items:center;gap:10px;padding:9px 11px;border:1px solid #e2e5ea;border-radius:7px;margin-bottom:6px;cursor:pointer;background:#fff}
-.dp-item:hover{background:#f0f9ff;border-color:#93c5fd}
-.dp-folder{background:#fffbeb;border-color:#fcd34d}.dp-folder:hover{background:#fef9c3}
-.dp-icon{font-size:20px;flex-shrink:0}
-.dp-info{flex:1;min-width:0}
-.dp-name{font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.dp-meta{font-size:11px;color:#9ca3af;margin-top:1px}
-.dp-sel{padding:4px 12px;border:none;background:#2563eb;color:#fff;border-radius:5px;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0}
+.dpi{display:flex;align-items:center;gap:9px;padding:9px 11px;border:1px solid #e2e5ea;border-radius:7px;margin-bottom:5px;cursor:pointer;background:#fff}
+.dpi:hover{background:#f0f9ff;border-color:#93c5fd}
+.dpf{background:#fffbeb;border-color:#fcd34d}.dpf:hover{background:#fef9c3}
+.dpi-icon{font-size:18px;flex-shrink:0}
+.dpi-info{flex:1;min-width:0}
+.dpi-name{font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dpi-meta{font-size:11px;color:#9ca3af;margin-top:1px}
+.dp-sel{padding:4px 12px;border:none;background:#2563eb;color:#fff;border-radius:5px;font-size:12px;font-weight:700;cursor:pointer}
+.sc-b{padding:3px 10px;border:1px solid #fcd34d;background:#fef9c3;border-radius:12px;font-size:11px;font-weight:700;cursor:pointer;color:#92400e}.sc-b:hover{background:#fef3c7}
+
 /* EDIT MODAL */
 #mbg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:center;justify-content:center}
 #mbg.on{display:flex}
 #mdl{background:#fff;border-radius:10px;padding:22px;width:440px;max-width:96vw;max-height:90vh;overflow-y:auto;box-shadow:0 12px 40px rgba(0,0,0,.2)}
 #mdl h2{font-size:15px;font-weight:800;margin-bottom:16px}
-.mr{margin-bottom:11px}
-.mr label{display:block;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:#9ca3af;margin-bottom:4px}
-.mr input,.mr select,.mr textarea{width:100%;padding:7px 9px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;font-family:inherit;background:#fff}
-.mr textarea{min-height:64px;resize:vertical}
+.mf{margin-bottom:11px}
+.mf label{display:block;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:#9ca3af;margin-bottom:4px}
+.mf input,.mf select,.mf textarea{width:100%;padding:7px 9px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;font-family:inherit;background:#fff}
+.mf textarea{min-height:64px;resize:vertical}
 .mbtns{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
 .mbtns button{padding:8px 16px;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer;border:1px solid}
 #msave{background:#2563eb;color:#fff;border-color:#2563eb}
 #mcancel{background:#fff;color:#374151;border-color:#d1d5db}
 #mdel{background:#fff1f2;color:#9f1239;border-color:#fecdd3;margin-left:auto;display:none}
-#mrecid{font-size:10px;color:#9ca3af;margin-top:6px}
 </style>
 </head>
 <body>
-<div id="loader"><div class="spin"></div><div style="font-size:14px;font-weight:700;color:#374151">Loading…</div></div>
 
+<!-- HEADER -->
 <div id="hdr">
   <h1>💊 MB Audit</h1>
-  <button class="mode-btn on" id="m-inj" onclick="setMode('inj')">💉 Injections</button>
-  <button class="mode-btn" id="m-wkt" onclick="setMode('wkt')">🏋️ Workouts</button>
-  <button id="cld-toggle" onclick="toggleClaude()" style="padding:5px 13px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;border:2px solid #e2e5ea;background:#f4f5f7;color:#6b7280" title="Uses Anthropic API — costs money">✦ Claude Extract: OFF</button>
-  <span class="badge b-purple" id="b-par">Parseur: 0</span>
-  <span class="badge b-blue" id="b-at">AT: 0</span>
-  <span class="badge b-green" id="b-ok">✓ 0</span>
-  <span class="badge b-amber" id="b-df">⚠ 0</span>
-  <span class="badge b-red" id="b-ms">✗ 0</span>
+  <button class="mbtn on" id="mi" onclick="setMode('inj')">💉 Injections</button>
+  <button class="mbtn" id="mw" onclick="setMode('wkt')">🏋️ Workouts</button>
+  <span class="badge bv" id="b-par">Parseur: 0</span>
+  <span class="badge bp" id="b-at">AT: 0</span>
+  <span class="badge bg" id="b-ok">✓ 0</span>
+  <span class="badge ba" id="b-df">⚠ 0</span>
+  <span class="badge br" id="b-ms">✗ 0</span>
   <div id="hdr-r">
-    <span id="drive-st" class="no" onclick="signIn()">🔴 Sign In</span>
-    <span id="save-st"></span>
-    <button class="btn bs bsm" onclick="reloadAT()">↻ Reload AT</button>
+    <button id="drive-btn" class="no" onclick="signIn()">🔴 Sign In to Drive</button>
+    <span id="st"></span>
+    <button class="btn bgray bxs" onclick="reloadAT()">↻ AT</button>
   </div>
 </div>
 
 <div id="body">
-  <!-- PDF PANEL -->
-  <div id="pdf-panel">
-    <div class="phdr">
-      <span class="plbl">📄 PDF — Visual Reference</span>
-      <div class="row">
-        <input id="pdf-id" class="idf" type="text" placeholder="Google Drive file ID" oninput="LS.set('pdf_id_'+mode,this.value)">
-        <button class="btn bp bsm" onclick="loadDrive()">Load</button>
-        <button class="btn bs bsm" onclick="openPicker('pdf')" title="Browse Drive">📂</button>
-      </div>
-      <div class="row">
-        <label class="btn bs bsm" style="cursor:pointer">⬆ Local<input type="file" accept=".pdf" style="display:none" onchange="loadLocal(this)"></label>
-        <span id="pdf-msg">No PDF loaded</span>
-      </div>
-    </div>
-    <div id="pdf-area"><div id="pdf-ph">Load PDF above to view alongside data</div><canvas id="pdf-canvas"></canvas></div>
-    <div id="pdf-nav-bar">
-      <button onclick="pgGo(pdfPage-1)">◀</button>
-      <input id="pdf-jp" type="number" min="1" onchange="pgGo(+this.value)" placeholder="—">
-      <span id="pdf-pg">— / —</span>
-      <button onclick="pgGo(pdfPage+1)">▶</button>
-    </div>
 
+  <!-- PDF PANEL -->
+  <div id="pp">
+    <div id="pp-top">
+      <label>📄 PDF — Visual Reference</label>
+      <div class="prow">
+        <input id="pp-id" class="idf" type="text" placeholder="Google Drive file ID">
+        <button class="btn bblue bxs" onclick="pdfLoad()">Load</button>
+        <button class="btn bgray bxs" onclick="openPicker('pdf')" title="Browse Drive">📂</button>
+      </div>
+      <div class="prow">
+        <label class="btn bgray bxs" style="cursor:pointer">⬆ Local<input type="file" accept=".pdf" style="display:none" onchange="pdfLocal(this)"></label>
+        <span id="pp-msg" style="font-size:10px;color:#9ca3af;margin-left:4px">No PDF loaded</span>
+      </div>
+    </div>
+    <div id="pp-area"><canvas id="pp-canvas"></canvas></div>
+    <div id="pp-nav">
+      <button onclick="pgGo(pg-1)">◀</button>
+      <input id="pp-jp" type="number" min="1" onchange="pgGo(+this.value)" placeholder="—">
+      <span id="pp-pg">— / —</span>
+      <button onclick="pgGo(pg+1)">▶</button>
+    </div>
   </div>
 
-  <!-- COMPARISON -->
-  <div id="cmp-area">
-    <div id="date-bar">
-      <button class="btn bs bsm" onclick="navDate(-1)">◀ Prev</button>
-      <select id="date-sel" onchange="onSelDate()" style="padding:5px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;font-weight:700;min-width:200px"><option value="">— Select Date —</option></select>
-      <button class="btn bs bsm" onclick="navDate(1)">Next ▶</button>
-      <span id="date-cnt-lbl" style="font-size:11px;color:#9ca3af"></span>
-      <div id="date-bar-r"><button class="btn bg bsm" onclick="acceptAllMissing()">✓ Accept All Missing → AT</button></div>
+  <!-- MAIN AREA -->
+  <div id="main">
+
+    <!-- DATE NAV -->
+    <div id="dnav">
+      <button onclick="navD(-1)">◀ Prev</button>
+      <select id="d-sel" onchange="selDate()"><option value="">— Select Date —</option></select>
+      <button onclick="navD(1)">Next ▶</button>
+      <span id="d-lbl"></span>
+      <div id="dnav-r">
+        <button class="btn bgreen bxs" onclick="acceptAll()">✓ Accept All Missing → AT</button>
+      </div>
     </div>
+
+    <!-- COLUMNS -->
     <div id="cols">
+
       <!-- PARSEUR -->
       <div class="col">
-        <div class="col-hdr">
-          <span class="col-title">📋 Parseur</span>
-          <span class="col-cnt" id="par-cnt">0</span>
-          <span style="margin-left:auto;font-size:10px;color:#9ca3af" id="par-dlbl"></span>
+        <div class="chdr">
+          <span class="ctitle">📋 Parseur</span>
+          <span class="ccnt" id="pc">0</span>
+          <span style="margin-left:auto;font-size:10px;color:#9ca3af" id="pd-lbl"></span>
         </div>
-        <div class="src-bar" style="background:#fff8f0">
-          <span class="src-lbl">Source:</span>
-          <label class="btn bs bsm" style="cursor:pointer;border-color:#fcd34d">⬆ File<input type="file" accept=".csv,.json,.xlsx,.xls" style="display:none" onchange="loadParseurFile(this)"></label>
-          <button class="btn bs bsm" style="border-color:#fcd34d" onclick="openPicker('par')">📂 Drive</button>
-          <span id="par-src-lbl" style="color:#9ca3af;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0">No file loaded</span>
+        <div class="csrc" style="background:#fff8f0">
+          Source:
+          <label class="btn bgray bxs" style="cursor:pointer;border-color:#fcd34d;font-weight:700;font-size:10px">⬆ File<input type="file" accept=".csv,.json,.xlsx,.xls" style="display:none" onchange="parFile(this)"></label>
+          <button class="btn bgray bxs" style="border-color:#fcd34d" onclick="openPicker('par')">📂 Drive</button>
+          <span id="par-lbl" style="color:#9ca3af;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;font-weight:400;text-transform:none;letter-spacing:0">No file loaded</span>
         </div>
-        <div class="col-body" id="par-body"><div class="col-empty">Load your Parseur export (CSV / JSON / Excel) above</div></div>
+        <div class="cbody" id="par-body"><div class="cempty">Load a Parseur CSV, JSON, or Excel export above</div></div>
       </div>
+
       <!-- AT -->
       <div class="col">
-        <div class="col-hdr">
-          <span class="col-title">🗄 Airtable Current</span>
-          <span class="col-cnt" id="at-cnt">0</span>
-          <span style="margin-left:auto;font-size:10px;color:#9ca3af" id="at-dlbl"></span>
-          <button class="btn bp bsm" style="margin-left:6px" onclick="openAdd()">+ Add</button>
+        <div class="chdr">
+          <span class="ctitle">🗄 Airtable</span>
+          <span class="ccnt" id="ac">0</span>
+          <span style="margin-left:auto;font-size:10px;color:#9ca3af" id="ad-lbl"></span>
+          <button class="btn bblue bxs" style="margin-left:6px" onclick="openAdd()">+ Add</button>
         </div>
-        <div class="src-bar" style="background:#f0fff4">
-          <span class="src-lbl">Source:</span>
-          <span id="at-src-lbl" style="color:#9ca3af">Auto-loads when date is set</span>
+        <div class="csrc" style="background:#f0fff4">
+          Source: <span id="at-lbl" style="color:#9ca3af;font-weight:400;text-transform:none;letter-spacing:0">Auto-loads when date is selected</span>
         </div>
-        <div class="col-body" id="at-body"><div class="col-empty">Select a date above to load AT records</div></div>
+        <div class="cbody" id="at-body"><div class="cempty">Select a date above to load AT records</div></div>
       </div>
+
     </div>
-      <!-- CLAUDE COLUMN (hidden by default) -->
-      <div class="col" id="cld-col" style="display:none">
-        <div class="col-hdr">
-          <span class="col-title">✦ Claude Extract</span>
-          <span class="col-cnt" id="cld-cnt">0</span>
-          <span id="cld-spin" style="display:none;width:14px;height:14px;border:2px solid #e2e5ea;border-top-color:#2563eb;border-radius:50%;animation:spin .7s linear infinite;margin-left:4px"></span>
-          <span style="margin-left:auto;font-size:10px;color:#9ca3af" id="cld-dlbl"></span>
-        </div>
-        <div class="src-bar" style="background:#fff0f0">
-          <span style="font-size:10px;font-weight:800;color:#dc2626">⚠ COSTS MONEY</span>
-          <span style="font-size:10px;color:#9ca3af">Uses Anthropic API credits per page</span>
-          <button class="btn bsm" style="margin-left:auto;background:#2563eb;color:#fff;border-color:#2563eb" onclick="extractPage()">✦ Extract This Page</button>
-        </div>
-        <div class="col-body" id="cld-body"><div class="col-empty">Click ✦ Extract to analyze current PDF page</div></div>
-      </div>
   </div>
 </div>
 
 <!-- DRIVE PICKER -->
 <div id="dpbg" onclick="if(event.target===this)closePicker()">
   <div id="dp">
-    <div id="dp-hdr"><h3 id="dp-title">Select from Drive</h3><button class="btn bs bsm" onclick="closePicker()">✕ Close</button></div>
+    <div id="dp-hdr"><h3 id="dp-title">Select from Drive</h3><button class="btn bgray bxs" onclick="closePicker()">✕ Close</button></div>
     <div id="dp-bc"></div>
     <div id="dp-sc"></div>
-    <div id="dp-qi-wrap"><input id="dp-qi" type="text" placeholder="Search files in current folder…" oninput="filterPicker()"></div>
+    <div id="dp-qi-wrap"><input id="dp-qi" type="text" placeholder="Search…" oninput="filterPicker()"></div>
     <div id="dp-list"><div style="text-align:center;padding:30px;color:#9ca3af">Loading…</div></div>
   </div>
 </div>
@@ -251,562 +252,825 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div id="mdl">
     <h2 id="mtitle">Record</h2>
     <div id="inj-f">
-      <div class="mr"><label>Date</label><input id="ef-date" type="date"></div>
-      <div class="mr"><label>Compound</label>
-        <select id="ef-cmp"><option value="">— Select —</option><option>NAD+</option><option>LipoMinoMix</option><option>Tesamorelin</option><option>Tirzepatide</option><option>Anavar (Oxandrolone)</option><option>BPC-157</option><option>TB-500</option><option>CJC-1295</option><option>Ipamorelin</option><option>GHK-Cu</option><option>Retatrutide</option><option>Selank</option><option>DSIP</option><option>KPV</option><option>Semax</option><option>Mots-C</option><option>SS-31</option><option>CJC-1295 No DAC</option><option>Epitalon</option><option>Melanotan II (MT2)</option><option>Deca (Nandrolone)</option><option>Testosterone</option><option>Winstrol (Stanozolol)</option><option>Cagrilintide</option></select>
+      <div class="mf"><label>Date</label><input id="ef-date" type="date"></div>
+      <div class="mf"><label>Compound</label>
+        <select id="ef-cmp"><option value="">— Select —</option>
+          <option>NAD+</option><option>LipoMinoMix</option><option>Tesamorelin</option><option>Tirzepatide</option>
+          <option>Anavar (Oxandrolone)</option><option>BPC-157</option><option>TB-500</option><option>CJC-1295</option>
+          <option>Ipamorelin</option><option>GHK-Cu</option><option>Retatrutide</option><option>Selank</option>
+          <option>DSIP</option><option>KPV</option><option>Semax</option><option>Mots-C</option><option>SS-31</option>
+          <option>CJC-1295 No DAC</option><option>Epitalon</option><option>Melanotan II (MT2)</option>
+          <option>Deca (Nandrolone)</option><option>Testosterone</option><option>Winstrol (Stanozolol)</option><option>Cagrilintide</option>
+        </select>
       </div>
-      <div class="mr"><label>Dose</label><input id="ef-dose" type="text" placeholder="e.g. 200mg, 2.5u"></div>
-      <div class="mr"><label>Site</label><select id="ef-site"><option value="">— Select —</option><option>L</option><option>R</option><option>L+R</option><option>Pill</option><option>X</option><option>Nasal</option><option>Abd</option><option>S</option></select></div>
-      <div class="mr"><label>Timing</label><select id="ef-time"><option value="">— Select —</option><option>Morning</option><option>Night</option><option>Evening</option><option>Daily</option></select></div>
-      <div class="mr"><label>Status</label><select id="ef-stat"><option value="">— Select —</option><option>Todo</option><option>In progress</option><option>Done</option></select></div>
-      <div class="mr"><label>Notes</label><textarea id="ef-notes"></textarea></div>
+      <div class="mf"><label>Dose</label><input id="ef-dose" type="text" placeholder="e.g. 200mg, 2.5u"></div>
+      <div class="mf"><label>Site</label>
+        <select id="ef-site"><option value="">— Select —</option><option>L</option><option>R</option><option>L+R</option><option>Pill</option><option>X</option><option>Nasal</option><option>Abd</option><option>S</option></select>
+      </div>
+      <div class="mf"><label>Timing</label>
+        <select id="ef-time"><option value="">— Select —</option><option>Morning</option><option>Night</option><option>Evening</option><option>Daily</option></select>
+      </div>
+      <div class="mf"><label>Status</label>
+        <select id="ef-stat"><option value="">— Select —</option><option>Todo</option><option>In progress</option><option>Done</option></select>
+      </div>
+      <div class="mf"><label>Notes</label><textarea id="ef-notes"></textarea></div>
     </div>
     <div id="wkt-f" style="display:none">
-      <div class="mr"><label>Date</label><input id="wf-date" type="date"></div>
-      <div class="mr"><label>Exercise</label><input id="wf-ex" type="text"></div>
-      <div class="mr"><label>Variation</label><input id="wf-var" type="text" placeholder="DBs, Rope 1/2…"></div>
-      <div class="mr"><label>Set #</label><input id="wf-set" type="number" min="1"></div>
-      <div class="mr"><label>Reps</label><input id="wf-reps" type="number" min="0"></div>
-      <div class="mr"><label>Weight (lbs)</label><input id="wf-wt" type="number" min="0"></div>
-      <div class="mr"><label>Day Type</label><select id="wf-day"><option value="">— Select —</option><option>Push</option><option>Pull</option><option>Legs</option><option>Arms</option><option>Shoulders</option><option>Cardio</option></select></div>
-      <div class="mr"><label>Notes</label><textarea id="wf-notes"></textarea></div>
+      <div class="mf"><label>Date</label><input id="wf-date" type="date"></div>
+      <div class="mf"><label>Exercise</label><input id="wf-ex" type="text"></div>
+      <div class="mf"><label>Variation</label><input id="wf-var" type="text"></div>
+      <div class="mf"><label>Set #</label><input id="wf-set" type="number" min="1"></div>
+      <div class="mf"><label>Reps</label><input id="wf-reps" type="number" min="0"></div>
+      <div class="mf"><label>Weight (lbs)</label><input id="wf-wt" type="number" min="0"></div>
+      <div class="mf"><label>Day</label>
+        <select id="wf-day"><option value="">— Select —</option><option>Push</option><option>Pull</option><option>Legs</option><option>Arms</option><option>Shoulders</option><option>Cardio</option></select>
+      </div>
+      <div class="mf"><label>Notes</label><textarea id="wf-notes"></textarea></div>
     </div>
-    <div id="mrecid"></div>
-    <div class="mbtns"><button id="msave" onclick="saveRec()">Save</button><button id="mcancel" onclick="closeMdl()">Cancel</button><button id="mdel" onclick="delRec()">Delete</button></div>
+    <div id="mrid" style="font-size:10px;color:#9ca3af;margin-top:6px"></div>
+    <div class="mbtns">
+      <button id="msave" onclick="saveRec()">Save</button>
+      <button id="mcancel" onclick="closeMdl()">Cancel</button>
+      <button id="mdel" onclick="delRec()">Delete</button>
+    </div>
   </div>
 </div>
 
 <script>
-pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-const AT_TOKEN='pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
-const AT_BASE='appmHDG4TGT1xy6R6';
-const GCL_ID='478191426516-94rflpalsl5ev56ptck62k5imes6jk8l.apps.googleusercontent.com';
-const GSCOPE='https://www.googleapis.com/auth/drive.readonly';
-const PDF_QA='https://mikeblack001.github.io/health-protocol/pdf_qa.html';
-const INJ={tbl:'tblBvEaLkGGipnOFc',name:'fldt9vYT8Tm37Gf3k',date:'fldhYEtLEGA4VxvvO',compound:'fldwVFyizH4mBANBa',site:'fldHDlJY8FpAvK018',timing:'fldIdzew4Jd0qO4Uc',dose:'fld8d8mtRapfaIyqL',notes:'fldAbczu73mINwLmx',status:'fldD9kegiwk6mINV8'};
-const WKT={tbl:'tblKDqjy5RzqaJvjr',setid:'fld4hUpEzC9IqN0xh',date:'fld75zYXknF0RtCWH',session:'fldBChNmPkNg61oTN',exercise:'fldZ93A1t7fGjjsSS',variation:'fld2TZdmCOloH0gAK',setnum:'fldNm9Ao0rmcwwDXo',reps:'fldelUngWHRTm48m1',weight:'fldmrbBmfgSMtREMt',day:'fldypzlwqw9AzWrEE',notes:'fldfR4vyBtj2VWB2b'};
-const QUICK={inj:[{n:'Injections PDF',id:'1Yk3aWqXPWRpFWCvXYasWoo9hA202KQG6',f:false}],wkt:[{n:'Workouts 2024-25',id:'1eYtQT3c14psKbxRkKtbLoNtiLFEnOFhF',f:true},{n:'Workouts 2025',id:'1VgIqXOQUc5qLzzAaWQ1FQZxIMBAacGP9',f:true}]};
-const LS={get:k=>localStorage.getItem('mb_audit_'+k),set:(k,v)=>localStorage.setItem('mb_audit_'+k,v)};
+// ── CONSTANTS ─────────────────────────────────────────────────────────
+const AT_TOK = 'pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
+const AT_BASE = 'appmHDG4TGT1xy6R6';
+const GCL_ID = '478191426516-94rflpalsl5ev56ptck62k5imes6jk8l.apps.googleusercontent.com';
+const GSCOPE = 'https://www.googleapis.com/auth/drive.readonly';
+const PDF_QA = 'https://mikeblack001.github.io/health-protocol/pdf_qa.html';
 
-let mode='inj',curDate=null,atRecs=[],parseurAll=[],parseurRecs=[];
-let editId=null,pdfDoc=null,pdfPage=1,gToken=null;
-let pickerTarget=null,pickerFiles=[],pickerStack=[{id:'root',name:'My Drive'}];
+const INJ = {
+  tbl:'tblBvEaLkGGipnOFc', name:'fldt9vYT8Tm37Gf3k', date:'fldhYEtLEGA4VxvvO',
+  compound:'fldwVFyizH4mBANBa', site:'fldHDlJY8FpAvK018', timing:'fldIdzew4Jd0qO4Uc',
+  dose:'fld8d8mtRapfaIyqL', notes:'fldAbczu73mINwLmx', status:'fldD9kegiwk6mINV8'
+};
+const WKT = {
+  tbl:'tblKDqjy5RzqaJvjr', setid:'fld4hUpEzC9IqN0xh', date:'fld75zYXknF0RtCWH',
+  session:'fldBChNmPkNg61oTN', exercise:'fldZ93A1t7fGjjsSS', variation:'fld2TZdmCOloH0gAK',
+  setnum:'fldNm9Ao0rmcwwDXo', reps:'fldelUngWHRTm48m1', weight:'fldmrbBmfgSMtREMt',
+  day:'fldypzlwqw9AzWrEE', notes:'fldfR4vyBtj2VWB2b'
+};
+const QUICK = {
+  inj: [{n:'📋 Injections PDF', id:'1Yk3aWqXPWRpFWCvXYasWoo9hA202KQG6', f:false}],
+  wkt: [{n:'📁 Workouts 2024-25', id:'1eYtQT3c14psKbxRkKtbLoNtiLFEnOFhF', f:true},
+        {n:'📁 Workouts 2025',    id:'1VgIqXOQUc5qLzzAaWQ1FQZxIMBAacGP9', f:true}]
+};
+
+// ── STATE ─────────────────────────────────────────────────────────────
+let mode = 'inj';
+let curDate = null;
+let atRecs = [];
+let parAll = [];   // all parseur records
+let parRecs = [];  // filtered to curDate
+let editId = null;
+let pdfDoc = null;
+let pg = 1;
+let gTok = null;
+let pickerTarget = null;
+let pickerFiles = [];
+let pickerStack = [{id:'root', name:'My Drive'}];
+
+const LS = {
+  get: k => localStorage.getItem('mba_' + k),
+  set: (k,v) => localStorage.setItem('mba_' + k, v)
+};
 
 // ── AUTH ──────────────────────────────────────────────────────────────
-function initAuth(){
-  if(location.hash&&location.hash.includes('access_token')){
-    const p=new URLSearchParams(location.hash.slice(1));
-    const tok=p.get('access_token'),exp=parseInt(p.get('expires_in')||3600);
-    if(tok){gToken=tok;localStorage.setItem('mb_pdfqat',tok);localStorage.setItem('mb_pdfqae',Date.now()+(exp-60)*1000);history.replaceState(null,'',location.pathname);setDriveOk();return;}
+function initAuth() {
+  if (location.hash && location.hash.includes('access_token')) {
+    const p = new URLSearchParams(location.hash.slice(1));
+    const tok = p.get('access_token');
+    const exp = parseInt(p.get('expires_in') || 3600);
+    if (tok) {
+      gTok = tok;
+      localStorage.setItem('mb_pdfqat', tok);
+      localStorage.setItem('mb_pdfqae', Date.now() + (exp - 60) * 1000);
+      history.replaceState(null, '', location.pathname);
+      setDriveOK();
+      return;
+    }
   }
-  const t=localStorage.getItem('mb_pdfqat'),e=parseInt(localStorage.getItem('mb_pdfqae')||0);
-  if(t&&Date.now()<e){gToken=t;setDriveOk();return;}
+  const t = localStorage.getItem('mb_pdfqat');
+  const e = parseInt(localStorage.getItem('mb_pdfqae') || 0);
+  if (t && Date.now() < e) { gTok = t; setDriveOK(); return; }
   setDriveNo();
 }
-function signIn(){
-  sessionStorage.setItem('mb_oauth_return',location.href.split('#')[0].split('?')[0]);
-  location.href='https://accounts.google.com/o/oauth2/v2/auth?client_id='+encodeURIComponent(GCL_ID)+'&redirect_uri='+encodeURIComponent(PDF_QA)+'&response_type=token&scope='+encodeURIComponent(GSCOPE);
+
+function signIn() {
+  sessionStorage.setItem('mb_oauth_return', location.href.split('#')[0]);
+  location.href = 'https://accounts.google.com/o/oauth2/v2/auth' +
+    '?client_id=' + encodeURIComponent(GCL_ID) +
+    '&redirect_uri=' + encodeURIComponent(PDF_QA) +
+    '&response_type=token&scope=' + encodeURIComponent(GSCOPE);
 }
-function setDriveOk(){const e=document.getElementById('drive-st');e.textContent='🟢 Drive';e.className='ok';e.onclick=null;autoInit();}
-function setDriveNo(){const e=document.getElementById('drive-st');e.textContent='🔴 Sign In';e.className='no';e.onclick=signIn;}
-async function autoInit(){
-  const id=LS.get('pdf_id_'+mode)||(mode==='inj'?'1Yk3aWqXPWRpFWCvXYasWoo9hA202KQG6':'');
-  if(id){document.getElementById('pdf-id').value=id;if(!pdfDoc){setPM('Auto-loading…');await loadDrive();}}
+
+function setDriveOK() {
+  const b = document.getElementById('drive-btn');
+  b.textContent = '🟢 Drive'; b.className = 'ok'; b.onclick = null;
+  // Auto-load saved PDF
+  const sid = LS.get('pdf_' + mode) || (mode === 'inj' ? '1Yk3aWqXPWRpFWCvXYasWoo9hA202KQG6' : '');
+  if (sid && !pdfDoc) { document.getElementById('pp-id').value = sid; pdfLoad(); }
+}
+
+function setDriveNo() {
+  const b = document.getElementById('drive-btn');
+  b.textContent = '🔴 Sign In to Drive'; b.className = 'no'; b.onclick = signIn;
 }
 
 // ── PDF ───────────────────────────────────────────────────────────────
-async function loadDrive(){
-  const id=document.getElementById('pdf-id').value.trim();
-  if(!id){setPM('Enter a Drive file ID or use 📂');return;}
-  if(!gToken){signIn();return;}
-  setPM('Downloading…');
-  try{
-    const r=await fetch('https://www.googleapis.com/drive/v3/files/'+id+'?alt=media',{headers:{Authorization:'Bearer '+gToken}});
-    if(!r.ok){if(r.status===401||r.status===403){localStorage.removeItem('mb_pdfqat');gToken=null;setDriveNo();signIn();}else throw new Error('Drive '+r.status);return;}
-    const buf=await r.arrayBuffer();
-    await renderPDF(buf);
-    LS.set('pdf_id_'+mode,id);
-    saveRecent('pdf',id,document.getElementById('pdf-id').value);
-  }catch(e){setPM('Error: '+e.message);}
-}
-function loadLocal(inp){if(inp.files[0])inp.files[0].arrayBuffer().then(buf=>{renderPDF(buf);setPM(inp.files[0].name+' loaded ✓');});}
-async function renderPDF(buf){
-  pdfDoc=await pdfjsLib.getDocument({data:buf}).promise;pdfPage=1;
-  document.getElementById('pdf-ph').style.display='none';
-  document.getElementById('pdf-canvas').style.display='';
-  await renderPage(1);setPM(pdfDoc.numPages+' pages loaded ✓');
-}
-async function renderPage(n){
-  if(!pdfDoc)return;
-  n=Math.max(1,Math.min(n,pdfDoc.numPages));pdfPage=n;
-  const pg=await pdfDoc.getPage(n);
-  const c=document.getElementById('pdf-canvas');
-  const area=document.getElementById('pdf-area');
-  const vp1=pg.getViewport({scale:1});
-  const scale=Math.max(1.2,(area.offsetWidth-20)/vp1.width);
-  const vp=pg.getViewport({scale});
-  c.width=vp.width;c.height=vp.height;
-  await pg.render({canvasContext:c.getContext('2d'),viewport:vp}).promise;
-  document.getElementById('pdf-pg').textContent=n+' / '+pdfDoc.numPages;
-  document.getElementById('pdf-jp').value=n;
-}
-function pgGo(n){renderPage(n);}
-function setPM(m){document.getElementById('pdf-msg').textContent=m;}
-
-// ── DRIVE PICKER ──────────────────────────────────────────────────────
-async function openPicker(target){
-  if(!gToken){signIn();return;}
-  pickerTarget=target;pickerStack=[{id:'root',name:'My Drive'}];
-  document.getElementById('dp-title').textContent=target==='pdf'?'Select PDF from Drive':'Select Parseur Export from Drive';
-  document.getElementById('dp-qi').value='';
-  renderShortcuts();renderRecents();renderBC();
-  document.getElementById('dpbg').classList.add('on');
-  await loadFolder('root');
-}
-function renderShortcuts(){
-  const sc=QUICK[mode]||[];const el=document.getElementById('dp-sc');
-  if(!sc.length){el.style.display='none';return;}
-  el.style.display='flex';el.innerHTML='<span style="font-size:10px;font-weight:800;color:#9ca3af;align-self:center">QUICK: </span>';
-  sc.forEach(s=>{
-    const b=document.createElement('button');b.className='sc-b';
-    b.textContent=(s.f?'📁 ':'📋 ')+s.n;
-    b.onclick=()=>{if(s.f)navFolder(s.id,s.n);else{closePicker();document.getElementById('pdf-id').value=s.id;LS.set('pdf_id_'+mode,s.id);loadDrive();}};
-    el.appendChild(b);
-  });
-}
-function renderBC(){
-  const el=document.getElementById('dp-bc');el.innerHTML='';
-  pickerStack.forEach((f,i)=>{
-    if(i>0){const s=document.createElement('span');s.className='bc-s';s.textContent=' › ';el.appendChild(s);}
-    const sp=document.createElement('span');
-    if(i===pickerStack.length-1){sp.className='bc-c';sp.textContent='📁 '+f.name;}
-    else{sp.className='bc-i';sp.textContent='📁 '+f.name;sp.onclick=()=>popTo(i);}
-    el.appendChild(sp);
-  });
-}
-function renderRecents(){
-  const recents=getRecents(pickerTarget);
-  const el=document.getElementById('dp-sc');
-  if(!recents.length)return;
-  // Add recent section after shortcuts
-  const existing=el.innerHTML;
-  const recHtml=recents.map((r,i)=>'<button class="sc-b" style="background:#e0f2fe;border-color:#7dd3fc;color:#0369a1" onclick="dpRecentClick('+i+')">🕐 '+r.name.substring(0,25)+'</button>').join('');
-  el.innerHTML=existing+'<span style="font-size:10px;font-weight:800;color:#9ca3af;align-self:center;margin-left:6px">RECENT: </span>'+recHtml;
-  window._dpRecents=recents;
-}
-function dpRecentClick(i){
-  const r=window._dpRecents[i];if(!r)return;
-  closePicker();
-  if(pickerTarget==='pdf'){document.getElementById('pdf-id').value=r.id;LS.set('pdf_id_'+mode,r.id);loadDrive();}
-  else loadParseurFromDrive(r.id,r.name);
+async function pdfLoad() {
+  const id = document.getElementById('pp-id').value.trim();
+  if (!id) { pmsg('Enter a Drive file ID or use 📂'); return; }
+  if (!gTok) { signIn(); return; }
+  pmsg('Loading from Drive…');
+  try {
+    const r = await fetch('https://www.googleapis.com/drive/v3/files/' + id + '?alt=media',
+      {headers: {Authorization: 'Bearer ' + gTok}});
+    if (!r.ok) {
+      if (r.status === 401 || r.status === 403) { localStorage.removeItem('mb_pdfqat'); gTok = null; setDriveNo(); signIn(); }
+      else throw new Error('Drive ' + r.status);
+      return;
+    }
+    await pdfRender(await r.arrayBuffer());
+    LS.set('pdf_' + mode, id);
+    pmsg(pdfDoc.numPages + ' pages ✓');
+  } catch(e) { pmsg('Error: ' + e.message); }
 }
 
-async function loadFolder(fid){
-  document.getElementById('dp-list').innerHTML='<div style="text-align:center;padding:30px;color:#9ca3af">Loading…</div>';
-  renderBC();
-  try{
-    const isPDF=pickerTarget==='pdf';
-    const mf=isPDF?"(mimeType='application/pdf' or mimeType='application/vnd.google-apps.folder')":"(mimeType='text/csv' or mimeType='application/json' or mimeType contains 'spreadsheet' or mimeType='application/vnd.google-apps.folder')";
-    const pq=(fid==='root'?"'root' in parents":"'"+fid+"' in parents");
-    const q=encodeURIComponent(pq+' and trashed=false and ('+mf+')');
-    const r=await fetch('https://www.googleapis.com/drive/v3/files?q='+q+'&fields=files(id,name,modifiedTime,size,mimeType)&orderBy=folder,name&pageSize=50',{headers:{Authorization:'Bearer '+gToken}});
-    if(!r.ok)throw new Error('Drive '+r.status);
-    const d=await r.json();pickerFiles=d.files||[];renderPickerList(pickerFiles);
-  }catch(e){document.getElementById('dp-list').innerHTML='<div style="color:#dc2626;padding:16px">Error: '+e.message+'</div>';}
+function pdfLocal(inp) {
+  if (!inp.files[0]) return;
+  pmsg('Loading…');
+  inp.files[0].arrayBuffer().then(buf => pdfRender(buf).then(() => pmsg(pdfDoc.numPages + ' pages ✓')));
 }
-async function navFolder(id,name){pickerStack.push({id,name});document.getElementById('dp-qi').value='';await loadFolder(id);}
-async function popTo(i){pickerStack=pickerStack.slice(0,i+1);document.getElementById('dp-qi').value='';await loadFolder(pickerStack[i].id);}
-function renderPickerList(files){
-  const el=document.getElementById('dp-list');
-  if(!files.length){el.innerHTML='<div style="text-align:center;padding:24px;color:#9ca3af">No files found</div>';return;}
-  window._dpf=files;
-  el.innerHTML=files.map((f,i)=>{
-    const isF=f.mimeType==='application/vnd.google-apps.folder';
-    const icon=isF?'📁':f.mimeType==='application/pdf'?'📄':f.mimeType==='text/csv'?'📋':'📊';
-    const dt=f.modifiedTime?new Date(f.modifiedTime).toLocaleDateString():'';
-    const sz=(!isF&&f.size)?Math.round(f.size/1024)+'KB':'';
-    return '<div class="dp-item'+(isF?' dp-folder':'')+'" onclick="dpClick('+i+')">'
-      +'<div class="dp-icon">'+icon+'</div>'
-      +'<div class="dp-info"><div class="dp-name">'+f.name+'</div><div class="dp-meta">'+dt+(sz?' · '+sz:'')+'</div></div>'
-      +(isF?'<span style="color:#9ca3af;font-size:16px">›</span>':'<button class="dp-sel" onclick="event.stopPropagation();dpClick('+i+')">Select</button>')
-      +'</div>';
-  }).join('');
+
+async function pdfRender(buf) {
+  pdfDoc = await pdfjsLib.getDocument({data: buf}).promise;
+  pg = 1;
+  await pdfPage(1);
 }
-function dpClick(i){
-  const f=window._dpf[i];if(!f)return;
-  if(f.mimeType==='application/vnd.google-apps.folder'){navFolder(f.id,f.name);return;}
-  closePicker();
-  if(pickerTarget==='pdf'){document.getElementById('pdf-id').value=f.id;LS.set('pdf_id_'+mode,f.id);loadDrive();}
-  else loadParseurFromDrive(f.id,f.name);
+
+async function pdfPage(n) {
+  if (!pdfDoc) return;
+  n = Math.max(1, Math.min(n, pdfDoc.numPages));
+  pg = n;
+  const page = await pdfDoc.getPage(n);
+  const canvas = document.getElementById('pp-canvas');
+  const area = document.getElementById('pp-area');
+  const vp1 = page.getViewport({scale: 1});
+  const scale = Math.max(1.2, (area.clientWidth - 16) / vp1.width);
+  const vp = page.getViewport({scale});
+  canvas.width = vp.width; canvas.height = vp.height;
+  canvas.style.display = 'block';
+  await page.render({canvasContext: canvas.getContext('2d'), viewport: vp}).promise;
+  document.getElementById('pp-pg').textContent = n + ' / ' + pdfDoc.numPages;
+  document.getElementById('pp-jp').value = n;
 }
-function filterPicker(){const q=document.getElementById('dp-qi').value.toLowerCase().trim();renderPickerList(q?pickerFiles.filter(f=>f.name.toLowerCase().includes(q)):pickerFiles);}
-function closePicker(){document.getElementById('dpbg').classList.remove('on');}
+
+function pgGo(n) { pdfPage(n); }
+function pmsg(m) { document.getElementById('pp-msg').textContent = m; }
 
 // ── PARSEUR ───────────────────────────────────────────────────────────
-async function loadParseurFromDrive(id,name){
-  document.getElementById('par-src-lbl').textContent='Loading '+name+'…';
-  try{
-    const r=await fetch('https://www.googleapis.com/drive/v3/files/'+id+'?alt=media',{headers:{Authorization:'Bearer '+gToken}});
-    if(!r.ok)throw new Error('Drive '+r.status);
-    const buf=await r.arrayBuffer();
-    await parseParseurBuf(buf,name);
-    document.getElementById('par-src-lbl').textContent='✓ '+name;
-    LS.set('par_id_'+mode,id);
-  }catch(e){document.getElementById('par-src-lbl').textContent='Error: '+e.message;}
+function parFile(inp) {
+  if (!inp.files[0]) return;
+  const f = inp.files[0];
+  document.getElementById('par-lbl').textContent = 'Loading ' + f.name + '…';
+  f.arrayBuffer().then(buf => {
+    parseBuf(buf, f.name);
+    document.getElementById('par-lbl').textContent = '✓ ' + f.name;
+  });
 }
-function loadParseurFile(inp){
-  const f=inp.files[0];if(!f)return;
-  document.getElementById('par-src-lbl').textContent='Loading…';
-  f.arrayBuffer().then(async buf=>{await parseParseurBuf(buf,f.name);document.getElementById('par-src-lbl').textContent='✓ '+f.name;});
+
+async function parFromDrive(id, name) {
+  document.getElementById('par-lbl').textContent = 'Loading ' + name + '…';
+  try {
+    const r = await fetch('https://www.googleapis.com/drive/v3/files/' + id + '?alt=media',
+      {headers: {Authorization: 'Bearer ' + gTok}});
+    if (!r.ok) throw new Error('Drive ' + r.status);
+    parseBuf(await r.arrayBuffer(), name);
+    document.getElementById('par-lbl').textContent = '✓ ' + name;
+    LS.set('par_' + mode, id);
+  } catch(e) { document.getElementById('par-lbl').textContent = 'Error: ' + e.message; }
 }
-async function parseParseurBuf(buf,name){
-  const lc=name.toLowerCase();
-  if(lc.endsWith('.json')){await parseParseurData(JSON.parse(new TextDecoder().decode(buf)));}
-  else if(lc.endsWith('.csv')){await parseCSV(new TextDecoder().decode(buf));}
-  else{const wb=XLSX.read(buf,{type:'arraybuffer'});await parseParseurData(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]));}
+
+function parseBuf(buf, name) {
+  const lc = name.toLowerCase();
+  try {
+    if (lc.endsWith('.json')) {
+      parseParData(JSON.parse(new TextDecoder().decode(buf)));
+    } else if (lc.endsWith('.csv')) {
+      parseCSV(new TextDecoder().decode(buf));
+    } else {
+      const wb = XLSX.read(buf, {type:'arraybuffer'});
+      parseParData(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]));
+    }
+  } catch(e) {
+    document.getElementById('par-lbl').textContent = 'Parse error: ' + e.message;
+    console.error('Parseur parse error:', e);
+  }
 }
-async function parseParseurData(arr){
-  parseurAll=(Array.isArray(arr)?arr:(arr.records||arr.data||[])).map(r=>{
-    const o={...r};
-    let dv=null;
-    for(const k of['date','Date','DATE','injection_date','log_date','Date/Time','datetime']){if(o[k]){dv=String(o[k]);break;}}
-    if(!dv){const k=Object.keys(o).find(k=>k.toLowerCase().includes('date'));if(k)dv=String(o[k]);}
-    if(dv){
-      if(/^\d{1,2}\/\d{1,2}\/\d{2,4}/.test(dv)){const[m,d,y]=dv.split('/');o._date=(y.length===2?'20'+y:y)+'-'+m.padStart(2,'0')+'-'+d.padStart(2,'0');}
-      else if(/^\d{4}-\d{2}-\d{2}/.test(dv)){o._date=dv.substring(0,10);}
-      else o._date=dv;
+
+function parseCSV(text) {
+  const lines = text.trim().split('\n').filter(l => l.trim());
+  if (!lines.length) return;
+  const hdrs = csvSplit(lines[0]);
+  const rows = lines.slice(1).map(l => {
+    const vals = csvSplit(l);
+    const obj = {};
+    hdrs.forEach((h,i) => obj[h] = (vals[i] || '').trim());
+    return obj;
+  }).filter(r => Object.values(r).some(v => v));
+  parseParData(rows);
+}
+
+function csvSplit(line) {
+  const vals = []; let cur = '', inQ = false;
+  for (const ch of line) {
+    if (ch === '"') { inQ = !inQ; }
+    else if (ch === ',' && !inQ) { vals.push(cur); cur = ''; }
+    else cur += ch;
+  }
+  vals.push(cur);
+  return vals.map(v => v.trim().replace(/^"|"$/g,''));
+}
+
+function parseParData(rows) {
+  // Normalize dates
+  parAll = (Array.isArray(rows) ? rows : []).map(r => {
+    const o = {...r};
+    // Try known date field names
+    const dkeys = ['date','Date','DATE','injection_date','log_date','Date/Time','datetime','Injection Date','Log Date'];
+    let dv = null;
+    for (const k of dkeys) { if (o[k]) { dv = String(o[k]); break; } }
+    // Fallback: any key containing 'date'
+    if (!dv) {
+      const k = Object.keys(o).find(k => k.toLowerCase().includes('date'));
+      if (k) dv = String(o[k]);
+    }
+    if (dv) {
+      dv = dv.trim();
+      if (/^\d{1,2}\/\d{1,2}\/\d{2,4}/.test(dv)) {
+        const parts = dv.split('/');
+        const m = parts[0], d = parts[1], y = parts[2];
+        const yr = y.length === 2 ? '20' + y : y;
+        o._date = yr + '-' + m.padStart(2,'0') + '-' + d.padStart(2,'0');
+      } else if (/^\d{4}-\d{2}-\d{2}/.test(dv)) {
+        o._date = dv.substring(0, 10);
+      } else {
+        o._date = dv;
+      }
     }
     return o;
   });
-  document.getElementById('b-par').textContent='Parseur: '+parseurAll.length;
-  buildDateDrop();
-  const allDates=[...new Set(parseurAll.map(r=>r._date).filter(Boolean))].sort();
-  if(allDates.length){await setDate(allDates[allDates.length-1]);}
-  else renderParseur([]);
+
+  const total = parAll.length;
+  const withDate = parAll.filter(r => r._date).length;
+  document.getElementById('b-par').textContent = 'Parseur: ' + total;
+  document.getElementById('par-lbl').textContent += ' (' + total + ' rows, ' + withDate + ' dated)';
+
+  // Build date dropdown
+  buildDateSel();
+
+  // Auto-jump to most recent date
+  const dates = getParDates();
+  if (dates.length) {
+    loadDate(dates[dates.length - 1]);
+  } else {
+    renderPar([]);
+    document.getElementById('par-body').innerHTML = '<div class="cempty">Loaded ' + total + ' rows but no dates found.<br>Check column names in your export file.</div>';
+  }
 }
-function buildDateDrop(){
-  const dates=[...new Set(parseurAll.map(r=>r._date).filter(Boolean))].sort();
-  const sel=document.getElementById('date-sel');
-  sel.innerHTML='<option value="">— Select Date —</option>';
-  dates.forEach(d=>{const n=parseurAll.filter(r=>r._date===d).length;const o=document.createElement('option');o.value=d;o.textContent=d+' ('+n+')';sel.appendChild(o);});
-  if(curDate)sel.value=curDate;
+
+function getParDates() {
+  return [...new Set(parAll.map(r => r._date).filter(Boolean))].sort();
 }
-function onSelDate(){const d=document.getElementById('date-sel').value;if(d)setDate(d);}
-function navDate(dir){
-  const dates=[...new Set(parseurAll.map(r=>r._date).filter(Boolean))].sort();
-  if(!dates.length)return;
-  const i=curDate?dates.indexOf(curDate):-1;
-  const d=dates[Math.max(0,Math.min(dates.length-1,i+dir))];
-  setDate(d);
+
+function buildDateSel() {
+  const dates = getParDates();
+  const sel = document.getElementById('d-sel');
+  sel.innerHTML = '<option value="">— Select Date —</option>';
+  dates.forEach(d => {
+    const n = parAll.filter(r => r._date === d).length;
+    const o = document.createElement('option');
+    o.value = d; o.textContent = d + '  (' + n + ' records)';
+    sel.appendChild(o);
+  });
+  document.getElementById('d-lbl').textContent = dates.length + ' dates';
 }
-async function parseCSV(text){
-  const lines=text.trim().split('\n').filter(l=>l.trim());if(!lines.length)return;
-  const hdrs=splitCSV(lines[0]);
-  await parseParseurData(lines.slice(1).map(l=>{const v=splitCSV(l);const o={};hdrs.forEach((h,i)=>o[h]=(v[i]||'').trim());return o;}).filter(r=>Object.values(r).some(v=>v)));
+
+function selDate() {
+  const d = document.getElementById('d-sel').value;
+  if (d) loadDate(d);
 }
-function splitCSV(l){const v=[];let c='',q=false;for(const ch of l){if(ch==='"'){q=!q;}else if(ch===','&&!q){v.push(c.trim());c='';}else c+=ch;}v.push(c.trim());return v.map(x=>x.replace(/^"|"$/g,''));}
-function filterParseurToDate(d){
-  parseurRecs=parseurAll.filter(r=>r._date===d);
-  document.getElementById('par-dlbl').textContent=d+' ('+parseurRecs.length+')';
-  document.getElementById('par-cnt').textContent=parseurRecs.length;
-  renderParseur(parseurRecs);
+
+function navD(dir) {
+  const dates = getParDates();
+  if (!dates.length) return;
+  const i = curDate ? dates.indexOf(curDate) : -1;
+  const next = dates[Math.max(0, Math.min(dates.length - 1, i + dir))];
+  if (next) loadDate(next);
 }
-function renderParseur(recs){
-  const b=document.getElementById('par-body');
-  if(!recs.length){b.innerHTML='<div class="col-empty">'+(parseurAll.length?'No Parseur records for '+curDate:'Load a Parseur export above')+'</div>';return;}
-  b.innerHTML=recs.map(r=>buildParCard(r)).join('');
-  updateBadges();
+
+async function loadDate(date) {
+  curDate = date;
+  document.getElementById('d-sel').value = date;
+  document.getElementById('d-lbl').textContent = getParDates().length + ' dates';
+
+  // Filter parseur
+  parRecs = parAll.filter(r => r._date === date);
+  document.getElementById('pc').textContent = parRecs.length;
+  document.getElementById('pd-lbl').textContent = date;
+  renderPar(parRecs);
+
+  // Load AT
+  document.getElementById('at-lbl').textContent = 'Loading ' + date + '…';
+  setSt('Loading AT…');
+  try {
+    atRecs = await loadAT(date);
+    document.getElementById('ac').textContent = atRecs.length;
+    document.getElementById('ad-lbl').textContent = date;
+    document.getElementById('at-lbl').textContent = '✓ ' + atRecs.length + ' records';
+    document.getElementById('b-at').textContent = 'AT: ' + atRecs.length;
+    renderAT();
+    updateBadges();
+    setSt('');
+  } catch(e) { setSt('AT error: ' + e.message); }
 }
-function getParKey(r){return r.compound||r.Compound||r.drug||r.Drug||r.medication||r.Medication||r.exercise||r.Exercise||r.name||r.Name||'?';}
-function buildParCard(r){
-  const cmp=getParKey(r);
-  const dose=r.dose||r.Dose||r.amount||r.Amount||r.weight||r.Weight||'';
-  const site=r.site||r.Site||r['injection site']||r['Injection Site']||'';
-  const timing=r.timing||r.Timing||r.time||r.Time||'';
-  const notes=r.notes||r.Notes||'';
-  const st=pMatchSt(cmp,dose,site,timing);
-  const sc=st==='match'?'match':st==='diff'?'diff':st==='miss'?'miss':'neutral';
-  const tag=st==='match'?'✓ Match':st==='diff'?'⚠ Diff':st==='miss'?'✗ Not in AT':'–';
-  const tagCls=st==='match'?'m':st==='diff'?'d':st==='miss'?'x':'e';
-  const dh=st==='diff'?parDiffHtml(cmp,dose,site,timing):'';
-  return '<div class="card '+sc+'">'
-    +'<div class="ch"><span class="cn">'+cmp+'</span>'
-    +(dose?'<span class="pill pd">'+dose+'</span>':'')
-    +(timing?'<span class="pill pt">'+timing+'</span>':'')
-    +(site?'<span class="pill ps">'+site+'</span>':'')
-    +'<span class="mtag '+tagCls+'">'+tag+'</span></div>'
-    +dh
-    +(notes?'<div class="cnotes">'+notes+'</div>':'')
-    +'<div class="cbtns">'
-    +(st!=='match'?'<button class="cbtn cb-a" onclick="pushParRec('+JSON.stringify({compound:cmp,dose,site,timing,notes}).replace(/"/g,"'")+')" >→ Push to AT</button>':'')
-    +(st==='diff'?'<button class="cbtn cb-e" onclick="openEditFromPar('+JSON.stringify({compound:cmp,dose,site,timing,notes}).replace(/"/g,"'")+')">✎ Edit AT</button>':'')
-    +'</div></div>';
+
+// ── RENDER PARSEUR ────────────────────────────────────────────────────
+function renderPar(recs) {
+  const b = document.getElementById('par-body');
+  if (!recs.length) {
+    b.innerHTML = '<div class="cempty">' + (parAll.length ? 'No records for ' + curDate : 'Load a Parseur export above') + '</div>';
+    return;
+  }
+  b.innerHTML = recs.map(r => parCard(r)).join('');
 }
-function parDiffHtml(cmp,dose,site,timing){
-  const m=atRecs.find(a=>a.fields[INJ.compound]===cmp);if(!m)return'';
-  const f=m.fields;let h='';
-  if(dose&&f[INJ.dose]!==dose)h+='<div class="dr">Dose: <span class="old">'+(f[INJ.dose]||'—')+'</span><span class="nw">'+dose+'</span></div>';
-  if(site&&f[INJ.site]!==site)h+='<div class="dr">Site: <span class="old">'+(f[INJ.site]||'—')+'</span><span class="nw">'+site+'</span></div>';
-  if(timing&&f[INJ.timing]!==timing)h+='<div class="dr">Timing: <span class="old">'+(f[INJ.timing]||'—')+'</span><span class="nw">'+timing+'</span></div>';
+
+function parKey(r) {
+  return r.compound || r.Compound || r.drug || r.Drug || r.medication || r.Medication ||
+         r.exercise || r.Exercise || r.name || r.Name || Object.values(r).find(v => v && String(v).length < 40) || '?';
+}
+
+function parCard(r) {
+  const cmp = parKey(r);
+  const dose = r.dose || r.Dose || r.amount || r.Amount || r.weight || r.Weight || '';
+  const site = r.site || r.Site || r['injection site'] || r['Injection Site'] || '';
+  const timing = r.timing || r.Timing || r.time || r.Time || '';
+  const notes = r.notes || r.Notes || '';
+  const st = matchSt(cmp, dose, site, timing);
+  const cls = st === 'match' ? 'match' : st === 'diff' ? 'diff' : st === 'miss' ? 'miss' : '';
+  const tag = st === 'match' ? ['✓ Match','tm'] : st === 'diff' ? ['⚠ Diff','td'] : st === 'miss' ? ['✗ Not in AT','tx'] : ['–','te'];
+  const dh = st === 'diff' ? diffH(cmp, dose, site, timing) : '';
+  const safeR = JSON.stringify({compound:cmp,dose,site,timing,notes}).replace(/'/g,"&#39;");
+  return `<div class="card ${cls}">
+    <div class="ch">
+      <span class="cn">${esc(cmp)}</span>
+      ${dose ? `<span class="pill pd">${esc(dose)}</span>` : ''}
+      ${timing ? `<span class="pill pt">${esc(timing)}</span>` : ''}
+      ${site ? `<span class="pill ps">${esc(site)}</span>` : ''}
+      <span class="mtag ${tag[1]}">${tag[0]}</span>
+    </div>
+    ${dh}
+    ${notes ? `<div class="notes">${esc(notes)}</div>` : ''}
+    <div class="cbtns">
+      ${st !== 'match' ? `<button class="cbtn ca" onclick='pushPar(${safeR})'>→ Push to AT</button>` : ''}
+      ${st === 'diff' ? `<button class="cbtn ce" onclick='openEditFromPar(${safeR})'>✎ Fix AT</button>` : ''}
+    </div>
+  </div>`;
+}
+
+// ── RENDER AT ─────────────────────────────────────────────────────────
+function renderAT() {
+  const b = document.getElementById('at-body');
+  if (!atRecs.length) { b.innerHTML = '<div class="cempty">No AT records for this date</div>'; return; }
+  b.innerHTML = atRecs.map(r => atCard(r)).join('');
+}
+
+function atCard(r) {
+  const f = r.fields;
+  if (mode === 'inj') {
+    const cmp = f[INJ.compound]||'?', dose = f[INJ.dose]||'', site = f[INJ.site]||'',
+          timing = f[INJ.timing]||'', notes = f[INJ.notes]||'', stat = f[INJ.status]||'';
+    const inP = parRecs.some(p => parKey(p) === cmp);
+    return `<div class="card ${inP ? 'match' : 'extra'}">
+      <div class="ch">
+        <span class="cn">${esc(cmp)}</span>
+        ${dose ? `<span class="pill pd">${esc(dose)}</span>` : ''}
+        ${timing ? `<span class="pill pt">${esc(timing)}</span>` : ''}
+        ${site ? `<span class="pill ps">${esc(site)}</span>` : ''}
+        ${stat ? `<span class="pill ${stat==='Done'?'pk':'pn'}">${esc(stat)}</span>` : ''}
+        <span class="mtag ${inP?'tm':'te'}">${inP ? '✓ Confirmed' : '+ AT Only'}</span>
+      </div>
+      ${notes ? `<div class="notes">${esc(notes)}</div>` : ''}
+      <div class="cbtns">
+        <button class="cbtn ce" onclick="openEdit('${r.id}')">✎ Edit</button>
+        <button class="cbtn cd" onclick="confirmDel('${r.id}')">✕</button>
+      </div>
+    </div>`;
+  } else {
+    const ex=f[WKT.exercise]||'?', va=f[WKT.variation]||'', sn=f[WKT.setnum]||'',
+          rp=f[WKT.reps]||'', wt=f[WKT.weight]||'', nt=f[WKT.notes]||'';
+    const inP = parRecs.some(p => (p.exercise||p.Exercise||'') === ex);
+    return `<div class="card ${inP?'match':'extra'}">
+      <div class="ch">
+        <span class="cn">${esc(ex)}</span>
+        ${va ? `<span class="pill pt">${esc(va)}</span>` : ''}
+        <span class="pill pd">Set ${sn}</span>
+        ${rp !== '' && rp != null ? `<span class="pill ps">${rp} reps</span>` : ''}
+        ${wt !== '' && wt != null ? `<span class="pill pd">${wt}lbs</span>` : ''}
+        <span class="mtag ${inP?'tm':'te'}">${inP?'✓':'+ AT Only'}</span>
+      </div>
+      ${nt ? `<div class="notes">${esc(nt)}</div>` : ''}
+      <div class="cbtns">
+        <button class="cbtn ce" onclick="openEdit('${r.id}')">✎ Edit</button>
+        <button class="cbtn cd" onclick="confirmDel('${r.id}')">✕</button>
+      </div>
+    </div>`;
+  }
+}
+
+// ── MATCH LOGIC ───────────────────────────────────────────────────────
+function matchSt(cmp, dose, site, timing) {
+  if (mode === 'wkt') {
+    const m = atRecs.find(a => a.fields[WKT.exercise] === cmp);
+    return m ? 'match' : 'miss';
+  }
+  const m = atRecs.find(a => a.fields[INJ.compound] === cmp);
+  if (!m) return 'miss';
+  const f = m.fields;
+  const ok = (!dose || f[INJ.dose] === dose) && (!site || f[INJ.site] === site) && (!timing || f[INJ.timing] === timing);
+  return ok ? 'match' : 'diff';
+}
+
+function diffH(cmp, dose, site, timing) {
+  const m = atRecs.find(a => a.fields[INJ.compound] === cmp);
+  if (!m) return '';
+  const f = m.fields; let h = '';
+  if (dose && f[INJ.dose] !== dose) h += `<div class="dr">Dose: <span class="old">${f[INJ.dose]||'—'}</span><span class="nw">${dose}</span></div>`;
+  if (site && f[INJ.site] !== site) h += `<div class="dr">Site: <span class="old">${f[INJ.site]||'—'}</span><span class="nw">${site}</span></div>`;
+  if (timing && f[INJ.timing] !== timing) h += `<div class="dr">Timing: <span class="old">${f[INJ.timing]||'—'}</span><span class="nw">${timing}</span></div>`;
   return h;
 }
 
-// ── AT ────────────────────────────────────────────────────────────────
-async function atFetch(path,opts={}){
-  const r=await fetch('https://api.airtable.com/v0/'+AT_BASE+'/'+path,{...opts,headers:{Authorization:'Bearer '+AT_TOKEN,'Content-Type':'application/json',...(opts.headers||{})}});
-  if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error?.message||r.status);}
+function updateBadges() {
+  let ok=0, df=0, ms=0;
+  parRecs.forEach(r => {
+    const s = matchSt(parKey(r), r.dose||r.Dose||'', r.site||r.Site||'', r.timing||r.Timing||'');
+    if (s==='match') ok++; else if (s==='diff') df++; else if (s==='miss') ms++;
+  });
+  document.getElementById('b-ok').textContent = '✓ ' + ok;
+  document.getElementById('b-df').textContent = '⚠ ' + df;
+  document.getElementById('b-ms').textContent = '✗ ' + ms;
+}
+
+// ── AT CRUD ───────────────────────────────────────────────────────────
+async function atFetch(path, opts={}) {
+  const r = await fetch('https://api.airtable.com/v0/' + AT_BASE + '/' + path, {
+    ...opts,
+    headers: {Authorization: 'Bearer ' + AT_TOK, 'Content-Type': 'application/json', ...(opts.headers||{})}
+  });
+  if (!r.ok) { const e = await r.json().catch(()=>({error:{message:r.status}})); throw new Error(e.error?.message||r.status); }
   return r.json();
 }
-async function loadATForDate(date){
-  const F=mode==='inj'?INJ:WKT;
-  const q=encodeURIComponent('{'+F.date+'}="'+date+'"');
-  let recs=[],off=null;
-  do{const url=F.tbl+'?returnFieldsByFieldId=true&filterByFormula='+q+'&pageSize=100'+(off?'&offset='+off:'');const d=await atFetch(url);recs=recs.concat(d.records);off=d.offset;}while(off);
+
+async function loadAT(date) {
+  const F = mode === 'inj' ? INJ : WKT;
+  const q = encodeURIComponent('{' + F.date + '}="' + date + '"');
+  let recs = [], off = null;
+  do {
+    const url = F.tbl + '?returnFieldsByFieldId=true&filterByFormula=' + q + '&pageSize=100' + (off ? '&offset=' + off : '');
+    const d = await atFetch(url);
+    recs = recs.concat(d.records);
+    off = d.offset;
+  } while (off);
   return recs;
 }
-async function setDate(date){
-  curDate=date;
-  document.getElementById('date-sel').value=date;
-  document.getElementById('at-dlbl').textContent=date;
-  const _dc=document.getElementById('date-cnt-lbl');if(_dc&&parseurAll.length){const _dn=[...new Set(parseurAll.map(r=>r._date).filter(Boolean))].length;_dc.textContent=_dn+' dates';}
-  document.getElementById('at-src-lbl').textContent='Loading…';
-  setSave('Loading AT…');
-  try{
-    atRecs=await loadATForDate(date);
-    document.getElementById('at-cnt').textContent=atRecs.length;
-    document.getElementById('b-at').textContent='AT: '+atRecs.length;
-    document.getElementById('at-src-lbl').textContent='✓ '+atRecs.length+' records for '+date;
-    renderAT();filterParseurToDate(date);updateBadges();setSave('');
-  }catch(e){setSave('AT error: '+e.message);}
-}
-async function onDateChange(){}
-async function reloadAT(){if(!curDate)return;atRecs=await loadATForDate(curDate);document.getElementById('at-cnt').textContent=atRecs.length;renderAT();updateBadges();}
-function renderAT(){
-  const b=document.getElementById('at-body');
-  if(!atRecs.length){b.innerHTML='<div class="col-empty">No AT records for this date</div>';return;}
-  b.innerHTML=atRecs.map(r=>buildATCard(r)).join('');
-}
-function buildATCard(r){
-  const f=r.fields;
-  if(mode==='inj'){
-    const cmp=f[INJ.compound]||'?',dose=f[INJ.dose]||'',site=f[INJ.site]||'',timing=f[INJ.timing]||'',notes=f[INJ.notes]||'',stat=f[INJ.status]||'';
-    const inP=parseurRecs.some(p=>getParKey(p)===cmp);
-    return '<div class="card '+(inP?'match':'extra')+'">'
-      +'<div class="ch"><span class="cn">'+cmp+'</span>'
-      +(dose?'<span class="pill pd">'+dose+'</span>':'')
-      +(timing?'<span class="pill pt">'+timing+'</span>':'')
-      +(site?'<span class="pill ps">'+site+'</span>':'')
-      +(stat?'<span class="pill '+(stat==='Done'?'pk':'pn')+'">'+stat+'</span>':'')
-      +'<span class="mtag '+(inP?'m':'e')+'">'+(inP?'✓ Confirmed':'+ AT Only')+'</span></div>'
-      +(notes?'<div class="cnotes">'+notes+'</div>':'')
-      +'<div class="cbtns"><button class="cbtn cb-e" onclick="openEdit(\''+r.id+'\')">✎ Edit</button><button class="cbtn cb-d" onclick="confirmDel(\''+r.id+'\')">✕ Delete</button></div></div>';
-  }else{
-    const ex=f[WKT.exercise]||'?',va=f[WKT.variation]||'',sn=f[WKT.setnum]||'',rp=f[WKT.reps]||'',wt=f[WKT.weight]||'',nt=f[WKT.notes]||'';
-    const inP=parseurRecs.some(p=>(p.exercise||p.Exercise||'')===ex);
-    return '<div class="card '+(inP?'match':'extra')+'">'
-      +'<div class="ch"><span class="cn">'+ex+'</span>'
-      +(va?'<span class="pill pt">'+va+'</span>':'')
-      +'<span class="pill pd">Set '+sn+'</span>'
-      +(rp!==''&&rp!=null?'<span class="pill ps">'+rp+' reps</span>':'')
-      +(wt!==''&&wt!=null?'<span class="pill pd">'+wt+'lbs</span>':'')
-      +'<span class="mtag '+(inP?'m':'e')+'">'+(inP?'✓':'+ AT Only')+'</span></div>'
-      +(nt?'<div class="cnotes">'+nt+'</div>':'')
-      +'<div class="cbtns"><button class="cbtn cb-e" onclick="openEdit(\''+r.id+'\')">✎ Edit</button><button class="cbtn cb-d" onclick="confirmDel(\''+r.id+'\')">✕ Delete</button></div></div>';
-  }
+
+async function reloadAT() {
+  if (!curDate) return;
+  atRecs = await loadAT(curDate);
+  document.getElementById('ac').textContent = atRecs.length;
+  renderAT(); renderPar(parRecs); updateBadges();
 }
 
-// ── MATCH ─────────────────────────────────────────────────────────────
-function pMatchSt(cmp,dose,site,timing){
-  if(mode==='wkt'){const m=atRecs.find(a=>a.fields[WKT.exercise]===cmp);if(!m)return'miss';return'match';}
-  const m=atRecs.find(a=>a.fields[INJ.compound]===cmp);
-  if(!m)return'miss';
-  const f=m.fields;
-  if((!dose||f[INJ.dose]===dose)&&(!site||f[INJ.site]===site)&&(!timing||f[INJ.timing]===timing))return'match';
-  return'diff';
-}
-function updateBadges(){
-  let ok=0,df=0,ms=0;
-  parseurRecs.forEach(r=>{const k=getParKey(r);const st=pMatchSt(k,r.dose||r.Dose||'',r.site||r.Site||'',r.timing||r.Timing||'');if(st==='match')ok++;else if(st==='diff')df++;else if(st==='miss')ms++;});
-  document.getElementById('b-ok').textContent='✓ '+ok;
-  document.getElementById('b-df').textContent='⚠ '+df;
-  document.getElementById('b-ms').textContent='✗ '+ms;
+async function pushPar(r) {
+  setSt('Pushing…');
+  try {
+    await pushFields(r);
+    atRecs = await loadAT(curDate);
+    document.getElementById('ac').textContent = atRecs.length;
+    renderAT(); renderPar(parRecs); updateBadges();
+    setSt('✓ Saved');
+  } catch(e) { setSt('Error: ' + e.message); }
 }
 
-// ── PUSH ──────────────────────────────────────────────────────────────
-async function pushParRec(r){
-  setSave('Pushing…');
-  try{await pushFields(r);atRecs=await loadATForDate(curDate);renderAT();updateBadges();renderParseur(parseurRecs);setSave('✓ Saved');}
-  catch(e){setSave('Error: '+e.message);}
+async function acceptAll() {
+  const miss = parRecs.filter(r => matchSt(parKey(r), r.dose||r.Dose||'', r.site||r.Site||'', r.timing||r.Timing||'') === 'miss');
+  if (!miss.length) { alert('Nothing missing — all in AT'); return; }
+  if (!confirm('Push ' + miss.length + ' missing records to AT?')) return;
+  setSt('Pushing ' + miss.length + '…');
+  try {
+    for (const r of miss) await pushFields({compound: parKey(r), dose: r.dose||r.Dose||'', site: r.site||r.Site||'', timing: r.timing||r.Timing||'', notes: r.notes||r.Notes||''});
+    atRecs = await loadAT(curDate);
+    document.getElementById('ac').textContent = atRecs.length;
+    renderAT(); renderPar(parRecs); updateBadges();
+    setSt('✓ ' + miss.length + ' added');
+  } catch(e) { setSt('Error: ' + e.message); }
 }
-async function acceptAllMissing(){
-  const miss=parseurRecs.filter(r=>pMatchSt(getParKey(r),r.dose||r.Dose||'',r.site||r.Site||'',r.timing||r.Timing||'')==='miss');
-  if(!miss.length){alert('Nothing missing — all in AT');return;}
-  if(!confirm('Push '+miss.length+' missing records to AT?'))return;
-  setSave('Pushing '+miss.length+'…');
-  try{for(const r of miss)await pushFields({compound:getParKey(r),dose:r.dose||r.Dose||'',site:r.site||r.Site||'',timing:r.timing||r.Timing||'',notes:r.notes||r.Notes||''});atRecs=await loadATForDate(curDate);renderAT();updateBadges();renderParseur(parseurRecs);setSave('✓ '+miss.length+' added');}
-  catch(e){setSave('Error: '+e.message);}
-}
-async function pushFields(r){
-  const F=mode==='inj'?INJ:WKT;
-  let fields={};
-  if(mode==='inj'){
-    const cmp=r.compound||'';
-    if(curDate)fields[INJ.date]=curDate;
-    if(cmp){fields[INJ.compound]=cmp;fields[INJ.name]=cmp;}
-    if(r.dose)fields[INJ.dose]=r.dose;if(r.site)fields[INJ.site]=r.site;
-    if(r.timing)fields[INJ.timing]=r.timing;if(r.notes)fields[INJ.notes]=r.notes;
-  }else{
-    if(curDate)fields[WKT.date]=curDate;
-    if(r.exercise)fields[WKT.exercise]=r.exercise;if(r.variation)fields[WKT.variation]=r.variation;
-    if(r.set_number)fields[WKT.setnum]=+r.set_number;if(r.reps)fields[WKT.reps]=+r.reps;
-    if(r.weight)fields[WKT.weight]=+r.weight;
+
+async function pushFields(r) {
+  const F = mode === 'inj' ? INJ : WKT;
+  let fields = {};
+  if (mode === 'inj') {
+    const cmp = r.compound || '';
+    if (curDate) fields[INJ.date] = curDate;
+    if (cmp) { fields[INJ.compound] = cmp; fields[INJ.name] = cmp; }
+    if (r.dose) fields[INJ.dose] = r.dose;
+    if (r.site) fields[INJ.site] = r.site;
+    if (r.timing) fields[INJ.timing] = r.timing;
+    if (r.notes) fields[INJ.notes] = r.notes;
+  } else {
+    if (curDate) fields[WKT.date] = curDate;
+    if (r.exercise) fields[WKT.exercise] = r.exercise;
+    if (r.variation) fields[WKT.variation] = r.variation;
+    if (r.set_number) fields[WKT.setnum] = +r.set_number;
+    if (r.reps) fields[WKT.reps] = +r.reps;
+    if (r.weight) fields[WKT.weight] = +r.weight;
   }
-  await atFetch(F.tbl,{method:'POST',body:JSON.stringify({fields})});
+  await atFetch(F.tbl, {method: 'POST', body: JSON.stringify({fields})});
 }
 
 // ── EDIT MODAL ────────────────────────────────────────────────────────
-function openEdit(id){
-  const rec=atRecs.find(r=>r.id===id);if(!rec)return;
-  editId=id;const f=rec.fields;
-  if(mode==='inj'){document.getElementById('ef-date').value=f[INJ.date]||'';document.getElementById('ef-cmp').value=f[INJ.compound]||'';document.getElementById('ef-dose').value=f[INJ.dose]||'';document.getElementById('ef-site').value=f[INJ.site]||'';document.getElementById('ef-time').value=f[INJ.timing]||'';document.getElementById('ef-stat').value=f[INJ.status]||'';document.getElementById('ef-notes').value=f[INJ.notes]||'';}
-  else{document.getElementById('wf-date').value=f[WKT.date]||'';document.getElementById('wf-ex').value=f[WKT.exercise]||'';document.getElementById('wf-var').value=f[WKT.variation]||'';document.getElementById('wf-set').value=f[WKT.setnum]||'';document.getElementById('wf-reps').value=f[WKT.reps]||'';document.getElementById('wf-wt').value=f[WKT.weight]||'';document.getElementById('wf-day').value=f[WKT.day]||'';document.getElementById('wf-notes').value=f[WKT.notes]||'';}
-  document.getElementById('mtitle').textContent='Edit AT Record';document.getElementById('mdel').style.display='';document.getElementById('mrecid').textContent='ID: '+id;openMdl();
+function openEdit(id) {
+  const rec = atRecs.find(r => r.id === id); if (!rec) return;
+  editId = id; const f = rec.fields;
+  if (mode === 'inj') {
+    document.getElementById('ef-date').value = f[INJ.date]||'';
+    document.getElementById('ef-cmp').value = f[INJ.compound]||'';
+    document.getElementById('ef-dose').value = f[INJ.dose]||'';
+    document.getElementById('ef-site').value = f[INJ.site]||'';
+    document.getElementById('ef-time').value = f[INJ.timing]||'';
+    document.getElementById('ef-stat').value = f[INJ.status]||'';
+    document.getElementById('ef-notes').value = f[INJ.notes]||'';
+  } else {
+    document.getElementById('wf-date').value = f[WKT.date]||'';
+    document.getElementById('wf-ex').value = f[WKT.exercise]||'';
+    document.getElementById('wf-var').value = f[WKT.variation]||'';
+    document.getElementById('wf-set').value = f[WKT.setnum]||'';
+    document.getElementById('wf-reps').value = f[WKT.reps]||'';
+    document.getElementById('wf-wt').value = f[WKT.weight]||'';
+    document.getElementById('wf-day').value = f[WKT.day]||'';
+    document.getElementById('wf-notes').value = f[WKT.notes]||'';
+  }
+  document.getElementById('mtitle').textContent = 'Edit Record';
+  document.getElementById('mdel').style.display = '';
+  document.getElementById('mrid').textContent = 'ID: ' + id;
+  openMdl();
 }
-function openAdd(){editId=null;clearMF();if(mode==='inj')document.getElementById('ef-date').value=curDate||'';else document.getElementById('wf-date').value=curDate||'';document.getElementById('mtitle').textContent='New Record';document.getElementById('mdel').style.display='none';document.getElementById('mrecid').textContent='';openMdl();}
-function openEditFromPar(r){
-  const cmp=typeof r==='string'?JSON.parse(r.replace(/'/g,'"')):r;
-  const rec=atRecs.find(a=>a.fields[INJ.compound]===cmp.compound);
-  if(rec){openEdit(rec.id);}else{editId=null;clearMF();document.getElementById('ef-date').value=curDate||'';document.getElementById('ef-cmp').value=cmp.compound||'';document.getElementById('ef-dose').value=cmp.dose||'';document.getElementById('ef-site').value=cmp.site||'';document.getElementById('ef-time').value=cmp.timing||'';document.getElementById('ef-notes').value=cmp.notes||'';document.getElementById('mtitle').textContent='New Record from Parseur';document.getElementById('mdel').style.display='none';document.getElementById('mrecid').textContent='';openMdl();}
-}
-function clearMF(){['ef-dose','ef-notes','wf-ex','wf-var','wf-notes'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});['ef-cmp','ef-site','ef-time','ef-stat','wf-day'].forEach(id=>{const e=document.getElementById(id);if(e)e.selectedIndex=0;});['wf-set','wf-reps','wf-wt'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';}); }
-async function saveRec(){
-  let fields={},tbl;
-  if(mode==='inj'){tbl=INJ.tbl;const d=document.getElementById('ef-date').value;if(!d){alert('Date required');return;}fields[INJ.date]=d;const c=document.getElementById('ef-cmp').value;if(c){fields[INJ.compound]=c;fields[INJ.name]=c;}const dose=document.getElementById('ef-dose').value;if(dose)fields[INJ.dose]=dose;const si=document.getElementById('ef-site').value;if(si)fields[INJ.site]=si;const ti=document.getElementById('ef-time').value;if(ti)fields[INJ.timing]=ti;const st=document.getElementById('ef-stat').value;if(st)fields[INJ.status]=st;const nt=document.getElementById('ef-notes').value;if(nt)fields[INJ.notes]=nt;}
-  else{tbl=WKT.tbl;const d=document.getElementById('wf-date').value;if(!d){alert('Date required');return;}fields[WKT.date]=d;const ex=document.getElementById('wf-ex').value;if(ex)fields[WKT.exercise]=ex;const va=document.getElementById('wf-var').value;if(va)fields[WKT.variation]=va;const sn=document.getElementById('wf-set').value;if(sn)fields[WKT.setnum]=+sn;const rp=document.getElementById('wf-reps').value;if(rp)fields[WKT.reps]=+rp;const wt=document.getElementById('wf-wt').value;if(wt)fields[WKT.weight]=+wt;const dy=document.getElementById('wf-day').value;if(dy)fields[WKT.day]=dy;const nt=document.getElementById('wf-notes').value;if(nt)fields[WKT.notes]=nt;}
-  setSave('Saving…');
-  try{if(editId){const res=await atFetch(tbl+'/'+editId,{method:'PATCH',body:JSON.stringify({fields})});const i=atRecs.findIndex(r=>r.id===editId);if(i>=0)atRecs[i]=res;}else{const res=await atFetch(tbl,{method:'POST',body:JSON.stringify({fields})});atRecs.push(res);}closeMdl();renderAT();updateBadges();renderParseur(parseurRecs);setSave('✓ Saved');}
-  catch(e){alert('Save failed: '+e.message);setSave('err');}
-}
-async function delRec(){if(!editId||!confirm('Delete this AT record?'))return;const F=mode==='inj'?INJ:WKT;setSave('Deleting…');try{await atFetch(F.tbl+'/'+editId,{method:'DELETE'});atRecs=atRecs.filter(r=>r.id!==editId);closeMdl();renderAT();updateBadges();renderParseur(parseurRecs);setSave('✓ Deleted');}catch(e){setSave('err: '+e.message);}}
-async function confirmDel(id){if(!confirm('Delete?'))return;const F=mode==='inj'?INJ:WKT;setSave('Deleting…');try{await atFetch(F.tbl+'/'+id,{method:'DELETE'});atRecs=atRecs.filter(r=>r.id!==id);renderAT();updateBadges();renderParseur(parseurRecs);setSave('✓ Deleted');}catch(e){setSave('err: '+e.message);}}
-function openMdl(){document.getElementById('inj-f').style.display=mode==='inj'?'':'none';document.getElementById('wkt-f').style.display=mode==='wkt'?'':'none';document.getElementById('mbg').classList.add('on');}
-function closeMdl(){document.getElementById('mbg').classList.remove('on');editId=null;}
 
-// ── CLAUDE EXTRACT (optional, costs money) ───────────────────────────────────
-const WORKER='https://anthropic-proxy.mikeblack01.workers.dev';
-const ANT_KEY='sk-ant-api03-jWnl5azwXKPce1ZVdPZ8_8edO87_hOD8uZpDXQFa4ByFkqqdJOzouZo6uZo6xiVwxykvwcp5MVNeYIaYn0dDE_dVAA-H3QK9wAA';
-let claudeOn=false,claudeRecs=[];
-function toggleClaude(){
-  if(!claudeOn){
-    if(!confirm('Claude Extract uses the Anthropic API and costs money per page.\n\nEnable it?'))return;
-    claudeOn=true;
-    const b=document.getElementById('cld-toggle');b.textContent='✦ Claude: ON';b.style.cssText='padding:5px 13px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;border:2px solid #2563eb;background:#2563eb;color:#fff';
-    document.getElementById('cld-col').style.display='';
-    document.getElementById('cols').classList.add('with-claude');
-  }else{
-    claudeOn=false;claudeRecs=[];
-    const b=document.getElementById('cld-toggle');b.textContent='✦ Claude: OFF';b.style.cssText='padding:5px 13px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;border:2px solid #e2e5ea;background:#f4f5f7;color:#6b7280';
-    document.getElementById('cld-col').style.display='none';
-    document.getElementById('cols').classList.remove('with-claude');
+function openAdd() {
+  editId = null; clearMF();
+  if (mode === 'inj') document.getElementById('ef-date').value = curDate||'';
+  else document.getElementById('wf-date').value = curDate||'';
+  document.getElementById('mtitle').textContent = 'New Record';
+  document.getElementById('mdel').style.display = 'none';
+  document.getElementById('mrid').textContent = '';
+  openMdl();
+}
+
+function openEditFromPar(r) {
+  if (typeof r === 'string') r = JSON.parse(r);
+  const rec = atRecs.find(a => a.fields[INJ.compound] === r.compound);
+  if (rec) { openEdit(rec.id); return; }
+  editId = null; clearMF();
+  document.getElementById('ef-date').value = curDate||'';
+  document.getElementById('ef-cmp').value = r.compound||'';
+  document.getElementById('ef-dose').value = r.dose||'';
+  document.getElementById('ef-site').value = r.site||'';
+  document.getElementById('ef-time').value = r.timing||'';
+  document.getElementById('ef-notes').value = r.notes||'';
+  document.getElementById('mtitle').textContent = 'Edit / Add from Parseur';
+  document.getElementById('mdel').style.display = 'none';
+  document.getElementById('mrid').textContent = '';
+  openMdl();
+}
+
+function clearMF() {
+  ['ef-dose','ef-notes','wf-ex','wf-var','wf-notes'].forEach(id => { const e = document.getElementById(id); if(e) e.value = ''; });
+  ['ef-cmp','ef-site','ef-time','ef-stat','wf-day'].forEach(id => { const e = document.getElementById(id); if(e) e.selectedIndex = 0; });
+  ['wf-set','wf-reps','wf-wt'].forEach(id => { const e = document.getElementById(id); if(e) e.value = ''; });
+}
+
+async function saveRec() {
+  let fields = {}, tbl;
+  if (mode === 'inj') {
+    tbl = INJ.tbl;
+    const d = document.getElementById('ef-date').value; if (!d) { alert('Date required'); return; }
+    fields[INJ.date] = d;
+    const c = document.getElementById('ef-cmp').value; if (c) { fields[INJ.compound] = c; fields[INJ.name] = c; }
+    const dose = document.getElementById('ef-dose').value; if (dose) fields[INJ.dose] = dose;
+    const si = document.getElementById('ef-site').value; if (si) fields[INJ.site] = si;
+    const ti = document.getElementById('ef-time').value; if (ti) fields[INJ.timing] = ti;
+    const st = document.getElementById('ef-stat').value; if (st) fields[INJ.status] = st;
+    const nt = document.getElementById('ef-notes').value; if (nt) fields[INJ.notes] = nt;
+  } else {
+    tbl = WKT.tbl;
+    const d = document.getElementById('wf-date').value; if (!d) { alert('Date required'); return; }
+    fields[WKT.date] = d;
+    const ex = document.getElementById('wf-ex').value; if (ex) fields[WKT.exercise] = ex;
+    const va = document.getElementById('wf-var').value; if (va) fields[WKT.variation] = va;
+    const sn = document.getElementById('wf-set').value; if (sn) fields[WKT.setnum] = +sn;
+    const rp = document.getElementById('wf-reps').value; if (rp) fields[WKT.reps] = +rp;
+    const wt = document.getElementById('wf-wt').value; if (wt) fields[WKT.weight] = +wt;
+    const dy = document.getElementById('wf-day').value; if (dy) fields[WKT.day] = dy;
+    const nt = document.getElementById('wf-notes').value; if (nt) fields[WKT.notes] = nt;
+  }
+  setSt('Saving…');
+  try {
+    if (editId) {
+      const res = await atFetch(tbl + '/' + editId, {method:'PATCH', body: JSON.stringify({fields})});
+      const i = atRecs.findIndex(r => r.id === editId); if (i >= 0) atRecs[i] = res;
+    } else {
+      const res = await atFetch(tbl, {method:'POST', body: JSON.stringify({fields})});
+      atRecs.push(res);
+    }
+    closeMdl(); renderAT(); renderPar(parRecs); updateBadges();
+    setSt('✓ Saved');
+  } catch(e) { alert('Save failed: ' + e.message); setSt('err'); }
+}
+
+async function delRec() {
+  if (!editId || !confirm('Delete this AT record?')) return;
+  const F = mode === 'inj' ? INJ : WKT;
+  setSt('Deleting…');
+  try {
+    await atFetch(F.tbl + '/' + editId, {method:'DELETE'});
+    atRecs = atRecs.filter(r => r.id !== editId);
+    closeMdl(); renderAT(); renderPar(parRecs); updateBadges();
+    setSt('✓ Deleted');
+  } catch(e) { setSt('err: ' + e.message); }
+}
+
+async function confirmDel(id) {
+  if (!confirm('Delete?')) return;
+  const F = mode === 'inj' ? INJ : WKT;
+  setSt('Deleting…');
+  try {
+    await atFetch(F.tbl + '/' + id, {method:'DELETE'});
+    atRecs = atRecs.filter(r => r.id !== id);
+    renderAT(); renderPar(parRecs); updateBadges();
+    setSt('✓ Deleted');
+  } catch(e) { setSt('err: ' + e.message); }
+}
+
+function openMdl() {
+  document.getElementById('inj-f').style.display = mode==='inj' ? '' : 'none';
+  document.getElementById('wkt-f').style.display = mode==='wkt' ? '' : 'none';
+  document.getElementById('mbg').classList.add('on');
+}
+function closeMdl() { document.getElementById('mbg').classList.remove('on'); editId = null; }
+
+// ── DRIVE PICKER ──────────────────────────────────────────────────────
+async function openPicker(target) {
+  if (!gTok) { signIn(); return; }
+  pickerTarget = target;
+  pickerStack = [{id:'root', name:'My Drive'}];
+  document.getElementById('dp-title').textContent = target === 'pdf' ? 'Select PDF from Drive' : 'Select Parseur Export from Drive';
+  document.getElementById('dp-qi').value = '';
+  renderQUICK();
+  renderBC();
+  document.getElementById('dpbg').classList.add('on');
+  await loadFolder('root');
+}
+
+function renderQUICK() {
+  const sc = QUICK[mode] || [];
+  const el = document.getElementById('dp-sc');
+  el.innerHTML = sc.length ? '<span style="font-size:10px;font-weight:800;color:#9ca3af">QUICK: </span>' : '';
+  sc.forEach(s => {
+    const b = document.createElement('button');
+    b.className = 'sc-b'; b.textContent = s.n;
+    b.onclick = () => {
+      if (s.f) { navFolder(s.id, s.n); }
+      else { closePicker(); document.getElementById('pp-id').value = s.id; LS.set('pdf_'+mode, s.id); pdfLoad(); }
+    };
+    el.appendChild(b);
+  });
+}
+
+function renderBC() {
+  const el = document.getElementById('dp-bc'); el.innerHTML = '';
+  pickerStack.forEach((f, i) => {
+    if (i > 0) { const s = document.createElement('span'); s.className = 'bcs'; s.textContent = ' › '; el.appendChild(s); }
+    const sp = document.createElement('span');
+    if (i === pickerStack.length - 1) { sp.className = 'bcc'; sp.textContent = '📁 ' + f.name; }
+    else { sp.className = 'bci'; sp.textContent = '📁 ' + f.name; sp.onclick = () => popTo(i); }
+    el.appendChild(sp);
+  });
+}
+
+async function loadFolder(fid) {
+  document.getElementById('dp-list').innerHTML = '<div style="text-align:center;padding:30px;color:#9ca3af">Loading…</div>';
+  renderBC();
+  try {
+    const isPDF = pickerTarget === 'pdf';
+    const mf = isPDF
+      ? "(mimeType='application/pdf' or mimeType='application/vnd.google-apps.folder')"
+      : "(mimeType='text/csv' or mimeType='application/json' or mimeType contains 'spreadsheet' or mimeType='application/vnd.google-apps.folder')";
+    const pq = fid === 'root' ? "'root' in parents" : "'" + fid + "' in parents";
+    const q = encodeURIComponent(pq + ' and trashed=false and (' + mf + ')');
+    const r = await fetch('https://www.googleapis.com/drive/v3/files?q=' + q + '&fields=files(id,name,modifiedTime,size,mimeType)&orderBy=folder,name&pageSize=50',
+      {headers: {Authorization: 'Bearer ' + gTok}});
+    if (!r.ok) throw new Error('Drive ' + r.status);
+    const d = await r.json();
+    pickerFiles = d.files || [];
+    renderPickerList(pickerFiles);
+  } catch(e) {
+    document.getElementById('dp-list').innerHTML = '<div style="color:#dc2626;padding:16px">Error: ' + e.message + '</div>';
   }
 }
-async function extractPage(){
-  if(!pdfDoc){alert('Load a PDF first');return;}
-  if(!claudeOn){toggleClaude();if(!claudeOn)return;}
-  const canvas=document.getElementById('pdf-canvas');
-  const img=canvas.toDataURL('image/jpeg',0.85).split(',')[1];
-  const prompt=mode==='inj'
-    ?'Extract ALL injection records from this handwritten log page.\nReturn ONLY a valid JSON array, no markdown. Each record:\n{"date":"YYYY-MM-DD","compound":"name","dose":"as written","site":"L|R|L+R|Pill|Nasal|Abd|S|X","timing":"Morning|Night|Evening|Daily","notes":""}\nEmpty string for unknown. No records return [].'
-    :'Extract ALL workout sets from this handwritten log page.\nReturn ONLY a valid JSON array, no markdown. Each record:\n{"date":"YYYY-MM-DD","exercise":"name","variation":"or empty","set_number":1,"reps":10,"weight":100,"notes":""}\nWeight in lbs. No records return [].';
-  document.getElementById('cld-spin').style.display='inline-block';
-  document.getElementById('cld-cnt').textContent='…';
-  document.getElementById('cld-body').innerHTML='<div class="col-empty">Analyzing with Claude…</div>';
-  try{
-    const res=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json','x-api-key':ANT_KEY,'anthropic-version':'2023-06-01'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:4000,messages:[{role:'user',content:[{type:'image',source:{type:'base64',media_type:'image/jpeg',data:img}},{type:'text',text:prompt}]}]})});
-    if(!res.ok){const t=await res.text().catch(()=>'');throw new Error('API '+res.status+': '+t.substring(0,200));}
-    const data=await res.json();
-    if(data.error)throw new Error(data.error.message||'API error');
-    const raw=(data.content?.[0]?.text||'[]').replace(/```json|```/g,'').trim();
-    claudeRecs=JSON.parse(raw);if(!Array.isArray(claudeRecs))claudeRecs=[];
-    const dates=[...new Set(claudeRecs.map(r=>r.date).filter(Boolean))];
-    if(dates[0]&&!curDate){document.getElementById('date-inp').value=dates[0];await onDateChange();}
-    document.getElementById('cld-cnt').textContent=claudeRecs.length;
-    renderClaude();
-  }catch(e){document.getElementById('cld-body').innerHTML='<div style="color:#dc2626;padding:16px;font-size:12px">'+e.message+'</div>';document.getElementById('cld-cnt').textContent='!';}
-  document.getElementById('cld-spin').style.display='none';
+
+async function navFolder(id, name) {
+  pickerStack.push({id, name});
+  document.getElementById('dp-qi').value = '';
+  await loadFolder(id);
 }
-function renderClaude(){
-  const b=document.getElementById('cld-body');
-  if(!claudeRecs.length){b.innerHTML='<div class="col-empty">No records found</div>';return;}
-  b.innerHTML=claudeRecs.map((r,i)=>{
-    const inj=mode==='inj';const name=inj?(r.compound||'?'):(r.exercise||'?');
-    const d2=inj?(r.dose||''):(r.weight?r.weight+'lbs':'');
-    const t2=inj?(r.timing||''):(r.set_number?'Set '+r.set_number:'');
-    const s2=inj?(r.site||''):(r.reps?r.reps+' reps':'');
-    const inAT=inj?atRecs.some(a=>a.fields[INJ.compound]===r.compound):atRecs.some(a=>a.fields[WKT.exercise]===r.exercise&&String(a.fields[WKT.setnum])===String(r.set_number));
-    return '<div class="card '+(inAT?'match':'miss')+'"><div class="ch"><span class="cn">'+name+'</span>'+(d2?'<span class="pill pd">'+d2+'</span>':'')+(t2?'<span class="pill pt">'+t2+'</span>':'')+(s2?'<span class="pill ps">'+s2+'</span>':'')+'<span class="mtag '+(inAT?'m':'x')+'">'+(inAT?'✓ In AT':'✗ Missing')+'</span></div><div class="cbtns">'+(!inAT?'<button class="cbtn cb-a" onclick="pushClaudeRec('+i+')">→ AT</button>':'')+'</div></div>';
+
+async function popTo(i) {
+  pickerStack = pickerStack.slice(0, i + 1);
+  document.getElementById('dp-qi').value = '';
+  await loadFolder(pickerStack[i].id);
+}
+
+function renderPickerList(files) {
+  const el = document.getElementById('dp-list');
+  if (!files.length) { el.innerHTML = '<div style="text-align:center;padding:24px;color:#9ca3af">No files found</div>'; return; }
+  window._dpf = files;
+  el.innerHTML = files.map((f, i) => {
+    const isF = f.mimeType === 'application/vnd.google-apps.folder';
+    const icon = isF ? '📁' : f.mimeType === 'application/pdf' ? '📄' : f.mimeType === 'text/csv' ? '📋' : '📊';
+    const dt = f.modifiedTime ? new Date(f.modifiedTime).toLocaleDateString() : '';
+    const sz = (!isF && f.size) ? Math.round(f.size/1024) + 'KB' : '';
+    return `<div class="dpi${isF?' dpf':''}" onclick="dpClick(${i})">
+      <div class="dpi-icon">${icon}</div>
+      <div class="dpi-info"><div class="dpi-name">${esc(f.name)}</div><div class="dpi-meta">${dt}${sz?' · '+sz:''}</div></div>
+      ${isF ? '<span style="color:#9ca3af;font-size:16px">›</span>' : `<button class="dp-sel" onclick="event.stopPropagation();dpClick(${i})">Select</button>`}
+    </div>`;
   }).join('');
 }
-async function pushClaudeRec(i){
-  const r=claudeRecs[i];if(!r)return;setSave('Pushing…');
-  try{
-    const F=mode==='inj'?INJ:WKT;let fields={};
-    if(mode==='inj'){const c=r.compound||'';if(curDate)fields[INJ.date]=curDate;if(c){fields[INJ.compound]=c;fields[INJ.name]=c;}if(r.dose)fields[INJ.dose]=r.dose;if(r.site)fields[INJ.site]=r.site;if(r.timing)fields[INJ.timing]=r.timing;}
-    else{if(curDate)fields[WKT.date]=curDate;if(r.exercise)fields[WKT.exercise]=r.exercise;if(r.variation)fields[WKT.variation]=r.variation;if(r.set_number)fields[WKT.setnum]=+r.set_number;if(r.reps)fields[WKT.reps]=+r.reps;if(r.weight)fields[WKT.weight]=+r.weight;}
-    await atFetch(F.tbl,{method:'POST',body:JSON.stringify({fields})});
-    atRecs=await loadATForDate(curDate);renderAT();renderClaude();updateBadges();setSave('✓ Saved');
-  }catch(e){setSave('Error: '+e.message);}
+
+function dpClick(i) {
+  const f = window._dpf[i]; if (!f) return;
+  if (f.mimeType === 'application/vnd.google-apps.folder') { navFolder(f.id, f.name); return; }
+  closePicker();
+  if (pickerTarget === 'pdf') {
+    document.getElementById('pp-id').value = f.id;
+    LS.set('pdf_' + mode, f.id);
+    pdfLoad();
+  } else {
+    parFromDrive(f.id, f.name);
+  }
 }
 
-// ── MODE + INIT ───────────────────────────────────────────────────────
-function setMode(m){
-  mode=m;
-  document.getElementById('m-inj').classList.toggle('on',m==='inj');
-  document.getElementById('m-wkt').classList.toggle('on',m==='wkt');
-  atRecs=[];parseurRecs=[];curDate=null;
-  document.getElementById('at-body').innerHTML='<div class="col-empty">Select a date above to load AT records</div>';
-  document.getElementById('par-body').innerHTML='<div class="col-empty">Load a Parseur export above</div>';
-  document.getElementById('date-lbl').style.display='none';
-  document.getElementById('at-cnt').textContent='0';document.getElementById('par-cnt').textContent='0';
-  document.getElementById('b-at').textContent='AT: 0';document.getElementById('b-par').textContent='Parseur: 0';
-  document.getElementById('at-dlbl').textContent='';document.getElementById('par-dlbl').textContent='';
-  document.getElementById('at-src-lbl').textContent='Auto-loads when date is set';
-  document.getElementById('par-src-lbl').textContent='No file loaded';
-  const sid=LS.get('pdf_id_'+m)||(m==='inj'?'1Yk3aWqXPWRpFWCvXYasWoo9hA202KQG6':'');
-  document.getElementById('pdf-id').value=sid;
-}
-function setSave(m){document.getElementById('save-st').textContent=m;}
-
-// Recent files tracking
-function saveRecent(type, id, name){
-  const key='recent_'+type+'_'+mode;
-  let recents=JSON.parse(LS.get(key)||'[]');
-  recents=recents.filter(r=>r.id!==id);
-  recents.unshift({id,name:name||id});
-  LS.set(key, JSON.stringify(recents.slice(0,5)));
-}
-function getRecents(type){
-  return JSON.parse(LS.get('recent_'+type+'_'+mode)||'[]');
+function filterPicker() {
+  const q = document.getElementById('dp-qi').value.toLowerCase().trim();
+  renderPickerList(q ? pickerFiles.filter(f => f.name.toLowerCase().includes(q)) : pickerFiles);
 }
 
-function setPDFDate(){
-  const d=document.getElementById('pdf-date').value;
-  if(!d)return;
-  // Sync date dropdown and load everything
-  document.getElementById('date-sel').value=d;
-  document.getElementById('date-inp').value=d;
-  document.getElementById('pdf-date-lbl').textContent='Synced to '+d;
-  setDate(d);
-}
-// When date changes elsewhere, keep PDF date in sync
-const _origSetDate=setDate;
+function closePicker() { document.getElementById('dpbg').classList.remove('on'); }
 
-window.onload=()=>{
+// ── UTILS ─────────────────────────────────────────────────────────────
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function setSt(m) { document.getElementById('st').textContent = m; }
+
+function setMode(m) {
+  mode = m;
+  document.getElementById('mi').classList.toggle('on', m==='inj');
+  document.getElementById('mw').classList.toggle('on', m==='wkt');
+  atRecs = []; parRecs = []; curDate = null;
+  document.getElementById('at-body').innerHTML = '<div class="cempty">Select a date above to load AT records</div>';
+  document.getElementById('par-body').innerHTML = '<div class="cempty">Load a Parseur export above</div>';
+  document.getElementById('d-sel').innerHTML = '<option value="">— Select Date —</option>';
+  document.getElementById('d-lbl').textContent = '';
+  document.getElementById('ac').textContent = '0';
+  document.getElementById('pc').textContent = '0';
+  document.getElementById('b-at').textContent = 'AT: 0';
+  document.getElementById('b-par').textContent = 'Parseur: 0';
+  const sid = LS.get('pdf_' + m) || (m === 'inj' ? '1Yk3aWqXPWRpFWCvXYasWoo9hA202KQG6' : '');
+  document.getElementById('pp-id').value = sid;
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────
+window.onload = () => {
   initAuth();
-  document.getElementById('loader').style.display='none';
-  const sid=LS.get('pdf_id_inj')||'1Yk3aWqXPWRpFWCvXYasWoo9hA202KQG6';
-  document.getElementById('pdf-id').value=sid;
+  document.getElementById('pp-id').value = LS.get('pdf_inj') || '1Yk3aWqXPWRpFWCvXYasWoo9hA202KQG6';
 };
 </script>
 </body>
