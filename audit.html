@@ -550,7 +550,7 @@ async function extractPage(){
   document.getElementById('cld-cnt').textContent='…';
   document.getElementById('cld-body').innerHTML='<div class="col-empty">Claude is analyzing this page…</div>';
   try{
-    const res=await fetch(WORKER+'/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':ANT_KEY,'anthropic-version':'2023-06-01'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2000,messages:[{role:'user',content:[{type:'image',source:{type:'base64',media_type:'image/jpeg',data:img}},{type:'text',text:prompt}]}]})});
+    const res=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:2000,messages:[{role:'user',content:[{type:'image',source:{type:'base64',media_type:'image/jpeg',data:img}},{type:'text',text:prompt}]}]})});
     if(!res.ok)throw new Error('API '+res.status);
     const data=await res.json();
     const raw=(data.content?.[0]?.text||'[]').replace(/```json|```/g,'').trim();
