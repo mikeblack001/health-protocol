@@ -450,7 +450,7 @@ async function loadParseurFromDrive(id,name){
     const r=await fetch('https://www.googleapis.com/drive/v3/files/'+id+'?alt=media',{headers:{Authorization:'Bearer '+gToken}});
     if(!r.ok)throw new Error('Drive '+r.status);
     const buf=await r.arrayBuffer();
-    parseParseurBuf(buf,name);
+    await parseParseurBuf(buf,name);
     document.getElementById('par-src-lbl').textContent='✓ '+name;
     LS.set('par_id_'+mode,id);
   }catch(e){document.getElementById('par-src-lbl').textContent='Error: '+e.message;}
@@ -458,15 +458,15 @@ async function loadParseurFromDrive(id,name){
 function loadParseurFile(inp){
   const f=inp.files[0];if(!f)return;
   document.getElementById('par-src-lbl').textContent='Loading…';
-  f.arrayBuffer().then(buf=>{parseParseurBuf(buf,f.name);document.getElementById('par-src-lbl').textContent='✓ '+f.name;});
+  f.arrayBuffer().then(async buf=>{await parseParseurBuf(buf,f.name);document.getElementById('par-src-lbl').textContent='✓ '+f.name;});
 }
-function parseParseurBuf(buf,name){
+async function parseParseurBuf(buf,name){
   const lc=name.toLowerCase();
-  if(lc.endsWith('.json')){parseParseurData(JSON.parse(new TextDecoder().decode(buf)));}
-  else if(lc.endsWith('.csv')){parseCSV(new TextDecoder().decode(buf));}
-  else{const wb=XLSX.read(buf,{type:'arraybuffer'});parseParseurData(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]));}
+  if(lc.endsWith('.json')){await parseParseurData(JSON.parse(new TextDecoder().decode(buf)));}
+  else if(lc.endsWith('.csv')){await parseCSV(new TextDecoder().decode(buf));}
+  else{const wb=XLSX.read(buf,{type:'arraybuffer'});await parseParseurData(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]));}
 }
-function parseParseurData(arr){
+async function parseParseurData(arr){
   parseurAll=(Array.isArray(arr)?arr:(arr.records||arr.data||[])).map(r=>{
     const o={...r};
     let dv=null;
@@ -482,7 +482,7 @@ function parseParseurData(arr){
   document.getElementById('b-par').textContent='Parseur: '+parseurAll.length;
   buildDateDrop();
   const allDates=[...new Set(parseurAll.map(r=>r._date).filter(Boolean))].sort();
-  if(allDates.length){const latest=allDates[allDates.length-1];setDate(latest);}
+  if(allDates.length){await setDate(allDates[allDates.length-1]);}
   else renderParseur([]);
 }
 function buildDateDrop(){
@@ -500,10 +500,10 @@ function navDate(dir){
   const d=dates[Math.max(0,Math.min(dates.length-1,i+dir))];
   setDate(d);
 }
-function parseCSV(text){
+async function parseCSV(text){
   const lines=text.trim().split('\n').filter(l=>l.trim());if(!lines.length)return;
   const hdrs=splitCSV(lines[0]);
-  parseParseurData(lines.slice(1).map(l=>{const v=splitCSV(l);const o={};hdrs.forEach((h,i)=>o[h]=(v[i]||'').trim());return o;}).filter(r=>Object.values(r).some(v=>v)));
+  await parseParseurData(lines.slice(1).map(l=>{const v=splitCSV(l);const o={};hdrs.forEach((h,i)=>o[h]=(v[i]||'').trim());return o;}).filter(r=>Object.values(r).some(v=>v)));
 }
 function splitCSV(l){const v=[];let c='',q=false;for(const ch of l){if(ch==='"'){q=!q;}else if(ch===','&&!q){v.push(c.trim());c='';}else c+=ch;}v.push(c.trim());return v.map(x=>x.replace(/^"|"$/g,''));}
 function filterParseurToDate(d){
