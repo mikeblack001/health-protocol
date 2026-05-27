@@ -5,20 +5,21 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>MB Audit Tool</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f4f5f7;color:#1a1a2e;font-size:13px;height:100vh;display:flex;flex-direction:column;overflow:hidden}
 
-/* ── LOADER ─────────────────────────────────────────────────── */
-#loader{position:fixed;inset:0;background:rgba(255,255,255,.95);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;z-index:999}
-.spin{width:36px;height:36px;border:3px solid #e2e5ea;border-top-color:#2563eb;border-radius:50%;animation:spin .7s linear infinite}
+/* LOADER */
+#loader{position:fixed;inset:0;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;z-index:999}
+.spin{width:32px;height:32px;border:3px solid #e2e5ea;border-top-color:#2563eb;border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 #lmsg{font-size:14px;font-weight:700;color:#374151}
 
-/* ── HEADER ─────────────────────────────────────────────────── */
-#hdr{background:#fff;border-bottom:2px solid #e2e5ea;padding:8px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;flex-shrink:0}
+/* HEADER */
+#hdr{background:#fff;border-bottom:2px solid #e2e5ea;padding:7px 12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex-shrink:0;min-height:46px}
 #hdr h1{font-size:15px;font-weight:900;color:#1e2433;letter-spacing:-.3px;white-space:nowrap}
-.mode-btn{padding:5px 14px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;border:2px solid #e2e5ea;background:#f4f5f7;color:#6b7280;transition:all .15s}
+.mode-btn{padding:5px 14px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;border:2px solid #e2e5ea;background:#f4f5f7;color:#6b7280}
 .mode-btn.on{background:#2563eb;color:#fff;border-color:#2563eb}
 .badge{padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;border:1px solid}
 .b-blue{background:#dbeafe;border-color:#93c5fd;color:#1d4ed8}
@@ -26,189 +27,247 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .b-amber{background:#fef3c7;border-color:#fcd34d;color:#92400e}
 .b-red{background:#fee2e2;border-color:#fca5a5;color:#991b1b}
 .b-gray{background:#f3f4f6;border-color:#d1d5db;color:#6b7280}
-#hdr-right{margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-#save-status{font-size:11px;color:#9ca3af;white-space:nowrap}
+.b-purple{background:#ede9fe;border-color:#c4b5fd;color:#6d28d9}
+#hdr-r{margin-left:auto;display:flex;align-items:center;gap:7px}
+#save-st{font-size:11px;color:#9ca3af;white-space:nowrap}
+#drive-st{font-size:11px;font-weight:700;padding:3px 8px;border-radius:12px}
+#drive-st.ok{background:#dcfce7;color:#166534}
+#drive-st.no{background:#fee2e2;color:#991b1b;cursor:pointer}
 
-/* ── BODY ───────────────────────────────────────────────────── */
+/* BODY */
 #body{display:flex;flex:1;overflow:hidden}
 
-/* ── PDF PANEL ──────────────────────────────────────────────── */
-#pdf-panel{width:340px;min-width:240px;background:#fff;border-right:2px solid #e2e5ea;display:flex;flex-direction:column;flex-shrink:0}
-#pdf-top{padding:8px 10px;border-bottom:1px solid #e2e5ea;background:#fafafa}
-.panel-label{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#9ca3af;margin-bottom:6px;display:block}
-.row{display:flex;gap:5px;align-items:center;margin-bottom:5px}
-#pdf-drive-id{flex:1;padding:5px 7px;border:1px solid #d1d5db;border-radius:5px;font-size:11px}
+/* PDF PANEL */
+#pdf-panel{width:320px;min-width:220px;background:#fff;border-right:2px solid #e2e5ea;display:flex;flex-direction:column;flex-shrink:0;resize:horizontal;overflow:hidden}
+.panel-hdr{padding:8px 10px;background:#fafafa;border-bottom:1px solid #e2e5ea;flex-shrink:0}
+.plabel{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#9ca3af;display:block;margin-bottom:5px}
+.row{display:flex;gap:5px;align-items:center;margin-bottom:4px}
+#pdf-id{flex:1;padding:5px 7px;border:1px solid #d1d5db;border-radius:5px;font-size:11px}
 .btn{padding:5px 10px;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid;white-space:nowrap}
-.btn-primary{background:#2563eb;color:#fff;border-color:#2563eb}
-.btn-primary:hover{background:#1d4ed8}
-.btn-secondary{background:#fff;border-color:#d1d5db;color:#374151}
-.btn-secondary:hover{background:#f3f4f6}
+.btn-p{background:#2563eb;color:#fff;border-color:#2563eb}.btn-p:hover{background:#1d4ed8}
+.btn-s{background:#fff;border-color:#d1d5db;color:#374151}.btn-s:hover{background:#f3f4f6}
+.btn-g{background:#16a34a;color:#fff;border-color:#16a34a}.btn-g:hover{background:#15803d}
+.btn-r{background:#dc2626;color:#fff;border-color:#dc2626}
 .btn-sm{padding:3px 8px;font-size:10px}
-.btn-green{background:#16a34a;color:#fff;border-color:#16a34a}
-.btn-green:hover{background:#15803d}
-#pdf-status{font-size:10px;color:#9ca3af}
+#pdf-msg{font-size:10px;color:#9ca3af;margin-top:2px}
 #pdf-area{flex:1;overflow-y:auto;background:#e5e7eb;display:flex;align-items:flex-start;justify-content:center;padding:8px}
 #pdf-canvas{max-width:100%;box-shadow:0 2px 8px rgba(0,0,0,.2);display:none}
-#pdf-placeholder{color:#9ca3af;font-size:12px;text-align:center;padding:30px;width:100%}
-#pdf-nav{display:flex;align-items:center;gap:6px;padding:6px 10px;border-top:1px solid #e2e5ea;background:#fafafa;flex-shrink:0}
-#pdf-nav button{padding:4px 10px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;font-size:11px;background:#fff}
-#pdf-nav button:hover{background:#f3f4f6}
+#pdf-ph{color:#9ca3af;font-size:12px;text-align:center;padding:30px;width:100%}
+#pdf-nav-bar{display:flex;align-items:center;gap:6px;padding:6px 10px;border-top:1px solid #e2e5ea;background:#fafafa;flex-shrink:0}
+#pdf-nav-bar button{padding:4px 10px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;font-size:11px;background:#fff}
+#pdf-nav-bar button:hover{background:#f3f4f6}
 #pdf-pg{font-size:11px;color:#6b7280;flex:1;text-align:center}
-#pdf-jump{width:48px;padding:3px 5px;border:1px solid #d1d5db;border-radius:4px;font-size:11px;text-align:center}
+#pdf-jp{width:48px;padding:3px 5px;border:1px solid #d1d5db;border-radius:4px;font-size:11px;text-align:center}
 
-/* ── MIDDLE: EXTRACT PANEL ──────────────────────────────────── */
-#extract-panel{flex:1;display:flex;flex-direction:column;border-right:2px solid #e2e5ea;overflow:hidden;min-width:280px}
-#extract-top{padding:8px 12px;background:#fafafa;border-bottom:1px solid #e2e5ea;display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex-shrink:0}
-#extract-top .panel-label{margin:0;flex:none}
-#btn-extract{flex:none}
-#extract-date{font-size:12px;font-weight:700;color:#2563eb;background:#dbeafe;padding:3px 9px;border-radius:12px;display:none}
-#extract-spinner{display:none;width:16px;height:16px;border:2px solid #e2e5ea;border-top-color:#2563eb;border-radius:50%;animation:spin .7s linear infinite}
-#extract-area{flex:1;overflow-y:auto;padding:10px}
-#extract-empty{color:#9ca3af;font-size:12px;text-align:center;padding:30px}
-#extract-actions{padding:8px 12px;border-top:1px solid #e2e5ea;background:#fafafa;display:none;gap:8px;flex-shrink:0}
+/* MAIN COMPARISON AREA */
+#cmp-area{flex:1;display:flex;flex-direction:column;overflow:hidden}
 
-/* ── RIGHT: AT PANEL ─────────────────────────────────────────── */
-#at-panel{width:360px;min-width:240px;background:#fff;display:flex;flex-direction:column;overflow:hidden;flex-shrink:0}
-#at-top{padding:8px 10px;background:#fafafa;border-bottom:1px solid #e2e5ea;display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex-shrink:0}
-#at-top .panel-label{margin:0}
-#at-date-label{font-size:12px;font-weight:700;color:#374151}
-#btn-add-at{margin-left:auto}
-#at-area{flex:1;overflow-y:auto;padding:10px}
-#at-empty{color:#9ca3af;font-size:12px;text-align:center;padding:30px}
+/* DATE BAR */
+#date-bar{background:#fff;border-bottom:2px solid #e2e5ea;padding:7px 12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex-shrink:0}
+#date-inp{padding:5px 9px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;font-weight:700}
+#date-lbl{font-size:13px;font-weight:700;color:#2563eb;background:#dbeafe;padding:4px 12px;border-radius:20px}
+#btn-load-date{background:#2563eb;color:#fff;border-color:#2563eb}
+#date-bar-r{margin-left:auto;display:flex;gap:6px}
 
-/* ── CARDS ──────────────────────────────────────────────────── */
-.card{border:1px solid #e2e5ea;border-radius:8px;padding:10px 12px;margin-bottom:7px;position:relative;background:#fff}
+/* THREE COLUMNS */
+#cols{display:grid;grid-template-columns:1fr 1fr 1fr;flex:1;overflow:hidden;gap:0}
+.col{display:flex;flex-direction:column;overflow:hidden;border-right:1px solid #e2e5ea}
+.col:last-child{border-right:none}
+.col-hdr{padding:8px 10px;background:#fafafa;border-bottom:1px solid #e2e5ea;flex-shrink:0;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.col-title{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#6b7280}
+.col-count{font-size:10px;font-weight:700;background:#e5e7eb;border-radius:10px;padding:1px 7px;color:#374151}
+.col-body{flex:1;overflow-y:auto;padding:8px}
+.col-empty{color:#9ca3af;font-size:12px;text-align:center;padding:24px;font-style:italic}
+
+/* PARSEUR SOURCE AREA */
+#par-src{padding:6px 10px;border-bottom:1px solid #e2e5ea;background:#fff8f0;display:flex;align-items:center;gap:6px;flex-wrap:wrap;flex-shrink:0}
+#par-src-lbl{font-size:10px;color:#9ca3af}
+
+/* CLAUDE SOURCE AREA */
+#cld-src{padding:6px 10px;border-bottom:1px solid #e2e5ea;background:#f0f4ff;display:flex;align-items:center;gap:6px;flex-wrap:wrap;flex-shrink:0}
+#cld-spin{display:none;width:14px;height:14px;border:2px solid #e2e5ea;border-top-color:#2563eb;border-radius:50%;animation:spin .7s linear infinite}
+
+/* AT SOURCE AREA */
+#at-src{padding:6px 10px;border-bottom:1px solid #e2e5ea;background:#f0fff4;display:flex;align-items:center;gap:6px;flex-wrap:wrap;flex-shrink:0}
+
+/* CARDS */
+.card{background:#fff;border:1px solid #e2e5ea;border-radius:7px;padding:9px 11px;margin-bottom:6px;position:relative}
 .card.match{border-left:4px solid #4ade80}
 .card.diff{border-left:4px solid #fb923c}
-.card.missing{border-left:4px solid #f87171;background:#fff8f8}
+.card.miss{border-left:4px solid #f87171;background:#fff8f8}
 .card.extra{border-left:4px solid #60a5fa}
-.card-hdr{display:flex;align-items:center;gap:7px;margin-bottom:5px;flex-wrap:wrap}
-.card-name{font-weight:800;font-size:13px;color:#1e2433}
+.card.neutral{border-left:4px solid #d1d5db}
+.ch{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px}
+.cn{font-weight:800;font-size:13px;color:#1e2433}
 .pill{padding:2px 7px;border-radius:12px;font-size:10px;font-weight:700}
-.pill-dose{background:#dbeafe;color:#1d4ed8}
-.pill-timing{background:#f3f4f6;color:#374151}
-.pill-site{background:#fef3c7;color:#92400e}
-.pill-status{background:#dcfce7;color:#166534}
-.pill-todo{background:#fee2e2;color:#991b1b}
-.card-notes{font-size:11px;color:#9ca3af;margin-top:3px;font-style:italic}
-.card-match-tag{font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px}
-.tag-ok{background:#dcfce7;color:#166534}
-.tag-diff{background:#fef3c7;color:#92400e}
-.tag-miss{background:#fee2e2;color:#991b1b}
-.tag-extra{background:#dbeafe;color:#1d4ed8}
-.card-btns{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap}
-.cbtn{padding:3px 8px;border-radius:4px;font-size:10px;font-weight:700;cursor:pointer;border:1px solid}
-.cbtn-edit{background:#eff6ff;border-color:#bfdbfe;color:#2563eb}
-.cbtn-accept{background:#f0fdf4;border-color:#86efac;color:#166534}
-.cbtn-del{background:#fff1f2;border-color:#fecdd3;color:#9f1239}
-.diff-row{font-size:11px;margin-top:4px;color:#92400e;background:#fef9c3;padding:3px 6px;border-radius:4px}
-.diff-row span.old{text-decoration:line-through;color:#9ca3af;margin-right:4px}
-.diff-row span.new{color:#166534;font-weight:700}
+.pd{background:#dbeafe;color:#1d4ed8}
+.pt{background:#f3f4f6;color:#374151}
+.ps{background:#fef3c7;color:#92400e}
+.pk{background:#dcfce7;color:#166534}
+.pn{background:#fee2e2;color:#991b1b}
+.notes{font-size:11px;color:#9ca3af;margin-top:2px;font-style:italic}
+.diff-row{font-size:11px;margin-top:3px;padding:2px 6px;background:#fef9c3;border-radius:3px;color:#92400e}
+.diff-row .old{text-decoration:line-through;color:#9ca3af;margin-right:3px}
+.diff-row .nw{color:#166534;font-weight:700}
+.mtag{font-size:9px;font-weight:800;padding:1px 5px;border-radius:8px;margin-left:auto}
+.mtag.m{background:#dcfce7;color:#166634}
+.mtag.d{background:#fef3c7;color:#92400e}
+.mtag.x{background:#fee2e2;color:#991b1b}
+.mtag.e{background:#dbeafe;color:#1d4ed8}
+.cbtns{display:flex;gap:4px;margin-top:5px;flex-wrap:wrap}
+.cbtn{padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;cursor:pointer;border:1px solid}
+.cb-e{background:#eff6ff;border-color:#bfdbfe;color:#2563eb}
+.cb-a{background:#f0fdf4;border-color:#86efac;color:#166534}
+.cb-d{background:#fff1f2;border-color:#fecdd3;color:#9f1239}
 
-/* ── MODAL ───────────────────────────────────────────────────── */
-#modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:center;justify-content:center}
-#modal-bg.on{display:flex}
-#modal{background:#fff;border-radius:10px;padding:22px;width:440px;max-width:96vw;max-height:90vh;overflow-y:auto;box-shadow:0 12px 40px rgba(0,0,0,.2)}
-#modal h2{font-size:15px;font-weight:800;color:#1e2433;margin-bottom:16px}
-.mrow{margin-bottom:11px}
-.mrow label{display:block;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:#9ca3af;margin-bottom:4px}
-.mrow input,.mrow select,.mrow textarea{width:100%;padding:7px 9px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;font-family:inherit;background:#fff}
-.mrow textarea{min-height:64px;resize:vertical}
-.mbtns{display:flex;gap:8px;margin-top:18px;flex-wrap:wrap}
+/* MODAL */
+#mbg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:center;justify-content:center}
+#mbg.on{display:flex}
+#mdl{background:#fff;border-radius:10px;padding:22px;width:440px;max-width:96vw;max-height:90vh;overflow-y:auto;box-shadow:0 12px 40px rgba(0,0,0,.2)}
+#mdl h2{font-size:15px;font-weight:800;margin-bottom:14px}
+.mr{margin-bottom:10px}
+.mr label{display:block;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:#9ca3af;margin-bottom:3px}
+.mr input,.mr select,.mr textarea{width:100%;padding:7px 9px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;font-family:inherit;background:#fff}
+.mr textarea{min-height:64px;resize:vertical}
+.mbtns{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
 .mbtns button{padding:8px 16px;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer;border:1px solid}
-#mbtn-save{background:#2563eb;color:#fff;border-color:#2563eb}
-#mbtn-cancel{background:#fff;color:#374151;border-color:#d1d5db}
-#mbtn-del{background:#fff1f2;color:#9f1239;border-color:#fecdd3;margin-left:auto;display:none}
-#modal-recid{font-size:10px;color:#9ca3af;margin-top:6px}
+#msave{background:#2563eb;color:#fff;border-color:#2563eb}
+#mcancel{background:#fff;color:#374151;border-color:#d1d5db}
+#mdel{background:#fff1f2;color:#9f1239;border-color:#fecdd3;margin-left:auto;display:none}
+#mrecid{font-size:10px;color:#9ca3af;margin-top:6px}
 </style>
 </head>
 <body>
 
-<div id="loader"><div class="spin"></div><div id="lmsg">Initializing…</div></div>
+<div id="loader"><div class="spin"></div><div id="lmsg">Loading…</div></div>
 
 <!-- HEADER -->
 <div id="hdr">
-  <h1>💊 MB Audit Tool</h1>
-  <button class="mode-btn on" id="mode-inj" onclick="setMode('inj')">💉 Injections</button>
-  <button class="mode-btn" id="mode-wkt" onclick="setMode('wkt')">🏋️ Workouts</button>
-  <span class="badge b-blue" id="b-at">AT: —</span>
-  <span class="badge b-green" id="b-match">✓ 0</span>
-  <span class="badge b-amber" id="b-diff">⚠ 0</span>
-  <span class="badge b-red" id="b-miss">✗ 0</span>
-  <div id="hdr-right">
-    <span id="save-status"></span>
-    <button class="btn btn-secondary btn-sm" onclick="reloadAT()">↻ Reload AT</button>
+  <h1>💊 MB Audit</h1>
+  <button class="mode-btn on" id="m-inj" onclick="setMode('inj')">💉 Injections</button>
+  <button class="mode-btn" id="m-wkt" onclick="setMode('wkt')">🏋️ Workouts</button>
+  <span class="badge b-purple" id="b-par">Parseur: 0</span>
+  <span class="badge b-blue" id="b-cld">Claude: —</span>
+  <span class="badge b-blue" id="b-at">AT: 0</span>
+  <span class="badge b-green" id="b-ok">✓ 0</span>
+  <span class="badge b-amber" id="b-df">⚠ 0</span>
+  <span class="badge b-red" id="b-ms">✗ 0</span>
+  <div id="hdr-r">
+    <span id="drive-st" class="no" onclick="signIn()" title="Click to sign in">🔴 Drive: Not signed in</span>
+    <span id="save-st"></span>
+    <button class="btn btn-s btn-sm" onclick="reloadAT()">↻ AT</button>
   </div>
 </div>
 
-<!-- BODY: THREE PANELS -->
+<!-- BODY -->
 <div id="body">
 
-  <!-- LEFT: PDF -->
+  <!-- PDF PANEL -->
   <div id="pdf-panel">
-    <div id="pdf-top">
-      <span class="panel-label">📄 PDF Source</span>
+    <div class="panel-hdr">
+      <span class="plabel">📄 PDF Source</span>
       <div class="row">
-        <input id="pdf-drive-id" type="text" placeholder="Google Drive file ID">
-        <button class="btn btn-primary" onclick="loadFromDrive()">Load</button>
+        <input id="pdf-id" type="text" placeholder="Google Drive file ID">
+        <button class="btn btn-p" onclick="loadDrive()">Load</button>
       </div>
       <div class="row">
-        <label class="btn btn-secondary" style="cursor:pointer;font-size:10px">
-          Local File <input id="pdf-file" type="file" accept=".pdf" style="display:none" onchange="loadLocal(this)">
+        <label class="btn btn-s btn-sm" style="cursor:pointer">Upload Local
+          <input type="file" accept=".pdf" style="display:none" onchange="loadLocal(this)">
         </label>
-        <span id="pdf-status">No PDF loaded</span>
+        <span id="pdf-msg">No PDF loaded</span>
       </div>
     </div>
     <div id="pdf-area">
-      <div id="pdf-placeholder">Load a PDF to begin</div>
+      <div id="pdf-ph">Load PDF above</div>
       <canvas id="pdf-canvas"></canvas>
     </div>
-    <div id="pdf-nav">
-      <button onclick="pdfGo(pdfPage-1)">◀</button>
-      <input id="pdf-jump" type="number" min="1" placeholder="—" onchange="pdfGo(+this.value)">
+    <div id="pdf-nav-bar">
+      <button onclick="pgGo(pdfPage-1)">◀</button>
+      <input id="pdf-jp" type="number" min="1" onchange="pgGo(+this.value)" placeholder="—">
       <span id="pdf-pg">— / —</span>
-      <button onclick="pdfGo(pdfPage+1)">▶</button>
-      <button class="btn btn-primary btn-sm" onclick="extractPage()" title="Extract data from this page with Claude AI">✦ Extract</button>
+      <button onclick="pgGo(pdfPage+1)">▶</button>
+      <button class="btn btn-p btn-sm" onclick="extractPage()">✦ Extract</button>
     </div>
   </div>
 
-  <!-- MIDDLE: CLAUDE EXTRACT -->
-  <div id="extract-panel">
-    <div id="extract-top">
-      <span class="panel-label">✦ Claude Extract</span>
-      <div id="extract-spinner"></div>
-      <span id="extract-date"></span>
-      <div style="margin-left:auto;display:flex;gap:6px" id="extract-actions-inline"></div>
+  <!-- COMPARISON AREA -->
+  <div id="cmp-area">
+
+    <!-- DATE BAR -->
+    <div id="date-bar">
+      <span style="font-size:11px;font-weight:700;color:#6b7280">DATE:</span>
+      <input id="date-inp" type="date" onchange="loadDateFromInput()">
+      <span id="date-lbl" style="display:none"></span>
+      <button class="btn btn-p btn-sm" onclick="loadDateFromInput()">Load AT for Date</button>
+      <div id="date-bar-r">
+        <button class="btn btn-g btn-sm" onclick="acceptAllMissing()">✓ Accept All Missing → AT</button>
+      </div>
     </div>
-    <div id="extract-area">
-      <div id="extract-empty">Navigate to a PDF page and click ✦ Extract</div>
+
+    <!-- THREE COLUMNS -->
+    <div id="cols">
+
+      <!-- PARSEUR -->
+      <div class="col" id="col-par">
+        <div class="col-hdr">
+          <span class="col-title">📋 Parseur</span>
+          <span class="col-count" id="par-cnt">0</span>
+          <span style="margin-left:auto;font-size:10px;color:#9ca3af" id="par-date-lbl"></span>
+        </div>
+        <div id="par-src">
+          <span class="plabel" style="margin:0;color:#f59e0b;font-size:10px">SOURCE:</span>
+          <label class="btn btn-s btn-sm" style="cursor:pointer;background:#fff8f0;border-color:#fcd34d">
+            📎 Load CSV / JSON / Excel
+            <input type="file" accept=".csv,.json,.xlsx,.xls" style="display:none" onchange="loadParseur(this)">
+          </label>
+          <span id="par-src-lbl" style="font-size:10px;color:#9ca3af">No file loaded</span>
+        </div>
+        <div class="col-body" id="par-body"><div class="col-empty">Load a Parseur export file above (CSV / JSON / Excel)</div></div>
+      </div>
+
+      <!-- CLAUDE EXTRACT -->
+      <div class="col" id="col-cld">
+        <div class="col-hdr">
+          <span class="col-title">✦ Claude Extract</span>
+          <span class="col-count" id="cld-cnt">0</span>
+          <div id="cld-spin"></div>
+          <span style="margin-left:auto;font-size:10px;color:#9ca3af" id="cld-date-lbl"></span>
+        </div>
+        <div id="cld-src" style="padding:6px 10px;border-bottom:1px solid #e2e5ea;background:#f0f4ff;display:flex;align-items:center;gap:6px;flex-wrap:wrap;flex-shrink:0">
+          <span style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:#6b7280">SOURCE:</span>
+          <span style="font-size:10px;color:#9ca3af">Navigate PDF → click ✦ Extract button in PDF panel</span>
+        </div>
+        <div class="col-body" id="cld-body"><div class="col-empty">Navigate to a PDF page and click ✦ Extract to analyze with Claude AI</div></div>
+      </div>
+
+      <!-- AT CURRENT -->
+      <div class="col" id="col-at">
+        <div class="col-hdr">
+          <span class="col-title">🗄 Airtable Current</span>
+          <span class="col-count" id="at-cnt">0</span>
+          <span style="margin-left:auto" id="at-date-lbl" style="font-size:10px;color:#9ca3af"></span>
+          <button class="btn btn-p btn-sm" onclick="openAdd()">+ Add</button>
+        </div>
+        <div id="at-src" style="padding:6px 10px;border-bottom:1px solid #e2e5ea;background:#f0fff4;display:flex;align-items:center;gap:6px;flex-shrink:0">
+          <span style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:#6b7280">SOURCE:</span>
+          <span style="font-size:10px;color:#9ca3af" id="at-src-lbl">Auto-loaded when date is set</span>
+        </div>
+        <div class="col-body" id="at-body"><div class="col-empty">AT records appear here when a date is detected or selected above</div></div>
+      </div>
+
     </div>
   </div>
-
-  <!-- RIGHT: AT RECORDS -->
-  <div id="at-panel">
-    <div id="at-top">
-      <span class="panel-label">🗄 Airtable Current</span>
-      <span id="at-date-label">No date selected</span>
-      <button class="btn btn-primary btn-sm" id="btn-add-at" onclick="openAdd()">+ Add</button>
-    </div>
-    <div id="at-area">
-      <div id="at-empty">AT records for extracted date appear here</div>
-    </div>
-  </div>
-
 </div>
 
-<!-- EDIT MODAL -->
-<div id="modal-bg" onclick="if(event.target===this)closeModal()">
-  <div id="modal">
-    <h2 id="modal-title">Edit Record</h2>
-
-    <!-- INJECTION FIELDS -->
-    <div id="inj-fields">
-      <div class="mrow"><label>Date</label><input id="ef-date" type="date"></div>
-      <div class="mrow"><label>Compound</label>
-        <select id="ef-compound">
+<!-- MODAL -->
+<div id="mbg" onclick="if(event.target===this)closeMdl()">
+  <div id="mdl">
+    <h2 id="mtitle">Record</h2>
+    <!-- INJECTION -->
+    <div id="inj-f">
+      <div class="mr"><label>Date</label><input id="ef-date" type="date"></div>
+      <div class="mr"><label>Compound</label>
+        <select id="ef-cmp">
           <option value="">— Select —</option>
           <option>NAD+</option><option>LipoMinoMix</option><option>Tesamorelin</option>
           <option>Tirzepatide</option><option>Anavar (Oxandrolone)</option><option>BPC-157</option>
@@ -220,67 +279,51 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           <option>Testosterone</option><option>Winstrol (Stanozolol)</option><option>Cagrilintide</option>
         </select>
       </div>
-      <div class="mrow"><label>Dose</label><input id="ef-dose" type="text" placeholder="e.g. 200mg, 2.5u"></div>
-      <div class="mrow"><label>Site</label>
-        <select id="ef-site">
-          <option value="">— Select —</option>
-          <option>L</option><option>R</option><option>L+R</option>
-          <option>Pill</option><option>X</option><option>Nasal</option><option>Abd</option><option>S</option>
-        </select>
+      <div class="mr"><label>Dose</label><input id="ef-dose" type="text" placeholder="e.g. 200mg, 2.5u"></div>
+      <div class="mr"><label>Site</label>
+        <select id="ef-site"><option value="">— Select —</option><option>L</option><option>R</option><option>L+R</option><option>Pill</option><option>X</option><option>Nasal</option><option>Abd</option><option>S</option></select>
       </div>
-      <div class="mrow"><label>Timing</label>
-        <select id="ef-timing">
-          <option value="">— Select —</option>
-          <option>Morning</option><option>Night</option><option>Evening</option><option>Daily</option>
-        </select>
+      <div class="mr"><label>Timing</label>
+        <select id="ef-time"><option value="">— Select —</option><option>Morning</option><option>Night</option><option>Evening</option><option>Daily</option></select>
       </div>
-      <div class="mrow"><label>Status</label>
-        <select id="ef-status">
-          <option value="">— Select —</option>
-          <option>Todo</option><option>In progress</option><option>Done</option>
-        </select>
+      <div class="mr"><label>Status</label>
+        <select id="ef-stat"><option value="">— Select —</option><option>Todo</option><option>In progress</option><option>Done</option></select>
       </div>
-      <div class="mrow"><label>Notes</label><textarea id="ef-notes"></textarea></div>
+      <div class="mr"><label>Notes</label><textarea id="ef-notes"></textarea></div>
     </div>
-
-    <!-- WORKOUT FIELDS -->
-    <div id="wkt-fields" style="display:none">
-      <div class="mrow"><label>Date</label><input id="wf-date" type="date"></div>
-      <div class="mrow"><label>Exercise</label><input id="wf-exercise" type="text" placeholder="e.g. Bench Press"></div>
-      <div class="mrow"><label>Variation</label><input id="wf-variation" type="text" placeholder="e.g. DBs, Rope 1/2"></div>
-      <div class="mrow"><label>Set #</label><input id="wf-set" type="number" min="1" placeholder="1"></div>
-      <div class="mrow"><label>Reps</label><input id="wf-reps" type="number" min="0"></div>
-      <div class="mrow"><label>Weight (lbs)</label><input id="wf-weight" type="number" min="0"></div>
-      <div class="mrow"><label>Day Type</label>
-        <select id="wf-day">
-          <option value="">— Select —</option>
-          <option>Push</option><option>Pull</option><option>Legs</option>
-          <option>Arms</option><option>Shoulders</option><option>Cardio</option>
-        </select>
+    <!-- WORKOUT -->
+    <div id="wkt-f" style="display:none">
+      <div class="mr"><label>Date</label><input id="wf-date" type="date"></div>
+      <div class="mr"><label>Exercise</label><input id="wf-ex" type="text"></div>
+      <div class="mr"><label>Variation</label><input id="wf-var" type="text" placeholder="DBs, Rope 1/2, etc."></div>
+      <div class="mr"><label>Set #</label><input id="wf-set" type="number" min="1"></div>
+      <div class="mr"><label>Reps</label><input id="wf-reps" type="number" min="0"></div>
+      <div class="mr"><label>Weight (lbs)</label><input id="wf-wt" type="number" min="0"></div>
+      <div class="mr"><label>Day Type</label>
+        <select id="wf-day"><option value="">— Select —</option><option>Push</option><option>Pull</option><option>Legs</option><option>Arms</option><option>Shoulders</option><option>Cardio</option></select>
       </div>
-      <div class="mrow"><label>Notes</label><textarea id="wf-notes"></textarea></div>
+      <div class="mr"><label>Notes</label><textarea id="wf-notes"></textarea></div>
     </div>
-
-    <div id="modal-recid"></div>
+    <div id="mrecid"></div>
     <div class="mbtns">
-      <button id="mbtn-save" onclick="saveRecord()">Save</button>
-      <button id="mbtn-cancel" onclick="closeModal()">Cancel</button>
-      <button id="mbtn-del" onclick="deleteRecord()">Delete</button>
+      <button id="msave" onclick="saveRec()">Save</button>
+      <button id="mcancel" onclick="closeMdl()">Cancel</button>
+      <button id="mdel" onclick="delRec()">Delete</button>
     </div>
   </div>
 </div>
 
 <script>
-pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-// ── CONFIG ──────────────────────────────────────────────────────────────
-const AT_TOKEN  = 'pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
-const AT_BASE   = 'appmHDG4TGT1xy6R6';
-const WORKER    = 'https://anthropic-proxy.mikeblack01.workers.dev';
-const ANT_KEY   = 'sk-ant-api03-jWnl5azwXKPce1ZVdPZ8_8edO87_hOD8uZpDXQFa4ByFkqqdJOzouZo6uZo6xiVwxykvwcp5MVNeYIaYn0dDE_dVAA-H3QK9wAA';
-const GCL_ID    = '478191426516-94rflpalsl5ev56ptck62k5imes6jk8l.apps.googleusercontent.com';
+// ── CONFIG ─────────────────────────────────────────────────────────────
+const AT_TOKEN = 'pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
+const AT_BASE  = 'appmHDG4TGT1xy6R6';
+const WORKER   = 'https://anthropic-proxy.mikeblack01.workers.dev';
+const ANT_KEY  = 'sk-ant-api03-jWnl5azwXKPce1ZVdPZ8_8edO87_hOD8uZpDXQFa4ByFkqqdJOzouZo6uZo6xiVwxykvwcp5MVNeYIaYn0dDE_dVAA-H3QK9wAA';
+const GCL_ID   = '478191426516-94rflpalsl5ev56ptck62k5imes6jk8l.apps.googleusercontent.com';
+const GSCOPE   = 'https://www.googleapis.com/auth/drive.readonly';
 
-// Injection Log fields
 const INJ = {
   tbl:'tblBvEaLkGGipnOFc',
   name:'fldt9vYT8Tm37Gf3k', date:'fldhYEtLEGA4VxvvO',
@@ -288,7 +331,6 @@ const INJ = {
   timing:'fldIdzew4Jd0qO4Uc', dose:'fld8d8mtRapfaIyqL',
   notes:'fldAbczu73mINwLmx', status:'fldD9kegiwk6mINV8'
 };
-// Workout Sets fields
 const WKT = {
   tbl:'tblKDqjy5RzqaJvjr',
   setid:'fld4hUpEzC9IqN0xh', date:'fld75zYXknF0RtCWH',
@@ -298,100 +340,75 @@ const WKT = {
   day:'fldypzlwqw9AzWrEE', notes:'fldfR4vyBtj2VWB2b'
 };
 
-// ── STATE ───────────────────────────────────────────────────────────────
-let mode = 'inj'; // 'inj' | 'wkt'
+// ── STATE ──────────────────────────────────────────────────────────────
+let mode = 'inj';
 let curDate = null;
-let atRecs = [];
-let extracted = [];
+let atRecs = [], parseurRecs = [], parseurAll = [], claudeRecs = [];
 let editId = null;
 let pdfDoc = null, pdfPage = 1;
 let gToken = null;
 
-// ── AT ──────────────────────────────────────────────────────────────────
-async function atFetch(path, opts={}) {
-  const r = await fetch(`https://api.airtable.com/v0/${AT_BASE}/${path}`, {
-    ...opts,
-    headers:{'Authorization':'Bearer '+AT_TOKEN,'Content-Type':'application/json',...(opts.headers||{})}
-  });
-  if (!r.ok) { const e = await r.json().catch(()=>({})); throw new Error(e.error?.message||r.status); }
-  return r.json();
+// ── GOOGLE AUTH ────────────────────────────────────────────────────────
+function initAuth() {
+  // 1. Check URL hash (returning from OAuth redirect)
+  if (location.hash && location.hash.includes('access_token')) {
+    const p = new URLSearchParams(location.hash.slice(1));
+    const tok = p.get('access_token');
+    const exp = parseInt(p.get('expires_in') || 3600);
+    if (tok) {
+      gToken = tok;
+      localStorage.setItem('mb_pdfqat', tok);
+      localStorage.setItem('mb_pdfqae', Date.now() + (exp - 60) * 1000);
+      history.replaceState(null, '', location.pathname);
+      setDriveOk(); return;
+    }
+  }
+  // 2. Try stored token (from this tool or pdf_qa.html — same localStorage)
+  const stored = localStorage.getItem('mb_pdfqat');
+  const expiry = parseInt(localStorage.getItem('mb_pdfqae') || 0);
+  if (stored && Date.now() < expiry) {
+    gToken = stored; setDriveOk(); return;
+  }
+  // 3. Not signed in
+  setDriveNo();
 }
 
-async function loadATForDate(date) {
-  const F = mode==='inj' ? INJ : WKT;
-  const dateField = F.date;
-  // Filter by date using ISO format
-  const filter = encodeURIComponent(`{${dateField}}="${date}"`);
-  let recs = [], offset = null;
-  do {
-    let url = `${F.tbl}?returnFieldsByFieldId=true&filterByFormula=${filter}&pageSize=100`;
-    if (offset) url += '&offset='+offset;
-    const d = await atFetch(url);
-    recs = recs.concat(d.records);
-    offset = d.offset;
-  } while(offset);
-  return recs;
+function signIn() {
+  const redirect = location.href.split('#')[0].split('?')[0];
+  location.href = 'https://accounts.google.com/o/oauth2/v2/auth' +
+    '?client_id=' + encodeURIComponent(GCL_ID) +
+    '&redirect_uri=' + encodeURIComponent(redirect) +
+    '&response_type=token' +
+    '&scope=' + encodeURIComponent(GSCOPE);
 }
+function setDriveOk() { const e=document.getElementById('drive-st'); e.textContent='🟢 Drive: Signed In'; e.className='ok'; e.onclick=null; }
+function setDriveNo() { const e=document.getElementById('drive-st'); e.textContent='🔴 Drive: Sign In'; e.className='no'; e.onclick=signIn; }
 
-async function reloadAT() {
-  if (!curDate) return;
-  setSave('loading');
-  try {
-    atRecs = await loadATForDate(curDate);
-    renderAT();
-    renderCompare();
-    setSave('');
-    document.getElementById('b-at').textContent = 'AT: '+atRecs.length;
-  } catch(e) { setSave('err:'+e.message); }
+// ── PDF ────────────────────────────────────────────────────────────────
+function loadDrive() {
+  const id = document.getElementById('pdf-id').value.trim();
+  if (!id) { setPM('Enter a Drive file ID'); return; }
+  if (!gToken) { signIn(); return; }
+  setPM('Loading…');
+  fetch('https://www.googleapis.com/drive/v3/files/' + id + '?alt=media',
+    {headers:{Authorization:'Bearer '+gToken}})
+    .then(r => { if(!r.ok) throw new Error('Drive '+r.status); return r.arrayBuffer(); })
+    .then(buf => renderPDF(buf))
+    .catch(e => {
+      // Token might be expired — clear and re-auth
+      if (e.message.includes('401') || e.message.includes('403')) {
+        localStorage.removeItem('mb_pdfqat'); gToken = null; setDriveNo(); signIn();
+      } else { setPM('Error: '+e.message); }
+    });
 }
-
-// ── GOOGLE DRIVE OAUTH ──────────────────────────────────────────────────
-function getGToken(cb) {
-  if (gToken) { cb(gToken); return; }
-  const scope = encodeURIComponent('https://www.googleapis.com/auth/drive.readonly');
-  const redir = encodeURIComponent(location.origin+location.pathname);
-  const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GCL_ID}&redirect_uri=${redir}&response_type=token&scope=${scope}`;
-  const w = window.open(url,'gauth','width=500,height=600');
-  if (!w) { alert('Allow pop-ups for this page'); return; }
-  const chk = setInterval(()=>{
-    try {
-      if(w.closed){clearInterval(chk);return;}
-      const h=w.location.hash;
-      if(h&&h.includes('access_token')){
-        clearInterval(chk); w.close();
-        gToken = new URLSearchParams(h.substring(1)).get('access_token');
-        cb(gToken);
-      }
-    }catch(e){}
-  },300);
-}
-
-// ── PDF ─────────────────────────────────────────────────────────────────
-function loadFromDrive() {
-  const id = document.getElementById('pdf-drive-id').value.trim();
-  if (!id) { setPdfStatus('Enter a Drive file ID'); return; }
-  setPdfStatus('Authenticating…');
-  getGToken(async tok => {
-    try {
-      setPdfStatus('Downloading…');
-      const r = await fetch(`https://www.googleapis.com/drive/v3/files/${id}?alt=media`,
-        {headers:{Authorization:'Bearer '+tok}});
-      if (!r.ok) throw new Error('Drive '+r.status);
-      await renderPDFBuf(await r.arrayBuffer());
-      setPdfStatus('Loaded ✓');
-    } catch(e) { setPdfStatus('Error: '+e.message); }
-  });
-}
-function loadLocal(inp) {
-  if (!inp.files[0]) return;
-  inp.files[0].arrayBuffer().then(renderPDFBuf);
-}
-async function renderPDFBuf(buf) {
+function loadLocal(inp) { if(inp.files[0]) inp.files[0].arrayBuffer().then(renderPDF); }
+async function renderPDF(buf) {
   pdfDoc = await pdfjsLib.getDocument({data:buf}).promise;
   pdfPage = 1;
-  document.getElementById('pdf-placeholder').style.display='none';
-  document.getElementById('pdf-canvas').style.display='';
+  document.getElementById('pdf-ph').style.display = 'none';
+  document.getElementById('pdf-canvas').style.display = '';
   await renderPage(1);
+  setPM('Loaded — ' + pdfDoc.numPages + ' pages');
 }
 async function renderPage(n) {
   if (!pdfDoc) return;
@@ -402,470 +419,552 @@ async function renderPage(n) {
   const vp = pg.getViewport({scale:1.4});
   canvas.width = vp.width; canvas.height = vp.height;
   await pg.render({canvasContext:canvas.getContext('2d'), viewport:vp}).promise;
-  document.getElementById('pdf-pg').textContent = n+' / '+pdfDoc.numPages;
-  document.getElementById('pdf-jump').value = n;
+  document.getElementById('pdf-pg').textContent = n + ' / ' + pdfDoc.numPages;
+  document.getElementById('pdf-jp').value = n;
 }
-function pdfGo(n) { renderPage(n); }
-function setPdfStatus(m) { document.getElementById('pdf-status').textContent = m; }
+function pgGo(n) { renderPage(n); }
+function setPM(m) { document.getElementById('pdf-msg').textContent = m; }
 
-// ── CLAUDE EXTRACT ──────────────────────────────────────────────────────
+// ── PARSEUR LOAD ───────────────────────────────────────────────────────
+function loadParseur(inp) {
+  const file = inp.files[0]; if (!file) return;
+  const ext = file.name.split('.').pop().toLowerCase();
+  document.getElementById('par-src-lbl').textContent = 'Loading ' + file.name + '…';
+  if (ext === 'json') {
+    file.text().then(t => {
+      try { parseParseurData(JSON.parse(t)); document.getElementById('par-src-lbl').textContent = '✓ ' + file.name; }
+      catch(e) { document.getElementById('par-src-lbl').textContent = 'Error: invalid JSON'; }
+    });
+  } else if (ext === 'csv') {
+    file.text().then(t => { parseCSV(t); document.getElementById('par-src-lbl').textContent = '✓ ' + file.name; });
+  } else {
+    file.arrayBuffer().then(buf => {
+      const wb = XLSX.read(buf, {type:'arraybuffer'});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      parseParseurData(XLSX.utils.sheet_to_json(ws));
+      document.getElementById('par-src-lbl').textContent = '✓ ' + file.name;
+    });
+  }
+}
+
+function parseParseurData(arr) {
+  parseurAll = Array.isArray(arr) ? arr : (arr.records || arr.data || Object.values(arr));
+  // Normalize dates
+  parseurAll = parseurAll.map(r => {
+    const obj = {...r};
+    // Find date field
+    const dateKeys = ['date','Date','DATE','injection_date','log_date','Date/Time','datetime'];
+    let dv = null;
+    for (const k of dateKeys) { if (obj[k]) { dv = String(obj[k]); break; } }
+    if (!dv) { const k = Object.keys(obj).find(k=>k.toLowerCase().includes('date')); if(k) dv=String(obj[k]); }
+    if (dv) {
+      // Normalize to YYYY-MM-DD
+      if (/^\d{1,2}\/\d{1,2}\/\d{2,4}/.test(dv)) {
+        const [m,d,y] = dv.split('/'); const yr = y.length===2?'20'+y:y;
+        obj._date = yr+'-'+m.padStart(2,'0')+'-'+d.padStart(2,'0');
+      } else if (/^\d{4}-\d{2}-\d{2}/.test(dv)) {
+        obj._date = dv.substring(0,10);
+      } else obj._date = dv;
+    }
+    return obj;
+  });
+  document.getElementById('b-par').textContent = 'Parseur: ' + parseurAll.length;
+  if (curDate) filterParseurToDate(curDate);
+  else renderParseur([]);
+}
+
+function parseCSV(text) {
+  const lines = text.trim().split('\n').filter(l=>l.trim());
+  if (!lines.length) return;
+  const headers = csvLine(lines[0]);
+  const rows = lines.slice(1).map(l => {
+    const vals = csvLine(l); const obj = {};
+    headers.forEach((h,i) => obj[h] = (vals[i]||'').trim());
+    return obj;
+  }).filter(r => Object.values(r).some(v=>v));
+  parseParseurData(rows);
+}
+function csvLine(line) {
+  const vals=[]; let cur='', inQ=false;
+  for(const c of line) {
+    if(c==='"'){inQ=!inQ;} else if(c===','&&!inQ){vals.push(cur.trim());cur='';}
+    else cur+=c;
+  }
+  vals.push(cur.trim());
+  return vals.map(v=>v.replace(/^"|"$/g,''));
+}
+
+function filterParseurToDate(date) {
+  parseurRecs = parseurAll.filter(r => r._date === date);
+  document.getElementById('par-date-lbl').textContent = date + ' (' + parseurRecs.length + ')';
+  document.getElementById('par-cnt').textContent = parseurRecs.length;
+  renderParseur(parseurRecs);
+}
+
+function renderParseur(recs) {
+  const body = document.getElementById('par-body');
+  if (!recs.length) { body.innerHTML = '<div class="col-empty">' + (parseurAll.length ? 'No Parseur records for this date' : 'Load a Parseur file above') + '</div>'; return; }
+  body.innerHTML = recs.map(r => buildParseurCard(r)).join('');
+  updateBadges();
+}
+
+function buildParseurCard(r) {
+  // Try to find key fields regardless of column names
+  const compound = r.compound || r.Compound || r.drug || r.Drug || r.medication || r.Medication
+    || r.exercise || r.Exercise || r.name || r.Name || '?';
+  const dose = r.dose || r.Dose || r.amount || r.Amount || r.weight || r.Weight || '';
+  const site = r.site || r.Site || r['injection site'] || r['Injection Site'] || '';
+  const timing = r.timing || r.Timing || r.time || r.Time || '';
+  const notes = r.notes || r.Notes || r.note || r.Note || '';
+  const status = getMatchStatusInj({compound, dose, site, timing});
+  const sc = status==='match'?'match':status==='diff'?'diff':status==='miss'?'miss':'neutral';
+  return `<div class="card ${sc}">
+    <div class="ch">
+      <span class="cn">${compound}</span>
+      ${dose?`<span class="pill pd">${dose}</span>`:''}
+      ${timing?`<span class="pill pt">${timing}</span>`:''}
+      ${site?`<span class="pill ps">${site}</span>`:''}
+      <span class="mtag ${sc==='match'?'m':sc==='diff'?'d':sc==='miss'?'x':'e'}">${sc==='match'?'✓':sc==='diff'?'⚠':sc==='miss'?'✗ Missing in AT':'–'}</span>
+    </div>
+    ${notes?`<div class="notes">${notes}</div>`:''}
+    <div class="cbtns">
+      ${sc==='miss'?`<button class="cbtn cb-a" onclick="pushParseurRec(${JSON.stringify({compound,dose,site,timing,notes}).replace(/"/g,'&quot;')})">→ Push to AT</button>`:''}
+    </div>
+  </div>`;
+}
+
+// ── CLAUDE EXTRACT ────────────────────────────────────────────────────
 async function extractPage() {
   if (!pdfDoc) { alert('Load a PDF first'); return; }
   const canvas = document.getElementById('pdf-canvas');
-  const imgData = canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
-
+  const img = canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
   const prompt = mode === 'inj'
     ? `Extract ALL injection records from this handwritten log page.
-Return ONLY a valid JSON array, no other text. Each object:
+Return ONLY a valid JSON array, no markdown, no explanation. Each record:
 {"date":"YYYY-MM-DD","compound":"exact name","dose":"as written","site":"L|R|L+R|Pill|Nasal|Abd|S|X","timing":"Morning|Night|Evening|Daily","notes":""}
-If no records found return [].`
+Use empty string for unknown fields. If page has no records return [].`
     : `Extract ALL workout sets from this handwritten log page.
-Return ONLY a valid JSON array, no other text. Each object:
+Return ONLY a valid JSON array, no markdown. Each record:
 {"date":"YYYY-MM-DD","exercise":"name","variation":"or empty","set_number":1,"reps":10,"weight":100,"notes":""}
-Weight should be in lbs. If no records found return [].`;
+Weight in lbs. Empty string for unknowns. If no records return [].`;
 
-  // Show spinner
-  document.getElementById('extract-spinner').style.display='inline-block';
-  document.getElementById('extract-empty').style.display='none';
-  document.getElementById('extract-area').innerHTML='<div id="extract-empty" style="color:#9ca3af;text-align:center;padding:30px">Extracting with Claude…</div>';
-  document.getElementById('extract-date').style.display='none';
+  document.getElementById('cld-spin').style.display = 'inline-block';
+  document.getElementById('cld-cnt').textContent = '…';
+  document.getElementById('cld-body').innerHTML = '<div class="col-empty">Analyzing with Claude…</div>';
+  document.getElementById('cld-date-lbl').textContent = '';
 
   try {
-    const res = await fetch(WORKER+'/v1/messages', {
-      method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':ANT_KEY,'anthropic-version':'2023-06-01'},
+    const res = await fetch(WORKER + '/v1/messages', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json','x-api-key':ANT_KEY,'anthropic-version':'2023-06-01'},
       body: JSON.stringify({
-        model:'claude-sonnet-4-20250514',
-        max_tokens:2000,
-        messages:[{role:'user',content:[
-          {type:'image',source:{type:'base64',media_type:'image/jpeg',data:imgData}},
-          {type:'text',text:prompt}
+        model: 'claude-sonnet-4-20250514', max_tokens: 2000,
+        messages: [{role:'user', content: [
+          {type:'image', source:{type:'base64', media_type:'image/jpeg', data:img}},
+          {type:'text', text: prompt}
         ]}]
       })
     });
-    if (!res.ok) throw new Error('API '+res.status);
+    if (!res.ok) throw new Error('API ' + res.status);
     const data = await res.json();
-    const raw = data.content?.[0]?.text || '[]';
-    const clean = raw.replace(/```json|```/g,'').trim();
-    extracted = JSON.parse(clean);
-    if (!Array.isArray(extracted)) extracted = [];
+    const raw = (data.content?.[0]?.text || '[]').replace(/```json|```/g,'').trim();
+    claudeRecs = JSON.parse(raw);
+    if (!Array.isArray(claudeRecs)) claudeRecs = [];
 
-    // Get detected date
-    const dates = [...new Set(extracted.map(r=>r.date).filter(Boolean))];
-    const detectedDate = dates[0] || null;
-
-    if (detectedDate) {
-      document.getElementById('extract-date').textContent = detectedDate;
-      document.getElementById('extract-date').style.display='';
-      await setDate(detectedDate);
+    // Detect date and load AT
+    const dates = [...new Set(claudeRecs.map(r=>r.date||r._date).filter(Boolean))];
+    const date = dates[0];
+    if (date) {
+      document.getElementById('cld-date-lbl').textContent = date;
+      document.getElementById('date-inp').value = date;
+      document.getElementById('date-lbl').textContent = date;
+      document.getElementById('date-lbl').style.display = '';
+      await setCurrentDate(date);
     }
-
-    renderExtracted();
+    document.getElementById('cld-cnt').textContent = claudeRecs.length;
+    renderClaude();
+    updateBadges();
   } catch(e) {
-    document.getElementById('extract-area').innerHTML=`<div style="color:#dc2626;padding:20px;font-size:12px">Extract error: ${e.message}</div>`;
+    document.getElementById('cld-body').innerHTML = `<div style="color:#dc2626;padding:16px;font-size:12px">Error: ${e.message}</div>`;
+    document.getElementById('cld-cnt').textContent = '!';
   }
-  document.getElementById('extract-spinner').style.display='none';
+  document.getElementById('cld-spin').style.display = 'none';
 }
 
-async function setDate(date) {
+function renderClaude() {
+  const body = document.getElementById('cld-body');
+  if (!claudeRecs.length) { body.innerHTML = '<div class="col-empty">No records found on this page</div>'; return; }
+  body.innerHTML = claudeRecs.map((r,i) => buildClaudeCard(r,i)).join('');
+}
+
+function buildClaudeCard(r, i) {
+  const isInj = mode === 'inj';
+  const name = isInj ? (r.compound||'?') : (r.exercise||'?');
+  const dose = isInj ? (r.dose||'') : (r.weight ? r.weight+'lbs':'');
+  const timing = isInj ? (r.timing||'') : (r.set_number ? 'Set '+r.set_number:'');
+  const site = isInj ? (r.site||'') : (r.reps ? r.reps+' reps':'');
+  const notes = r.notes||'';
+  const status = isInj ? getMatchStatusInj(r) : getMatchStatusWkt(r);
+  const sc = status==='match'?'match':status==='diff'?'diff':status==='miss'?'miss':'neutral';
+  const diffHtml = isInj ? getDiffHtmlInj(r) : getDiffHtmlWkt(r);
+  return `<div class="card ${sc}">
+    <div class="ch">
+      <span class="cn">${name}</span>
+      ${dose?`<span class="pill pd">${dose}</span>`:''}
+      ${timing?`<span class="pill pt">${timing}</span>`:''}
+      ${site?`<span class="pill ps">${site}</span>`:''}
+      <span class="mtag ${sc==='match'?'m':sc==='diff'?'d':sc==='miss'?'x':'e'}">${sc==='match'?'✓ Match':sc==='diff'?'⚠ Diff':sc==='miss'?'✗ Missing':'–'}</span>
+    </div>
+    ${diffHtml}
+    ${notes?`<div class="notes">${notes}</div>`:''}
+    <div class="cbtns">
+      ${sc!=='match'?`<button class="cbtn cb-a" onclick="acceptClaude(${i})">→ Push to AT</button>`:''}
+      <button class="cbtn cb-e" onclick="openFromClaude(${i})">✎ Edit & Push</button>
+    </div>
+  </div>`;
+}
+
+// ── AT ─────────────────────────────────────────────────────────────────
+async function loadATForDate(date) {
+  const F = mode==='inj' ? INJ : WKT;
+  const filter = encodeURIComponent(`{${F.date}}="${date}"`);
+  let recs=[], offset=null;
+  do {
+    let url = `${F.tbl}?returnFieldsByFieldId=true&filterByFormula=${filter}&pageSize=100`;
+    if (offset) url += '&offset='+offset;
+    const d = await atFetch(url);
+    recs = recs.concat(d.records);
+    offset = d.offset;
+  } while(offset);
+  return recs;
+}
+
+async function atFetch(path, opts={}) {
+  const r = await fetch(`https://api.airtable.com/v0/${AT_BASE}/${path}`, {
+    ...opts,
+    headers:{'Authorization':'Bearer '+AT_TOKEN,'Content-Type':'application/json',...(opts.headers||{})}
+  });
+  if (!r.ok) { const e = await r.json().catch(()=>({})); throw new Error(e.error?.message||r.status); }
+  return r.json();
+}
+
+async function setCurrentDate(date) {
   curDate = date;
-  document.getElementById('at-date-label').textContent = date;
-  setSave('loading AT…');
+  document.getElementById('at-date-lbl').textContent = date;
+  document.getElementById('at-src-lbl').textContent = 'Loading ' + date + '…';
+  setSave('Loading AT…');
   try {
     atRecs = await loadATForDate(date);
-    document.getElementById('b-at').textContent = 'AT: '+atRecs.length;
+    document.getElementById('at-cnt').textContent = atRecs.length;
+    document.getElementById('b-at').textContent = 'AT: ' + atRecs.length;
+    document.getElementById('at-src-lbl').textContent = '✓ ' + atRecs.length + ' records for ' + date;
+    renderAT();
+    filterParseurToDate(date);
+    renderClaude();
+    updateBadges();
     setSave('');
-  } catch(e) { setSave('AT error: '+e.message); }
+  } catch(e) { setSave('AT error: '+e.message); document.getElementById('at-src-lbl').textContent = 'Error: '+e.message; }
 }
 
-// ── RENDER EXTRACTED ───────────────────────────────────────────────────
-function renderExtracted() {
-  const area = document.getElementById('extract-area');
-  if (!extracted.length) {
-    area.innerHTML='<div style="color:#9ca3af;text-align:center;padding:30px">No records found on this page</div>';
-    updateBadges(); return;
-  }
-  area.innerHTML = extracted.map((r,i) => buildExtractCard(r,i)).join('');
-  renderAT();
-  renderCompare();
-  updateBadges();
-  // Show accept-all button
-  const ai = document.getElementById('extract-actions-inline');
-  ai.innerHTML = `<button class="btn btn-green btn-sm" onclick="acceptAll()">✓ Accept All → AT</button>`;
+async function loadDateFromInput() {
+  const d = document.getElementById('date-inp').value;
+  if (!d) return;
+  document.getElementById('date-lbl').textContent = d;
+  document.getElementById('date-lbl').style.display = '';
+  await setCurrentDate(d);
 }
 
-function buildExtractCard(r,i) {
-  if (mode==='inj') {
-    const {compound,dose,site,timing,notes,date} = r;
-    const status = getMatchStatus(r);
-    return `<div class="card ${status}" id="ec${i}">
-      <div class="card-hdr">
-        <span class="card-name">${compound||'?'}</span>
-        ${dose?`<span class="pill pill-dose">${dose}</span>`:''}
-        ${timing?`<span class="pill pill-timing">${timing}</span>`:''}
-        ${site?`<span class="pill pill-site">${site}</span>`:''}
-        <span class="card-match-tag ${matchTagClass(status)}">${matchLabel(status)}</span>
-      </div>
-      ${getDiffRows(r)}
-      ${notes?`<div class="card-notes">${notes}</div>`:''}
-      <div class="card-btns">
-        ${status!=='match'?`<button class="cbtn cbtn-accept" onclick="acceptOne(${i})">→ Push to AT</button>`:''}
-        <button class="cbtn cbtn-edit" onclick="openAddFromExtract(${i})">✎ Edit & Push</button>
-      </div>
-    </div>`;
-  } else {
-    const {exercise,variation,set_number,reps,weight,notes,date} = r;
-    const status = getMatchStatusWkt(r);
-    return `<div class="card ${status}" id="ec${i}">
-      <div class="card-hdr">
-        <span class="card-name">${exercise||'?'}</span>
-        ${variation?`<span class="pill pill-timing">${variation}</span>`:''}
-        <span class="pill pill-dose">Set ${set_number||'?'}</span>
-        ${reps!=null?`<span class="pill pill-site">${reps} reps</span>`:''}
-        ${weight!=null?`<span class="pill pill-dose">${weight}lbs</span>`:''}
-        <span class="card-match-tag ${matchTagClass(status)}">${matchLabel(status)}</span>
-      </div>
-      ${getDiffRowsWkt(r)}
-      ${notes?`<div class="card-notes">${notes}</div>`:''}
-      <div class="card-btns">
-        ${status!=='match'?`<button class="cbtn cbtn-accept" onclick="acceptOne(${i})">→ Push to AT</button>`:''}
-        <button class="cbtn cbtn-edit" onclick="openAddFromExtract(${i})">✎ Edit & Push</button>
-      </div>
-    </div>`;
-  }
+async function reloadAT() {
+  if (!curDate) return;
+  atRecs = await loadATForDate(curDate);
+  document.getElementById('at-cnt').textContent = atRecs.length;
+  renderAT(); renderClaude(); renderParseur(parseurRecs); updateBadges();
 }
-
-// ── COMPARISON LOGIC ──────────────────────────────────────────────────
-function getMatchStatus(ext) {
-  const match = atRecs.find(r => r.fields[INJ.compound] === ext.compound);
-  if (!match) return 'missing';
-  const f = match.fields;
-  if (f[INJ.dose]===ext.dose && f[INJ.site]===ext.site && f[INJ.timing]===ext.timing) return 'match';
-  return 'diff';
-}
-function getMatchStatusWkt(ext) {
-  const match = atRecs.find(r =>
-    r.fields[WKT.exercise]===ext.exercise &&
-    String(r.fields[WKT.setnum])===String(ext.set_number)
-  );
-  if (!match) return 'missing';
-  const f = match.fields;
-  if (String(f[WKT.reps])===String(ext.reps) && String(f[WKT.weight])===String(ext.weight)) return 'match';
-  return 'diff';
-}
-function getDiffRows(ext) {
-  const match = atRecs.find(r => r.fields[INJ.compound]===ext.compound);
-  if (!match) return '';
-  const f = match.fields;
-  let rows = '';
-  if(f[INJ.dose]!==ext.dose) rows+=`<div class="diff-row">Dose: <span class="old">${f[INJ.dose]||'—'}</span><span class="new">${ext.dose||'—'}</span></div>`;
-  if(f[INJ.site]!==ext.site) rows+=`<div class="diff-row">Site: <span class="old">${f[INJ.site]||'—'}</span><span class="new">${ext.site||'—'}</span></div>`;
-  if(f[INJ.timing]!==ext.timing) rows+=`<div class="diff-row">Timing: <span class="old">${f[INJ.timing]||'—'}</span><span class="new">${ext.timing||'—'}</span></div>`;
-  return rows;
-}
-function getDiffRowsWkt(ext) {
-  const match = atRecs.find(r=>r.fields[WKT.exercise]===ext.exercise&&String(r.fields[WKT.setnum])===String(ext.set_number));
-  if (!match) return '';
-  const f = match.fields;
-  let rows = '';
-  if(String(f[WKT.reps])!==String(ext.reps)) rows+=`<div class="diff-row">Reps: <span class="old">${f[WKT.reps]||'—'}</span><span class="new">${ext.reps||'—'}</span></div>`;
-  if(String(f[WKT.weight])!==String(ext.weight)) rows+=`<div class="diff-row">Weight: <span class="old">${f[WKT.weight]||'—'}</span><span class="new">${ext.weight||'—'}</span></div>`;
-  return rows;
-}
-function matchTagClass(s){return{match:'tag-ok',diff:'tag-diff',missing:'tag-miss',extra:'tag-extra'}[s]||'tag-ok';}
-function matchLabel(s){return{match:'✓ Match',diff:'⚠ Diff',missing:'✗ Missing',extra:'+ Extra'}[s]||s;}
 
 function renderAT() {
-  const area = document.getElementById('at-area');
-  if (!atRecs.length) { area.innerHTML='<div id="at-empty" style="color:#9ca3af;text-align:center;padding:30px">No AT records for this date</div>'; return; }
-  area.innerHTML = atRecs.map(r => buildATCard(r)).join('');
+  const body = document.getElementById('at-body');
+  if (!atRecs.length) { body.innerHTML = '<div class="col-empty">No AT records for this date</div>'; return; }
+  body.innerHTML = atRecs.map(r => buildATCard(r)).join('');
 }
 
 function buildATCard(r) {
+  const F = mode==='inj' ? INJ : WKT;
   const f = r.fields;
   if (mode==='inj') {
-    const compound = f[INJ.compound]||'?', dose=f[INJ.dose]||'', site=f[INJ.site]||'', timing=f[INJ.timing]||'', notes=f[INJ.notes]||'', status=f[INJ.status]||'';
-    const hasMatch = extracted.some(e=>e.compound===compound);
-    const borderClass = hasMatch?'match':'extra';
-    return `<div class="card ${borderClass}">
-      <div class="card-hdr">
-        <span class="card-name">${compound}</span>
-        ${dose?`<span class="pill pill-dose">${dose}</span>`:''}
-        ${timing?`<span class="pill pill-timing">${timing}</span>`:''}
-        ${site?`<span class="pill pill-site">${site}</span>`:''}
-        ${status?`<span class="pill ${status==='Done'?'pill-status':'pill-todo'}">${status}</span>`:''}
-        <span class="card-match-tag ${hasMatch?'tag-ok':'tag-extra'}">${hasMatch?'✓':'+ Extra'}</span>
+    const cmp=f[INJ.compound]||'?', dose=f[INJ.dose]||'', site=f[INJ.site]||'', timing=f[INJ.timing]||'', notes=f[INJ.notes]||'', stat=f[INJ.status]||'';
+    const inClaude = claudeRecs.some(c=>c.compound===cmp);
+    const inParseur = parseurRecs.some(p=>(p.compound||p.Compound||p.drug||p.Drug||p.medication||'?')===cmp);
+    return `<div class="card ${inClaude||inParseur?'match':'extra'}">
+      <div class="ch">
+        <span class="cn">${cmp}</span>
+        ${dose?`<span class="pill pd">${dose}</span>`:''}
+        ${timing?`<span class="pill pt">${timing}</span>`:''}
+        ${site?`<span class="pill ps">${site}</span>`:''}
+        ${stat?`<span class="pill ${stat==='Done'?'pk':'pn'}">${stat}</span>`:''}
+        <span class="mtag ${inClaude||inParseur?'m':'e'}">${inClaude||inParseur?'✓ Confirmed':'+ AT Only'}</span>
       </div>
-      ${notes?`<div class="card-notes">${notes}</div>`:''}
-      <div class="card-btns">
-        <button class="cbtn cbtn-edit" onclick="openEdit('${r.id}')">✎ Edit</button>
-        <button class="cbtn cbtn-del" onclick="confirmDel('${r.id}')">✕ Delete</button>
+      ${notes?`<div class="notes">${notes}</div>`:''}
+      <div class="cbtns">
+        <button class="cbtn cb-e" onclick="openEdit('${r.id}')">✎ Edit</button>
+        <button class="cbtn cb-d" onclick="confirmDel('${r.id}')">✕</button>
       </div>
     </div>`;
   } else {
     const ex=f[WKT.exercise]||'?', va=f[WKT.variation]||'', sn=f[WKT.setnum]||'', rp=f[WKT.reps]||'', wt=f[WKT.weight]||'', nt=f[WKT.notes]||'';
-    const hasMatch = extracted.some(e=>e.exercise===ex&&String(e.set_number)===String(sn));
-    return `<div class="card ${hasMatch?'match':'extra'}">
-      <div class="card-hdr">
-        <span class="card-name">${ex}</span>
-        ${va?`<span class="pill pill-timing">${va}</span>`:''}
-        <span class="pill pill-dose">Set ${sn}</span>
-        ${rp!=null&&rp!==''?`<span class="pill pill-site">${rp} reps</span>`:''}
-        ${wt!=null&&wt!==''?`<span class="pill pill-dose">${wt}lbs</span>`:''}
-        <span class="card-match-tag ${hasMatch?'tag-ok':'tag-extra'}">${hasMatch?'✓':'+ Extra'}</span>
+    const inClaude = claudeRecs.some(c=>c.exercise===ex&&String(c.set_number)===String(sn));
+    return `<div class="card ${inClaude?'match':'extra'}">
+      <div class="ch">
+        <span class="cn">${ex}</span>
+        ${va?`<span class="pill pt">${va}</span>`:''}
+        <span class="pill pd">Set ${sn}</span>
+        ${rp!==''&&rp!==null?`<span class="pill ps">${rp} reps</span>`:''}
+        ${wt!==''&&wt!==null?`<span class="pill pd">${wt}lbs</span>`:''}
+        <span class="mtag ${inClaude?'m':'e'}">${inClaude?'✓':'+ AT Only'}</span>
       </div>
-      ${nt?`<div class="card-notes">${nt}</div>`:''}
-      <div class="card-btns">
-        <button class="cbtn cbtn-edit" onclick="openEdit('${r.id}')">✎ Edit</button>
-        <button class="cbtn cbtn-del" onclick="confirmDel('${r.id}')">✕ Delete</button>
+      ${nt?`<div class="notes">${nt}</div>`:''}
+      <div class="cbtns">
+        <button class="cbtn cb-e" onclick="openEdit('${r.id}')">✎ Edit</button>
+        <button class="cbtn cb-d" onclick="confirmDel('${r.id}')">✕</button>
       </div>
     </div>`;
   }
 }
 
-function renderCompare() {
-  if (!extracted.length) return;
-  renderExtracted();
+// ── MATCH LOGIC ────────────────────────────────────────────────────────
+function getMatchStatusInj(r) {
+  const cmp = r.compound || r.Compound || r.drug || r.medication || '';
+  const match = atRecs.find(a => a.fields[INJ.compound]===cmp);
+  if (!match) return 'miss';
+  const f = match.fields;
+  if ((!r.dose||f[INJ.dose]===r.dose) && (!r.site||f[INJ.site]===r.site) && (!r.timing||f[INJ.timing]===r.timing)) return 'match';
+  return 'diff';
 }
-
+function getMatchStatusWkt(r) {
+  const match = atRecs.find(a=>a.fields[WKT.exercise]===r.exercise&&String(a.fields[WKT.setnum])===String(r.set_number));
+  if (!match) return 'miss';
+  const f = match.fields;
+  if (String(f[WKT.reps])===String(r.reps) && String(f[WKT.weight])===String(r.weight)) return 'match';
+  return 'diff';
+}
+function getDiffHtmlInj(r) {
+  const match = atRecs.find(a=>a.fields[INJ.compound]===r.compound); if(!match) return '';
+  const f=match.fields; let h='';
+  if(r.dose&&f[INJ.dose]!==r.dose) h+=`<div class="diff-row">Dose: <span class="old">${f[INJ.dose]||'—'}</span> <span class="nw">${r.dose}</span></div>`;
+  if(r.site&&f[INJ.site]!==r.site) h+=`<div class="diff-row">Site: <span class="old">${f[INJ.site]||'—'}</span> <span class="nw">${r.site}</span></div>`;
+  if(r.timing&&f[INJ.timing]!==r.timing) h+=`<div class="diff-row">Timing: <span class="old">${f[INJ.timing]||'—'}</span> <span class="nw">${r.timing}</span></div>`;
+  return h;
+}
+function getDiffHtmlWkt(r) {
+  const match = atRecs.find(a=>a.fields[WKT.exercise]===r.exercise&&String(a.fields[WKT.setnum])===String(r.set_number)); if(!match) return '';
+  const f=match.fields; let h='';
+  if(String(f[WKT.reps])!==String(r.reps)) h+=`<div class="diff-row">Reps: <span class="old">${f[WKT.reps]||'—'}</span> <span class="nw">${r.reps}</span></div>`;
+  if(String(f[WKT.weight])!==String(r.weight)) h+=`<div class="diff-row">Weight: <span class="old">${f[WKT.weight]||'—'}</span> <span class="nw">${r.weight}</span></div>`;
+  return h;
+}
 function updateBadges() {
-  if (!extracted.length) return;
-  let match=0,diff=0,miss=0;
-  extracted.forEach(r => {
-    const s = mode==='inj'?getMatchStatus(r):getMatchStatusWkt(r);
-    if(s==='match')match++; else if(s==='diff')diff++; else if(s==='missing')miss++;
-  });
-  document.getElementById('b-match').textContent = '✓ '+match;
-  document.getElementById('b-diff').textContent  = '⚠ '+diff;
-  document.getElementById('b-miss').textContent  = '✗ '+miss;
+  if (!claudeRecs.length) return;
+  let ok=0,df=0,ms=0;
+  claudeRecs.forEach(r => { const s=mode==='inj'?getMatchStatusInj(r):getMatchStatusWkt(r); if(s==='match')ok++;else if(s==='diff')df++;else if(s==='miss')ms++; });
+  document.getElementById('b-ok').textContent='✓ '+ok;
+  document.getElementById('b-df').textContent='⚠ '+df;
+  document.getElementById('b-ms').textContent='✗ '+ms;
 }
 
-// ── ACCEPT ────────────────────────────────────────────────────────────
-async function acceptOne(i) {
-  const r = extracted[i]; if(!r) return;
-  setSave('pushing…');
+// ── ACCEPT / PUSH ─────────────────────────────────────────────────────
+async function acceptClaude(i) {
+  const r = claudeRecs[i]; if(!r) return;
+  setSave('Pushing…');
+  try { await pushRec(r); atRecs=await loadATForDate(curDate); refreshAll(); setSave('✓ Saved'); }
+  catch(e) { setSave('Error: '+e.message); }
+}
+async function acceptAllMissing() {
+  const missing = claudeRecs.filter(r => (mode==='inj'?getMatchStatusInj(r):getMatchStatusWkt(r))==='miss');
+  if (!missing.length) { alert('Nothing missing — all already in AT'); return; }
+  if (!confirm('Push '+missing.length+' missing records to AT?')) return;
+  setSave('Pushing '+missing.length+'…');
   try {
-    await pushExtractedRec(r);
-    atRecs = await loadATForDate(curDate);
-    renderExtracted(); renderAT(); updateBadges();
-    setSave('ok');
-  } catch(e) { setSave('err: '+e.message); }
+    for (const r of missing) await pushRec(r);
+    atRecs=await loadATForDate(curDate); refreshAll(); setSave('✓ '+missing.length+' added');
+  } catch(e) { setSave('Error: '+e.message); }
 }
-
-async function acceptAll() {
-  const toAdd = extracted.filter(r => {
-    const s = mode==='inj'?getMatchStatus(r):getMatchStatusWkt(r);
-    return s==='missing';
-  });
-  if (!toAdd.length) { alert('Nothing missing — all already in AT'); return; }
-  setSave('pushing '+toAdd.length+'…');
-  try {
-    for (const r of toAdd) await pushExtractedRec(r);
-    atRecs = await loadATForDate(curDate);
-    renderExtracted(); renderAT(); updateBadges();
-    setSave('ok — '+toAdd.length+' added');
-  } catch(e) { setSave('err: '+e.message); }
+async function pushParseurRec(r) {
+  setSave('Pushing…');
+  try { await pushRec(r); atRecs=await loadATForDate(curDate); refreshAll(); setSave('✓ Saved'); }
+  catch(e) { setSave('Error: '+e.message); }
 }
-
-async function pushExtractedRec(r) {
-  const F = mode==='inj' ? INJ : WKT;
+async function pushRec(r) {
   let fields = {};
   if (mode==='inj') {
-    fields = {
-      [INJ.date]: r.date, [INJ.compound]: r.compound, [INJ.dose]: r.dose||'',
-      [INJ.site]: r.site||'', [INJ.timing]: r.timing||'', [INJ.notes]: r.notes||'',
-      [INJ.name]: r.compound||''
-    };
-    Object.keys(fields).forEach(k => { if(fields[k]==='') delete fields[k]; });
+    const cmp = r.compound||r.Compound||r.drug||r.medication||'';
+    if (curDate) fields[INJ.date] = curDate;
+    if (cmp) { fields[INJ.compound]=cmp; fields[INJ.name]=cmp; }
+    if (r.dose) fields[INJ.dose]=r.dose;
+    if (r.site) fields[INJ.site]=r.site;
+    if (r.timing) fields[INJ.timing]=r.timing;
+    if (r.notes) fields[INJ.notes]=r.notes;
   } else {
-    const dateStr = r.date;
-    fields = {
-      [WKT.date]: dateStr, [WKT.exercise]: r.exercise||'',
-      [WKT.variation]: r.variation||'', [WKT.setnum]: r.set_number||1,
-      [WKT.reps]: r.reps||0, [WKT.weight]: r.weight||0,
-      [WKT.notes]: r.notes||'',
-      [WKT.setid]: dateStr+'-'+((r.exercise||'').substring(0,4).toUpperCase())+'-'+r.set_number
-    };
-    Object.keys(fields).forEach(k => { if(fields[k]===''||fields[k]===0) delete fields[k]; });
+    if (curDate) fields[WKT.date]=curDate;
+    if (r.exercise) fields[WKT.exercise]=r.exercise;
+    if (r.variation) fields[WKT.variation]=r.variation;
+    if (r.set_number) fields[WKT.setnum]=+r.set_number;
+    if (r.reps) fields[WKT.reps]=+r.reps;
+    if (r.weight) fields[WKT.weight]=+r.weight;
+    if (r.notes) fields[WKT.notes]=r.notes;
+    if (curDate&&r.exercise) fields[WKT.setid]=curDate+'-'+(r.exercise||'').substring(0,4).toUpperCase()+'-'+(r.set_number||1);
   }
+  const F = mode==='inj'?INJ:WKT;
   await atFetch(F.tbl, {method:'POST', body:JSON.stringify({fields})});
+}
+function refreshAll() {
+  renderAT(); renderClaude();
+  if (parseurRecs.length) renderParseur(parseurRecs);
+  updateBadges();
+  document.getElementById('at-cnt').textContent=atRecs.length;
+  document.getElementById('b-at').textContent='AT: '+atRecs.length;
 }
 
 // ── EDIT / ADD MODAL ──────────────────────────────────────────────────
 function openEdit(id) {
-  const rec = atRecs.find(r=>r.id===id); if(!rec) return;
-  editId = id;
-  const f = rec.fields;
-  if (mode==='inj') {
-    document.getElementById('ef-date').value     = f[INJ.date]||'';
-    document.getElementById('ef-compound').value = f[INJ.compound]||'';
-    document.getElementById('ef-dose').value     = f[INJ.dose]||'';
-    document.getElementById('ef-site').value     = f[INJ.site]||'';
-    document.getElementById('ef-timing').value   = f[INJ.timing]||'';
-    document.getElementById('ef-status').value   = f[INJ.status]||'';
-    document.getElementById('ef-notes').value    = f[INJ.notes]||'';
+  const rec=atRecs.find(r=>r.id===id); if(!rec) return;
+  editId=id; const f=rec.fields;
+  if(mode==='inj') {
+    document.getElementById('ef-date').value=f[INJ.date]||'';
+    document.getElementById('ef-cmp').value=f[INJ.compound]||'';
+    document.getElementById('ef-dose').value=f[INJ.dose]||'';
+    document.getElementById('ef-site').value=f[INJ.site]||'';
+    document.getElementById('ef-time').value=f[INJ.timing]||'';
+    document.getElementById('ef-stat').value=f[INJ.status]||'';
+    document.getElementById('ef-notes').value=f[INJ.notes]||'';
   } else {
-    document.getElementById('wf-date').value     = f[WKT.date]||'';
-    document.getElementById('wf-exercise').value = f[WKT.exercise]||'';
-    document.getElementById('wf-variation').value= f[WKT.variation]||'';
-    document.getElementById('wf-set').value      = f[WKT.setnum]||'';
-    document.getElementById('wf-reps').value     = f[WKT.reps]||'';
-    document.getElementById('wf-weight').value   = f[WKT.weight]||'';
-    document.getElementById('wf-day').value      = f[WKT.day]||'';
-    document.getElementById('wf-notes').value    = f[WKT.notes]||'';
+    document.getElementById('wf-date').value=f[WKT.date]||'';
+    document.getElementById('wf-ex').value=f[WKT.exercise]||'';
+    document.getElementById('wf-var').value=f[WKT.variation]||'';
+    document.getElementById('wf-set').value=f[WKT.setnum]||'';
+    document.getElementById('wf-reps').value=f[WKT.reps]||'';
+    document.getElementById('wf-wt').value=f[WKT.weight]||'';
+    document.getElementById('wf-day').value=f[WKT.day]||'';
+    document.getElementById('wf-notes').value=f[WKT.notes]||'';
   }
-  document.getElementById('modal-title').textContent = 'Edit Record';
-  document.getElementById('mbtn-del').style.display = '';
-  document.getElementById('modal-recid').textContent = 'ID: '+id;
-  openModal();
+  document.getElementById('mtitle').textContent='Edit Record';
+  document.getElementById('mdel').style.display='';
+  document.getElementById('mrecid').textContent='ID: '+id;
+  openMdl();
 }
-
 function openAdd() {
-  editId = null;
-  clearForm();
-  if(mode==='inj') document.getElementById('ef-date').value = curDate||'';
-  else document.getElementById('wf-date').value = curDate||'';
-  document.getElementById('modal-title').textContent = 'New Record';
-  document.getElementById('mbtn-del').style.display = 'none';
-  document.getElementById('modal-recid').textContent = '';
-  openModal();
+  editId=null; clearMdlForm();
+  if(mode==='inj') document.getElementById('ef-date').value=curDate||'';
+  else document.getElementById('wf-date').value=curDate||'';
+  document.getElementById('mtitle').textContent='New Record';
+  document.getElementById('mdel').style.display='none';
+  document.getElementById('mrecid').textContent='';
+  openMdl();
 }
-
-function openAddFromExtract(i) {
-  const r = extracted[i]; if (!r) return;
-  editId = null;
-  clearForm();
-  if (mode==='inj') {
-    document.getElementById('ef-date').value     = r.date||curDate||'';
-    document.getElementById('ef-compound').value = r.compound||'';
-    document.getElementById('ef-dose').value     = r.dose||'';
-    document.getElementById('ef-site').value     = r.site||'';
-    document.getElementById('ef-timing').value   = r.timing||'';
-    document.getElementById('ef-notes').value    = r.notes||'';
+function openFromClaude(i) {
+  const r=claudeRecs[i]; if(!r) return;
+  editId=null; clearMdlForm();
+  if(mode==='inj') {
+    document.getElementById('ef-date').value=r.date||curDate||'';
+    document.getElementById('ef-cmp').value=r.compound||'';
+    document.getElementById('ef-dose').value=r.dose||'';
+    document.getElementById('ef-site').value=r.site||'';
+    document.getElementById('ef-time').value=r.timing||'';
+    document.getElementById('ef-notes').value=r.notes||'';
   } else {
-    document.getElementById('wf-date').value     = r.date||curDate||'';
-    document.getElementById('wf-exercise').value = r.exercise||'';
-    document.getElementById('wf-variation').value= r.variation||'';
-    document.getElementById('wf-set').value      = r.set_number||'';
-    document.getElementById('wf-reps').value     = r.reps||'';
-    document.getElementById('wf-weight').value   = r.weight||'';
-    document.getElementById('wf-notes').value    = r.notes||'';
+    document.getElementById('wf-date').value=r.date||curDate||'';
+    document.getElementById('wf-ex').value=r.exercise||'';
+    document.getElementById('wf-var').value=r.variation||'';
+    document.getElementById('wf-set').value=r.set_number||'';
+    document.getElementById('wf-reps').value=r.reps||'';
+    document.getElementById('wf-wt').value=r.weight||'';
+    document.getElementById('wf-notes').value=r.notes||'';
   }
-  document.getElementById('modal-title').textContent = 'Add Record (from Claude)';
-  document.getElementById('mbtn-del').style.display = 'none';
-  document.getElementById('modal-recid').textContent = '';
-  openModal();
+  document.getElementById('mtitle').textContent='Add from Claude Extract';
+  document.getElementById('mdel').style.display='none';
+  document.getElementById('mrecid').textContent='';
+  openMdl();
 }
-
-function clearForm() {
-  ['ef-dose','ef-notes','wf-exercise','wf-variation','wf-notes'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
-  ['ef-compound','ef-site','ef-timing','ef-status','wf-day'].forEach(id=>{const e=document.getElementById(id);if(e)e.selectedIndex=0;});
-  ['wf-set','wf-reps','wf-weight'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+function clearMdlForm() {
+  ['ef-dose','ef-notes','wf-ex','wf-var','wf-notes'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  ['ef-cmp','ef-site','ef-time','ef-stat','wf-day'].forEach(id=>{const e=document.getElementById(id);if(e)e.selectedIndex=0;});
+  ['wf-set','wf-reps','wf-wt'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
 }
-
-async function saveRecord() {
-  setSave('saving…');
+async function saveRec() {
+  let fields={}, tbl;
+  if(mode==='inj') {
+    tbl=INJ.tbl;
+    const d=document.getElementById('ef-date').value; if(!d){alert('Date required');return;}
+    fields[INJ.date]=d;
+    const c=document.getElementById('ef-cmp').value; if(c){fields[INJ.compound]=c;fields[INJ.name]=c;}
+    const dose=document.getElementById('ef-dose').value; if(dose) fields[INJ.dose]=dose;
+    const si=document.getElementById('ef-site').value; if(si) fields[INJ.site]=si;
+    const ti=document.getElementById('ef-time').value; if(ti) fields[INJ.timing]=ti;
+    const st=document.getElementById('ef-stat').value; if(st) fields[INJ.status]=st;
+    const nt=document.getElementById('ef-notes').value; if(nt) fields[INJ.notes]=nt;
+  } else {
+    tbl=WKT.tbl;
+    const d=document.getElementById('wf-date').value; if(!d){alert('Date required');return;}
+    fields[WKT.date]=d;
+    const ex=document.getElementById('wf-ex').value; if(ex) fields[WKT.exercise]=ex;
+    const va=document.getElementById('wf-var').value; if(va) fields[WKT.variation]=va;
+    const sn=document.getElementById('wf-set').value; if(sn) fields[WKT.setnum]=+sn;
+    const rp=document.getElementById('wf-reps').value; if(rp) fields[WKT.reps]=+rp;
+    const wt=document.getElementById('wf-wt').value; if(wt) fields[WKT.weight]=+wt;
+    const dy=document.getElementById('wf-day').value; if(dy) fields[WKT.day]=dy;
+    const nt=document.getElementById('wf-notes').value; if(nt) fields[WKT.notes]=nt;
+  }
+  setSave('Saving…');
   try {
-    let fields = {}, tbl;
-    if (mode==='inj') {
-      tbl = INJ.tbl;
-      const date = document.getElementById('ef-date').value; if(!date){alert('Date required');return;}
-      fields[INJ.date] = date;
-      const c=document.getElementById('ef-compound').value; if(c){fields[INJ.compound]=c;fields[INJ.name]=c;}
-      const d=document.getElementById('ef-dose').value;    if(d) fields[INJ.dose]=d;
-      const s=document.getElementById('ef-site').value;    if(s) fields[INJ.site]=s;
-      const t=document.getElementById('ef-timing').value;  if(t) fields[INJ.timing]=t;
-      const st=document.getElementById('ef-status').value; if(st) fields[INJ.status]=st;
-      const n=document.getElementById('ef-notes').value;   if(n) fields[INJ.notes]=n;
-    } else {
-      tbl = WKT.tbl;
-      const date = document.getElementById('wf-date').value; if(!date){alert('Date required');return;}
-      fields[WKT.date] = date;
-      const ex=document.getElementById('wf-exercise').value;  if(ex) fields[WKT.exercise]=ex;
-      const va=document.getElementById('wf-variation').value; if(va) fields[WKT.variation]=va;
-      const sn=document.getElementById('wf-set').value;       if(sn) fields[WKT.setnum]=+sn;
-      const rp=document.getElementById('wf-reps').value;      if(rp) fields[WKT.reps]=+rp;
-      const wt=document.getElementById('wf-weight').value;    if(wt) fields[WKT.weight]=+wt;
-      const dy=document.getElementById('wf-day').value;       if(dy) fields[WKT.day]=dy;
-      const nt=document.getElementById('wf-notes').value;     if(nt) fields[WKT.notes]=nt;
-    }
-    if (editId) {
-      const result = await atFetch(tbl+'/'+editId,{method:'PATCH',body:JSON.stringify({fields})});
-      const idx = atRecs.findIndex(r=>r.id===editId);
-      if(idx>=0) atRecs[idx]=result;
-    } else {
-      const result = await atFetch(tbl,{method:'POST',body:JSON.stringify({fields})});
-      atRecs.push(result);
-    }
-    closeModal();
-    renderAT();
-    if(extracted.length){renderExtracted(); updateBadges();}
-    setSave('✓ Saved');
+    if(editId) { const res=await atFetch(tbl+'/'+editId,{method:'PATCH',body:JSON.stringify({fields})}); const i=atRecs.findIndex(r=>r.id===editId); if(i>=0)atRecs[i]=res; }
+    else { const res=await atFetch(tbl,{method:'POST',body:JSON.stringify({fields})}); atRecs.push(res); }
+    closeMdl(); refreshAll(); setSave('✓ Saved');
   } catch(e) { alert('Save failed: '+e.message); setSave('err'); }
 }
-
-async function deleteRecord() {
-  if (!editId || !confirm('Delete this AT record?')) return;
-  setSave('deleting…');
-  try {
-    const F = mode==='inj'?INJ:WKT;
-    await atFetch(F.tbl+'/'+editId,{method:'DELETE'});
-    atRecs = atRecs.filter(r=>r.id!==editId);
-    closeModal(); renderAT();
-    if(extracted.length){renderExtracted(); updateBadges();}
-    setSave('✓ Deleted');
-  } catch(e) { alert('Delete failed: '+e.message); setSave('err'); }
+async function delRec() {
+  if(!editId||!confirm('Delete this AT record?')) return;
+  const F=mode==='inj'?INJ:WKT;
+  setSave('Deleting…');
+  try { await atFetch(F.tbl+'/'+editId,{method:'DELETE'}); atRecs=atRecs.filter(r=>r.id!==editId); closeMdl(); refreshAll(); setSave('✓ Deleted'); }
+  catch(e) { setSave('err: '+e.message); }
 }
-
 async function confirmDel(id) {
-  if (!confirm('Delete this AT record?')) return;
-  setSave('deleting…');
-  try {
-    const F = mode==='inj'?INJ:WKT;
-    await atFetch(F.tbl+'/'+id,{method:'DELETE'});
-    atRecs = atRecs.filter(r=>r.id!==id);
-    renderAT();
-    if(extracted.length){renderExtracted(); updateBadges();}
-    setSave('✓ Deleted');
-  } catch(e) { setSave('err: '+e.message); }
+  if(!confirm('Delete this AT record?')) return;
+  const F=mode==='inj'?INJ:WKT;
+  setSave('Deleting…');
+  try { await atFetch(F.tbl+'/'+id,{method:'DELETE'}); atRecs=atRecs.filter(r=>r.id!==id); refreshAll(); setSave('✓ Deleted'); }
+  catch(e) { setSave('err: '+e.message); }
 }
-
-function openModal() {
-  document.getElementById('inj-fields').style.display = mode==='inj'?'':'none';
-  document.getElementById('wkt-fields').style.display = mode==='wkt'?'':'none';
-  document.getElementById('modal-bg').classList.add('on');
+function openMdl() {
+  document.getElementById('inj-f').style.display=mode==='inj'?'':'none';
+  document.getElementById('wkt-f').style.display=mode==='wkt'?'':'none';
+  document.getElementById('mbg').classList.add('on');
 }
-function closeModal() { document.getElementById('modal-bg').classList.remove('on'); editId=null; }
+function closeMdl() { document.getElementById('mbg').classList.remove('on'); editId=null; }
 
-// ── MODE TOGGLE ───────────────────────────────────────────────────────
+// ── MODE ───────────────────────────────────────────────────────────────
 function setMode(m) {
-  mode = m;
-  document.getElementById('mode-inj').classList.toggle('on', m==='inj');
-  document.getElementById('mode-wkt').classList.toggle('on', m==='wkt');
-  // Set Drive ID hint
-  if (m==='inj') document.getElementById('pdf-drive-id').placeholder='Injections.pdf Drive ID';
-  else document.getElementById('pdf-drive-id').placeholder='Workout PDF Drive ID';
-  // Reset panels
-  atRecs=[]; extracted=[]; curDate=null;
-  document.getElementById('extract-area').innerHTML='<div style="color:#9ca3af;text-align:center;padding:30px">Navigate to a PDF page and click ✦ Extract</div>';
-  document.getElementById('at-area').innerHTML='<div style="color:#9ca3af;text-align:center;padding:30px">AT records appear here</div>';
-  document.getElementById('extract-date').style.display='none';
-  document.getElementById('extract-actions-inline').innerHTML='';
-  document.getElementById('at-date-label').textContent='No date selected';
-  document.getElementById('b-at').textContent='AT: —';
-  document.getElementById('b-match').textContent='✓ 0';
-  document.getElementById('b-diff').textContent='⚠ 0';
-  document.getElementById('b-miss').textContent='✗ 0';
+  mode=m;
+  document.getElementById('m-inj').classList.toggle('on',m==='inj');
+  document.getElementById('m-wkt').classList.toggle('on',m==='wkt');
+  // Reset state
+  atRecs=[]; claudeRecs=[]; curDate=null;
+  document.getElementById('pdf-id').value = m==='inj' ? '1Yk3aWqXPWRpFWCvXYasWoo9hA202KQG6' : '';
+  document.getElementById('pdf-id').placeholder = m==='inj' ? 'Injections PDF Drive ID' : 'Workout PDF Drive ID';
+  document.getElementById('cld-body').innerHTML='<div class="col-empty">Navigate to a PDF page and click ✦ Extract</div>';
+  document.getElementById('at-body').innerHTML='<div class="col-empty">AT records appear here when date is set</div>';
+  document.getElementById('date-lbl').style.display='none';
+  document.getElementById('cld-cnt').textContent='0';
+  document.getElementById('at-cnt').textContent='0';
+  document.getElementById('b-at').textContent='AT: 0';
+  document.getElementById('at-date-lbl').textContent='';
+  document.getElementById('at-src-lbl').textContent='Auto-loaded when date is set';
 }
 
-// ── HELPERS ───────────────────────────────────────────────────────────
-function setSave(msg) { const e=document.getElementById('save-status'); e.textContent=msg; }
+function setSave(m) { document.getElementById('save-st').textContent=m; }
 
-// ── INIT ──────────────────────────────────────────────────────────────
+// ── INIT ───────────────────────────────────────────────────────────────
 window.onload = () => {
-  // Pre-fill injection Drive ID
-  document.getElementById('pdf-drive-id').value = '1Yk3aWqXPWRpFWCvXYasWoo9hA202KQG6';
-  document.getElementById('pdf-drive-id').placeholder = 'Injections.pdf Drive ID';
+  initAuth();
+  document.getElementById('pdf-id').value = '1Yk3aWqXPWRpFWCvXYasWoo9hA202KQG6';
   document.getElementById('loader').style.display = 'none';
 };
 </script>
