@@ -486,16 +486,309 @@ async function popPickerTo(idx){
 }
 function renderPickerList(files){
   if(!files.length){document.getElementById('dpick-list').innerHTML='<div style="color:#9ca3af;text-align:center;padding:24px">No files found</div>';return;}
-  document.getElementById('dpick-list').innerHTML=files.map(f=>{
-    const isFolder=f.mimeType==='application/vnd.google-apps.folder';
-    const icon=isFolder?'📁':f.mimeType==='application/pdf'?'📄':f.mimeType==='text/csv'?'📋':'📊';
+  window._dpickShown=files;
+  document.getElementById('dpick-list').innerHTML=files.map((f,i)=>{
+    const isF=f.mimeType==='application/vnd.google-apps.folder';
+    const icon=isF?'📁':f.mimeType==='application/pdf'?'📄':f.mimeType==='text/csv'?'📋':'📊';
     const dt=f.modifiedTime?new Date(f.modifiedTime).toLocaleDateString():'';
-    const sz=(!isFolder&&f.size)?Math.round(f.size/1024)+'KB':'';
-    const esc=f.name.replace(/'/g,"\\'");
-    const action=isFolder?`navPickerFolder('${f.id}','${esc}')`:`selectPickerFile('${f.id}','${esc}')`;
-    return`<div class="dpick-item${isFolder?' dpick-folder':''}" onclick="${action}"><div class="dpick-icon">${icon}</div><div class="dpick-info"><div class="dpick-name">${f.name}</div><div class="dpick-meta">${dt}${sz?' · '+sz:''}</div></div>${isFolder?'<span style="color:#9ca3af;font-size:14px">›</span>':`<button class="dpick-sel" onclick="event.stopPropagation();${action}">Select</button>`}</div>`;
+    const sz=(!isF&&f.size)?Math.round(f.size/1024)+'KB':'';
+    return`<div class="dpick-item${isF?' dpick-folder':''}" onclick="dpickClick(${i})"><div class="dpick-icon">${icon}</div><div class="dpick-info"><div class="dpick-name">${f.name}</div><div class="dpick-meta">${dt}${sz?' · '+sz:''}</div></div>${isF?'<span style="color:#9ca3af">›</span>':`<button class="dpick-sel" onclick="event.stopPropagation();dpickClick(${i})">Select</button>`}</div>`;
   }).join('');
 }
+function dpickClick(i){const f=window._dpickShown[i];if(!f)return;if(f.mimeType==='application/vnd.google-apps.folder')navPickerFolder(f.id,f.name);else selectPickerFile(f.id,f.name);}
+
+function filterPicker(){
+  const q=document.getElementById('dpick-q').value.toLowerCase().trim();
+  renderPickerList(q?pickerFiles.filter(f=>f.name.toLowerCase().includes(q)):pickerFiles);
+}
+
+function closePicker(){document.getElementById('dpick-bg').classList.remove('on');}
+
+// ── PARSEUR ────────────────────────────────────────────────────────────
+function loadParseurFile(inp){
+  const file=inp.files[0];if(!file)return;
+  const ext=file.name.split('.').pop().toLowerCase();
+  document.getElementById('par-src-lbl').textContent='Loading '+file.name+'…';
+  if(ext==='json') file.text().then(t=>{parseParseurData(JSON.parse(t));document.getElementById('par-src-lbl').textContent='✓ '+file.name;});
+  else if(ext==='csv') file.text().then(t=>{parseCSV(t);document.getElementById('par-src-lbl').textContent='✓ '+file.name;});
+  else file.arrayBuffer().then(buf=>{parseParseurExcel(buf);document.getElementById('par-src-lbl').textContent='✓ '+file.name;});
+}
+function parseParseurExcel(buf){const wb=XLSX.read(buf,{type:'arraybuffer'});const ws=wb.Sheets[wb.SheetNames[0]];parseParseurData(XLSX.utils.sheet_to_json(ws));}
+function parseParseurData(arr){
+  parseurAll=(Array.isArray(arr)?arr:(arr.records||arr.data||Object.values(arr))).map(r=>{
+    const obj={...r};
+    const dateKeys=['date','Date','DATE','injection_date','log_date','Date/Time','datetime'];
+    let dv=null;
+    for(const k of dateKeys){if(obj[k]){dv=String(obj[k]);break;}}
+    if(!dv){const k=Object.keys(obj).find(k=>k.toLowerCase().includes('date'));if(k)dv=String(obj[k]);}
+    if(dv){
+      if(/^\d{1,2}\/\d{1,2}\/\d{2,4}/.test(dv)){const[m,d,y]=dv.split('/');const yr=y.length===2?'20'+y:y;obj._date=yr+'-'+m.padStart(2,'0')+'-'+d.padStart(2,'0');}
+      else if(/^\d{4}-\d{2}-\d{2}/.test(dv)){obj._date=dv.substring(0,10);}
+      else obj._date=dv;
+    }
+    return obj;
+  });
+  document.getElementById('b-par').textContent='Parseur: '+parseurAll.length;
+  if(curDate)filterParseurToDate(curDate);else renderParseur([]);
+}
+function parseCSV(text){
+  const lines=text.trim().split('\n').filter(l=>l.trim());if(!lines.length)return;
+  const headers=csvLine(lines[0]);
+  parseParseurData(lines.slice(1).map(l=>{const vals=csvLine(l);const obj={};headers.forEach((h,i)=>obj[h]=(vals[i]||'').trim());return obj;}).filter(r=>Object.values(r).some(v=>v)));
+}
+function csvLine(line){const vals=[];let cur='',inQ=false;for(const c of line){if(c==='"'){inQ=!inQ;}else if(c===','&&!inQ){vals.push(cur.trim());cur='';}else cur+=c;}vals.push(cur.trim());return vals.map(v=>v.replace(/^"|"$/g,''));}
+function filterParseurToDate(date){parseurRecs=parseurAll.filter(r=>r._date===date);document.getElementById('par-date-lbl').textContent=date+' ('+parseurRecs.length+')';document.getElementById('par-cnt').textContent=parseurRecs.length;renderParseur(parseurRecs);}
+function renderParseur(recs){
+  const body=document.getElementById('par-body');
+  if(!recs.length){body.innerHTML='<div class="col-empty">'+(parseurAll.length?'No records for this date':'Load a Parseur file above')+'</div>';return;}
+  body.innerHTML=recs.map(r=>buildParseurCard(r)).join('');updateBadges();
+}
+function buildParseurCard(r){
+  const cmp=r.compound||r.Compound||r.drug||r.Drug||r.medication||r.exercise||r.Exercise||r.name||r.Name||'?';
+  const dose=r.dose||r.Dose||r.amount||r.Amount||r.weight||r.Weight||'';
+  const site=r.site||r.Site||r['injection site']||'';
+  const timing=r.timing||r.Timing||r.time||r.Time||'';
+  const notes=r.notes||r.Notes||'';
+  const st=getMatchSt({compound:cmp,dose,site,timing});
+  const sc=st==='match'?'match':st==='diff'?'diff':st==='miss'?'miss':'neutral';
+  return`<div class="card ${sc}"><div class="ch"><span class="cn">${cmp}</span>${dose?`<span class="pill pd">${dose}</span>`:''}${timing?`<span class="pill pt">${timing}</span>`:''}${site?`<span class="pill ps">${site}</span>`:''}<span class="mtag ${sc==='match'?'m':sc==='diff'?'d':sc==='miss'?'x':'e'}">${sc==='match'?'✓':sc==='diff'?'⚠ Diff':sc==='miss'?'✗ Missing AT':'–'}</span></div>${notes?`<div class="notes">${notes}</div>`:''}<div class="cbtns">${sc==='miss'?`<button class="cbtn cb-a" onclick="pushRec(${JSON.stringify({compound:cmp,dose,site,timing,notes}).replace(/"/g,'&quot;')})">→ AT</button>`:''}</div></div>`;
+}
+
+// ── CLAUDE EXTRACT ─────────────────────────────────────────────────────
+async function extractPage(){
+  if(!pdfDoc)return;
+  const canvas=document.getElementById('pdf-canvas');
+  const img=canvas.toDataURL('image/jpeg',0.85).split(',')[1];
+  const prompt=mode==='inj'
+    ?`Extract ALL injection records from this handwritten log page.\nReturn ONLY a valid JSON array, no markdown. Each record:\n{"date":"YYYY-MM-DD","compound":"exact name","dose":"as written","site":"L|R|L+R|Pill|Nasal|Abd|S|X","timing":"Morning|Night|Evening|Daily","notes":""}\nEmpty string for unknown fields. No records → return [].`
+    :`Extract ALL workout sets from this handwritten log page.\nReturn ONLY a valid JSON array, no markdown. Each record:\n{"date":"YYYY-MM-DD","exercise":"name","variation":"or empty","set_number":1,"reps":10,"weight":100,"notes":""}\nWeight in lbs. Empty string for unknowns. No records → [].`;
+  document.getElementById('cld-spin').style.display='inline-block';
+  document.getElementById('cld-spin-pdf').style.display='inline-block';
+  document.getElementById('cld-cnt').textContent='…';
+  document.getElementById('cld-body').innerHTML='<div class="col-empty">Claude is analyzing this page…</div>';
+  try{
+    const res=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:4000,messages:[{role:'user',content:[{type:'image',source:{type:'base64',media_type:'image/jpeg',data:img}},{type:'text',text:prompt}]}]})});
+    if(!res.ok){const errTxt=await res.text().catch(()=>'');throw new Error('API '+res.status+': '+errTxt.substring(0,200));}
+    const data=await res.json();
+    if(data.error)throw new Error(data.error.message||JSON.stringify(data.error));
+    const raw=(data.content?.[0]?.text||'[]').replace(/```json|```/g,'').trim();
+    claudeRecs=JSON.parse(raw);
+    if(!Array.isArray(claudeRecs))claudeRecs=[];
+    const dates=[...new Set(claudeRecs.map(r=>r.date).filter(Boolean))];
+    const date=dates[0];
+    if(date){document.getElementById('cld-date-lbl').textContent=date;const di=document.getElementById('date-inp');di.value=date;di.classList.add('popped');setTimeout(()=>di.classList.remove('popped'),2000);document.getElementById('date-lbl').textContent=date;document.getElementById('date-lbl').style.display='';await setDate(date);}
+    document.getElementById('cld-cnt').textContent=claudeRecs.length;
+    document.getElementById('b-cld').textContent='Claude: '+claudeRecs.length;
+    renderClaude();updateBadges();
+  }catch(e){document.getElementById('cld-body').innerHTML=`<div style="color:#dc2626;padding:16px;font-size:12px">Error: ${e.message}</div>`;document.getElementById('cld-cnt').textContent='!';}
+  document.getElementById('cld-spin').style.display='none';
+  document.getElementById('cld-spin-pdf').style.display='none';
+}
+function renderClaude(){
+  const body=document.getElementById('cld-body');
+  if(!claudeRecs.length){body.innerHTML='<div class="col-empty">No records found on this page</div>';return;}
+  body.innerHTML=claudeRecs.map((r,i)=>buildClaudeCard(r,i)).join('');
+}
+function buildClaudeCard(r,i){
+  const inj=mode==='inj';
+  const name=inj?(r.compound||'?'):(r.exercise||'?');
+  const dose=inj?(r.dose||''):(r.weight?r.weight+'lbs':'');
+  const timing=inj?(r.timing||''):(r.set_number?'Set '+r.set_number:'');
+  const site=inj?(r.site||''):(r.reps?r.reps+' reps':'');
+  const notes=r.notes||'';
+  const st=inj?getMatchSt(r):getMatchStWkt(r);
+  const sc=st==='match'?'match':st==='diff'?'diff':st==='miss'?'miss':'neutral';
+  const dh=inj?getDiffHtmlInj(r):getDiffHtmlWkt(r);
+  return`<div class="card ${sc}"><div class="ch"><span class="cn">${name}</span>${dose?`<span class="pill pd">${dose}</span>`:''}${timing?`<span class="pill pt">${timing}</span>`:''}${site?`<span class="pill ps">${site}</span>`:''}<span class="mtag ${sc==='match'?'m':sc==='diff'?'d':sc==='miss'?'x':'e'}">${sc==='match'?'✓ Match':sc==='diff'?'⚠ Diff':sc==='miss'?'✗ Missing':''}</span></div>${dh}${notes?`<div class="notes">${notes}</div>`:''}<div class="cbtns">${sc!=='match'?`<button class="cbtn cb-a" onclick="acceptClaude(${i})">→ AT</button>`:''}<button class="cbtn cb-e" onclick="openFromClaude(${i})">✎</button></div></div>`;
+}
+
+// ── AT ─────────────────────────────────────────────────────────────────
+async function atFetch(path,opts={}){
+  const r=await fetch(`https://api.airtable.com/v0/${AT_BASE}/${path}`,{...opts,headers:{'Authorization':'Bearer '+AT_TOKEN,'Content-Type':'application/json',...(opts.headers||{})}});
+  if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error?.message||r.status);}
+  return r.json();
+}
+async function loadATForDate(date){
+  const F=mode==='inj'?INJ:WKT;
+  const filter=encodeURIComponent(`{${F.date}}="${date}"`);
+  let recs=[],offset=null;
+  do{let url=`${F.tbl}?returnFieldsByFieldId=true&filterByFormula=${filter}&pageSize=100`;if(offset)url+='&offset='+offset;const d=await atFetch(url);recs=recs.concat(d.records);offset=d.offset;}while(offset);
+  return recs;
+}
+async function setDate(date){
+  curDate=date;
+  document.getElementById('at-date-lbl').textContent=date;
+  document.getElementById('at-src-lbl').textContent='Loading '+date+'…';
+  setSave('Loading AT…');
+  try{
+    atRecs=await loadATForDate(date);
+    document.getElementById('at-cnt').textContent=atRecs.length;
+    document.getElementById('b-at').textContent='AT: '+atRecs.length;
+    document.getElementById('at-src-lbl').textContent='✓ '+atRecs.length+' records for '+date;
+    renderAT();filterParseurToDate(date);renderClaude();updateBadges();setSave('');
+  }catch(e){setSave('AT error: '+e.message);}
+}
+async function onDateChange(){
+  const d=document.getElementById('date-inp').value;if(!d)return;
+  document.getElementById('date-lbl').textContent=d;document.getElementById('date-lbl').style.display='';
+  await setDate(d);
+}
+async function reloadAT(){if(!curDate)return;atRecs=await loadATForDate(curDate);document.getElementById('at-cnt').textContent=atRecs.length;refreshAll();}
+function renderAT(){
+  const body=document.getElementById('at-body');
+  if(!atRecs.length){body.innerHTML='<div class="col-empty">No AT records for this date</div>';return;}
+  body.innerHTML=atRecs.map(r=>buildATCard(r)).join('');
+}
+function buildATCard(r){
+  const f=r.fields;
+  if(mode==='inj'){
+    const cmp=f[INJ.compound]||'?',dose=f[INJ.dose]||'',site=f[INJ.site]||'',timing=f[INJ.timing]||'',notes=f[INJ.notes]||'',stat=f[INJ.status]||'';
+    const inC=claudeRecs.some(c=>c.compound===cmp),inP=parseurRecs.some(p=>(p.compound||p.Compound||p.drug||p.medication||'?')===cmp);
+    const confirmed=inC||inP;
+    return`<div class="card ${confirmed?'match':'extra'}"><div class="ch"><span class="cn">${cmp}</span>${dose?`<span class="pill pd">${dose}</span>`:''}${timing?`<span class="pill pt">${timing}</span>`:''}${site?`<span class="pill ps">${site}</span>`:''}${stat?`<span class="pill ${stat==='Done'?'pk':'pn'}">${stat}</span>`:''}<span class="mtag ${confirmed?'m':'e'}">${confirmed?'✓':'+ AT Only'}</span></div>${notes?`<div class="notes">${notes}</div>`:''}<div class="cbtns"><button class="cbtn cb-e" onclick="openEdit('${r.id}')">✎ Edit</button><button class="cbtn cb-d" onclick="confirmDel('${r.id}')">✕</button></div></div>`;
+  } else {
+    const ex=f[WKT.exercise]||'?',va=f[WKT.variation]||'',sn=f[WKT.setnum]||'',rp=f[WKT.reps]||'',wt=f[WKT.weight]||'',nt=f[WKT.notes]||'';
+    const inC=claudeRecs.some(c=>c.exercise===ex&&String(c.set_number)===String(sn));
+    return`<div class="card ${inC?'match':'extra'}"><div class="ch"><span class="cn">${ex}</span>${va?`<span class="pill pt">${va}</span>`:''}<span class="pill pd">Set ${sn}</span>${rp!==''&&rp!=null?`<span class="pill ps">${rp} reps`:''}${wt!==''&&wt!=null?`<span class="pill pd">${wt}lbs</span>`:''}<span class="mtag ${inC?'m':'e'}">${inC?'✓':'+ AT Only'}</span></div>${nt?`<div class="notes">${nt}</div>`:''}<div class="cbtns"><button class="cbtn cb-e" onclick="openEdit('${r.id}')">✎ Edit</button><button class="cbtn cb-d" onclick="confirmDel('${r.id}')">✕</button></div></div>`;
+  }
+}
+
+// ── MATCH LOGIC ────────────────────────────────────────────────────────
+function getMatchSt(r){const cmp=r.compound||r.Compound||r.drug||r.medication||'';const match=atRecs.find(a=>a.fields[INJ.compound]===cmp);if(!match)return'miss';const f=match.fields;if((!r.dose||f[INJ.dose]===r.dose)&&(!r.site||f[INJ.site]===r.site)&&(!r.timing||f[INJ.timing]===r.timing))return'match';return'diff';}
+function getMatchStWkt(r){const match=atRecs.find(a=>a.fields[WKT.exercise]===r.exercise&&String(a.fields[WKT.setnum])===String(r.set_number));if(!match)return'miss';const f=match.fields;if(String(f[WKT.reps])===String(r.reps)&&String(f[WKT.weight])===String(r.weight))return'match';return'diff';}
+function getDiffHtmlInj(r){const match=atRecs.find(a=>a.fields[INJ.compound]===r.compound);if(!match)return'';const f=match.fields;let h='';if(r.dose&&f[INJ.dose]!==r.dose)h+=`<div class="diff-row">Dose: <span class="old">${f[INJ.dose]||'—'}</span> <span class="nw">${r.dose}</span></div>`;if(r.site&&f[INJ.site]!==r.site)h+=`<div class="diff-row">Site: <span class="old">${f[INJ.site]||'—'}</span> <span class="nw">${r.site}</span></div>`;if(r.timing&&f[INJ.timing]!==r.timing)h+=`<div class="diff-row">Timing: <span class="old">${f[INJ.timing]||'—'}</span> <span class="nw">${r.timing}</span></div>`;return h;}
+function getDiffHtmlWkt(r){const match=atRecs.find(a=>a.fields[WKT.exercise]===r.exercise&&String(a.fields[WKT.setnum])===String(r.set_number));if(!match)return'';const f=match.fields;let h='';if(String(f[WKT.reps])!==String(r.reps))h+=`<div class="diff-row">Reps: <span class="old">${f[WKT.reps]||'—'}</span> <span class="nw">${r.reps}</span></div>`;if(String(f[WKT.weight])!==String(r.weight))h+=`<div class="diff-row">Weight: <span class="old">${f[WKT.weight]||'—'}</span> <span class="nw">${r.weight}</span></div>`;return h;}
+function updateBadges(){if(!claudeRecs.length)return;let ok=0,df=0,ms=0;claudeRecs.forEach(r=>{const s=mode==='inj'?getMatchSt(r):getMatchStWkt(r);if(s==='match')ok++;else if(s==='diff')df++;else if(s==='miss')ms++;});document.getElementById('b-ok').textContent='✓ '+ok;document.getElementById('b-df').textContent='⚠ '+df;document.getElementById('b-ms').textContent='✗ '+ms;}
+
+// ── PUSH TO AT ─────────────────────────────────────────────────────────
+async function acceptClaude(i){const r=claudeRecs[i];if(!r)return;setSave('Pushing…');try{await pushRec(r);atRecs=await loadATForDate(curDate);refreshAll();setSave('✓ Saved');}catch(e){setSave('Error: '+e.message);}}
+async function acceptAllMissing(){
+  const missing=claudeRecs.filter(r=>(mode==='inj'?getMatchSt(r):getMatchStWkt(r))==='miss');
+  if(!missing.length){alert('Nothing missing — all already in AT');return;}
+  if(!confirm('Push '+missing.length+' missing records to AT?'))return;
+  setSave('Pushing '+missing.length+'…');
+  try{for(const r of missing)await pushRec(r);atRecs=await loadATForDate(curDate);refreshAll();setSave('✓ '+missing.length+' added');}
+  catch(e){setSave('Error: '+e.message);}
+}
+async function pushRec(r){
+  let fields={};
+  if(mode==='inj'){
+    const cmp=r.compound||r.Compound||r.drug||r.medication||'';
+    if(curDate)fields[INJ.date]=curDate;
+    if(cmp){fields[INJ.compound]=cmp;fields[INJ.name]=cmp;}
+    if(r.dose)fields[INJ.dose]=r.dose;if(r.site)fields[INJ.site]=r.site;
+    if(r.timing)fields[INJ.timing]=r.timing;if(r.notes)fields[INJ.notes]=r.notes;
+  }else{
+    if(curDate)fields[WKT.date]=curDate;
+    if(r.exercise)fields[WKT.exercise]=r.exercise;if(r.variation)fields[WKT.variation]=r.variation;
+    if(r.set_number)fields[WKT.setnum]=+r.set_number;if(r.reps)fields[WKT.reps]=+r.reps;
+    if(r.weight)fields[WKT.weight]=+r.weight;if(r.notes)fields[WKT.notes]=r.notes;
+    if(curDate&&r.exercise)fields[WKT.setid]=curDate+'-'+(r.exercise||'').substring(0,4).toUpperCase()+'-'+(r.set_number||1);
+  }
+  const F=mode==='inj'?INJ:WKT;
+  await atFetch(F.tbl,{method:'POST',body:JSON.stringify({fields})});
+}
+function refreshAll(){renderAT();renderClaude();if(parseurRecs.length)renderParseur(parseurRecs);updateBadges();document.getElementById('at-cnt').textContent=atRecs.length;document.getElementById('b-at').textContent='AT: '+atRecs.length;}
+
+// ── EDIT MODAL ─────────────────────────────────────────────────────────
+function openEdit(id){
+  const rec=atRecs.find(r=>r.id===id);if(!rec)return;
+  editId=id;const f=rec.fields;
+  if(mode==='inj'){document.getElementById('ef-date').value=f[INJ.date]||'';document.getElementById('ef-cmp').value=f[INJ.compound]||'';document.getElementById('ef-dose').value=f[INJ.dose]||'';document.getElementById('ef-site').value=f[INJ.site]||'';document.getElementById('ef-time').value=f[INJ.timing]||'';document.getElementById('ef-stat').value=f[INJ.status]||'';document.getElementById('ef-notes').value=f[INJ.notes]||'';}
+  else{document.getElementById('wf-date').value=f[WKT.date]||'';document.getElementById('wf-ex').value=f[WKT.exercise]||'';document.getElementById('wf-var').value=f[WKT.variation]||'';document.getElementById('wf-set').value=f[WKT.setnum]||'';document.getElementById('wf-reps').value=f[WKT.reps]||'';document.getElementById('wf-wt').value=f[WKT.weight]||'';document.getElementById('wf-day').value=f[WKT.day]||'';document.getElementById('wf-notes').value=f[WKT.notes]||'';}
+  document.getElementById('mtitle').textContent='Edit Record';document.getElementById('mdel').style.display='';document.getElementById('mrecid').textContent='ID: '+id;openMdl();
+}
+function openAdd(){editId=null;clearMdlForm();if(mode==='inj')document.getElementById('ef-date').value=curDate||'';else document.getElementById('wf-date').value=curDate||'';document.getElementById('mtitle').textContent='New Record';document.getElementById('mdel').style.display='none';document.getElementById('mrecid').textContent='';openMdl();}
+function openFromClaude(i){
+  const r=claudeRecs[i];if(!r)return;editId=null;clearMdlForm();
+  if(mode==='inj'){document.getElementById('ef-date').value=r.date||curDate||'';document.getElementById('ef-cmp').value=r.compound||'';document.getElementById('ef-dose').value=r.dose||'';document.getElementById('ef-site').value=r.site||'';document.getElementById('ef-time').value=r.timing||'';document.getElementById('ef-notes').value=r.notes||'';}
+  else{document.getElementById('wf-date').value=r.date||curDate||'';document.getElementById('wf-ex').value=r.exercise||'';document.getElementById('wf-var').value=r.variation||'';document.getElementById('wf-set').value=r.set_number||'';document.getElementById('wf-reps').value=r.reps||'';document.getElementById('wf-wt').value=r.weight||'';document.getElementById('wf-notes').value=r.notes||'';}
+  document.getElementById('mtitle').textContent='Add from Claude';document.getElementById('mdel').style.display='none';document.getElementById('mrecid').textContent='';openMdl();
+}
+function clearMdlForm(){['ef-dose','ef-notes','wf-ex','wf-var','wf-notes'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});['ef-cmp','ef-site','ef-time','ef-stat','wf-day'].forEach(id=>{const e=document.getElementById(id);if(e)e.selectedIndex=0;});['wf-set','wf-reps','wf-wt'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});}
+async function saveRec(){
+  let fields={},tbl;
+  if(mode==='inj'){tbl=INJ.tbl;const d=document.getElementById('ef-date').value;if(!d){alert('Date required');return;}fields[INJ.date]=d;const c=document.getElementById('ef-cmp').value;if(c){fields[INJ.compound]=c;fields[INJ.name]=c;}const dose=document.getElementById('ef-dose').value;if(dose)fields[INJ.dose]=dose;const si=document.getElementById('ef-site').value;if(si)fields[INJ.site]=si;const ti=document.getElementById('ef-time').value;if(ti)fields[INJ.timing]=ti;const st=document.getElementById('ef-stat').value;if(st)fields[INJ.status]=st;const nt=document.getElementById('ef-notes').value;if(nt)fields[INJ.notes]=nt;}
+  else{tbl=WKT.tbl;const d=document.getElementById('wf-date').value;if(!d){alert('Date required');return;}fields[WKT.date]=d;const ex=document.getElementById('wf-ex').value;if(ex)fields[WKT.exercise]=ex;const va=document.getElementById('wf-var').value;if(va)fields[WKT.variation]=va;const sn=document.getElementById('wf-set').value;if(sn)fields[WKT.setnum]=+sn;const rp=document.getElementById('wf-reps').value;if(rp)fields[WKT.reps]=+rp;const wt=document.getElementById('wf-wt').value;if(wt)fields[WKT.weight]=+wt;const dy=document.getElementById('wf-day').value;if(dy)fields[WKT.day]=dy;const nt=document.getElementById('wf-notes').value;if(nt)fields[WKT.notes]=nt;}
+  setSave('Saving…');
+  try{if(editId){const res=await atFetch(tbl+'/'+editId,{method:'PATCH',body:JSON.stringify({fields})});const i=atRecs.findIndex(r=>r.id===editId);if(i>=0)atRecs[i]=res;}else{const res=await atFetch(tbl,{method:'POST',body:JSON.stringify({fields})});atRecs.push(res);}closeMdl();refreshAll();setSave('✓ Saved');}
+  catch(e){alert('Save failed: '+e.message);setSave('err');}
+}
+async function delRec(){if(!editId||!confirm('Delete this AT record?'))return;const F=mode==='inj'?INJ:WKT;setSave('Deleting…');try{await atFetch(F.tbl+'/'+editId,{method:'DELETE'});atRecs=atRecs.filter(r=>r.id!==editId);closeMdl();refreshAll();setSave('✓ Deleted');}catch(e){setSave('err: '+e.message);}}
+async function confirmDel(id){if(!confirm('Delete this AT record?'))return;const F=mode==='inj'?INJ:WKT;setSave('Deleting…');try{await atFetch(F.tbl+'/'+id,{method:'DELETE'});atRecs=atRecs.filter(r=>r.id!==id);refreshAll();setSave('✓ Deleted');}catch(e){setSave('err: '+e.message);}}
+function openMdl(){document.getElementById('inj-f').style.display=mode==='inj'?'':'none';document.getElementById('wkt-f').style.display=mode==='wkt'?'':'none';document.getElementById('mbg').classList.add('on');}
+function closeMdl(){document.getElementById('mbg').classList.remove('on');editId=null;}
+
+// ── MODE ───────────────────────────────────────────────────────────────
+function setMode(m){
+  mode=m;
+  document.getElementById('m-inj').classList.toggle('on',m==='inj');
+  document.getElementById('m-wkt').classList.toggle('on',m==='wkt');
+  atRecs=[];claudeRecs=[];curDate=null;
+  document.getElementById('cld-body').innerHTML='<div class="col-empty">Navigate to a PDF page — Claude will extract automatically</div>';
+  document.getElementById('at-body').innerHTML='<div class="col-empty">AT records appear here once a date is set</div>';
+  document.getElementById('date-lbl').style.display='none';
+  document.getElementById('cld-cnt').textContent='0';document.getElementById('at-cnt').textContent='0';
+  document.getElementById('b-at').textContent='AT: 0';document.getElementById('at-date-lbl').textContent='';
+  loadSavedIds();
+}
+function setSave(m){document.getElementById('save-st').textContent=m;}
+
+// ── INIT ───────────────────────────────────────────────────────────────
+window.onload=()=>{
+  initAuth();
+  loadPrefs();
+  loadSavedIds();
+  document.getElementById('loader').style.display='none';
+};
+</script>
+</body>
+</html>async function selectPickerFile(id,name){
+  closePicker();
+  if(pickerTarget==='pdf'){
+    document.getElementById('pdf-id').value=id;
+    LS.set('pdf_id_'+mode,id);
+    setPM('Loading '+name+'...');
+    await loadDrive('pdf');
+  } else {
+    document.getElementById('par-src-lbl').textContent='Loading '+name+'...';
+    try{
+      const r=await fetch('https://www.googleapis.com/drive/v3/files/'+id+'?alt=media',{headers:{Authorization:'Bearer '+gToken}});
+      if(!r.ok)throw new Error('Drive '+r.status);
+      const buf=await r.arrayBuffer();
+      const peek=new TextDecoder().decode(buf.slice(0,20)).trim();
+      if(peek.startsWith('[')||peek.startsWith('{')){parseParseurData(JSON.parse(new TextDecoder().decode(buf)));}
+      else if(name.toLowerCase().endsWith('.csv')){parseCSV(new TextDecoder().decode(buf));}
+      else{parseParseurExcel(buf);}
+      document.getElementById('par-src-lbl').textContent='✓ '+name;
+      LS.set('par_id_'+mode,id);
+    }catch(e){document.getElementById('par-src-lbl').textContent='Error: '+e.message;}
+  }
+}
+
+async function navPickerFolder(id,name){
+  pickerFolderStack.push({id,name});
+  document.getElementById('dpick-q').value='';
+  await loadPickerFolder(id);
+}
+async function popPickerTo(idx){
+  pickerFolderStack=pickerFolderStack.slice(0,idx+1);
+  document.getElementById('dpick-q').value='';
+  await loadPickerFolder(pickerFolderStack[idx].id);
+}
+function renderPickerList(files){
+  if(!files.length){document.getElementById('dpick-list').innerHTML='<div style="color:#9ca3af;text-align:center;padding:24px">No files found</div>';return;}
+  window._dpickShown=files;
+  document.getElementById('dpick-list').innerHTML=files.map((f,i)=>{
+    const isF=f.mimeType==='application/vnd.google-apps.folder';
+    const icon=isF?'📁':f.mimeType==='application/pdf'?'📄':f.mimeType==='text/csv'?'📋':'📊';
+    const dt=f.modifiedTime?new Date(f.modifiedTime).toLocaleDateString():'';
+    const sz=(!isF&&f.size)?Math.round(f.size/1024)+'KB':'';
+    return`<div class="dpick-item${isF?' dpick-folder':''}" onclick="dpickClick(${i})"><div class="dpick-icon">${icon}</div><div class="dpick-info"><div class="dpick-name">${f.name}</div><div class="dpick-meta">${dt}${sz?' · '+sz:''}</div></div>${isF?'<span style="color:#9ca3af">›</span>':`<button class="dpick-sel" onclick="event.stopPropagation();dpickClick(${i})">Select</button>`}</div>`;
+  }).join('');
+}
+function dpickClick(i){const f=window._dpickShown[i];if(!f)return;if(f.mimeType==='application/vnd.google-apps.folder')navPickerFolder(f.id,f.name);else selectPickerFile(f.id,f.name);}
+
 function filterPicker(){
   const q=document.getElementById('dpick-q').value.toLowerCase().trim();
   renderPickerList(q?pickerFiles.filter(f=>f.name.toLowerCase().includes(q)):pickerFiles);
