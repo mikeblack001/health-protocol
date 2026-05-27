@@ -58,6 +58,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 #date-lbl{font-size:12px;font-weight:700;color:#2563eb;background:#dbeafe;padding:3px 10px;border-radius:20px;display:none}
 #date-bar-r{margin-left:auto}
 #cols{display:grid;grid-template-columns:1fr 1fr;flex:1;overflow:hidden}
+#cols.with-claude{grid-template-columns:1fr 1fr 1fr}
 .col{display:flex;flex-direction:column;overflow:hidden;border-right:1px solid #e2e5ea}
 .col:last-child{border-right:none}
 .col-hdr{padding:8px 12px;background:#fafafa;border-bottom:1px solid #e2e5ea;flex-shrink:0;display:flex;align-items:center;gap:7px;min-height:40px}
@@ -138,6 +139,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <h1>💊 MB Audit</h1>
   <button class="mode-btn on" id="m-inj" onclick="setMode('inj')">💉 Injections</button>
   <button class="mode-btn" id="m-wkt" onclick="setMode('wkt')">🏋️ Workouts</button>
+  <button id="cld-toggle" onclick="toggleClaude()" style="padding:5px 13px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;border:2px solid #e2e5ea;background:#f4f5f7;color:#6b7280" title="Uses Anthropic API — costs money">✦ Claude Extract: OFF</button>
   <span class="badge b-purple" id="b-par">Parseur: 0</span>
   <span class="badge b-blue" id="b-at">AT: 0</span>
   <span class="badge b-green" id="b-ok">✓ 0</span>
@@ -216,6 +218,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <div class="col-body" id="at-body"><div class="col-empty">Select a date above to load AT records</div></div>
       </div>
     </div>
+      <!-- CLAUDE COLUMN (hidden by default) -->
+      <div class="col" id="cld-col" style="display:none">
+        <div class="col-hdr">
+          <span class="col-title">✦ Claude Extract</span>
+          <span class="col-cnt" id="cld-cnt">0</span>
+          <span id="cld-spin" style="display:none;width:14px;height:14px;border:2px solid #e2e5ea;border-top-color:#2563eb;border-radius:50%;animation:spin .7s linear infinite;margin-left:4px"></span>
+          <span style="margin-left:auto;font-size:10px;color:#9ca3af" id="cld-dlbl"></span>
+        </div>
+        <div class="src-bar" style="background:#fff0f0">
+          <span style="font-size:10px;font-weight:800;color:#dc2626">⚠ COSTS MONEY</span>
+          <span style="font-size:10px;color:#9ca3af">Uses Anthropic API credits per page</span>
+          <button class="btn bsm" style="margin-left:auto;background:#2563eb;color:#fff;border-color:#2563eb" onclick="extractPage()">✦ Extract This Page</button>
+        </div>
+        <div class="col-body" id="cld-body"><div class="col-empty">Click ✦ Extract to analyze current PDF page</div></div>
+      </div>
   </div>
 </div>
 
