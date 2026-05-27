@@ -741,9 +741,8 @@ window.onload=()=>{
   loadSavedIds();
   document.getElementById('loader').style.display='none';
 };
-</script>
-</body>
-</html>async function selectPickerFile(id,name){
+
+async function selectPickerFile(id,name){
   closePicker();
   if(pickerTarget==='pdf'){
     document.getElementById('pdf-id').value=id;
