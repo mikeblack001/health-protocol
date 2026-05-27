@@ -102,16 +102,22 @@ function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
 function norm(s){return String(s||'').toLowerCase().trim();}
 function makeKey(date,compound){return `${date||''}__${norm(compound)}`;}
 
-async function fetchAll(tbl){
-  const rows=[];let offset=null;
+async function fetchAll(tbl, label){
+  const rows=[];let offset=null;let page=0;
   while(true){
     let url=`https://api.airtable.com/v0/${BASE}/${tbl}?pageSize=100`;
     if(offset) url+='&offset='+offset;
-    const r=await fetch(url,{headers:{'Authorization':'Bearer '+AT}});
-    const d=await r.json();
-    rows.push(...(d.records||[]));
-    offset=d.offset; if(!offset) break;
-    await sleep(80);
+    try{
+      const r=await fetch(url,{headers:{'Authorization':'Bearer '+AT}});
+      if(!r.ok){document.getElementById('loadingMsg').textContent='Error loading '+label+': HTTP '+r.status;return rows;}
+      const d=await r.json();
+      if(d.error){document.getElementById('loadingMsg').textContent='AT Error: '+d.error.type+' — '+d.error.message;return rows;}
+      rows.push(...(d.records||[]));
+      page++;
+      document.getElementById('loadingMsg').textContent='Loading '+label+'... '+rows.length+' records';
+      offset=d.offset; if(!offset) break;
+      await sleep(80);
+    }catch(e){document.getElementById('loadingMsg').textContent='Network error: '+e.message;return rows;}
   }
   return rows;
 }
@@ -124,7 +130,7 @@ function getField(rec, fieldId){
 
 async function loadData(){
   document.getElementById('badge').textContent='Loading Parseur...';
-  const pRecs=await fetchAll(P_TBL);
+  const pRecs=await fetchAll(P_TBL,'Parseur');
   parseurRows=pRecs.map(r=>({
     _id:r.id,
     date:getField(r,PF.date),
@@ -135,7 +141,7 @@ async function loadData(){
   }));
 
   document.getElementById('badge').textContent='Loading AT...';
-  const atRecs=await fetchAll(AT_TBL);
+  const atRecs=await fetchAll(AT_TBL,'Injection Log');
   atRows=atRecs.map(r=>({
     _id:r.id,
     date:getField(r,AF.date),
