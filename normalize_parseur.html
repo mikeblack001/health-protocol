@@ -130,15 +130,15 @@ function renderPreview(){
   }).join('');
   document.getElementById('prev-hdr').textContent=
     'Preview — first 50 of '+recs.length+' records'+(warn?' | ⚠ '+warn+' unmapped':' | ✓ all parseable');
-  document.getElementById('prev-wrap').style.display='';
-  document.getElementById('actions').style.display='';
+  document.getElementById('prev-wrap').style.display='block';
+  document.getElementById('actions').style.display='block';
   st('<span class="ok">✓ '+recs.length+' records loaded. Click Run to populate fields.</span>');
 }
 
 async function runAll(){
   document.getElementById('actions').style.display='none';
   document.getElementById('prev-wrap').style.display='none';
-  const pw=document.getElementById('prog-wrap');pw.style.display='';
+  const pw=document.getElementById('prog-wrap');pw.style.display='block';
   let done=0,errs=0;
 
   for(let i=0;i<recs.length;i+=10){
@@ -167,7 +167,7 @@ async function runAll(){
   }
 
   pw.style.display='none';
-  const dw=document.getElementById('done-wrap');dw.style.display='';
+  const dw=document.getElementById('done-wrap');dw.style.display='block';
   document.getElementById('done-msg').innerHTML=
     '<b>'+done+' records updated</b>'+(errs?` <span style="color:#dc2626">(${errs} errors)</span>`:'')+'<br><br>'+
     'Parseur-Injections now has matching fields:<br>'+
