@@ -652,6 +652,72 @@ async function confirmDel(id){if(!confirm('Delete?'))return;const F=mode==='inj'
 function openMdl(){document.getElementById('inj-f').style.display=mode==='inj'?'':'none';document.getElementById('wkt-f').style.display=mode==='wkt'?'':'none';document.getElementById('mbg').classList.add('on');}
 function closeMdl(){document.getElementById('mbg').classList.remove('on');editId=null;}
 
+// ── CLAUDE EXTRACT (optional, costs money) ───────────────────────────────────
+const WORKER='https://anthropic-proxy.mikeblack01.workers.dev';
+const ANT_KEY='sk-ant-api03-jWnl5azwXKPce1ZVdPZ8_8edO87_hOD8uZpDXQFa4ByFkqqdJOzouZo6uZo6xiVwxykvwcp5MVNeYIaYn0dDE_dVAA-H3QK9wAA';
+let claudeOn=false,claudeRecs=[];
+function toggleClaude(){
+  if(!claudeOn){
+    if(!confirm('Claude Extract uses the Anthropic API and costs money per page.\n\nEnable it?'))return;
+    claudeOn=true;
+    const b=document.getElementById('cld-toggle');b.textContent='✦ Claude: ON';b.style.cssText='padding:5px 13px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;border:2px solid #2563eb;background:#2563eb;color:#fff';
+    document.getElementById('cld-col').style.display='';
+    document.getElementById('cols').classList.add('with-claude');
+  }else{
+    claudeOn=false;claudeRecs=[];
+    const b=document.getElementById('cld-toggle');b.textContent='✦ Claude: OFF';b.style.cssText='padding:5px 13px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;border:2px solid #e2e5ea;background:#f4f5f7;color:#6b7280';
+    document.getElementById('cld-col').style.display='none';
+    document.getElementById('cols').classList.remove('with-claude');
+  }
+}
+async function extractPage(){
+  if(!pdfDoc){alert('Load a PDF first');return;}
+  if(!claudeOn){toggleClaude();if(!claudeOn)return;}
+  const canvas=document.getElementById('pdf-canvas');
+  const img=canvas.toDataURL('image/jpeg',0.85).split(',')[1];
+  const prompt=mode==='inj'
+    ?'Extract ALL injection records from this handwritten log page.\nReturn ONLY a valid JSON array, no markdown. Each record:\n{"date":"YYYY-MM-DD","compound":"name","dose":"as written","site":"L|R|L+R|Pill|Nasal|Abd|S|X","timing":"Morning|Night|Evening|Daily","notes":""}\nEmpty string for unknown. No records return [].'
+    :'Extract ALL workout sets from this handwritten log page.\nReturn ONLY a valid JSON array, no markdown. Each record:\n{"date":"YYYY-MM-DD","exercise":"name","variation":"or empty","set_number":1,"reps":10,"weight":100,"notes":""}\nWeight in lbs. No records return [].';
+  document.getElementById('cld-spin').style.display='inline-block';
+  document.getElementById('cld-cnt').textContent='…';
+  document.getElementById('cld-body').innerHTML='<div class="col-empty">Analyzing with Claude…</div>';
+  try{
+    const res=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json','x-api-key':ANT_KEY,'anthropic-version':'2023-06-01'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:4000,messages:[{role:'user',content:[{type:'image',source:{type:'base64',media_type:'image/jpeg',data:img}},{type:'text',text:prompt}]}]})});
+    if(!res.ok){const t=await res.text().catch(()=>'');throw new Error('API '+res.status+': '+t.substring(0,200));}
+    const data=await res.json();
+    if(data.error)throw new Error(data.error.message||'API error');
+    const raw=(data.content?.[0]?.text||'[]').replace(/```json|```/g,'').trim();
+    claudeRecs=JSON.parse(raw);if(!Array.isArray(claudeRecs))claudeRecs=[];
+    const dates=[...new Set(claudeRecs.map(r=>r.date).filter(Boolean))];
+    if(dates[0]&&!curDate){document.getElementById('date-inp').value=dates[0];await onDateChange();}
+    document.getElementById('cld-cnt').textContent=claudeRecs.length;
+    renderClaude();
+  }catch(e){document.getElementById('cld-body').innerHTML='<div style="color:#dc2626;padding:16px;font-size:12px">'+e.message+'</div>';document.getElementById('cld-cnt').textContent='!';}
+  document.getElementById('cld-spin').style.display='none';
+}
+function renderClaude(){
+  const b=document.getElementById('cld-body');
+  if(!claudeRecs.length){b.innerHTML='<div class="col-empty">No records found</div>';return;}
+  b.innerHTML=claudeRecs.map((r,i)=>{
+    const inj=mode==='inj';const name=inj?(r.compound||'?'):(r.exercise||'?');
+    const d2=inj?(r.dose||''):(r.weight?r.weight+'lbs':'');
+    const t2=inj?(r.timing||''):(r.set_number?'Set '+r.set_number:'');
+    const s2=inj?(r.site||''):(r.reps?r.reps+' reps':'');
+    const inAT=inj?atRecs.some(a=>a.fields[INJ.compound]===r.compound):atRecs.some(a=>a.fields[WKT.exercise]===r.exercise&&String(a.fields[WKT.setnum])===String(r.set_number));
+    return '<div class="card '+(inAT?'match':'miss')+'"><div class="ch"><span class="cn">'+name+'</span>'+(d2?'<span class="pill pd">'+d2+'</span>':'')+(t2?'<span class="pill pt">'+t2+'</span>':'')+(s2?'<span class="pill ps">'+s2+'</span>':'')+'<span class="mtag '+(inAT?'m':'x')+'">'+(inAT?'✓ In AT':'✗ Missing')+'</span></div><div class="cbtns">'+(!inAT?'<button class="cbtn cb-a" onclick="pushClaudeRec('+i+')">→ AT</button>':'')+'</div></div>';
+  }).join('');
+}
+async function pushClaudeRec(i){
+  const r=claudeRecs[i];if(!r)return;setSave('Pushing…');
+  try{
+    const F=mode==='inj'?INJ:WKT;let fields={};
+    if(mode==='inj'){const c=r.compound||'';if(curDate)fields[INJ.date]=curDate;if(c){fields[INJ.compound]=c;fields[INJ.name]=c;}if(r.dose)fields[INJ.dose]=r.dose;if(r.site)fields[INJ.site]=r.site;if(r.timing)fields[INJ.timing]=r.timing;}
+    else{if(curDate)fields[WKT.date]=curDate;if(r.exercise)fields[WKT.exercise]=r.exercise;if(r.variation)fields[WKT.variation]=r.variation;if(r.set_number)fields[WKT.setnum]=+r.set_number;if(r.reps)fields[WKT.reps]=+r.reps;if(r.weight)fields[WKT.weight]=+r.weight;}
+    await atFetch(F.tbl,{method:'POST',body:JSON.stringify({fields})});
+    atRecs=await loadATForDate(curDate);renderAT();renderClaude();updateBadges();setSave('✓ Saved');
+  }catch(e){setSave('Error: '+e.message);}
+}
+
 // ── MODE + INIT ───────────────────────────────────────────────────────
 function setMode(m){
   mode=m;
