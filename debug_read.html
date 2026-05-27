@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>Debug Read</title>
+<style>body{font-family:monospace;background:#0a0a0a;color:#e0e0e0;padding:20px;font-size:11px;}
+pre{white-space:pre-wrap;word-break:break-all;color:#aaa;background:#111;padding:10px;border-radius:4px;}</style>
+</head>
+<body>
+<h2 style="color:#00ff88">Raw API Response Debug</h2>
+<div id="out">Loading...</div>
+<script>
+const TOKEN = 'pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
+const BASE = 'appmHDG4TGT1xy6R6';
+const TABLE = 'tblKDqjy5RzqaJvjr';
+
+async function run(){
+  // Fetch just 3 records, no field filter
+  const url = `https://api.airtable.com/v0/${BASE}/${TABLE}?pageSize=3`;
+  const r = await fetch(url, {headers:{Authorization:`Bearer ${TOKEN}`}});
+  const statusText = `HTTP ${r.status} ${r.statusText}`;
+  const data = await r.json();
+  
+  document.getElementById('out').innerHTML = 
+    `<p style="color:#ffaa00">Status: ${statusText}</p>` +
+    `<p style="color:#00aaff">Records returned: ${data.records?.length ?? 'N/A'}</p>` +
+    `<p style="color:#00aaff">First record keys: ${data.records?.[0] ? Object.keys(data.records[0]).join(', ') : 'N/A'}</p>` +
+    `<p style="color:#00aaff">First record fields keys: ${data.records?.[0]?.fields ? Object.keys(data.records[0].fields).join(', ') || '(empty object)' : 'N/A'}</p>` +
+    `<p style="color:#00ff88">Raw JSON (first record):</p>` +
+    `<pre>${JSON.stringify(data.records?.[0], null, 2)}</pre>` +
+    `<p style="color:#00ff88">Error if any:</p><pre>${JSON.stringify(data.error, null, 2)}</pre>`;
+}
+run();
+</script>
+</body></html>
