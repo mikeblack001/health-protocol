@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Injection Log — Parseur vs AT</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f6fa;color:#222;font-size:13px}
+header{background:#1a1d2e;color:#fff;padding:14px 20px;display:flex;align-items:center;gap:16px}
+header h1{font-size:16px;font-weight:600}
+.badge{background:#2563eb;color:#fff;border-radius:10px;padding:2px 8px;font-size:11px}
+.toolbar{background:#fff;border-bottom:1px solid #e0e0e0;padding:10px 20px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.btn{padding:6px 14px;border:none;border-radius:4px;cursor:pointer;font-size:12px;font-weight:600}
+.btn-primary{background:#2563eb;color:#fff}
+.btn-success{background:#16a34a;color:#fff}
+.btn-danger{background:#dc2626;color:#fff}
+.btn-secondary{background:#6b7280;color:#fff}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.stats{display:flex;gap:12px;padding:12px 20px;background:#fff;border-bottom:1px solid #e0e0e0;flex-wrap:wrap}
+.stat{background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:8px 14px;min-width:100px}
+.stat .val{font-size:20px;font-weight:700;color:#2563eb}
+.stat .lbl{font-size:10px;color:#888;text-transform:uppercase;margin-top:2px}
+.stat.match .val{color:#16a34a}
+.stat.diff .val{color:#dc2626}
+.stat.miss .val{color:#f59e0b}
+.filters{padding:8px 20px;background:#fff;border-bottom:1px solid #e0e0e0;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.filters label{font-size:11px;color:#666}
+select,input[type=text]{border:1px solid #d1d5db;border-radius:4px;padding:4px 8px;font-size:12px;background:#fff}
+.table-wrap{overflow:auto;padding:16px 20px}
+table{width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+th{background:#1a1d2e;color:#e0e0e0;padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
+td{padding:7px 10px;border-bottom:1px solid #f0f0f0;vertical-align:top}
+tr:hover td{background:#f8fafc}
+.row-match{background:#f0fdf4}
+.row-diff{background:#fff7ed}
+.row-miss{background:#fef2f2}
+.row-extra{background:#faf5ff}
+.cell-diff{background:#fde68a;border-radius:3px;padding:1px 4px;font-weight:600}
+.tag{display:inline-block;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;text-transform:uppercase}
+.tag-match{background:#dcfce7;color:#16a34a}
+.tag-diff{background:#fed7aa;color:#c2410c}
+.tag-miss{background:#fee2e2;color:#dc2626}
+.tag-extra{background:#ede9fe;color:#7c3aed}
+.upload-zone{border:2px dashed #d1d5db;border-radius:8px;padding:30px;text-align:center;background:#fafafa;margin:20px;cursor:pointer}
+.upload-zone:hover{border-color:#2563eb;background:#eff6ff}
+.upload-zone h3{color:#374151;margin-bottom:6px}
+.upload-zone p{color:#9ca3af;font-size:12px}
+#loading{display:none;padding:40px;text-align:center;color:#6b7280}
+.action-cell{white-space:nowrap}
+.push-btn{padding:3px 10px;border:none;border-radius:3px;cursor:pointer;font-size:11px;font-weight:600;background:#2563eb;color:#fff}
+.push-btn:hover{background:#1d4ed8}
+</style>
+</head>
+<body>
+<header>
+  <h1>💉 Injection Log — Parseur vs AT</h1>
+  <span class="badge" id="statusBadge">Upload Parseur file to begin</span>
+</header>
+
+<div id="uploadSection">
+  <div class="upload-zone" onclick="document.getElementById('fileInput').click()">
+    <h3>📂 Upload Parseur Export</h3>
+    <p>Accepts CSV, JSON, or Excel (.xlsx/.xls)</p>
+    <p style="margin-top:8px;color:#2563eb;font-weight:600">Click to select file</p>
+    <input type="file" id="fileInput" accept=".csv,.json,.xlsx,.xls" style="display:none" onchange="handleFile(this)">
+  </div>
+</div>
+
+<div id="loading">Loading AT data and comparing...</div>
+
+<div id="mainUI" style="display:none">
+  <div class="stats">
+    <div class="stat match"><div class="val" id="sMatch">0</div><div class="lbl">Match</div></div>
+    <div class="stat diff"><div class="val" id="sDiff">0</div><div class="lbl">Differences</div></div>
+    <div class="stat miss"><div class="val" id="sMiss">0</div><div class="lbl">Missing in AT</div></div>
+    <div class="stat"><div class="val" id="sExtra">0</div><div class="lbl">Extra in AT</div></div>
+    <div class="stat"><div class="val" id="sTotal">0</div><div class="lbl">Parseur Total</div></div>
+  </div>
+  <div class="toolbar">
+    <button class="btn btn-success" id="pushMissingBtn" onclick="pushMissing()" disabled>Push Missing to AT</button>
+    <button class="btn btn-primary" id="pushDiffsBtn" onclick="pushDiffs()" disabled>Update Differences in AT</button>
+    <button class="btn btn-secondary" onclick="exportCSV()">Export Diff CSV</button>
+    <span id="actionStatus" style="color:#16a34a;font-weight:600;font-size:12px"></span>
+  </div>
+  <div class="filters">
+    <label>Show:</label>
+    <select id="filterStatus" onchange="renderTable()">
+      <option value="all">All</option>
+      <option value="diff">Differences only</option>
+      <option value="miss">Missing in AT</option>
+      <option value="extra">Extra in AT</option>
+      <option value="match">Matches</option>
+    </select>
+    <label>Compound:</label>
+    <select id="filterCompound" onchange="renderTable()"><option value="">All</option></select>
+    <label>Date from:</label>
+    <input type="text" id="filterFrom" placeholder="2025-01-01" onchange="renderTable()" style="width:100px">
+    <label>to:</label>
+    <input type="text" id="filterTo" placeholder="2026-12-31" onchange="renderTable()" style="width:100px">
+    <label>Search:</label>
+    <input type="text" id="filterSearch" placeholder="compound, date..." oninput="renderTable()" style="width:140px">
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Status</th>
+          <th>Date</th>
+          <th>Compound</th>
+          <th>Dose (Parseur)</th>
+          <th>Dose (AT)</th>
+          <th>Site (Parseur)</th>
+          <th>Site (AT)</th>
+          <th>Timing (Parseur)</th>
+          <th>Timing (AT)</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+const AT_TOKEN='pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
+const BASE='appmHDG4TGT1xy6R6';
+const AT_TABLE='tblBvEaLkGGipnOFc'; // current AT Injection Log
+const PARSEUR_TABLE='tblB7AL8UeZ5x3qsG'; // InjectionLog_Parseur
+
+let parseurData=[], atData=[], comparedRows=[];
+
+function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+
+// ── FILE HANDLING ──────────────────────────────────────────
+async function handleFile(input){
+  const file=input.files[0];
+  if(!file) return;
+  document.getElementById('uploadSection').style.display='none';
+  document.getElementById('loading').style.display='block';
+  document.getElementById('statusBadge').textContent='Loading...';
+
+  try{
+    const ext=file.name.split('.').pop().toLowerCase();
+    if(ext==='json') parseurData=await loadJSON(file);
+    else if(ext==='csv') parseurData=await loadCSV(file);
+    else if(ext==='xlsx'||ext==='xls') parseurData=await loadExcel(file);
+    else throw new Error('Unsupported format: '+ext);
+
+    normalizeFields(parseurData);
+    document.getElementById('statusBadge').textContent='Parseur: '+parseurData.length+' records — Loading AT...';
+    await loadAT();
+    compare();
+    renderUI();
+  }catch(e){
+    alert('Error: '+e.message);
+    document.getElementById('loading').style.display='none';
+    document.getElementById('uploadSection').style.display='block';
+  }
+}
+
+function loadJSON(file){
+  return new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onload=e=>{
+      try{
+        const d=JSON.parse(e.target.result);
+        res(Array.isArray(d)?d:(d.data||d.records||Object.values(d)));
+      }catch(err){rej(err);}
+    };
+    r.readAsText(file);
+  });
+}
+
+function loadCSV(file){
+  return new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onload=e=>{
+      const lines=e.target.result.split('\n').filter(l=>l.trim());
+      const headers=lines[0].split(',').map(h=>h.trim().replace(/^"|"$/g,''));
+      const rows=lines.slice(1).map(l=>{
+        const vals=l.match(/(".*?"|[^,]+|(?<=,)(?=,))/g)||[];
+        const obj={};
+        headers.forEach((h,i)=>obj[h]=(vals[i]||'').replace(/^"|"$/g,'').trim());
+        return obj;
+      });
+      res(rows);
+    };
+    r.readAsText(file);
+  });
+}
+
+function loadExcel(file){
+  return new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onload=e=>{
+      try{
+        const wb=XLSX.read(e.target.result,{type:'array'});
+        const ws=wb.Sheets[wb.SheetNames[0]];
+        res(XLSX.utils.sheet_to_json(ws,{defval:''}));
+      }catch(err){rej(err);}
+    };
+    r.readAsArrayBuffer(file);
+  });
+}
+
+function normalizeFields(rows){
+  // Flexible field mapping for common Parseur export names
+  const MAP={
+    date:['date','Date','injection_date','DATE','inj_date'],
+    compound:['compound','Compound','peptide','Peptide','COMPOUND','name','Name','drug'],
+    dose:['dose','Dose','DOSE','amount','Amount','volume','Volume'],
+    site:['site','Site','SITE','injection_site','location'],
+    timing:['timing','Timing','TIMING','time','Time','period'],
+    notes:['notes','Notes','NOTES','comment','Comment']
+  };
+  rows.forEach(row=>{
+    for(const[field,aliases]of Object.entries(MAP)){
+      if(!row[field]){
+        for(const a of aliases){
+          if(row[a]!==undefined){row[field]=String(row[a]||'').trim();break;}
+        }
+      }
+    }
+    // Normalize date to YYYY-MM-DD
+    if(row.date){
+      const d=new Date(row.date);
+      if(!isNaN(d)) row.date=d.toISOString().split('T')[0];
+    }
+    row.compound=String(row.compound||'').trim();
+    row.dose=String(row.dose||'').trim();
+    row.site=String(row.site||'').trim();
+    row.timing=String(row.timing||'').trim();
+  });
+}
+
+// ── AT LOADING ─────────────────────────────────────────────
+async function loadAT(){
+  atData=[];
+  let offset=null;
+  while(true){
+    let url=`https://api.airtable.com/v0/${BASE}/${AT_TABLE}?pageSize=100`;
+    if(offset) url+='&offset='+offset;
+    const r=await fetch(url,{headers:{'Authorization':'Bearer '+AT_TOKEN}});
+    const d=await r.json();
+    for(const rec of (d.records||[])){
+      const f=rec.fields||{};
+      atData.push({
+        _id:rec.id,
+        date:f['Date']||'',
+        compound:typeof f['Compound']==='object'?f['Compound'].name:(f['Compound']||''),
+        dose:String(f['Dose']||'').trim(),
+        site:typeof f['Site']==='object'?f['Site'].name:(f['Site']||''),
+        timing:typeof f['Timing']==='object'?f['Timing'].name:(f['Timing']||''),
+        notes:f['Notes']||''
+      });
+    }
+    offset=d.offset;
+    if(!offset) break;
+    await sleep(100);
+  }
+}
+
+// ── COMPARISON ─────────────────────────────────────────────
+function makeKey(date,compound){return `${date}__${(compound||'').toLowerCase().trim()}`;}
+
+function compare(){
+  const atMap=new Map();
+  atData.forEach(r=>{
+    const k=makeKey(r.date,r.compound);
+    if(!atMap.has(k)) atMap.set(k,[]);
+    atMap.get(k).push(r);
+  });
+
+  comparedRows=[];
+  const usedKeys=new Set();
+
+  parseurData.forEach(p=>{
+    const k=makeKey(p.date,p.compound);
+    usedKeys.add(k);
+    const atMatches=atMap.get(k)||[];
+    if(!atMatches.length){
+      comparedRows.push({status:'miss',p,at:null});
+    } else {
+      const at=atMatches.shift();
+      const diffs=[];
+      if(p.dose&&at.dose&&p.dose!==at.dose) diffs.push('dose');
+      if(p.site&&at.site&&p.site.toLowerCase()!==at.site.toLowerCase()) diffs.push('site');
+      if(p.timing&&at.timing&&p.timing.toLowerCase()!==at.timing.toLowerCase()) diffs.push('timing');
+      comparedRows.push({status:diffs.length?'diff':'match',p,at,diffs});
+    }
+  });
+
+  // Extra in AT (not in Parseur)
+  atData.forEach(at=>{
+    const k=makeKey(at.date,at.compound);
+    if(!usedKeys.has(k)) comparedRows.push({status:'extra',p:null,at});
+  });
+}
+
+// ── UI ─────────────────────────────────────────────────────
+function renderUI(){
+  document.getElementById('loading').style.display='none';
+  document.getElementById('mainUI').style.display='block';
+
+  // Populate compound filter
+  const compounds=[...new Set(comparedRows.map(r=>(r.p||r.at).compound).filter(Boolean))].sort();
+  const sel=document.getElementById('filterCompound');
+  compounds.forEach(c=>{const o=document.createElement('option');o.value=c;o.textContent=c;sel.appendChild(o);});
+
+  updateStats();
+  renderTable();
+
+  const hasMiss=comparedRows.some(r=>r.status==='miss');
+  const hasDiff=comparedRows.some(r=>r.status==='diff');
+  document.getElementById('pushMissingBtn').disabled=!hasMiss;
+  document.getElementById('pushDiffsBtn').disabled=!hasDiff;
+  document.getElementById('statusBadge').textContent=`Parseur: ${parseurData.length} | AT: ${atData.length}`;
+}
+
+function updateStats(){
+  const counts={match:0,diff:0,miss:0,extra:0};
+  comparedRows.forEach(r=>counts[r.status]++);
+  document.getElementById('sMatch').textContent=counts.match;
+  document.getElementById('sDiff').textContent=counts.diff;
+  document.getElementById('sMiss').textContent=counts.miss;
+  document.getElementById('sExtra').textContent=counts.extra;
+  document.getElementById('sTotal').textContent=parseurData.length;
+}
+
+function renderTable(){
+  const status=document.getElementById('filterStatus').value;
+  const compound=document.getElementById('filterCompound').value;
+  const from=document.getElementById('filterFrom').value;
+  const to=document.getElementById('filterTo').value;
+  const search=document.getElementById('filterSearch').value.toLowerCase();
+
+  let rows=comparedRows.filter(r=>{
+    if(status!=='all'&&r.status!==status) return false;
+    const rec=r.p||r.at;
+    if(compound&&rec.compound!==compound) return false;
+    if(from&&rec.date<from) return false;
+    if(to&&rec.date>to) return false;
+    if(search&&!JSON.stringify(rec).toLowerCase().includes(search)) return false;
+    return true;
+  });
+
+  const tbody=document.getElementById('tableBody');
+  tbody.innerHTML='';
+  rows.forEach((r,i)=>{
+    const p=r.p||{};
+    const at=r.at||{};
+    const diffs=new Set(r.diffs||[]);
+    const cls=r.status==='match'?'row-match':r.status==='diff'?'row-diff':r.status==='miss'?'row-miss':'row-extra';
+    const tag=`<span class="tag tag-${r.status}">${r.status}</span>`;
+    const dc=(field,pv,av)=>diffs.has(field)?`<td><span class="cell-diff">${pv||'—'}</span></td><td><span class="cell-diff">${av||'—'}</span></td>`:`<td>${pv||'—'}</td><td>${av||'—'}</td>`;
+    let action='';
+    if(r.status==='miss') action=`<button class="push-btn" onclick="pushOne(${i})">Push to AT</button>`;
+    else if(r.status==='diff') action=`<button class="push-btn" onclick="fixOne(${i})">Fix in AT</button>`;
+    tbody.innerHTML+=`<tr class="${cls}" data-idx="${i}">
+      <td>${tag}</td>
+      <td>${(r.p||r.at).date||'—'}</td>
+      <td>${(r.p||r.at).compound||'—'}</td>
+      ${dc('dose',p.dose,at.dose)}
+      ${dc('site',p.site,at.site)}
+      ${dc('timing',p.timing,at.timing)}
+      <td class="action-cell">${action}</td>
+    </tr>`;
+  });
+}
+
+// ── PUSH ACTIONS ───────────────────────────────────────────
+function buildATRecord(p){
+  const rec={};
+  if(p.date) rec['Date']=p.date;
+  if(p.compound) rec['Compound']=p.compound;
+  if(p.dose) rec['Dose']=p.dose;
+  if(p.site) rec['Site']=p.site;
+  if(p.timing) rec['Timing']=p.timing;
+  if(p.notes) rec['Notes']=p.notes;
+  return rec;
+}
+
+async function pushOne(idx){
+  const r=comparedRows[idx];
+  if(!r||r.status!=='miss') return;
+  const res=await fetch(`https://api.airtable.com/v0/${BASE}/${AT_TABLE}`,{
+    method:'POST',headers:{'Authorization':'Bearer '+AT_TOKEN,'Content-Type':'application/json'},
+    body:JSON.stringify({records:[{fields:buildATRecord(r.p)}],typecast:true})
+  });
+  const data=await res.json();
+  if(res.ok){r.status='match';r.at=r.p;renderTable();updateStats();}
+  else alert('Push failed: '+JSON.stringify(data.error));
+}
+
+async function fixOne(idx){
+  const r=comparedRows[idx];
+  if(!r||r.status!=='diff'||!r.at._id) return;
+  const res=await fetch(`https://api.airtable.com/v0/${BASE}/${AT_TABLE}/${r.at._id}`,{
+    method:'PATCH',headers:{'Authorization':'Bearer '+AT_TOKEN,'Content-Type':'application/json'},
+    body:JSON.stringify({fields:buildATRecord(r.p),typecast:true})
+  });
+  const data=await res.json();
+  if(res.ok){r.status='match';r.at={...r.at,...r.p};r.diffs=[];renderTable();updateStats();}
+  else alert('Update failed: '+JSON.stringify(data.error));
+}
+
+async function pushMissing(){
+  const missing=comparedRows.filter(r=>r.status==='miss');
+  document.getElementById('pushMissingBtn').disabled=true;
+  let done=0;
+  for(let i=0;i<missing.length;i+=25){
+    const batch=missing.slice(i,i+25).map(r=>({fields:buildATRecord(r.p)}));
+    const res=await fetch(`https://api.airtable.com/v0/${BASE}/${AT_TABLE}`,{
+      method:'POST',headers:{'Authorization':'Bearer '+AT_TOKEN,'Content-Type':'application/json'},
+      body:JSON.stringify({records:batch,typecast:true})
+    });
+    const data=await res.json();
+    if(res.ok){done+=data.records.length;missing.slice(i,i+25).forEach(r=>{r.status='match';r.at=r.p;});}
+    await sleep(150);
+  }
+  document.getElementById('actionStatus').textContent=`✓ Pushed ${done} records`;
+  updateStats();renderTable();
+}
+
+async function pushDiffs(){
+  const diffs=comparedRows.filter(r=>r.status==='diff'&&r.at._id);
+  document.getElementById('pushDiffsBtn').disabled=true;
+  let done=0;
+  for(const r of diffs){
+    const res=await fetch(`https://api.airtable.com/v0/${BASE}/${AT_TABLE}/${r.at._id}`,{
+      method:'PATCH',headers:{'Authorization':'Bearer '+AT_TOKEN,'Content-Type':'application/json'},
+      body:JSON.stringify({fields:buildATRecord(r.p),typecast:true})
+    });
+    if(res.ok){done++;r.status='match';r.diffs=[];}
+    await sleep(100);
+  }
+  document.getElementById('actionStatus').textContent=`✓ Updated ${done} records`;
+  updateStats();renderTable();
+}
+
+function exportCSV(){
+  const rows=comparedRows.filter(r=>r.status!=='match');
+  const headers=['Status','Date','Compound','Parseur_Dose','AT_Dose','Parseur_Site','AT_Site','Parseur_Timing','AT_Timing'];
+  const lines=[headers.join(',')];
+  rows.forEach(r=>{
+    const p=r.p||{};const at=r.at||{};
+    lines.push([r.status,p.date||at.date,p.compound||at.compound,p.dose,at.dose,p.site,at.site,p.timing,at.timing].map(v=>`"${v||''}"`).join(','));
+  });
+  const blob=new Blob([lines.join('\n')],{type:'text/csv'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='injection_diff.csv';a.click();
+}
+</script>
+</body>
+</html>
