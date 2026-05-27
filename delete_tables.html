@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>Delete Tables</title>
+<style>body{font-family:monospace;background:#111;color:#eee;padding:20px;}.ok{color:#4caf50}.err{color:#f44336}.info{color:#aaa}</style>
+</head><body><div id="log"></div>
+<script>
+const AT='pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
+const BASE='appmHDG4TGT1xy6R6';
+const TABLES=[
+  {id:'tbl7NO5G6QeCPuFzA',name:'InjectionLog_PDFExtract'},
+  {id:'tbloKbcV66emnheBP',name:'Table 18'}
+];
+function log(m,c){const e=document.getElementById('log');const d=document.createElement('div');d.className=c||'info';d.textContent='['+new Date().toLocaleTimeString()+'] '+m;e.appendChild(d);}
+function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+async function run(){
+  for(const t of TABLES){
+    log('Deleting '+t.name+'...','info');
+    const r=await fetch('https://api.airtable.com/v0/meta/bases/'+BASE+'/tables/'+t.id,{
+      method:'DELETE',
+      headers:{'Authorization':'Bearer '+AT,'Content-Type':'application/json'}
+    });
+    const data=await r.json();
+    if(r.ok||data.id) log('✓ '+t.name+' deleted','ok');
+    else log('✗ '+t.name+': '+JSON.stringify(data),'err');
+    await sleep(300);
+  }
+}
+window.addEventListener('load',run);
+</script></body></html>
