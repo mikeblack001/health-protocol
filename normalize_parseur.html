@@ -1,31 +1,39 @@
 <!DOCTYPE html>
 <html><head><meta charset="UTF-8"><title>Normalize Parseur</title>
 <style>
-body{font-family:-apple-system,sans-serif;font-size:14px;padding:30px;max-width:700px;background:#f4f5f7}
+body{font-family:-apple-system,sans-serif;font-size:14px;padding:30px;max-width:800px;background:#f4f5f7}
 h1{font-size:18px;font-weight:900;margin-bottom:6px}
-.sub{color:#6b7280;margin-bottom:24px;font-size:13px}
-#box{background:#fff;border:1px solid #e2e5ea;border-radius:10px;padding:20px;margin-bottom:16px}
+.sub{color:#6b7280;margin-bottom:20px;font-size:13px}
+.box{background:#fff;border:1px solid #e2e5ea;border-radius:10px;padding:20px;margin-bottom:16px}
 #counter{font-size:48px;font-weight:900;color:#2563eb;line-height:1}
 #sub-counter{font-size:14px;color:#6b7280;margin-top:4px}
 .bar-bg{background:#e2e5ea;border-radius:6px;height:12px;margin-top:16px}
 .bar-fg{background:#2563eb;height:12px;border-radius:6px;width:0%;transition:width .1s}
-#msg{margin-top:12px;font-size:13px;color:#374151;min-height:20px}
-.btn{padding:12px 24px;border-radius:7px;font-size:14px;font-weight:700;cursor:pointer;border:none;margin-top:16px}
+#msg{margin-top:12px;font-size:13px;color:#374151;min-height:20px;word-break:break-all}
+.btn{padding:10px 20px;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;border:none;margin-right:8px;margin-top:12px}
 .go{background:#16a34a;color:#fff}.go:hover{background:#15803d}
+.test{background:#2563eb;color:#fff}
+pre{background:#f8f9fa;border:1px solid #e2e5ea;border-radius:6px;padding:12px;font-size:11px;overflow:auto;max-height:300px;white-space:pre-wrap;margin-top:8px}
 .done-box{background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:20px;display:none}
 .done-box h2{color:#166534;font-size:16px;font-weight:800;margin-bottom:8px}
 </style>
 </head>
 <body>
 <h1>🔧 Normalize Parseur-Injections</h1>
-<div class="sub">Parses Medication → Compound + Dose + Timing. Location → Site. 1553 records.</div>
+<div class="sub">Step 1: Click "Inspect" to see raw field data. Step 2: Click "Run" to normalize.</div>
 
-<div id="box">
-  <div id="counter">0</div>
-  <div id="sub-counter">records updated</div>
-  <div class="bar-bg"><div class="bar-fg" id="bar"></div></div>
-  <div id="msg">Click Run to start.</div>
+<div class="box">
+  <button class="btn test" onclick="inspect()">🔍 Inspect First 3 Records</button>
   <button class="btn go" id="btn" onclick="run()">▶ Run Normalization</button>
+  <div id="msg">Ready.</div>
+  <pre id="raw" style="display:none"></pre>
+</div>
+
+<div class="box" id="prog-box" style="display:none">
+  <div id="counter">0</div>
+  <div id="sub-counter">of 0 records updated</div>
+  <div class="bar-bg"><div class="bar-fg" id="bar"></div></div>
+  <div id="prog-msg" style="margin-top:10px;font-size:13px;color:#6b7280"></div>
 </div>
 
 <div class="done-box" id="done">
@@ -36,16 +44,16 @@ h1{font-size:18px;font-weight:900;margin-bottom:6px}
 <script>
 const TOK='pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
 const BASE='appmHDG4TGT1xy6R6',TBL='tblCTOGIrF3NjdyTE';
-const F_MED='fld4cK4dczgtTSdWq',F_LOC='fldSxewpSKtDcoDqV';
+// Destination fields (created earlier)
 const F_CMP='fldONAad3wQQzQDKE',F_DOSE='fldye77iWTIWaDNul',F_TIM='fldIdHUojkqEFlCZL',F_SITE='fldDxPQRuQFZ9MJoG';
 
 const CMAP={'tesamorelin':'Tesamorelin','lipominomix':'LipoMinoMix','lipo mino mix':'LipoMinoMix',
   'lipo-mino-mix':'LipoMinoMix','ipamorelin':'Ipamorelin','cjc-1295 no dac':'CJC-1295 No DAC',
   'cjc-1295':'CJC-1295','testosterone':'Testosterone','deca (nandrolone)':'Deca (Nandrolone)',
-  'deca':'Deca (Nandrolone)','nandrolone':'Deca (Nandrolone)','ghk-cu':'GHK-Cu','ss-31':'SS-31',
-  'nad+':'NAD+','nad':'NAD+','bpc-157':'BPC-157','tb-500':'TB-500','dsip':'DSIP','kpv':'KPV',
-  'semax':'Semax','selank':'Selank','retatrutide':'Retatrutide','tirzepatide':'Tirzepatide',
-  'epitalon':'Epitalon','anavar':'Anavar (Oxandrolone)','oxandrolone':'Anavar (Oxandrolone)',
+  'deca':'Deca (Nandrolone)','ghk-cu':'GHK-Cu','ss-31':'SS-31','nad+':'NAD+','nad':'NAD+',
+  'bpc-157':'BPC-157','tb-500':'TB-500','dsip':'DSIP','kpv':'KPV','semax':'Semax',
+  'selank':'Selank','retatrutide':'Retatrutide','tirzepatide':'Tirzepatide','epitalon':'Epitalon',
+  'anavar':'Anavar (Oxandrolone)','oxandrolone':'Anavar (Oxandrolone)',
   'anavar (oxandrolone)':'Anavar (Oxandrolone)','winstrol':'Winstrol (Stanozolol)',
   'cagrilintide':'Cagrilintide','mots-c':'Mots-C','melanotan':'Melanotan II (MT2)','ghk':'GHK-Cu'};
 
@@ -61,75 +69,99 @@ function can(r){return CMAP[r.toLowerCase().trim()]||r;}
 function canT(t){return{morning:'Morning',night:'Night',evening:'Evening',daily:'Daily',am:'Morning',pm:'Night'}[t.toLowerCase()]||t;}
 function canSite(loc){if(!loc)return'';return{l:'L',r:'R',left:'L',right:'R',pill:'Pill',x:'X',nasal:'Nasal',abd:'Abd',s:'S'}[loc.toLowerCase().trim()]||loc.trim();}
 
-function ui(done,total,msg){
-  document.getElementById('counter').textContent=done;
-  document.getElementById('sub-counter').textContent='of '+total+' records updated';
-  document.getElementById('bar').style.width=Math.round(done/total*100)+'%';
-  document.getElementById('msg').textContent=msg||'';
+// INSPECT: fetch 3 records by NAME (no fieldIds filter — get everything)
+async function inspect(){
+  document.getElementById('msg').textContent='Fetching…';
+  document.getElementById('raw').style.display='none';
+  try{
+    const r=await fetch('https://api.airtable.com/v0/'+BASE+'/'+TBL+'?pageSize=3',
+      {headers:{Authorization:'Bearer '+TOK}});
+    const d=await r.json();
+    const raw=document.getElementById('raw');
+    raw.textContent=JSON.stringify(d.records, null, 2);
+    raw.style.display='';
+    document.getElementById('msg').textContent='Raw field data above — check field names and values.';
+  }catch(e){document.getElementById('msg').textContent='Error: '+e.message;}
 }
 
 async function run(){
   document.getElementById('btn').disabled=true;
   document.getElementById('btn').textContent='Running…';
-  document.getElementById('msg').textContent='Loading records…';
+  document.getElementById('msg').textContent='Loading…';
 
-  // Load all records
-  let recs=[],off=null,total=0;
+  // Load all, get ALL fields (no filter) so we see what's actually there
+  let recs=[],off=null;
   try{
     do{
-      const url='https://api.airtable.com/v0/'+BASE+'/'+TBL+'?returnFieldsByFieldId=true&pageSize=100'+(off?'&offset='+off:'');
+      const url='https://api.airtable.com/v0/'+BASE+'/'+TBL+'?pageSize=100'+(off?'&offset='+off:'');
       const r=await fetch(url,{headers:{Authorization:'Bearer '+TOK}});
-      if(!r.ok)throw new Error('Load failed: '+r.status);
-      const d=await r.json();
-      recs=recs.concat(d.records);off=d.offset;
-      document.getElementById('msg').textContent='Loading… '+recs.length+' records';
+      if(!r.ok)throw new Error('Load '+r.status);
+      const d=await r.json();recs=recs.concat(d.records);off=d.offset;
+      document.getElementById('msg').textContent='Loaded '+recs.length+'…';
     }while(off);
-    total=recs.length;
-    document.getElementById('msg').textContent='Loaded '+total+'. Starting updates…';
   }catch(e){document.getElementById('msg').textContent='Load error: '+e.message;return;}
 
-  // Update in batches of 10
-  let done=0,errs=0;
+  // Log first record field names to console for debugging
+  if(recs.length){
+    console.log('FIELD NAMES:', Object.keys(recs[0].fields));
+    console.log('SAMPLE RECORD:', recs[0].fields);
+  }
+
+  document.getElementById('msg').textContent='';
+  document.querySelector('.box').style.display='none';
+  const pb=document.getElementById('prog-box');pb.style.display='';
+  const total=recs.length;
+
+  let done=0,errs=0,skipped=0;
   for(let i=0;i<recs.length;i+=10){
     const batch=recs.slice(i,i+10);
-    const updates=batch.map(r=>{
+    const updates=[];
+    for(const r of batch){
       const f=r.fields;
-      const{c,d,t}=parseMed(f[F_MED]||'');
-      const site=canSite(f[F_LOC]||'');
+      // Try BOTH field ID and field name access
+      const medById=f['fld4cK4dczgtTSdWq'];
+      const medByName=f['Medication']||f['medication'];
+      const locById=f['fldSxewpSKtDcoDqV'];
+      const locByName=f['Location']||f['location'];
+      const med=medById||medByName||'';
+      const loc=locById||locByName||'';
+
+      const{c,d,t}=parseMed(med);
+      const site=canSite(loc);
       const fields={};
       if(c)fields[F_CMP]=c;
       if(d)fields[F_DOSE]=d;
       if(t)fields[F_TIM]=t;
       if(site)fields[F_SITE]=site;
-      return{id:r.id,fields};
-    });
-    try{
-      const r=await fetch('https://api.airtable.com/v0/'+BASE+'/'+TBL,{
-        method:'PATCH',
-        headers:{Authorization:'Bearer '+TOK,'Content-Type':'application/json'},
-        body:JSON.stringify({records:updates})
-      });
-      if(!r.ok){const e=await r.json();throw new Error(e.error?.message||r.status);}
-      done+=batch.length;
-    }catch(e){
-      errs+=batch.length;
-      document.getElementById('msg').textContent='Batch error: '+e.message;
+      if(Object.keys(fields).length>0){
+        updates.push({id:r.id,fields});
+      } else {
+        skipped++;
+      }
     }
-    ui(done,total,'Batch '+(Math.floor(i/10)+1)+' of '+Math.ceil(total/10)+' — '+errs+' errors');
-    // Yield to UI thread
+    if(updates.length){
+      try{
+        const r=await fetch('https://api.airtable.com/v0/'+BASE+'/'+TBL,{
+          method:'PATCH',
+          headers:{Authorization:'Bearer '+TOK,'Content-Type':'application/json'},
+          body:JSON.stringify({records:updates})
+        });
+        if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error?.message||r.status);}
+        done+=updates.length;
+      }catch(e){errs+=batch.length;document.getElementById('prog-msg').textContent='Err: '+e.message;}
+    }
+    document.getElementById('counter').textContent=done;
+    document.getElementById('sub-counter').textContent='of '+total+' updated ('+skipped+' skipped — no data)';
+    document.getElementById('bar').style.width=Math.round((i+batch.length)/total*100)+'%';
+    document.getElementById('prog-msg').textContent='Batch '+(Math.floor(i/10)+1)+'/'+Math.ceil(total/10);
     await new Promise(r=>setTimeout(r,50));
   }
 
-  // Done
-  document.getElementById('box').style.display='none';
-  const dv=document.getElementById('done');dv.style.display='';
+  pb.style.display='none';
+  document.getElementById('done').style.display='';
   document.getElementById('done-msg').innerHTML=
-    '<b>'+done+' records updated</b>'+(errs?' <span style="color:#dc2626">'+errs+' errors</span>':'')+'<br><br>'+
-    'Parseur-Injections now has:<br><ul style="margin:8px 0 0 20px;line-height:2">'+
-    '<li><b>Compound</b> — canonical name</li>'+
-    '<li><b>Dose</b> — e.g. 5u, 75u</li>'+
-    '<li><b>Timing</b> — Morning / Night / Daily</li>'+
-    '<li><b>Site</b> — L / R / X / Pill</li></ul>';
+    '<b>'+done+' updated</b>, '+skipped+' skipped (no parseable data)'+(errs?' <span style="color:#dc2626">'+errs+' errors</span>':'')+'<br><br>'+
+    'If skipped='+recs.length+', click 🔍 Inspect to see the actual field structure.';
 }
 </script>
 </body></html>
