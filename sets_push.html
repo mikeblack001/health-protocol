@@ -36,8 +36,8 @@ async function run() {
   }
 
   let pushed = 0, errors = 0;
-  for (let i = 0; i < records.length; i += 50) {
-    const batch = records.slice(i, i + 50);
+  for (let i = 0; i < records.length; i += 25) {
+    const batch = records.slice(i, i + 25);
     try {
       const r = await fetch('https://api.airtable.com/v0/' + BASE + '/' + TABLE, {
         method: 'POST',
@@ -50,7 +50,7 @@ async function run() {
       } else {
         errors++;
         const msg = data.error ? (data.error.type + ': ' + data.error.message) : JSON.stringify(data).substring(0,200);
-        if (errors <= 3) log('Batch ' + (Math.floor(i/50)+1) + ' failed: ' + msg, 'err');
+        if (errors <= 3) log('Batch ' + (Math.floor(i/25)+1) + ' failed: ' + msg, 'err');
         if (r.status === 429) { log('Rate limited — waiting 30s', 'warn'); await sleep(30000); i -= 50; continue; }
       }
     } catch(e) {
