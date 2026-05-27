@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Exercise Name Audit</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:monospace;background:#0a0a0a;color:#e0e0e0;padding:20px;font-size:12px}
+h1{color:#00ff88;font-size:16px;margin-bottom:4px;letter-spacing:2px}
+.sub{color:#666;font-size:10px;margin-bottom:16px}
+.status{color:#ffaa00;margin-bottom:12px;font-size:11px}
+.status.done{color:#00ff88} .status.err{color:#ff4444}
+.bar{width:100%;height:3px;background:#222;border-radius:2px;margin-bottom:16px}
+.bar-fill{height:100%;background:linear-gradient(90deg,#00aaff,#00ff88);border-radius:2px;transition:width 0.3s}
+.card{background:#111;border:1px solid #222;border-radius:4px;padding:14px;margin-bottom:12px}
+.card h3{color:#00aaff;font-size:10px;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;border-bottom:1px solid #222;padding-bottom:6px}
+table{width:100%;border-collapse:collapse;font-size:11px}
+th{color:#00aaff;text-align:left;padding:5px 8px;border-bottom:1px solid #333;font-size:10px}
+td{padding:5px 8px;border-bottom:1px solid #1a1a1a;vertical-align:middle}
+tr:hover td{background:#1a1a1a}
+.tag{display:inline-block;border-radius:2px;padding:1px 5px;font-size:10px;margin:1px}
+.ok{background:#001a0f;border:1px solid #2a4a2a;color:#66ff88}
+.bad{background:#1a0a0a;border:1px solid #4a1a1a;color:#ff8888}
+.warn{background:#1a1500;border:1px solid #4a3a00;color:#ffcc66}
+.flag{padding:6px 10px;border-radius:3px;margin:4px 0;font-size:11px}
+.flag.err{background:#1a0a0a;border:1px solid #ff4444;color:#ff8888}
+.flag.ok{background:#001a0f;border:1px solid #00ff88;color:#66ffbb}
+select{background:#1a1a1a;color:#e0e0e0;border:1px solid #333;padding:3px 6px;font-size:11px;font-family:monospace;border-radius:2px;width:100%}
+button{background:#003344;color:#00aaff;border:1px solid #00aaff;padding:6px 14px;font-size:11px;font-family:monospace;cursor:pointer;border-radius:3px;letter-spacing:1px}
+button:hover{background:#004455}
+button.apply{background:#002200;color:#00ff88;border-color:#00ff88}
+button.apply:hover{background:#003300}
+#fixCount{color:#ffaa00;font-size:11px;margin-left:10px}
+</style>
+</head>
+<body>
+<h1>⚡ EXERCISE NAME AUDIT + FIX</h1>
+<div class="sub">AT Sets tblKDqjy5RzqaJvjr → audit against app canonical names</div>
+<div class="bar"><div class="bar-fill" id="pb" style="width:0%"></div></div>
+<div class="status" id="st">Fetching all records...</div>
+<div id="out"></div>
+
+<script>
+const TOKEN = 'pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
+const BASE = 'appmHDG4TGT1xy6R6';
+const TABLE = 'tblKDqjy5RzqaJvjr';
+const F_EXERCISE = 'fldZ93A1t7fGjjsSS';
+
+// CANONICAL: from app WORKOUT_DAYS (source of truth)
+const CANONICAL = new Set([
+  'Back Extension','Barbell Shrugs','Bench Press','Bicep Curls - Preacher',
+  'Cable Cross Overs','Cable Curls','Cable Press','Cable Rows','Cable Shrugs',
+  'DB Calf Raises','Decline Press','Face Pulls','Forearm Raise - Cable',
+  'Forward Back Stretch','Hammer Curls','High Cable Fly','Hip Thrust',
+  'Incline Curls','Incline Fly','Incline Press','Lat Pulldown','Lateral Raises',
+  'Leg Curls','Leg Extensions','Leg Press','Low Cable Fly','Nordic Curl',
+  'Overhead Tricep Ext','Overhead Tricep Press','Rear Delt Raises',
+  'Reverse Hyper','Seated Shoulder Press','Smith Mach Calf Raises',
+  'Tricep Ext Down','Tricep Ext Up','Tricep Pushdowns','Wrist Twist',
+  'Bent Over Rows','Back Extension','Curls (Standing)',
+  // Legs extras
+  'Cable Glute Kickback','Cable Hip Abduction'
+]);
+
+// Auto-fix map: AT name → canonical
+const AUTOFIX = {
+  'High Cable Fly 1/2 ea': 'High Cable Fly',
+  'Cable Press 1/2 ea': 'Cable Press',
+  'Cable Cross Overs 1/2 ea': 'Cable Cross Overs',
+  'Cable Cross Overs 1/2': 'Cable Cross Overs',
+  'Cable Curls 1/2 ea': 'Cable Curls',
+  'Cable Curls 1/2': 'Cable Curls',
+  'Cable Shrugs 1/2': 'Cable Shrugs',
+  'Forearm Raise - Cable 1/2': 'Forearm Raise - Cable',
+  'Tricep Ext Down 1/2': 'Tricep Ext Down',
+  'Tricep Pushdowns 1/2': 'Tricep Pushdowns',
+  'Bicep Curls-Preacher': 'Bicep Curls - Preacher',
+  'Low Cable Fly 1/2 ea': 'Low Cable Fly',
+  'Low Cable Fly 1/2': 'Low Cable Fly',
+  'Cable Press': 'Cable Press',
+  'Bent Over Row': 'Bent Over Rows',
+};
+
+let allRecords = [];
+
+async function fetchAll() {
+  let offset = null, page = 0;
+  do {
+    page++;
+    st(`Fetching page ${page}... (${allRecords.length} records)`, '');
+    pb(Math.min(80, page * 5));
+    let url = `https://api.airtable.com/v0/${BASE}/${TABLE}?pageSize=100&fields[]=${F_EXERCISE}`;
+    if (offset) url += `&offset=${encodeURIComponent(offset)}`;
+    const r = await fetch(url, {headers:{Authorization:`Bearer ${TOKEN}`}});
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const d = await r.json();
+    allRecords = allRecords.concat(d.records);
+    offset = d.offset;
+  } while (offset);
+}
+
+function analyze() {
+  // Count exercise names and their record IDs
+  const nameMap = new Map(); // name -> [recId, ...]
+  for (const rec of allRecords) {
+    const name = rec.fields[F_EXERCISE] || '(empty)';
+    if (!nameMap.has(name)) nameMap.set(name, []);
+    nameMap.get(name).push(rec.id);
+  }
+  return nameMap;
+}
+
+function render(nameMap) {
+  const canonical = [], nonCanonical = [], autoFixable = [], unknown = [];
+  
+  for (const [name, ids] of nameMap.entries()) {
+    if (CANONICAL.has(name)) {
+      canonical.push({name, count: ids.length, ids});
+    } else if (AUTOFIX[name]) {
+      autoFixable.push({name, fix: AUTOFIX[name], count: ids.length, ids});
+    } else {
+      unknown.push({name, count: ids.length, ids});
+    }
+  }
+  
+  autoFixable.sort((a,b) => b.count - a.count);
+  unknown.sort((a,b) => b.count - a.count);
+  canonical.sort((a,b) => b.count - a.count);
+
+  let html = `
+  <div class="card">
+    <h3>📊 Summary</h3>
+    <table>
+      <tr><td>Total records</td><td style="color:#00ff88;font-weight:bold">${allRecords.length.toLocaleString()}</td></tr>
+      <tr><td>Unique exercise names</td><td>${nameMap.size}</td></tr>
+      <tr><td style="color:#00ff88">✓ Already canonical</td><td style="color:#00ff88">${canonical.reduce((s,x)=>s+x.count,0).toLocaleString()} records (${canonical.length} names)</td></tr>
+      <tr><td style="color:#ffcc66">⚡ Auto-fixable</td><td style="color:#ffcc66">${autoFixable.reduce((s,x)=>s+x.count,0).toLocaleString()} records (${autoFixable.length} names)</td></tr>
+      <tr><td style="color:#ff8888">❓ Unknown (manual review)</td><td style="color:#ff8888">${unknown.reduce((s,x)=>s+x.count,0).toLocaleString()} records (${unknown.length} names)</td></tr>
+    </table>
+  </div>`;
+
+  if (autoFixable.length > 0) {
+    html += `<div class="card">
+      <h3>⚡ AUTO-FIXABLE — ${autoFixable.reduce((s,x)=>s+x.count,0)} records</h3>
+      <table>
+        <tr><th>Current Name (AT)</th><th>→ Canonical</th><th>Count</th></tr>`;
+    autoFixable.forEach(x => {
+      html += `<tr><td style="color:#ff8888">${x.name}</td><td style="color:#00ff88">→ ${x.fix}</td><td>${x.count}</td></tr>`;
+    });
+    html += `</table>
+      <br>
+      <button class="apply" onclick="applyFixes(${JSON.stringify(autoFixable).replace(/"/g,'&quot;')})">
+        ⚡ APPLY ALL AUTO-FIXES (${autoFixable.reduce((s,x)=>s+x.count,0)} records)
+      </button>
+      <span id="fixCount"></span>
+      <div id="fixLog"></div>
+    </div>`;
+  }
+
+  if (unknown.length > 0) {
+    html += `<div class="card">
+      <h3>❓ UNKNOWN NAMES — needs manual mapping (${unknown.length} names)</h3>
+      <table>
+        <tr><th>Name in AT</th><th>Count</th><th>Map to Canonical</th></tr>`;
+    unknown.forEach((x,i) => {
+      const opts = [...CANONICAL].sort().map(c => `<option value="${c}">${c}</option>`).join('');
+      html += `<tr>
+        <td style="color:#ff8888">${x.name}</td>
+        <td>${x.count}</td>
+        <td>
+          <select id="sel_${i}" data-name="${x.name}" data-ids="${x.ids.join(',')}">
+            <option value="">-- keep as-is --</option>
+            ${opts}
+          </select>
+        </td>
+      </tr>`;
+    });
+    html += `</table><br>
+      <button class="apply" onclick="applyManual()">⚡ APPLY MANUAL MAPPINGS</button>
+      <div id="manualLog"></div>
+    </div>`;
+  }
+
+  if (canonical.length > 0) {
+    html += `<div class="card">
+      <h3>✓ CANONICAL NAMES ALREADY CORRECT (${canonical.length} names)</h3>
+      <table><tr><th>Name</th><th>Count</th></tr>`;
+    canonical.forEach(x => {
+      html += `<tr><td style="color:#66ff88">${x.name}</td><td>${x.count}</td></tr>`;
+    });
+    html += `</table></div>`;
+  }
+
+  document.getElementById('out').innerHTML = html;
+}
+
+async function applyFixes(autoFixable) {
+  const logEl = document.getElementById('fixLog');
+  const countEl = document.getElementById('fixCount');
+  logEl.innerHTML = '';
+  
+  let total = 0, done = 0;
+  for (const x of autoFixable) total += x.ids.length;
+  
+  for (const x of autoFixable) {
+    const ids = x.ids;
+    for (let i = 0; i < ids.length; i += 50) {
+      const batch = ids.slice(i, i + 50);
+      const records = batch.map(id => ({id, fields: {[F_EXERCISE]: x.fix}}));
+      try {
+        const r = await fetch(`https://api.airtable.com/v0/${BASE}/${TABLE}`, {
+          method: 'PATCH',
+          headers: {Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json'},
+          body: JSON.stringify({records, typecast: true})
+        });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        done += batch.length;
+        countEl.textContent = ` ${done}/${total} done`;
+      } catch(e) {
+        logEl.innerHTML += `<div class="flag err">FAIL ${x.name} batch: ${e.message}</div>`;
+      }
+    }
+    logEl.innerHTML += `<div class="flag ok">✓ ${x.name} → ${x.fix} (${x.count} records)</div>`;
+  }
+  countEl.textContent = ` ✓ ALL ${done} RECORDS FIXED`;
+}
+
+async function applyManual() {
+  const logEl = document.getElementById('manualLog');
+  logEl.innerHTML = '';
+  const selects = document.querySelectorAll('select[data-name]');
+  let jobs = [];
+  selects.forEach(sel => {
+    const target = sel.value;
+    if (!target) return;
+    const ids = sel.dataset.ids.split(',').filter(Boolean);
+    jobs.push({name: sel.dataset.name, fix: target, ids});
+  });
+  if (jobs.length === 0) { logEl.innerHTML = '<div class="flag warn">No mappings selected.</div>'; return; }
+  
+  let total = jobs.reduce((s,j)=>s+j.ids.length,0), done = 0;
+  for (const job of jobs) {
+    for (let i = 0; i < job.ids.length; i += 50) {
+      const batch = job.ids.slice(i, i+50);
+      const records = batch.map(id => ({id, fields:{[F_EXERCISE]: job.fix}}));
+      const r = await fetch(`https://api.airtable.com/v0/${BASE}/${TABLE}`, {
+        method: 'PATCH',
+        headers: {Authorization:`Bearer ${TOKEN}`,'Content-Type':'application/json'},
+        body: JSON.stringify({records, typecast: true})
+      });
+      done += batch.length;
+    }
+    logEl.innerHTML += `<div class="flag ok">✓ ${job.name} → ${job.fix} (${job.ids.length} records)</div>`;
+  }
+  logEl.innerHTML += `<div class="flag ok">DONE: ${done} records updated</div>`;
+}
+
+function st(msg, cls) {
+  const el = document.getElementById('st');
+  el.textContent = msg;
+  el.className = 'status' + (cls ? ' '+cls : '');
+}
+function pb(pct) { document.getElementById('pb').style.width = pct+'%'; }
+
+async function run() {
+  try {
+    await fetchAll();
+    pb(90); st('Analyzing...');
+    const nameMap = analyze();
+    pb(100); st(`✓ Complete — ${allRecords.length.toLocaleString()} records, ${nameMap.size} unique names`, 'done');
+    render(nameMap);
+  } catch(e) {
+    st(`ERROR: ${e.message}`, 'err');
+  }
+}
+run();
+</script>
+</body>
+</html>
