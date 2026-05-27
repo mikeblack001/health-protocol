@@ -434,67 +434,73 @@ function pgGo(n){renderPage(n);}
 function setPM(m){document.getElementById('pdf-msg').textContent=m;}
 
 // ── DRIVE PICKER ───────────────────────────────────────────────────────
+// ── DRIVE PICKER with folder navigation ───────────────────────────────
+const SHORTCUTS={inj:[{name:'📋 Injections PDF',id:'1Yk3aWqXPWRpFWCvXYasWoo9hA202KQG6',type:'file'}],wkt:[{name:'📁 Workouts 2024-25',id:'1eYtQT3c14psKbxRkKtbLoNtiLFEnOFhF',type:'folder'},{name:'📁 Workouts 2025',id:'1VgIqXOQUc5qLzzAaWQ1FQZxIMBAacGP9',type:'folder'}]};
+let pickerFolderStack=[{id:'root',name:'My Drive'}];
+
 async function openPicker(target){
   if(!gToken){signIn();return;}
-  pickerTarget=target;
+  pickerTarget=target;pickerFolderStack=[{id:'root',name:'My Drive'}];
   document.getElementById('dpick-title').textContent=target==='pdf'?'Select PDF from Drive':'Select Parseur Export from Drive';
   document.getElementById('dpick-q').value='';
-  document.getElementById('dpick-list').innerHTML='<div id="dpick-spin">Loading Drive files…</div>';
   document.getElementById('dpick-bg').classList.add('on');
+  renderShortcuts(target);
+  await loadPickerFolder('root');
+}
+function renderShortcuts(target){
+  const sc=SHORTCUTS[mode]||[];const el=document.getElementById('dpick-shortcuts');
+  if(!sc.length){el.style.display='none';return;}
+  el.style.display='flex';
+  el.innerHTML='<span style="font-size:10px;font-weight:800;color:#9ca3af;align-self:center">QUICK:</span>'+sc.map(s=>`<button class="sc-btn" onclick="${s.type==='folder'?`navPickerFolder('${s.id}','${s.name.replace(/'/g,"\\'")}')` : `selectPickerFile('${s.id}','${s.name.replace(/'/g,"\\'")}')` }">${s.name}</button>`).join('');
+}
+function renderBreadcrumb(){
+  const el=document.getElementById('dpick-breadcrumb');
+  el.innerHTML=pickerFolderStack.map((f,i)=>{
+    if(i===pickerFolderStack.length-1)return`<span class="bc-cur">📁 ${f.name}</span>`;
+    return`<span class="bc-item" onclick="popPickerTo(${i})">📁 ${f.name}</span><span class="bc-sep"> › </span>`;
+  }).join('');
+}
+async function loadPickerFolder(folderId){
+  document.getElementById('dpick-list').innerHTML='<div id="dpick-spin">Loading…</div>';
+  renderBreadcrumb();
   try{
-    const q=target==='pdf'
-      ?encodeURIComponent("mimeType='application/pdf' and trashed=false")
-      :encodeURIComponent("(mimeType='text/csv' or mimeType='application/json' or mimeType contains 'spreadsheet') and trashed=false");
-    const r=await fetch('https://www.googleapis.com/drive/v3/files?q='+q+'&fields=files(id,name,modifiedTime,size,mimeType)&orderBy=modifiedTime+desc&pageSize=30',{headers:{Authorization:'Bearer '+gToken}});
-    if(!r.ok)throw new Error('Drive API '+r.status);
+    const isPDF=pickerTarget==='pdf';
+    const mimeFilter=isPDF?"(mimeType='application/pdf' or mimeType='application/vnd.google-apps.folder')":"(mimeType='text/csv' or mimeType='application/json' or mimeType contains 'spreadsheet' or mimeType='application/vnd.google-apps.folder')";
+    const parentQ=folderId==='root'?'root in parents':`'${folderId}' in parents`;
+    const q=encodeURIComponent(`${parentQ} and trashed=false and (${mimeFilter})`);
+    const r=await fetch('https://www.googleapis.com/drive/v3/files?q='+q+'&fields=files(id,name,modifiedTime,size,mimeType)&orderBy=folder,name&pageSize=50',{headers:{Authorization:'Bearer '+gToken}});
+    if(!r.ok)throw new Error('Drive '+r.status);
     const data=await r.json();
-    pickerFiles=data.files||[];
-    renderPickerList(pickerFiles);
-  }catch(e){document.getElementById('dpick-list').innerHTML='<div style="color:#dc2626;padding:20px">Error: '+e.message+'</div>';}
+    pickerFiles=data.files||[];renderPickerList(pickerFiles);
+  }catch(e){document.getElementById('dpick-list').innerHTML=`<div style="color:#dc2626;padding:20px">Error: ${e.message}</div>`;}
+}
+async function navPickerFolder(id,name){
+  pickerFolderStack.push({id,name});
+  document.getElementById('dpick-q').value='';
+  await loadPickerFolder(id);
+}
+async function popPickerTo(idx){
+  pickerFolderStack=pickerFolderStack.slice(0,idx+1);
+  document.getElementById('dpick-q').value='';
+  await loadPickerFolder(pickerFolderStack[idx].id);
 }
 function renderPickerList(files){
   if(!files.length){document.getElementById('dpick-list').innerHTML='<div style="color:#9ca3af;text-align:center;padding:24px">No files found</div>';return;}
   document.getElementById('dpick-list').innerHTML=files.map(f=>{
-    const icon=f.mimeType==='application/pdf'?'📄':f.mimeType==='text/csv'?'📋':'📊';
+    const isFolder=f.mimeType==='application/vnd.google-apps.folder';
+    const icon=isFolder?'📁':f.mimeType==='application/pdf'?'📄':f.mimeType==='text/csv'?'📋':'📊';
     const dt=f.modifiedTime?new Date(f.modifiedTime).toLocaleDateString():'';
-    const sz=f.size?Math.round(f.size/1024)+'KB':'';
-    return`<div class="dpick-item" onclick="selectPickerFile('${f.id}','${f.name.replace(/'/g,"\\'")}')">
-      <div class="dpick-icon">${icon}</div>
-      <div class="dpick-info"><div class="dpick-name">${f.name}</div><div class="dpick-meta">${dt}${sz?' · '+sz:''}</div></div>
-      <button class="dpick-sel">Select</button>
-    </div>`;
+    const sz=(!isFolder&&f.size)?Math.round(f.size/1024)+'KB':'';
+    const esc=f.name.replace(/'/g,"\\'");
+    const action=isFolder?`navPickerFolder('${f.id}','${esc}')`:`selectPickerFile('${f.id}','${esc}')`;
+    return`<div class="dpick-item${isFolder?' dpick-folder':''}" onclick="${action}"><div class="dpick-icon">${icon}</div><div class="dpick-info"><div class="dpick-name">${f.name}</div><div class="dpick-meta">${dt}${sz?' · '+sz:''}</div></div>${isFolder?'<span style="color:#9ca3af;font-size:14px">›</span>':`<button class="dpick-sel" onclick="event.stopPropagation();${action}">Select</button>`}</div>`;
   }).join('');
 }
 function filterPicker(){
-  const q=document.getElementById('dpick-q').value.toLowerCase();
+  const q=document.getElementById('dpick-q').value.toLowerCase().trim();
   renderPickerList(q?pickerFiles.filter(f=>f.name.toLowerCase().includes(q)):pickerFiles);
 }
-async function selectPickerFile(id,name){
-  closePicker();
-  if(pickerTarget==='pdf'){
-    document.getElementById('pdf-id').value=id;
-    LS.set('pdf_id_'+mode,id);
-    setPM('Loading '+name+'…');
-    await loadDrive('pdf');
-  } else {
-    LS.set('par_id_'+mode,id);
-    document.getElementById('par-src-lbl').textContent='Loading '+name+'…';
-    try{
-      const r=await fetch('https://www.googleapis.com/drive/v3/files/'+id+'?alt=media',{headers:{Authorization:'Bearer '+gToken}});
-      if(!r.ok)throw new Error('Drive '+r.status);
-      const mime=r.headers.get('content-type')||'';
-      if(mime.includes('json')||(await r.clone().text().then(t=>t.trim().startsWith('[')))){
-        parseParseurData(JSON.parse(await r.text()));
-      } else if(mime.includes('csv')||name.endsWith('.csv')){
-        parseCSV(await r.text());
-      } else {
-        parseParseurExcel(await r.arrayBuffer());
-      }
-      document.getElementById('par-src-lbl').textContent='✓ '+name;
-      LS.set('par_id_'+mode,id);
-    }catch(e){document.getElementById('par-src-lbl').textContent='Error: '+e.message;}
-  }
-}
+
 function closePicker(){document.getElementById('dpick-bg').classList.remove('on');}
 
 // ── PARSEUR ────────────────────────────────────────────────────────────
