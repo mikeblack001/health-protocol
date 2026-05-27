@@ -31,7 +31,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 /* LAYOUT */
 #body{display:flex;flex:1;overflow:hidden}
 /* PDF PANEL */
-#pdf-panel{width:310px;min-width:220px;background:#fff;border-right:2px solid #e2e5ea;display:flex;flex-direction:column;flex-shrink:0}
+#pdf-panel{width:420px;min-width:300px;background:#fff;border-right:2px solid #e2e5ea;display:flex;flex-direction:column;flex-shrink:0}
 .phdr{padding:8px 10px;background:#fafafa;border-bottom:1px solid #e2e5ea;flex-shrink:0}
 .plbl{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#9ca3af;display:block;margin-bottom:5px}
 .row{display:flex;gap:4px;align-items:center;margin-bottom:4px}
@@ -174,24 +174,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <span id="pdf-pg">— / —</span>
       <button onclick="pgGo(pdfPage+1)">▶</button>
     </div>
-    <div style="padding:8px 10px;border-top:1px solid #e2e5ea;background:#fffbeb;flex-shrink:0">
-      <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#9ca3af;margin-bottom:5px">📅 Date on this page</div>
-      <div style="display:flex;gap:5px;align-items:center">
-        <input id="pdf-date" type="date" style="flex:1;padding:5px 7px;border:1px solid #fcd34d;border-radius:5px;font-size:12px;font-weight:700;background:#fff" onchange="setPDFDate()">
-        <button class="btn bp bsm" onclick="setPDFDate()" style="white-space:nowrap">Sync ↕</button>
-      </div>
-      <div id="pdf-date-lbl" style="font-size:10px;color:#9ca3af;margin-top:4px">Set date to sync Parseur + AT</div>
-    </div>
+
   </div>
 
   <!-- COMPARISON -->
   <div id="cmp-area">
     <div id="date-bar">
-      <button class="btn bs bsm" onclick="navDate(-1)">◀</button>
-      <select id="date-sel" onchange="onSelDate()" style="padding:5px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:12px;font-weight:700;min-width:160px"><option value="">— Select Date —</option></select>
-      <button class="btn bs bsm" onclick="navDate(1)">▶</button>
-      <input id="date-inp" type="date" onchange="onDateChange()" style="padding:5px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:12px;font-weight:700">
-      <button class="btn bp bsm" onclick="onDateChange()">Load AT</button>
+      <button class="btn bs bsm" onclick="navDate(-1)">◀ Prev</button>
+      <select id="date-sel" onchange="onSelDate()" style="padding:5px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;font-weight:700;min-width:200px"><option value="">— Select Date —</option></select>
+      <button class="btn bs bsm" onclick="navDate(1)">Next ▶</button>
+      <span id="date-cnt-lbl" style="font-size:11px;color:#9ca3af"></span>
       <div id="date-bar-r"><button class="btn bg bsm" onclick="acceptAllMissing()">✓ Accept All Missing → AT</button></div>
     </div>
     <div id="cols">
@@ -350,7 +342,10 @@ async function renderPage(n){
   n=Math.max(1,Math.min(n,pdfDoc.numPages));pdfPage=n;
   const pg=await pdfDoc.getPage(n);
   const c=document.getElementById('pdf-canvas');
-  const vp=pg.getViewport({scale:1.4});
+  const area=document.getElementById('pdf-area');
+  const vp1=pg.getViewport({scale:1});
+  const scale=Math.max(1.2,(area.offsetWidth-20)/vp1.width);
+  const vp=pg.getViewport({scale});
   c.width=vp.width;c.height=vp.height;
   await pg.render({canvasContext:c.getContext('2d'),viewport:vp}).promise;
   document.getElementById('pdf-pg').textContent=n+' / '+pdfDoc.numPages;
@@ -572,11 +567,9 @@ async function loadATForDate(date){
 }
 async function setDate(date){
   curDate=date;
-  document.getElementById('date-inp').value=date;
   document.getElementById('date-sel').value=date;
-  document.getElementById('pdf-date').value=date;
-  document.getElementById('pdf-date-lbl').textContent='Synced to '+date;
   document.getElementById('at-dlbl').textContent=date;
+  const _dc=document.getElementById('date-cnt-lbl');if(_dc&&parseurAll.length){const _dn=[...new Set(parseurAll.map(r=>r._date).filter(Boolean))].length;_dc.textContent=_dn+' dates';}
   document.getElementById('at-src-lbl').textContent='Loading…';
   setSave('Loading AT…');
   try{
@@ -587,7 +580,7 @@ async function setDate(date){
     renderAT();filterParseurToDate(date);updateBadges();setSave('');
   }catch(e){setSave('AT error: '+e.message);}
 }
-async function onDateChange(){const d=document.getElementById('date-inp').value;if(!d)return;await setDate(d);}
+async function onDateChange(){}
 async function reloadAT(){if(!curDate)return;atRecs=await loadATForDate(curDate);document.getElementById('at-cnt').textContent=atRecs.length;renderAT();updateBadges();}
 function renderAT(){
   const b=document.getElementById('at-body');
