@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AT Sets Verification</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Courier New', monospace; background: #0a0a0a; color: #e0e0e0; padding: 20px; font-size: 13px; }
+  h1 { color: #00ff88; font-size: 18px; margin-bottom: 4px; letter-spacing: 2px; }
+  .subtitle { color: #666; font-size: 11px; margin-bottom: 20px; }
+  .status { color: #ffaa00; margin-bottom: 16px; font-size: 12px; }
+  .status.done { color: #00ff88; }
+  .status.error { color: #ff4444; }
+  
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .card { background: #111; border: 1px solid #222; border-radius: 4px; padding: 14px; }
+  .card h3 { color: #00aaff; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 10px; border-bottom: 1px solid #222; padding-bottom: 6px; }
+  .metric { display: flex; justify-content: space-between; align-items: center; padding: 3px 0; border-bottom: 1px solid #1a1a1a; }
+  .metric:last-child { border-bottom: none; }
+  .metric-label { color: #888; font-size: 11px; }
+  .metric-value { color: #e0e0e0; font-weight: bold; }
+  .metric-value.good { color: #00ff88; }
+  .metric-value.warn { color: #ffaa00; }
+  .metric-value.bad { color: #ff4444; }
+  
+  .section { background: #111; border: 1px solid #222; border-radius: 4px; padding: 14px; margin-bottom: 12px; }
+  .section h3 { color: #00aaff; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 10px; border-bottom: 1px solid #222; padding-bottom: 6px; }
+  
+  .flag { background: #1a0f00; border: 1px solid #ff4444; border-radius: 3px; padding: 6px 10px; margin: 4px 0; font-size: 11px; color: #ff8888; }
+  .flag.warn { background: #1a1500; border-color: #ffaa00; color: #ffcc66; }
+  .flag.ok { background: #001a0f; border-color: #00ff88; color: #66ffbb; }
+  
+  table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  th { color: #00aaff; text-align: left; padding: 5px 8px; border-bottom: 1px solid #333; font-size: 10px; letter-spacing: 0.5px; }
+  td { padding: 4px 8px; border-bottom: 1px solid #1a1a1a; color: #ccc; }
+  tr:hover td { background: #1a1a1a; }
+  
+  .tag { display: inline-block; background: #1a2a1a; border: 1px solid #2a4a2a; color: #66ff88; border-radius: 2px; padding: 1px 5px; font-size: 10px; margin: 1px; }
+  .tag.bad { background: #2a1a1a; border-color: #4a2a2a; color: #ff8888; }
+  
+  #progress { color: #ffaa00; font-size: 11px; }
+  .bar { width: 100%; height: 3px; background: #222; border-radius: 2px; margin-bottom: 16px; }
+  .bar-fill { height: 100%; background: linear-gradient(90deg, #00aaff, #00ff88); border-radius: 2px; transition: width 0.3s; }
+  
+  details summary { cursor: pointer; color: #00aaff; font-size: 11px; padding: 4px 0; }
+  details summary:hover { color: #66ccff; }
+</style>
+</head>
+<body>
+<h1>⚡ SETS TABLE VERIFICATION</h1>
+<div class="subtitle">Airtable → tblKDqjy5RzqaJvjr | appmHDG4TGT1xy6R6</div>
+<div class="bar"><div class="bar-fill" id="progressBar" style="width:0%"></div></div>
+<div class="status" id="statusMsg">Fetching records...</div>
+
+<div id="output"></div>
+
+<script>
+const BASE_ID = 'appmHDG4TGT1xy6R6';
+const SETS_TABLE = 'tblKDqjy5RzqaJvjr';
+const TOKEN = 'pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
+
+// Field IDs
+const F = {
+  SetID: 'fld4hUpEzC9IqN0xh',
+  Date: 'fld75zYXknF0RtCWH',
+  Session: 'fldBChNmPkNg61oTN',
+  Exercise: 'fldZ93A1t7fGjjsSS',
+  Variation: 'fld2TZdmCOloH0gAK',
+  SetNum: 'fldNm9Ao0rmcwwDXo',
+  Reps: 'fldelUngWHRTm48m1',
+  Weight: 'fldmrbBmfgSMtREMt',
+  Day: 'fldypzlwqw9AzWrEE',
+  Notes: 'fldfR4vyBtj2VWB2b'
+};
+
+// Canonical exercise names
+const CANONICAL = new Set([
+  'Bench Press','Incline Press','Decline Press','Incline Fly','Lateral Raises',
+  'Seated Shoulder Press','Tricep Pushdowns 1/2','Overhead Tricep Ext',
+  'High Cable Fly 1/2 ea','Cable Cross Overs 1/2 ea','Wrist Twist',
+  'Lat Pulldown','Bent Over Rows','Cable Rows','Face Pulls','Rear Delt Raises',
+  'Bicep Curls-Preacher','Hammer Curls','Cable Shrugs 1/2','Cable Curls 1/2 ea',
+  'Barbell Shrugs','Leg Press','Leg Extensions','Leg Curls','Hip Thrust',
+  'Nordic Curl','Reverse Hyper','DB Calf Raises','Smith Mach Calf Raises',
+  'Back Extension','Forward Back Stretch','Cable Press 1/2 ea','Low Cable Fly 1/2 ea',
+  'Incline Curls','Overhead Tricep Press','Curls (Standing)','Tricep Ext Down 1/2',
+  'Tricep Ext Up','Forearm Raise - Cable 1/2'
+]);
+
+async function fetchAll() {
+  let allRecords = [];
+  let offset = null;
+  let page = 0;
+  
+  do {
+    page++;
+    setStatus(`Fetching page ${page}... (${allRecords.length} records so far)`);
+    setProgress(Math.min(90, page * 8));
+    
+    let url = `https://api.airtable.com/v0/${BASE_ID}/${SETS_TABLE}?pageSize=100`;
+    if (offset) url += `&offset=${encodeURIComponent(offset)}`;
+    
+    const r = await fetch(url, { headers: { 'Authorization': `Bearer ${TOKEN}` } });
+    if (!r.ok) throw new Error(`HTTP ${r.status}: ${await r.text()}`);
+    const data = await r.json();
+    allRecords = allRecords.concat(data.records);
+    offset = data.offset;
+  } while (offset);
+  
+  return allRecords;
+}
+
+function analyze(records) {
+  const total = records.length;
+  const dates = new Set();
+  const exercises = new Map(); // name -> count
+  const nonCanonical = new Map();
+  const setIDs = new Map(); // setID -> count (for dupes)
+  const anomalies = [];
+  let zeroWeight = 0;
+  let zeroReps = 0;
+  let missingDate = 0;
+  let missingExercise = 0;
+  let missingSetID = 0;
+  
+  const dateSessionMap = new Map(); // date -> Set of sessions
+  
+  records.forEach(r => {
+    const f = r.fields;
+    const date = f[F.Date];
+    const exercise = f[F.Exercise];
+    const setID = f[F.SetID];
+    const weight = f[F.Weight];
+    const reps = f[F.Reps];
+    const session = f[F.Session];
+    
+    if (date) {
+      dates.add(date);
+      if (!dateSessionMap.has(date)) dateSessionMap.set(date, new Set());
+      if (session) dateSessionMap.get(date).add(session);
+    } else {
+      missingDate++;
+    }
+    
+    if (exercise) {
+      exercises.set(exercise, (exercises.get(exercise) || 0) + 1);
+      if (!CANONICAL.has(exercise)) {
+        nonCanonical.set(exercise, (nonCanonical.get(exercise) || 0) + 1);
+      }
+    } else {
+      missingExercise++;
+    }
+    
+    if (setID) {
+      setIDs.set(setID, (setIDs.get(setID) || 0) + 1);
+    } else {
+      missingSetID++;
+    }
+    
+    if (weight === 0 || weight === null || weight === undefined) zeroWeight++;
+    if (reps === 0 || reps === null || reps === undefined) zeroReps++;
+  });
+  
+  const dupeSetIDs = [...setIDs.entries()].filter(([,c]) => c > 1);
+  const sortedDates = [...dates].sort();
+  const firstDate = sortedDates[0];
+  const lastDate = sortedDates[sortedDates.length - 1];
+  
+  // Check for expected date range
+  const dateCount = dates.size;
+  
+  return {
+    total, firstDate, lastDate, dateCount,
+    exercises: [...exercises.entries()].sort((a,b) => b[1]-a[1]),
+    nonCanonical: [...nonCanonical.entries()].sort((a,b) => b[1]-a[1]),
+    dupeSetIDs,
+    zeroWeight, zeroReps,
+    missingDate, missingExercise, missingSetID,
+    dateSessionMap,
+    sortedDates
+  };
+}
+
+function renderOutput(stats, records) {
+  const { total, firstDate, lastDate, dateCount, exercises, nonCanonical, dupeSetIDs,
+          zeroWeight, zeroReps, missingDate, missingExercise, missingSetID, dateSessionMap, sortedDates } = stats;
+  
+  const noAnomalies = dupeSetIDs.length === 0 && missingDate === 0 && missingExercise === 0 && missingSetID === 0 && zeroReps === 0;
+  
+  let html = `
+  <div class="grid">
+    <div class="card">
+      <h3>📊 Record Counts</h3>
+      <div class="metric"><span class="metric-label">Total Sets</span><span class="metric-value ${total >= 4000 ? 'good' : 'warn'}">${total.toLocaleString()}</span></div>
+      <div class="metric"><span class="metric-label">Expected (~)</span><span class="metric-value">4,208</span></div>
+      <div class="metric"><span class="metric-label">Unique Dates</span><span class="metric-value">${dateCount}</span></div>
+      <div class="metric"><span class="metric-label">Expected Dates</span><span class="metric-value">114</span></div>
+      <div class="metric"><span class="metric-label">Unique Exercises</span><span class="metric-value">${exercises.length}</span></div>
+    </div>
+    <div class="card">
+      <h3>📅 Date Range</h3>
+      <div class="metric"><span class="metric-label">First Date</span><span class="metric-value ${firstDate === '2024-11-04' ? 'good' : 'warn'}">${firstDate || 'N/A'}</span></div>
+      <div class="metric"><span class="metric-label">Expected</span><span class="metric-value">2024-11-04</span></div>
+      <div class="metric"><span class="metric-label">Last Date</span><span class="metric-value">${lastDate || 'N/A'}</span></div>
+      <div class="metric"><span class="metric-label">Expected (~)</span><span class="metric-value">2026-05-29</span></div>
+    </div>
+    <div class="card">
+      <h3>🚨 Data Quality</h3>
+      <div class="metric"><span class="metric-label">Missing Date</span><span class="metric-value ${missingDate === 0 ? 'good' : 'bad'}">${missingDate}</span></div>
+      <div class="metric"><span class="metric-label">Missing Exercise</span><span class="metric-value ${missingExercise === 0 ? 'good' : 'bad'}">${missingExercise}</span></div>
+      <div class="metric"><span class="metric-label">Missing SetID</span><span class="metric-value ${missingSetID === 0 ? 'good' : 'bad'}">${missingSetID}</span></div>
+      <div class="metric"><span class="metric-label">Zero Reps</span><span class="metric-value ${zeroReps === 0 ? 'good' : 'bad'}">${zeroReps}</span></div>
+      <div class="metric"><span class="metric-label">Duplicate SetIDs</span><span class="metric-value ${dupeSetIDs.length === 0 ? 'good' : 'bad'}">${dupeSetIDs.length}</span></div>
+      <div class="metric"><span class="metric-label">Non-Canonical Names</span><span class="metric-value ${nonCanonical.length === 0 ? 'good' : 'warn'}">${nonCanonical.length}</span></div>
+      <div class="metric"><span class="metric-label">Zero Weight</span><span class="metric-value warn">${zeroWeight} <span style="color:#666;font-size:10px">(may be OK)</span></span></div>
+    </div>
+  </div>`;
+
+  // Flags
+  html += `<div class="section"><h3>🚩 Anomaly Flags</h3>`;
+  if (noAnomalies && nonCanonical.length === 0) {
+    html += `<div class="flag ok">✓ NO ANOMALIES — data looks clean</div>`;
+  } else {
+    if (dupeSetIDs.length > 0) html += `<div class="flag">❌ ${dupeSetIDs.length} DUPLICATE SetIDs found</div>`;
+    if (missingDate > 0) html += `<div class="flag">❌ ${missingDate} records with no Date</div>`;
+    if (missingExercise > 0) html += `<div class="flag">❌ ${missingExercise} records with no Exercise name</div>`;
+    if (missingSetID > 0) html += `<div class="flag">❌ ${missingSetID} records with no SetID</div>`;
+    if (zeroReps > 0) html += `<div class="flag">❌ ${zeroReps} records with 0 reps (should be deleted)</div>`;
+    if (nonCanonical.length > 0) html += `<div class="flag warn">⚠️ ${nonCanonical.length} non-canonical exercise names (review needed)</div>`;
+  }
+  if (total !== 4208) html += `<div class="flag warn">⚠️ Record count ${total} ≠ expected 4,208</div>`;
+  if (dateCount !== 114) html += `<div class="flag warn">⚠️ Date count ${dateCount} ≠ expected 114</div>`;
+  html += `</div>`;
+
+  // Non-canonical names
+  if (nonCanonical.length > 0) {
+    html += `<div class="section"><h3>⚠️ Non-Canonical Exercise Names (${nonCanonical.length})</h3>`;
+    html += `<table><tr><th>Exercise Name</th><th>Count</th><th>Status</th></tr>`;
+    nonCanonical.forEach(([name, count]) => {
+      html += `<tr><td>${name}</td><td>${count}</td><td><span class="tag bad">NOT IN CANONICAL LIST</span></td></tr>`;
+    });
+    html += `</table></div>`;
+  }
+
+  // All exercise names + counts
+  html += `<div class="section"><h3>📋 All Exercise Names in AT (${exercises.length} unique)</h3>`;
+  html += `<table><tr><th>Exercise</th><th>Sets</th><th>Status</th></tr>`;
+  exercises.forEach(([name, count]) => {
+    const isCanon = CANONICAL.has(name);
+    html += `<tr><td>${name}</td><td>${count}</td><td>${isCanon ? '<span class="tag">✓ canonical</span>' : '<span class="tag bad">⚠ non-canonical</span>'}</td></tr>`;
+  });
+  html += `</table></div>`;
+
+  // Duplicate SetIDs
+  if (dupeSetIDs.length > 0) {
+    html += `<div class="section"><h3>❌ Duplicate SetIDs</h3><table><tr><th>SetID</th><th>Count</th></tr>`;
+    dupeSetIDs.forEach(([id, count]) => {
+      html += `<tr><td>${id}</td><td style="color:#ff4444">${count}</td></tr>`;
+    });
+    html += `</table></div>`;
+  }
+
+  // Sessions by date (last 20)
+  const recentDates = sortedDates.slice(-20);
+  html += `<div class="section"><h3>📆 Recent 20 Session Dates</h3><table><tr><th>Date</th><th>Session Label</th></tr>`;
+  recentDates.forEach(date => {
+    const sessions = [...(dateSessionMap.get(date) || [])].join(', ');
+    html += `<tr><td>${date}</td><td style="color:#aaa">${sessions || '—'}</td></tr>`;
+  });
+  html += `</table></div>`;
+
+  // Sample of 20 random records for spot check
+  const sample = [...records].sort(() => Math.random() - 0.5).slice(0, 20);
+  html += `<div class="section"><h3>🔍 Random Sample (20 records — spot check)</h3>`;
+  html += `<table><tr><th>SetID</th><th>Date</th><th>Exercise</th><th>Variation</th><th>Set#</th><th>Reps</th><th>Weight</th></tr>`;
+  sample.forEach(r => {
+    const f = r.fields;
+    html += `<tr>
+      <td style="font-size:10px;color:#666">${f[F.SetID] || '—'}</td>
+      <td>${f[F.Date] || '<span style="color:#f44">MISSING</span>'}</td>
+      <td>${f[F.Exercise] || '<span style="color:#f44">MISSING</span>'}</td>
+      <td style="color:#888">${f[F.Variation] || ''}</td>
+      <td>${f[F.SetNum] || ''}</td>
+      <td>${f[F.Reps] || ''}</td>
+      <td>${f[F.Weight] !== undefined ? f[F.Weight] : ''}</td>
+    </tr>`;
+  });
+  html += `</table></div>`;
+
+  return html;
+}
+
+async function run() {
+  try {
+    const records = await fetchAll();
+    setProgress(95);
+    setStatus('Analyzing...');
+    const stats = analyze(records);
+    setProgress(100);
+    setStatus(`✓ Complete — ${records.length.toLocaleString()} records analyzed`, 'done');
+    document.getElementById('output').innerHTML = renderOutput(stats, records);
+  } catch (e) {
+    setStatus(`ERROR: ${e.message}`, 'error');
+    console.error(e);
+  }
+}
+
+function setStatus(msg, cls = '') {
+  const el = document.getElementById('statusMsg');
+  el.textContent = msg;
+  el.className = 'status' + (cls ? ' ' + cls : '');
+}
+
+function setProgress(pct) {
+  document.getElementById('progressBar').style.width = pct + '%';
+}
+
+run();
+</script>
+</body>
+</html>
