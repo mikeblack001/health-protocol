@@ -466,7 +466,7 @@ async function loadPickerFolder(folderId){
   try{
     const isPDF=pickerTarget==='pdf';
     const mimeFilter=isPDF?"(mimeType='application/pdf' or mimeType='application/vnd.google-apps.folder')":"(mimeType='text/csv' or mimeType='application/json' or mimeType contains 'spreadsheet' or mimeType='application/vnd.google-apps.folder')";
-    const parentQ=folderId==='root'?'root in parents':`'${folderId}' in parents`;
+    const parentQ=folderId==='root'?"'root' in parents":`'${folderId}' in parents`;
     const q=encodeURIComponent(`${parentQ} and trashed=false and (${mimeFilter})`);
     const r=await fetch('https://www.googleapis.com/drive/v3/files?q='+q+'&fields=files(id,name,modifiedTime,size,mimeType)&orderBy=folder,name&pageSize=50',{headers:{Authorization:'Bearer '+gToken}});
     if(!r.ok)throw new Error('Drive '+r.status);
