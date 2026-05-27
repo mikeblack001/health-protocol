@@ -27,235 +27,164 @@
   td { padding: 7px 10px; border-bottom: 1px solid #181818; vertical-align: top; }
   tr:hover td { background: #0f0f18; }
   .match { color: #00ff88; }
-  .missing { color: #ff4444; background: rgba(255,68,68,0.04); }
-  .extra { color: #ffcc00; background: rgba(255,204,0,0.04); }
-  .diff { color: #ff8844; background: rgba(255,136,68,0.04); }
+  .missing td { background: rgba(255,68,68,0.06); }
+  .extra td { background: rgba(255,204,0,0.04); }
   .badge { display: inline-block; padding: 2px 7px; border-radius: 10px; font-size: 10px; font-weight: bold; }
   .badge-match { background: #003322; color: #00ff88; }
   .badge-missing { background: #330000; color: #ff4444; }
   .badge-extra { background: #333300; color: #ffcc00; }
-  .badge-diff { background: #2a1500; color: #ff8844; }
   .num { font-variant-numeric: tabular-nums; text-align: right; }
-  .sessions { font-size: 10px; color: #555; margin-top: 3px; }
+  .sessions { font-size: 10px; color: #555; margin-top: 2px; line-height: 1.5; }
   #loading { text-align: center; padding: 60px; color: #444; }
-  .progress { margin-top: 8px; font-size: 11px; color: #555; }
   .search { background: #111; border: 1px solid #333; color: #e0e0e0; padding: 7px 12px; border-radius: 4px; font-family: inherit; font-size: 12px; width: 200px; }
   .search:focus { outline: none; border-color: #00ff88; }
-  #tableWrap { max-height: calc(100vh - 280px); overflow-y: auto; border: 1px solid #1a1a1a; border-radius: 4px; }
-  .action-bar { display: flex; gap: 10px; margin-top: 16px; align-items: center; }
+  #tableWrap { max-height: calc(100vh - 300px); overflow-y: auto; border: 1px solid #1a1a1a; border-radius: 4px; }
+  .action-bar { display: flex; gap: 10px; margin-top: 16px; align-items: center; flex-wrap: wrap; }
   .btn { background: #00ff88; color: #000; border: none; padding: 8px 18px; border-radius: 4px; font-family: inherit; font-size: 12px; font-weight: bold; cursor: pointer; letter-spacing: 1px; }
   .btn:hover { background: #00cc66; }
-  .btn.secondary { background: #111; color: #888; border: 1px solid #333; }
-  .btn.secondary:hover { color: #e0e0e0; border-color: #666; }
-  .error { color: #ff4444; font-size: 11px; margin-top: 8px; }
+  .note { font-size: 10px; color: #555; margin-top: 8px; }
+  .at-only-dates { font-size: 11px; color: #888; }
 </style>
 </head>
 <body>
 <h1>⚡ Workout Diff</h1>
-<div class="sub">PDF extraction vs Airtable — count-based by date</div>
+<div class="sub">PDF extraction vs Airtable — static snapshot loaded from GitHub</div>
 
-<div id="loading">
-  <div style="color:#00ff88;font-size:14px;">Loading data...</div>
-  <div class="progress" id="loadMsg">Fetching extracted sets from GitHub...</div>
-</div>
-
-<div id="app" style="display:none;">
-  <div class="stats" id="statsBar"></div>
-  <div class="filters">
-    <span style="font-size:10px;color:#666;text-transform:uppercase;letter-spacing:1px;">Filter:</span>
-    <button class="filter-btn active" onclick="setFilter('all')">All</button>
-    <button class="filter-btn red-btn" onclick="setFilter('missing')">PDF > AT (missing)</button>
-    <button class="filter-btn yellow-btn" onclick="setFilter('extra')">AT > PDF (extra)</button>
-    <button class="filter-btn" onclick="setFilter('match')">Match</button>
-    <input class="search" type="text" placeholder="Filter by date..." id="dateSearch" oninput="renderTable()">
-  </div>
-  <div id="tableWrap">
-    <table>
-      <thead><tr>
-        <th>Date</th>
-        <th class="num">PDF Sets</th>
-        <th class="num">AT Sets</th>
-        <th class="num">Diff</th>
-        <th>Status</th>
-        <th>PDF Sessions</th>
-        <th>AT Sessions</th>
-      </tr></thead>
-      <tbody id="tbody"></tbody>
-    </table>
-  </div>
-  <div class="action-bar">
-    <button class="btn" onclick="downloadMissing()">⬇ Download Missing Sets JSON</button>
-    <span id="actionStatus" style="font-size:11px;color:#666;"></span>
-  </div>
-  <div class="error" id="err"></div>
-</div>
+<div id="loading"><div style="color:#00ff88;font-size:14px;">Loading...</div></div>
+<div id="app" style="display:none;"></div>
 
 <script>
-const AT_TOKEN = 'pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
-const AT_BASE = 'appmHDG4TGT1xy6R6';
-const AT_TABLE = 'tblKDqjy5RzqaJvjr'; // Sets
-const EXTRACTED_URL = 'https://raw.githubusercontent.com/mikeblack001/health-protocol/main/extract_progress.json';
+const BASE = 'https://raw.githubusercontent.com/mikeblack001/health-protocol/main/';
+let diffData = [], pdfSets = [], currentFilter = 'all';
 
-let diffData = [];
-let currentFilter = 'all';
-let extractedByDate = {};
-let atByDate = {};
-let allExtractedSets = [];
-
-function setFilter(f) {
+function setFilter(f, el) {
   currentFilter = f;
   document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-  event.target.classList.add('active');
+  el.classList.add('active');
   renderTable();
 }
 
-async function fetchAllAT() {
-  let records = [];
-  let offset = null;
-  let page = 0;
-  do {
-    const url = new URL(`https://api.airtable.com/v0/${AT_BASE}/${AT_TABLE}`);
-    url.searchParams.set('pageSize', '100');
-    url.searchParams.set('returnFieldsByFieldId', 'true');
-    url.searchParams.set('fields[]', 'fld75zYXknF0RtCWH');
-    url.searchParams.set('fields[]', 'fldBChNmPkNg61oTN');
-    url.searchParams.set('fields[]', 'fldZ93A1t7fGjjsSS');
-    url.searchParams.set('fields[]', 'fldNm9Ao0rmcwwDXo');
-    if (offset) url.searchParams.set('offset', offset);
-    const r = await fetch(url, { headers: { Authorization: `Bearer ${AT_TOKEN}` } });
-    const j = await r.json();
-    if (j.error) throw new Error(j.error.message || JSON.stringify(j.error));
-    records.push(...(j.records || []));
-    offset = j.offset;
-    page++;
-    document.getElementById('loadMsg').textContent = `Fetching AT records... ${records.length} so far`;
-  } while (offset);
-  return records;
-}
+async function main() {
+  try {
+    const [r1, r2] = await Promise.all([
+      fetch(BASE + 'extract_progress.json?t=' + Date.now()),
+      fetch(BASE + 'at_sets_summary.json?t=' + Date.now())
+    ]);
+    const extracted = await r1.json();
+    const atSummary = await r2.json();
 
-function buildStats(extracted, at) {
-  const allDates = new Set([...Object.keys(extracted), ...Object.keys(at)]);
-  const rows = [];
-  for (const date of [...allDates].sort()) {
-    if (date < '2024-10-28') continue;
-    const pdfCount = extracted[date] ? extracted[date].count : 0;
-    const atCount = at[date] || 0;
-    const diff = pdfCount - atCount;
-    let status = 'match';
-    if (pdfCount === 0 && atCount > 0) status = 'extra';
-    else if (atCount === 0 && pdfCount > 0) status = 'missing';
-    else if (diff > 0) status = 'missing';
-    else if (diff < 0) status = 'extra';
-    rows.push({ date, pdfCount, atCount, diff, status,
-      pdfSessions: extracted[date] ? extracted[date].sessions : {},
-      atSessions: at[date + '_sessions'] || {} });
+    pdfSets = (extracted.all_sets || []).filter(s => s.date >= '2024-10-28');
+
+    // Build PDF by-date summary
+    const pdfByDate = {};
+    for (const s of pdfSets) {
+      if (!pdfByDate[s.date]) pdfByDate[s.date] = { count: 0, sessions: {} };
+      pdfByDate[s.date].count++;
+      const sess = s.session || s.date;
+      pdfByDate[s.date].sessions[sess] = (pdfByDate[s.date].sessions[sess] || 0) + 1;
+    }
+
+    // All dates union
+    const allDates = new Set([...Object.keys(pdfByDate), ...Object.keys(atSummary)]);
+
+    diffData = [];
+    for (const date of [...allDates].sort()) {
+      const pdf = pdfByDate[date] || { count: 0, sessions: {} };
+      const at = atSummary[date] || { count: 0, sessions: {} };
+      const diff = pdf.count - at.count;
+      let status = diff > 0 ? 'missing' : diff < 0 ? 'extra' : 'match';
+      if (pdf.count === 0 && at.count > 0) status = 'extra';
+      if (at.count === 0 && pdf.count > 0) status = 'missing';
+      diffData.push({ date, pdfCount: pdf.count, atCount: at.count, diff,
+        status, pdfSessions: pdf.sessions, atSessions: at.sessions });
+    }
+
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    render();
+  } catch(e) {
+    document.getElementById('loading').innerHTML = '<div style="color:#f44">Error: ' + e.message + '</div>';
   }
-  return rows;
 }
 
-function renderStats() {
-  const match = diffData.filter(r => r.status === 'match').length;
-  const missing = diffData.filter(r => r.status === 'missing').length;
-  const extra = diffData.filter(r => r.status === 'extra').length;
-  const missSets = diffData.filter(r => r.status === 'missing').reduce((a,b)=>a+b.diff,0);
-  const extSets = diffData.filter(r => r.status === 'extra').reduce((a,b)=>a+Math.abs(b.diff),0);
-  document.getElementById('statsBar').innerHTML = `
-    <div class="stat"><div class="stat-val blue">${diffData.length}</div><div class="stat-lbl">Dates Compared</div></div>
-    <div class="stat"><div class="stat-val green">${match}</div><div class="stat-lbl">Matching Dates</div></div>
-    <div class="stat"><div class="stat-val red">${missing} dates<br><small style="font-size:14px;">${missSets} sets</small></div><div class="stat-lbl">PDF > AT (need push)</div></div>
-    <div class="stat"><div class="stat-val yellow">${extra} dates<br><small style="font-size:14px;">${extSets} sets</small></div><div class="stat-lbl">AT > PDF (extra)</div></div>
-    <div class="stat"><div class="stat-val blue">${Object.values(extractedByDate).reduce((a,b)=>a+b.count,0)}</div><div class="stat-lbl">Total PDF Sets</div></div>
-    <div class="stat"><div class="stat-val blue">${Object.values(atByDate).reduce((a,b)=>a+b,0)}</div><div class="stat-lbl">Total AT Sets</div></div>
+function render() {
+  const match = diffData.filter(r => r.status==='match').length;
+  const missing = diffData.filter(r => r.status==='missing');
+  const extra = diffData.filter(r => r.status==='extra');
+  const missSets = missing.reduce((a,b)=>a+b.diff,0);
+  const extSets = extra.reduce((a,b)=>a+Math.abs(b.diff),0);
+  const totalPDF = diffData.reduce((a,b)=>a+b.pdfCount,0);
+  const totalAT = diffData.reduce((a,b)=>a+b.atCount,0);
+
+  document.getElementById('app').innerHTML = `
+    <div class="stats">
+      <div class="stat"><div class="stat-val blue">${diffData.length}</div><div class="stat-lbl">Dates Total</div></div>
+      <div class="stat"><div class="stat-val green">${match}</div><div class="stat-lbl">Matching</div></div>
+      <div class="stat"><div class="stat-val red">${missing.length} dates / ${missSets} sets</div><div class="stat-lbl">PDF &gt; AT (need push)</div></div>
+      <div class="stat"><div class="stat-val yellow">${extra.length} dates / ${extSets} sets</div><div class="stat-lbl">AT &gt; PDF (extra in AT)</div></div>
+      <div class="stat"><div class="stat-val blue">${totalPDF.toLocaleString()}</div><div class="stat-lbl">Total PDF Sets</div></div>
+      <div class="stat"><div class="stat-val blue">${totalAT.toLocaleString()}</div><div class="stat-lbl">Total AT Sets</div></div>
+    </div>
+    <div class="filters">
+      <span style="font-size:10px;color:#666;text-transform:uppercase;letter-spacing:1px;">Filter:</span>
+      <button class="filter-btn active" onclick="setFilter('all',this)">All (${diffData.length})</button>
+      <button class="filter-btn red-btn" onclick="setFilter('missing',this)">PDF&gt;AT (${missing.length})</button>
+      <button class="filter-btn yellow-btn" onclick="setFilter('extra',this)">AT&gt;PDF (${extra.length})</button>
+      <button class="filter-btn" onclick="setFilter('match',this)">Match (${match})</button>
+      <input class="search" type="text" placeholder="Filter date..." id="dateSearch" oninput="renderTable()">
+    </div>
+    <div id="tableWrap">
+      <table>
+        <thead><tr>
+          <th>Date</th><th class="num">PDF</th><th class="num">AT</th><th class="num">Diff</th>
+          <th>Status</th><th>PDF Sessions</th><th>AT Sessions</th>
+        </tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <div class="action-bar">
+      <button class="btn" onclick="downloadMissing()">⬇ Download Missing Sets JSON</button>
+      <span id="dlStatus" style="font-size:11px;color:#666;"></span>
+    </div>
+    <div class="note">AT snapshot: 8,072 sets across 268 dates (pulled 2026-05-26). PDF: ${pdfSets.length.toLocaleString()} sets across 114 dates (>=2024-10-28).</div>
   `;
+  renderTable();
 }
 
 function renderTable() {
-  const search = document.getElementById('dateSearch').value.toLowerCase();
+  const search = (document.getElementById('dateSearch')||{}).value || '';
   const rows = diffData.filter(r => {
     if (search && !r.date.includes(search)) return false;
-    if (currentFilter === 'all') return true;
+    if (currentFilter==='all') return true;
     return r.status === currentFilter;
   });
-  const tb = document.getElementById('tbody');
-  tb.innerHTML = rows.map(r => {
-    const badgeClass = { match:'badge-match', missing:'badge-missing', extra:'badge-extra', diff:'badge-diff' }[r.status] || 'badge-diff';
-    const label = { match:'MATCH', missing:'PDF>AT', extra:'AT>PDF' }[r.status] || r.status;
-    const diffStr = r.diff > 0 ? `+${r.diff}` : r.diff;
-    const rowClass = r.status !== 'match' ? r.status : '';
-    const pdfSessHtml = Object.entries(r.pdfSessions).map(([s,c])=>`${s}(${c})`).join(', ');
-    const atSessHtml = Object.entries(r.atSessions).map(([s,c])=>`${s}(${c})`).join(', ');
-    return `<tr class="${rowClass}">
+  const labels = { match:'MATCH', missing:'PDF>AT', extra:'AT>PDF' };
+  const badgeClass = { match:'badge-match', missing:'badge-missing', extra:'badge-extra' };
+  document.getElementById('tbody').innerHTML = rows.map(r => {
+    const diffStr = r.diff > 0 ? `<span style="color:#ff4444">+${r.diff}</span>` :
+                   r.diff < 0 ? `<span style="color:#ffcc00">${r.diff}</span>` :
+                   `<span style="color:#00ff88">0</span>`;
+    const pdfSess = Object.entries(r.pdfSessions).map(([s,c])=>`${s}(${c})`).join('<br>');
+    const atSess = Object.entries(r.atSessions).map(([s,c])=>`${s}(${c})`).join('<br>');
+    return `<tr class="${r.status}">
       <td><b>${r.date}</b></td>
-      <td class="num">${r.pdfCount}</td>
-      <td class="num">${r.atCount}</td>
-      <td class="num" style="font-weight:bold;">${diffStr}</td>
-      <td><span class="badge ${badgeClass}">${label}</span></td>
-      <td><div class="sessions">${pdfSessHtml || '—'}</div></td>
-      <td><div class="sessions">${atSessHtml || '—'}</div></td>
+      <td class="num">${r.pdfCount||'—'}</td>
+      <td class="num">${r.atCount||'—'}</td>
+      <td class="num">${diffStr}</td>
+      <td><span class="badge ${badgeClass[r.status]}">${labels[r.status]}</span></td>
+      <td><div class="sessions">${pdfSess||'—'}</div></td>
+      <td><div class="sessions">${atSess||'—'}</div></td>
     </tr>`;
   }).join('');
 }
 
 function downloadMissing() {
-  const missingDates = new Set(diffData.filter(r => r.status === 'missing').map(r => r.date));
-  const missingSets = allExtractedSets.filter(s => missingDates.has(s.date));
-  const blob = new Blob([JSON.stringify(missingSets, null, 2)], {type:'application/json'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'missing_sets.json';
-  a.click();
-  document.getElementById('actionStatus').textContent = `Downloaded ${missingSets.length} missing sets`;
-}
-
-async function main() {
-  try {
-    // 1. Load extracted JSON
-    document.getElementById('loadMsg').textContent = 'Fetching extracted sets from GitHub...';
-    const r1 = await fetch(EXTRACTED_URL + '?t=' + Date.now());
-    const extracted = await r1.json();
-    allExtractedSets = (extracted.all_sets || []).filter(s => s.date >= '2024-10-28');
-    
-    // Build extractedByDate
-    for (const s of allExtractedSets) {
-      if (!extractedByDate[s.date]) extractedByDate[s.date] = { count: 0, sessions: {} };
-      extractedByDate[s.date].count++;
-      const sess = s.session || s.date;
-      extractedByDate[s.date].sessions[sess] = (extractedByDate[s.date].sessions[sess] || 0) + 1;
-    }
-
-    // 2. Fetch AT sets
-    document.getElementById('loadMsg').textContent = 'Fetching Airtable sets (this takes ~30s)...';
-    const atRecords = await fetchAllAT();
-    
-    // Build atByDate
-    const atSessions = {};
-    for (const rec of atRecords) {
-      const date = rec.fields['fld75zYXknF0RtCWH'];
-      const sess = rec.fields['fldBChNmPkNg61oTN'] || date;
-      if (!date || date < '2024-10-28') continue;
-      atByDate[date] = (atByDate[date] || 0) + 1;
-      if (!atSessions[date]) atSessions[date] = {};
-      atSessions[date][sess] = (atSessions[date][sess] || 0) + 1;
-    }
-    // Attach session info to atByDate structure
-    for (const [date, sessions] of Object.entries(atSessions)) {
-      atByDate[date + '_sessions'] = sessions;
-    }
-
-    // 3. Build diff
-    diffData = buildStats(extractedByDate, atByDate);
-
-    // 4. Render
-    document.getElementById('loading').style.display = 'none';
-    document.getElementById('app').style.display = 'block';
-    renderStats();
-    renderTable();
-
-  } catch(e) {
-    document.getElementById('loadMsg').textContent = 'Error: ' + e.message;
-    document.getElementById('err').textContent = e.stack || e.message;
-    console.error(e);
-  }
+  const missDates = new Set(diffData.filter(r=>r.status==='missing').map(r=>r.date));
+  const out = pdfSets.filter(s=>missDates.has(s.date));
+  const blob = new Blob([JSON.stringify(out,null,2)], {type:'application/json'});
+  const a = document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='missing_sets.json'; a.click();
+  document.getElementById('dlStatus').textContent = `Downloaded ${out.length} sets`;
 }
 
 main();
