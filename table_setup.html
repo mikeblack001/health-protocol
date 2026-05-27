@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>AT Comparison Tables Setup</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, monospace; background: #f0f0f0; padding: 20px; color: #222; max-width: 860px; margin: 0 auto; }
+  h1 { font-size: 18px; margin-bottom: 4px; }
+  .card { background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 16px; margin-bottom: 16px; }
+  .log { background: #1a1a1a; color: #eee; border-radius: 4px; padding: 12px; max-height: 320px; overflow-y: auto; font-size: 12px; font-family: monospace; }
+  .ok { color: #4caf50; }
+  .err { color: #f44336; }
+  .info { color: #aaa; }
+  .warn { color: #ff9800; }
+  input[type=password], input[type=text] { padding: 8px 10px; width: 100%; font-family: monospace; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; margin-bottom: 8px; }
+  button { padding: 8px 18px; background: #2563eb; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; }
+  button:disabled { background: #aaa; cursor: not-allowed; }
+  .phase { display: none; }
+  .phase.active { display: block; }
+  .summary { font-weight: bold; padding: 8px 0; font-size: 13px; }
+</style>
+</head>
+<body>
+<h1>AT Comparison Tables Setup</h1>
+<p style="font-size:12px;color:#666;margin-top:0">Creates 4 new tables + populates Sets_PDFExtract from extract_progress.json</p>
+
+<div id="phaseCreate" class="card phase active">
+  <b>Phase 1 — Create Tables</b>
+  <div class="log" id="log1"></div>
+  <div class="summary" id="sum1"></div>
+</div>
+
+<div id="phaseData" class="card phase">
+  <b>Phase 2 — Populate Sets_PDFExtract from GitHub</b>
+  <p style="font-size:12px;margin:8px 0">Paste GitHub token (repo read access):</p>
+  <input type="password" id="ghToken" placeholder="ghp_..." />
+  <button id="btnGo" onclick="startPhase2()">Fetch & Push</button>
+  <div class="log" id="log2" style="margin-top:10px"></div>
+  <div class="summary" id="sum2"></div>
+</div>
+
+<script>
+const AT_TOKEN = 'pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
+const BASE_ID = 'appmHDG4TGT1xy6R6';
+const REPO = 'mikeblack001/health-protocol';
+
+const SETS_FIELDS = [
+  { name: 'SetID', type: 'singleLineText' },
+  { name: 'Date', type: 'date', options: { dateFormat: { name: 'iso' } } },
+  { name: 'Session', type: 'singleLineText' },
+  { name: 'PDF_Exercise_Name', type: 'singleLineText' },
+  { name: 'Exercise', type: 'singleLineText' },
+  { name: 'Variation', type: 'singleLineText' },
+  { name: 'Set#', type: 'number', options: { precision: 0 } },
+  { name: 'Reps', type: 'number', options: { precision: 0 } },
+  { name: 'Weight', type: 'number', options: { precision: 1 } },
+  { name: 'Day', type: 'singleLineText' },
+  { name: 'Notes', type: 'multilineText' }
+];
+
+const INJ_FIELDS = [
+  { name: 'Name', type: 'singleLineText' },
+  { name: 'Date', type: 'date', options: { dateFormat: { name: 'iso' } } },
+  { name: 'Compound', type: 'singleLineText' },
+  { name: 'Dose', type: 'singleLineText' },
+  { name: 'Unit', type: 'singleLineText' },
+  { name: 'Site', type: 'singleLineText' },
+  { name: 'Timing', type: 'singleLineText' },
+  { name: 'Status', type: 'singleLineText' },
+  { name: 'Notes', type: 'multilineText' }
+];
+
+const TABLES = [
+  { name: 'Sets_PDFExtract', desc: 'Workout sets from PDF extraction. PDF_Exercise_Name = raw name from extract. Exercise = canonical name.', fields: SETS_FIELDS },
+  { name: 'Sets_Parseur', desc: 'Workout sets from Parseur parsing. Empty until Parseur data provided.', fields: SETS_FIELDS },
+  { name: 'InjectionLog_PDFExtract', desc: 'Injection log extracted from Injections.pdf. Populated separately.', fields: INJ_FIELDS },
+  { name: 'InjectionLog_Parseur', desc: 'Injection log from Parseur parsing. Empty until Parseur data provided.', fields: INJ_FIELDS }
+];
+
+const createdIds = {};
+
+function log(id, msg, cls = 'info') {
+  const el = document.getElementById(id);
+  const d = document.createElement('div');
+  d.className = cls;
+  d.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+  el.appendChild(d);
+  el.scrollTop = el.scrollHeight;
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+async function atFetch(method, path, body) {
+  const opts = {
+    method,
+    headers: { 'Authorization': `Bearer ${AT_TOKEN}`, 'Content-Type': 'application/json' }
+  };
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(`https://api.airtable.com${path}`, opts);
+  return r.json();
+}
+
+async function createTables() {
+  log('log1', 'Creating 4 comparison tables...', 'info');
+  let ok = 0, skip = 0, fail = 0;
+  for (const tbl of TABLES) {
+    log('log1', `→ Creating ${tbl.name}...`, 'info');
+    try {
+      const res = await atFetch('POST', `/v0/meta/bases/${BASE_ID}/tables`, {
+        name: tbl.name, description: tbl.desc, fields: tbl.fields
+      });
+      if (res.id) {
+        createdIds[tbl.name] = res.id;
+        log('log1', `  ✓ ${tbl.name} → ${res.id}`, 'ok');
+        ok++;
+      } else if (res.error === 'DUPLICATE_TABLE_NAME') {
+        log('log1', `  ⚠ ${tbl.name} already exists — skipping`, 'warn');
+        skip++;
+        // Try to find existing ID
+        const tablesRes = await atFetch('GET', `/v0/meta/bases/${BASE_ID}/tables`);
+        const found = (tablesRes.tables || []).find(t => t.name === tbl.name);
+        if (found) createdIds[tbl.name] = found.id;
+      } else {
+        log('log1', `  ✗ ${tbl.name}: ${res.error} — ${res.message}`, 'err');
+        fail++;
+      }
+    } catch (e) {
+      log('log1', `  ✗ ${tbl.name}: ${e.message}`, 'err');
+      fail++;
+    }
+    await sleep(400);
+  }
+  const sum = `Created: ${ok} | Skipped (exists): ${skip} | Failed: ${fail}`;
+  log('log1', sum, fail > 0 ? 'warn' : 'ok');
+  document.getElementById('sum1').textContent = sum;
+  document.getElementById('phaseData').className = 'card phase active';
+}
+
+async function startPhase2() {
+  const token = document.getElementById('ghToken').value.trim();
+  if (!token.startsWith('ghp_') && !token.startsWith('github_pat_')) {
+    alert('Enter a valid GitHub token (starts with ghp_ or github_pat_)');
+    return;
+  }
+  document.getElementById('btnGo').disabled = true;
+  await fetchAndPush(token);
+}
+
+async function fetchAndPush(ghToken) {
+  log('log2', 'Fetching extract_progress.json from GitHub...', 'info');
+  let rawSets;
+  try {
+    const r = await fetch(
+      `https://api.github.com/repos/${REPO}/contents/extract_progress.json`,
+      { headers: { 'Authorization': `Bearer ${ghToken}`, 'Accept': 'application/vnd.github.v3.raw' } }
+    );
+    if (!r.ok) throw new Error(`HTTP ${r.status}: ${r.statusText}`);
+    const data = await r.json();
+    rawSets = Array.isArray(data) ? data : (data.all_sets || data.sets || []);
+    log('log2', `Fetched ${rawSets.length} total raw sets`, 'info');
+  } catch (e) {
+    log('log2', `✗ GitHub fetch failed: ${e.message}`, 'err');
+    document.getElementById('btnGo').disabled = false;
+    return;
+  }
+
+  // Filter
+  const valid = rawSets.filter(s => {
+    const d = (s.date || s.Date || '').toString();
+    const reps = parseInt(s.reps || s.Reps || 0);
+    return d >= '2024-10-28' && reps > 0;
+  });
+  log('log2', `Filtered to ${valid.length} sets (>= 2024-10-28, reps > 0)`, 'info');
+
+  // Get table ID
+  let tblId = createdIds['Sets_PDFExtract'];
+  if (!tblId) {
+    const res = await atFetch('GET', `/v0/meta/bases/${BASE_ID}/tables`);
+    const found = (res.tables || []).find(t => t.name === 'Sets_PDFExtract');
+    tblId = found ? found.id : null;
+  }
+  if (!tblId) {
+    log('log2', '✗ Sets_PDFExtract table not found — run Phase 1 first', 'err');
+    document.getElementById('btnGo').disabled = false;
+    return;
+  }
+  log('log2', `Target table: ${tblId}`, 'info');
+
+  // Map records
+  const records = valid.map(s => {
+    const date = (s.date || s.Date || '').toString();
+    const day = (s.day || s.Day || '').toString();
+    const exercise = (s.exercise || s.Exercise || '').toString();
+    const variation = (s.variation || s.Variation || '').toString();
+    const setNum = parseInt(s.set_num || s['Set#'] || s.setNum || 1);
+    const reps = parseInt(s.reps || s.Reps || 0);
+    const weight = parseFloat(s.weight || s.Weight || 0);
+    const notes = (s.notes || s.Notes || '').toString();
+    const abbrev = exercise.replace(/[^A-Za-z0-9]/g, '').substring(0, 6).toUpperCase() || 'UNK';
+    const setId = `${date}-${abbrev}-${setNum}`;
+    return {
+      fields: {
+        SetID: setId,
+        Date: date || null,
+        Session: date ? `${date} ${day}` : '',
+        PDF_Exercise_Name: exercise,
+        Exercise: exercise,
+        Variation: variation,
+        'Set#': setNum,
+        Reps: reps,
+        Weight: weight || null,
+        Day: day,
+        Notes: notes || null
+      }
+    };
+  });
+
+  log('log2', `Pushing ${records.length} records in batches of 50...`, 'info');
+  let pushed = 0, errors = 0;
+  for (let i = 0; i < records.length; i += 50) {
+    const batch = records.slice(i, i + 50);
+    try {
+      const res = await atFetch('POST', `/v0/${BASE_ID}/${tblId}`, { records: batch, typecast: true });
+      if (res.records) {
+        pushed += res.records.length;
+      } else {
+        log('log2', `  Batch ${i/50+1} error: ${res.error || JSON.stringify(res).substring(0,100)}`, 'err');
+        errors++;
+      }
+    } catch (e) {
+      log('log2', `  Batch ${i/50+1} exception: ${e.message}`, 'err');
+      errors++;
+    }
+    if (i % 500 === 0 && i > 0) log('log2', `  ${pushed} pushed so far...`, 'info');
+    await sleep(150);
+  }
+
+  const sum = `Sets_PDFExtract: ${pushed}/${valid.length} pushed | Errors: ${errors} | InjectionLog tables: empty (populate separately)`;
+  log('log2', `✓ COMPLETE — ${sum}`, pushed === valid.length ? 'ok' : 'warn');
+  document.getElementById('sum2').textContent = sum;
+}
+
+window.addEventListener('load', createTables);
+</script>
+</body>
+</html>
