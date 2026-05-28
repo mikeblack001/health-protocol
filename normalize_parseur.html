@@ -8,35 +8,36 @@ h1{font-size:18px;font-weight:900;margin-bottom:16px}
 table{width:100%;border-collapse:collapse;font-size:12px;margin-top:10px}
 th{background:#f0f0f0;padding:7px 10px;text-align:left;font-weight:700;border:1px solid #e2e5ea}
 td{padding:6px 10px;border:1px solid #e2e5ea;vertical-align:top}
-#bar-wrap{background:#e2e5ea;border-radius:6px;height:20px;margin-top:12px;display:none}
-#bar{background:#2563eb;height:20px;border-radius:6px;width:0%;font-size:12px;color:#fff;text-align:center;line-height:20px;transition:width .15s}
+#bar-wrap{background:#e2e5ea;border-radius:6px;height:24px;margin-top:12px;display:none}
+#bar{background:#2563eb;height:24px;border-radius:6px;width:0%;font-size:13px;font-weight:700;color:#fff;text-align:center;line-height:24px;min-width:40px;transition:width .1s}
 </style></head><body>
 <h1>Normalize Parseur-Injections</h1>
-
 <button class="btn" style="background:#2563eb;color:#fff" onclick="inspect()">Inspect 5 Records</button>
-<button class="btn" style="background:#16a34a;color:#fff" onclick="runAll()">Run All 1553</button>
-
-<div id="out">Waiting…</div>
-<div id="bar-wrap"><div id="bar">0%</div></div>
+<button class="btn" style="background:#16a34a;color:#fff" onclick="testOne()">Test 1 Record</button>
+<button class="btn" style="background:#dc2626;color:#fff" onclick="runAll()">Run All</button>
+<div id="out">Click Inspect first.</div>
+<div id="bar-wrap"><div id="bar">0</div></div>
 
 <script>
 const AT='pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
 const BASE='appmHDG4TGT1xy6R6',TBL='tblCTOGIrF3NjdyTE';
-const FC='fldONAad3wQQzQDKE',FD='fldye77iWTIWaDNul',FT='fldIdHUojkqEFlCZL',FS='fldDxPQRuQFZ9MJoG';
 
 const CM={'tesamorelin':'Tesamorelin','lipominomix':'LipoMinoMix','lipo mino mix':'LipoMinoMix',
-'ipamorelin':'Ipamorelin','cjc-1295 no dac':'CJC-1295 No DAC','cjc-1295':'CJC-1295',
-'testosterone':'Testosterone','trt':'Testosterone','deca (nandrolone)':'Deca (Nandrolone)',
-'deca':'Deca (Nandrolone)','deca (nano)':'Deca (Nandrolone)','ghk-cu':'GHK-Cu','ghk':'GHK-Cu',
-'ss-31':'SS-31','nad+':'NAD+','nad':'NAD+','nano':'NAD+','bpc-157':'BPC-157','tb-500':'TB-500',
-'dsip':'DSIP','kpv':'KPV','semax':'Semax','selank':'Selank','retatrutide':'Retatrutide',
-'tirzepatide':'Tirzepatide','epitalon':'Epitalon','anavar':'Anavar (Oxandrolone)',
-'oxandrolone':'Anavar (Oxandrolone)','anavar (oxandrolone)':'Anavar (Oxandrolone)',
-'winstrol':'Winstrol (Stanozolol)','stanozolol':'Winstrol (Stanozolol)','stanzalol':'Winstrol (Stanozolol)','stanzalol (winstrol)':'Winstrol (Stanozolol)','winstrol (stanozolol)':'Winstrol (Stanozolol)','cagrilintide':'Cagrilintide','mots-c':'Mots-C',
-'melanotan':'Melanotan II (MT2)'};
+'lipo-mino-mix':'LipoMinoMix','ipamorelin':'Ipamorelin','cjc-1295 no dac':'CJC-1295 No DAC',
+'cjc-1295':'CJC-1295','cjc 1295':'CJC-1295','testosterone':'Testosterone','trt':'Testosterone',
+'deca (nandrolone)':'Deca (Nandrolone)','deca':'Deca (Nandrolone)','deca (nano)':'Deca (Nandrolone)',
+'ghk-cu':'GHK-Cu','ghk':'GHK-Cu','ss-31':'SS-31','nad+':'NAD+','nad':'NAD+','nano':'NAD+',
+'bpc-157':'BPC-157','tb-500':'TB-500','dsip':'DSIP','kpv':'KPV','semax':'Semax','selank':'Selank',
+'retatrutide':'Retatrutide','tirzepatide':'Tirzepatide','epitalon':'Epitalon',
+'anavar':'Anavar (Oxandrolone)','oxandrolone':'Anavar (Oxandrolone)',
+'anavar (oxandrolone)':'Anavar (Oxandrolone)',
+'winstrol':'Winstrol (Stanozolol)','stanozolol':'Winstrol (Stanozolol)',
+'stanzalol':'Winstrol (Stanozolol)','stanzalol (winstrol)':'Winstrol (Stanozolol)',
+'winstrol (stanozolol)':'Winstrol (Stanozolol)',
+'cagrilintide':'Cagrilintide','mots-c':'Mots-C','melanotan':'Melanotan II (MT2)'};
 
 function canC(r){return CM[r.toLowerCase().trim()]||r.trim();}
-function canT(t){return{morning:'Morning',night:'Night',evening:'Evening',daily:'Daily'}[t.toLowerCase()]||t;}
+function canT(t){return{morning:'Morning',night:'Night',evening:'Evening',daily:'Daily',am:'Morning',pm:'Night'}[t.toLowerCase()]||t;}
 function canS(l){if(!l)return'';return{l:'L',r:'R',left:'L',right:'R',pill:'Pill',x:'X',nasal:'Nasal',abd:'Abd',s:'S'}[l.toLowerCase().trim()]||l.trim();}
 
 function parse(s){
@@ -58,23 +59,59 @@ async function atGet(url){
   const d=await r.json();if(!r.ok)throw new Error(d.error?.message||r.status);return d;
 }
 
+// PATCH using field NAMES (not IDs) with typecast=true
+async function atPatch(records){
+  const r=await fetch('https://api.airtable.com/v0/'+BASE+'/'+TBL+'?typecast=true',{
+    method:'PATCH',
+    headers:{Authorization:'Bearer '+AT,'Content-Type':'application/json'},
+    body:JSON.stringify({records, returnFieldsByFieldId:false})
+  });
+  const d=await r.json();
+  if(!r.ok)throw new Error(d.error?.message||r.status);
+  return d;
+}
+
+function buildFields(f){
+  const med=f['Medication']||f['medication']||'';
+  const loc=f['Location']||f['location']||'';
+  const p=parse(med);
+  const site=canS(loc);
+  const fields={};
+  // Use FIELD NAMES not IDs
+  if(p.c) fields['Compound']=p.c;
+  if(p.d) fields['Dose']=p.d;
+  if(p.t) fields['Timing']=p.t;
+  if(site) fields['Site']=site;
+  return fields;
+}
+
 async function inspect(){
-  out('Loading 5 records…');
+  out('Loading…');
   try{
     const d=await atGet('https://api.airtable.com/v0/'+BASE+'/'+TBL+'?pageSize=5');
-    let html='<b>'+d.records.length+' records — field names found:</b><br>';
-    html+='<code>'+Object.keys(d.records[0]?.fields||{}).join(', ')+'</code>';
-    html+='<table><tr><th>Medication (raw)</th><th>Location (raw)</th><th>→ Compound</th><th>→ Dose</th><th>→ Timing</th><th>→ Site</th></tr>';
+    let html='<b>Fields: </b><code>'+Object.keys(d.records[0]?.fields||{}).join(', ')+'</code>';
+    html+='<table><tr><th>Medication</th><th>Location</th><th>→ Compound</th><th>→ Dose</th><th>→ Timing</th><th>→ Site</th></tr>';
     d.records.forEach(r=>{
-      const f=r.fields;
-      const med=f.Medication||f.medication||'';
-      const loc=f.Location||f.location||'';
-      const p=parse(med);const site=canS(loc);
-      html+='<tr><td>'+med+'</td><td>'+loc+'</td><td><b>'+p.c+'</b></td><td>'+p.d+'</td><td>'+p.t+'</td><td>'+site+'</td></tr>';
+      const f=buildFields(r.fields);
+      const med=r.fields['Medication']||'';
+      const loc=r.fields['Location']||'';
+      html+=`<tr><td>${med}</td><td>${loc}</td><td><b>${f.Compound||''}</b></td><td>${f.Dose||''}</td><td>${f.Timing||''}</td><td>${f.Site||''}</td></tr>`;
     });
     html+='</table>';
     out(html);
-  }catch(e){out('<b style="color:red">Error: '+e.message+'</b>');}
+  }catch(e){out('<b style="color:red">'+e.message+'</b>');}
+}
+
+async function testOne(){
+  out('Testing single record update…');
+  try{
+    const d=await atGet('https://api.airtable.com/v0/'+BASE+'/'+TBL+'?pageSize=1');
+    const r=d.records[0];
+    const fields=buildFields(r.fields);
+    out('Record ID: '+r.id+'<br>Will write: '+JSON.stringify(fields));
+    const res=await atPatch([{id:r.id,fields}]);
+    out('<b style="color:green">✓ PATCH succeeded!</b><br>Response: <code>'+JSON.stringify(res.records?.[0]?.fields,null,2)+'</code>');
+  }catch(e){out('<b style="color:red">PATCH failed: '+e.message+'</b>');}
 }
 
 async function runAll(){
@@ -93,35 +130,24 @@ async function runAll(){
 
     for(let i=0;i<recs.length;i+=10){
       const batch=recs.slice(i,i+10);
-      const updates=batch.map(r=>{
-        const f=r.fields;
-        const med=f.Medication||f.medication||'';
-        const loc=f.Location||f.location||'';
-        const p=parse(med);const site=canS(loc);
-        const fields={};
-        if(p.c)fields[FC]=p.c;if(p.d)fields[FD]=p.d;
-        if(p.t)fields[FT]=p.t;if(site)fields[FS]=site;
-        return{id:r.id,fields};
-      });
-
-      try{
-        const r=await fetch('https://api.airtable.com/v0/'+BASE+'/'+TBL,{
-          method:'PATCH',headers:{Authorization:'Bearer '+AT,'Content-Type':'application/json'},
-          body:JSON.stringify({records:updates})
-        });
-        const d=await r.json();
-        if(!r.ok)throw new Error(d.error?.message||r.status);
-        done+=updates.length;
-      }catch(e){errs++;out('Batch error: '+e.message);}
-
+      const updates=batch.map(r=>({id:r.id,fields:buildFields(r.fields)}))
+                         .filter(u=>Object.keys(u.fields).length>0);
+      if(updates.length){
+        try{
+          await atPatch(updates);
+          done+=updates.length;
+        }catch(e){
+          errs+=batch.length;
+          out('Batch error: '+e.message);
+        }
+      }
       const pct=Math.round((i+batch.length)/total*100);
-      document.getElementById('bar').style.width=pct+'%';
-      document.getElementById('bar').textContent=done+' / '+total+' ('+pct+'%)';
-      if(errs)document.getElementById('bar').style.background='#dc2626';
+      document.getElementById('bar').style.width=Math.max(pct,3)+'%';
+      document.getElementById('bar').textContent=done+'/'+total;
       await sleep(300);
     }
-    out('<b style="color:green">Done! '+done+' records updated.'+(errs?' '+errs+' errors.':'')+'</b>');
-  }catch(e){out('<b style="color:red">Error: '+e.message+'</b>');}
+    out('<b style="color:'+(errs?'orange':'green')+'">Done: '+done+' updated, '+errs+' errors</b>');
+    document.getElementById('bar').style.background=errs?'#f59e0b':'#16a34a';
+  }catch(e){out('<b style="color:red">Fatal: '+e.message+'</b>');}
 }
-</script>
-</body></html>
+</script></body></html>
