@@ -26,7 +26,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
 /* BODY */
 #body{display:flex;flex:1;overflow:hidden}
 /* PDF PANEL */
-#pp{width:360px;min-width:260px;background:#fff;border-right:2px solid #e2e5ea;display:flex;flex-direction:column;flex-shrink:0}
+#pp{width:520px;min-width:400px;background:#fff;border-right:2px solid #e2e5ea;display:flex;flex-direction:column;flex-shrink:0}
 .phdr{padding:8px 10px;background:#fafafa;border-bottom:1px solid #e2e5ea;flex-shrink:0}
 .plbl{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#9ca3af;display:block;margin-bottom:5px}
 .prow{display:flex;gap:4px;align-items:center;margin-bottom:4px}
@@ -175,6 +175,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
         <button class="btn bs bxs" onclick="openAdd('par')">+ Parseur</button>
         <button class="btn bp bxs" onclick="openAdd('log')">+ Log</button>
         <button class="btn" style="background:#16a34a;color:#fff;border-color:#16a34a;padding:3px 10px;font-size:10px;font-weight:700;border-radius:5px" onclick="copyToLog()">→ Copy Parseur → Log</button>
+        <button class="btn" style="background:#dc2626;color:#fff;border-color:#dc2626;padding:3px 10px;font-size:10px;font-weight:700;border-radius:5px" onclick="deleteBlankDates()">🗑 Delete Blank-Date Parseur</button>
       </div>
     </div>
     <div id="cols">
@@ -497,6 +498,7 @@ function parCard(r){
     <div class="cbtns">
       <button class="cbtn ce" onclick="openEdit('par','${r.id}')">✎ Edit</button>
       ${st!=='match'?`<button class="cbtn ca" onclick="copyOneToLog('${r.id}')">→ Copy to Log</button>`:''}
+      <button class="cbtn cd" onclick="confirmDel('par','${r.id}')">✕ Delete</button>
     </div>
   </div>`;
 }
@@ -779,6 +781,35 @@ function setMode(m){
 
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function setSt(m){document.getElementById('st').textContent=m;}
+
+async function deleteBlankDates(){
+  if(!confirm('Delete ALL Parseur-Injections records with no date? This cannot be undone.'))return;
+  setSt('Loading Parseur records…');
+  let recs=[],off=null;
+  do{
+    const d=await atFetch(PAR.tbl+'?fields%5B%5D=Date&pageSize=100'+(off?'&offset='+off:''));
+    recs=recs.concat(d.records);off=d.offset;
+  }while(off);
+  const noDates=recs.filter(r=>!r.fields['Date']||String(r.fields['Date']).trim()==='');
+  if(!noDates.length){setSt('No blank-date records found');return;}
+  if(!confirm(noDates.length+' records have no date. Delete them all?'))return;
+  setSt('Deleting '+noDates.length+'…');
+  let done=0;
+  for(let i=0;i<noDates.length;i+=10){
+    const batch=noDates.slice(i,i+10);
+    const ids=batch.map(r=>r.id);
+    // AT bulk delete: DELETE with ?records[]=id&records[]=id
+    const qs=ids.map(id=>'records%5B%5D='+id).join('&');
+    try{
+      await atFetch(PAR.tbl+'?'+qs,{method:'DELETE'});
+      done+=batch.length;
+    }catch(e){setSt('Error at batch '+i+': '+e.message);return;}
+    setSt('Deleted '+done+' / '+noDates.length+'…');
+    await new Promise(r=>setTimeout(r,200));
+  }
+  setSt('✓ Deleted '+done+' blank-date records');
+  await loadParDates();
+}
 
 window.onload=()=>{
   initAuth();
