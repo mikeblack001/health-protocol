@@ -34,7 +34,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
 .pg{background:#374151;color:#fff}.pg:hover{background:#1f2937}
 #pp-msg{font-size:12px;color:#9ca3af}
 #pp-area{flex:1;overflow:auto;background:#cbd5e1;padding:6px}
-#pp-canvas{width:100%;display:none;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+#pp-canvas{display:none;box-shadow:0 2px 8px rgba(0,0,0,.3)}
 #pp-nav{display:flex;align-items:center;padding:6px 8px;border-top:2px solid #2563eb;background:#fff;flex-shrink:0;gap:4px}
 #pp-nav button{padding:6px 14px;border:none;border-radius:5px;cursor:pointer;font-size:13px;font-weight:700;background:#2563eb;color:#fff}
 #pp-nav button:hover{background:#1d4ed8}
@@ -96,6 +96,27 @@ select.fe{cursor:pointer}
 .a-del:hover{background:#fecdd3}
 
 .empty{color:#9ca3af;text-align:center;padding:40px;font-style:italic}
+
+/* WEEK GRID */
+#wgrid-wrap{background:#fff;border-bottom:2px solid #e2e5ea;flex-shrink:0}
+#wgrid-hdr{padding:5px 14px 5px;display:flex;align-items:center;gap:8px;border-bottom:1px solid #f0f2f5;background:#f8fafc}
+#wgrid-hdr b{font-size:11px;font-weight:800;color:#374151;text-transform:uppercase;letter-spacing:.5px}
+#wgrid-body{overflow:auto;max-height:210px}
+#wg-tog{padding:2px 8px;border:1px solid #d1d5db;border-radius:4px;font-size:10px;font-weight:700;cursor:pointer;background:#fff;color:#374151;margin-left:auto}
+#wg-status{font-size:10px;color:#9ca3af}
+#wgrid{width:100%;border-collapse:collapse;font-size:11px}
+#wgrid thead th{background:#1e2433;color:#fff;padding:4px 6px;font-size:10px;font-weight:700;text-align:center;position:sticky;top:0;z-index:2;white-space:nowrap}
+#wgrid thead th:first-child{text-align:left;min-width:150px;cursor:default;padding-left:20px}
+#wgrid thead th.wg-today{background:#2563eb}
+#wgrid thead th.wg-day{cursor:pointer}
+#wgrid thead th.wg-day:hover{background:#374151}
+#wgrid tbody tr[draggable]{cursor:grab}
+#wgrid tbody tr[draggable]:active{cursor:grabbing}
+#wgrid td{border-bottom:1px solid #f0f2f5;padding:3px 4px;text-align:center;white-space:nowrap}
+#wgrid td:first-child{text-align:left;padding:3px 6px 3px 6px;font-weight:700;color:#1e2433;max-width:160px;overflow:hidden;text-overflow:ellipsis}
+#wgrid .drag-handle{color:#d1d5db;font-size:13px;padding-right:4px;cursor:grab;user-select:none}
+#wgrid tbody tr.wg-dragging{opacity:.4}
+#wgrid tbody tr.wg-drop-above{border-top:2px solid #2563eb}
 </style>
 </head>
 <body>
@@ -179,6 +200,18 @@ select.fe{cursor:pointer}
       <span style="font-size:10px;color:#9ca3af">Quick add for current date</span>
     </div>
 
+    <!-- WEEK GRID -->
+    <div id="wgrid-wrap">
+      <div id="wgrid-hdr">
+        <b>📅 Week Overview</b>
+        <span id="wg-status"></span>
+        <button id="wg-tog" onclick="toggleWGrid()">▲ Hide</button>
+      </div>
+      <div id="wgrid-body">
+        <table id="wgrid"><tr><td class="empty" style="padding:12px 14px;font-size:11px">Select a date to load week</td></tr></table>
+      </div>
+    </div>
+
     <!-- RECORDS -->
     <div id="records"><div class="empty">Select a date to load records</div></div>
   </div>
@@ -259,11 +292,14 @@ async function pdfPage(n){
   const page=await pdfDoc.getPage(n);
   const canvas=document.getElementById('pp-canvas');
   const area=document.getElementById('pp-area');
-  // Render at 2x scale for crisp display, CSS stretches to fill panel
-  const vp=page.getViewport({scale:2.0});
+  // Compute fit-to-width scale, multiply by pdfZoom
+  const vp1=page.getViewport({scale:1.0});
+  const aw=Math.max(area.clientWidth-12,100);
+  window.pdfFitScale=aw/vp1.width;
+  const vp=page.getViewport({scale:window.pdfFitScale*window.pdfZoom});
   canvas.width=vp.width;canvas.height=vp.height;
   canvas.style.display='block';
-  canvas.style.width=(window.pdfZoom*100)+'%';
+  canvas.style.width='auto';
   canvas.style.height='auto';
   document.getElementById('pp-zoom-lbl').textContent=Math.round(window.pdfZoom*100)+'%';
   area.scrollTop=0;
@@ -278,8 +314,7 @@ function pdfNext(){pdfPage(window.pg+1);}
 function pgGo(n){pdfPage(n);}
 window.pdfZoom=1.0;
 function pdfZoom(dir){
-  const canvas=document.getElementById('pp-canvas');
-  if(!canvas||canvas.style.display==='none')return;
+  if(!pdfDoc)return;
   if(dir===0){window.pdfZoom=1.0;}
   else{
     const steps=[0.5,0.75,1.0,1.25,1.5,2.0,2.5,3.0];
@@ -287,10 +322,115 @@ function pdfZoom(dir){
     const ni=Math.max(0,Math.min(steps.length-1,(idx===-1?2:idx)+dir));
     window.pdfZoom=steps[ni];
   }
-  canvas.style.width=(window.pdfZoom*100)+'%';
-  canvas.style.height='auto';
   document.getElementById('pp-zoom-lbl').textContent=Math.round(window.pdfZoom*100)+'%';
+  pdfPage(window.pg);
 }
+
+// ── WEEK GRID ──────────────────────────────────────────────────────────
+let wgVisible=true;
+function toggleWGrid(){
+  wgVisible=!wgVisible;
+  document.getElementById('wgrid-body').style.display=wgVisible?'':'none';
+  document.getElementById('wg-tog').textContent=wgVisible?'▲ Hide':'▼ Show';
+}
+
+function getWkDates(dateStr){
+  const d=new Date(dateStr+'T12:00:00'),dow=d.getDay();
+  const mon=new Date(d);mon.setDate(d.getDate()-((dow+6)%7));
+  return Array.from({length:7},(_,i)=>{const dd=new Date(mon);dd.setDate(mon.getDate()+i);return dd.toISOString().slice(0,10);});
+}
+function getRowOrder(){try{return JSON.parse(LS.get('row_order')||'[]');}catch(e){return [];}}
+function saveRowOrder(arr){LS.set('row_order',JSON.stringify(arr));}
+function siteColor(s){
+  const m={'L':{bg:'#dbeafe',fg:'#1d4ed8'},'R':{bg:'#fef9c3',fg:'#92400e'},'S':{bg:'#fce7f3',fg:'#be185d'},
+    'X':{bg:'#d1fae5',fg:'#065f46'},'Pill':{bg:'#f3f4f6',fg:'#374151'},'Nasal':{bg:'#ede9fe',fg:'#5b21b6'},'Abd':{bg:'#ffedd5',fg:'#9a3412'}};
+  return m[s]||{bg:'#f3f4f6',fg:'#374151'};
+}
+
+async function loadWeekGrid(date){
+  const wg=document.getElementById('wgrid'),ws=document.getElementById('wg-status');
+  if(!wg)return;
+  const days=getWkDates(date);
+  ws.textContent='Loading…';
+  const orParts=days.map(d=>`IS_SAME({${LOG.date}},"${d}","day")`).join(',');
+  const q=encodeURIComponent(`OR(${orParts})`);
+  const flds=[LOG.date,LOG.compound,LOG.site,LOG.timing].map(f=>'fields%5B%5D='+f).join('&');
+  let recs=[],off=null;
+  try{
+    do{
+      const d=await atFetch(LOG.tbl+'?returnFieldsByFieldId=true&filterByFormula='+q+'&'+flds+'&pageSize=100'+(off?'&offset='+off:''));
+      recs=recs.concat(d.records);off=d.offset;
+    }while(off);
+  }catch(e){wg.innerHTML=`<tr><td style="color:#dc2626;padding:8px">Grid error: ${e.message}</td></tr>`;ws.textContent='';return;}
+
+  // Build compound lookup
+  const data={};
+  recs.forEach(r=>{
+    const f=r.fields,cmp=f[LOG.compound]||'',day=(f[LOG.date]||'').slice(0,10),site=f[LOG.site]||'',timing=f[LOG.timing]||'';
+    if(!cmp||!day)return;
+    if(!data[cmp])data[cmp]={timing,days:{}};
+    if(!data[cmp].days[day])data[cmp].days[day]=[];
+    if(site)data[cmp].days[day].push(site);
+  });
+
+  // Apply saved order, append new compounds at bottom
+  const allC=Object.keys(data);
+  const saved=getRowOrder();
+  const ordered=[...saved.filter(c=>allC.includes(c)),...allC.filter(c=>!saved.includes(c))];
+
+  // Build table
+  const DN=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  let h=`<thead><tr><th>Compound</th>`;
+  days.forEach((d,i)=>{
+    const today=d===date;
+    h+=`<th class="wg-day${today?' wg-today':''}" onclick="setDate('${d}')" title="${d}">${DN[i]}<br><span style="font-size:9px;opacity:.8">${d.slice(5)}</span></th>`;
+  });
+  h+=`</tr></thead><tbody>`;
+
+  ordered.forEach(cmp=>{
+    const dayMap=data[cmp].days,timing=data[cmp].timing;
+    const badge=timing?`<span style="font-size:9px;font-weight:600;color:#9ca3af;margin-left:4px">${timing.slice(0,3).toUpperCase()}</span>`:'';
+    h+=`<tr draggable="true" data-cmp="${esc(cmp)}"><td><span class="drag-handle">⠿</span>${esc(cmp)}${badge}</td>`;
+    days.forEach(d=>{
+      const sites=dayMap[d]||[];
+      if(!sites.length){h+=`<td></td>`;}
+      else{
+        const sc=siteColor(sites[0]);
+        h+=`<td style="background:${sc.bg};color:${sc.fg};font-weight:800;font-size:11px">${esc(sites.join('/'))}</td>`;
+      }
+    });
+    h+=`</tr>`;
+  });
+  h+=`</tbody>`;
+  wg.innerHTML=h;
+  ws.textContent=ordered.length+' compounds';
+  initGridDrag();
+}
+
+function initGridDrag(){
+  const tbody=document.querySelector('#wgrid tbody');
+  if(!tbody)return;
+  let src=null;
+  tbody.querySelectorAll('tr[draggable]').forEach(row=>{
+    row.addEventListener('dragstart',e=>{src=row;row.classList.add('wg-dragging');e.dataTransfer.effectAllowed='move';});
+    row.addEventListener('dragend',()=>{
+      src&&src.classList.remove('wg-dragging');
+      tbody.querySelectorAll('.wg-drop-above').forEach(r=>r.classList.remove('wg-drop-above'));
+      const order=[...tbody.querySelectorAll('tr[data-cmp]')].map(r=>r.dataset.cmp);
+      saveRowOrder(order);src=null;
+    });
+    row.addEventListener('dragover',e=>{
+      e.preventDefault();
+      tbody.querySelectorAll('.wg-drop-above').forEach(r=>r.classList.remove('wg-drop-above'));
+      if(row!==src){
+        const mid=row.getBoundingClientRect().top+row.getBoundingClientRect().height/2;
+        if(e.clientY<mid){row.classList.add('wg-drop-above');tbody.insertBefore(src,row);}
+        else tbody.insertBefore(src,row.nextSibling);
+      }
+    });
+  });
+}
+
 function pmsg(m){document.getElementById('pp-msg').textContent=m;}
 
 // ── AT ────────────────────────────────────────────────────────────────
@@ -335,6 +475,7 @@ async function setDate(date){
     do{const d=await atFetch(LOG.tbl+'?returnFieldsByFieldId=true&filterByFormula='+q+'&pageSize=100'+(off?'&offset='+off:''));recs=recs.concat(d.records);off=d.offset;}while(off);
     logRecs=recs;
     document.getElementById('b-total').textContent=recs.length+' records';
+    loadWeekGrid(date);
     // Check if all records are verified
     const allVerified=recs.length>0&&recs.every(r=>r.fields[LOG.verified]===true);
     updateVerifyBtn(allVerified);
