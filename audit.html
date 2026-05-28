@@ -101,7 +101,7 @@ select.fe{cursor:pointer}
 #wgrid-wrap{background:#fff;border-bottom:2px solid #e2e5ea;flex-shrink:0}
 #wgrid-hdr{padding:5px 14px 5px;display:flex;align-items:center;gap:8px;border-bottom:1px solid #f0f2f5;background:#f8fafc}
 #wgrid-hdr b{font-size:11px;font-weight:800;color:#374151;text-transform:uppercase;letter-spacing:.5px}
-#wgrid-body{overflow:auto;max-height:210px}
+#wgrid-body{overflow:auto}
 #wg-tog{padding:2px 8px;border:1px solid #d1d5db;border-radius:4px;font-size:10px;font-weight:700;cursor:pointer;background:#fff;color:#374151;margin-left:auto}
 #wg-status{font-size:10px;color:#9ca3af}
 #wgrid{width:100%;border-collapse:collapse;font-size:11px}
@@ -112,7 +112,7 @@ select.fe{cursor:pointer}
 #wgrid thead th.wg-day:hover{background:#374151}
 #wgrid tbody tr[draggable]{cursor:grab}
 #wgrid tbody tr[draggable]:active{cursor:grabbing}
-#wgrid td{border-bottom:1px solid #f0f2f5;padding:3px 4px;text-align:center;white-space:nowrap}
+#wgrid td{border:1px solid #e2e5ea;padding:3px 4px;text-align:center;white-space:nowrap}
 #wgrid td:first-child{text-align:left;padding:3px 6px 3px 6px;font-weight:700;color:#1e2433;max-width:160px;overflow:hidden;text-overflow:ellipsis}
 #wgrid .drag-handle{color:#d1d5db;font-size:13px;padding-right:4px;cursor:grab;user-select:none}
 #wgrid tbody tr.wg-dragging{opacity:.4}
@@ -292,17 +292,18 @@ async function pdfPage(n){
   const page=await pdfDoc.getPage(n);
   const canvas=document.getElementById('pp-canvas');
   const area=document.getElementById('pp-area');
-  // Compute fit-to-width scale, multiply by pdfZoom
+  // Render at 2x for sharpness; zoom via CSS px width only (no re-render)
   const vp1=page.getViewport({scale:1.0});
-  const aw=Math.max(area.clientWidth-12,100);
-  window.pdfFitScale=aw/vp1.width;
-  const vp=page.getViewport({scale:window.pdfFitScale*window.pdfZoom});
+  const aw=Math.max(area.clientWidth-12,200);
+  window.pdfFitPx=aw;
+  const vp=page.getViewport({scale:(aw/vp1.width)*2});
   canvas.width=vp.width;canvas.height=vp.height;
   canvas.style.display='block';
-  canvas.style.width='auto';
+  canvas.style.width=Math.round(aw*window.pdfZoom)+'px';
   canvas.style.height='auto';
   document.getElementById('pp-zoom-lbl').textContent=Math.round(window.pdfZoom*100)+'%';
   area.scrollTop=0;
+  if(window.pdfZoom<=1.0)area.scrollLeft=0;
   await page.render({canvasContext:canvas.getContext('2d'),viewport:vp}).promise;
   document.getElementById('pp-pg').textContent=n+' / '+pdfDoc.numPages;
   document.getElementById('pp-jp').value=n;
@@ -314,7 +315,7 @@ function pdfNext(){pdfPage(window.pg+1);}
 function pgGo(n){pdfPage(n);}
 window.pdfZoom=1.0;
 function pdfZoom(dir){
-  if(!pdfDoc)return;
+  if(!window.pdfFitPx)return;
   if(dir===0){window.pdfZoom=1.0;}
   else{
     const steps=[0.5,0.75,1.0,1.25,1.5,2.0,2.5,3.0];
@@ -322,8 +323,11 @@ function pdfZoom(dir){
     const ni=Math.max(0,Math.min(steps.length-1,(idx===-1?2:idx)+dir));
     window.pdfZoom=steps[ni];
   }
+  const canvas=document.getElementById('pp-canvas');
+  canvas.style.width=Math.round(window.pdfFitPx*window.pdfZoom)+'px';
+  canvas.style.height='auto';
   document.getElementById('pp-zoom-lbl').textContent=Math.round(window.pdfZoom*100)+'%';
-  pdfPage(window.pg);
+  if(window.pdfZoom<=1.0)document.getElementById('pp-area').scrollLeft=0;
 }
 
 // ── WEEK GRID ──────────────────────────────────────────────────────────
