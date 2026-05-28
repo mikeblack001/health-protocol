@@ -539,14 +539,33 @@ async function gridCellClick(date,cmp){
     found.style.outline='3px solid #2563eb';
     setTimeout(()=>found.style.outline='',1800);
   } else {
-    // Compound not in records — open quick-add modal
+    // Compound not in records — open add modal, pre-fill from most recent record
     cmDate=date;cmCmp=cmp;
     document.getElementById('cm-title').textContent=cmp+' — '+date;
     document.getElementById('cm-dose').value='';
     document.getElementById('cm-site').selectedIndex=0;
     document.getElementById('cm-timing').selectedIndex=0;
-    document.getElementById('cm-existing').innerHTML='<i>No records for this compound on this date</i>';
+    document.getElementById('cm-existing').innerHTML='<i>Loading…</i>';
     document.getElementById('cm').style.display='flex';
+    // Fetch most recent record for this compound to pre-fill
+    try{
+      const q=encodeURIComponent(`{${LOG.compound}}="${cmp}"`);
+      const d=await atFetch(LOG.tbl+'?filterByFormula='+q+'&sort%5B0%5D%5Bfield%5D='+LOG.date+'&sort%5B0%5D%5Bdirection%5D=desc&returnFieldsByFieldId=true&pageSize=1');
+      const rec=d.records?.[0];
+      if(rec){
+        const f=rec.fields;
+        if(f[LOG.dose])document.getElementById('cm-dose').value=f[LOG.dose];
+        const site=f[LOG.site]||'';
+        const siteEl=document.getElementById('cm-site');
+        [...siteEl.options].forEach((o,i)=>{if(o.value===site||o.text===site)siteEl.selectedIndex=i;});
+        const timing=f[LOG.timing]||'';
+        const timingEl=document.getElementById('cm-timing');
+        [...timingEl.options].forEach((o,i)=>{if(o.value===timing||o.text===timing)timingEl.selectedIndex=i;});
+        document.getElementById('cm-existing').innerHTML=`<i>Pre-filled from ${(f[LOG.date]||'').slice(0,10)}</i>`;
+      } else {
+        document.getElementById('cm-existing').innerHTML='<i>No prior records found</i>';
+      }
+    }catch(e){document.getElementById('cm-existing').innerHTML='<i>No records for this compound on this date</i>';}
   }
 }
 function closeCM(){document.getElementById('cm').style.display='none';}
