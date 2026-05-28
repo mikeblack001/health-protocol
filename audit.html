@@ -33,7 +33,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
 .pb:hover{background:#1d4ed8}
 .pg{background:#374151;color:#fff}.pg:hover{background:#1f2937}
 #pp-msg{font-size:12px;color:#9ca3af}
-#pp-area{flex:1;overflow:auto;background:#cbd5e1;padding:6px;min-height:0;min-width:0;width:0}
+#pp-area{flex:1;overflow:auto;background:#cbd5e1;padding:6px;min-height:0}
 #pp-canvas{display:block;box-shadow:0 2px 8px rgba(0,0,0,.3)}
 #pp-nav{display:flex;align-items:center;padding:6px 8px;border-top:2px solid #2563eb;background:#fff;flex-shrink:0;gap:4px}
 #pp-nav button{padding:6px 14px;border:none;border-radius:5px;cursor:pointer;font-size:13px;font-weight:700;background:#2563eb;color:#fff}
@@ -303,29 +303,26 @@ async function pdfRenderPage(){
   const canvas=document.getElementById('pp-canvas');
   const area=document.getElementById('pp-area');
   const vp1=page.getViewport({scale:1.0});
-  window.pdfNatW=vp1.width;
-  const aw=Math.max(area.clientWidth-12,200);
+  const aw=Math.max(area.clientWidth||508,200);
   window.pdfFitW=aw;
-  // Render at 2x for sharpness
-  const vp=page.getViewport({scale:(aw/vp1.width)*2});
+  // Render at fitScale * zoom — re-render on every zoom change
+  const scale=(aw/vp1.width)*window.pdfZoom;
+  const vp=page.getViewport({scale});
   canvas.width=vp.width;canvas.height=vp.height;
   canvas.style.display='block';
-  canvas.style.width=(aw*window.pdfZoom)+'px';
-  canvas.style.height='auto';
+  canvas.style.width='';canvas.style.height='';
   document.getElementById('pp-zoom-lbl').textContent=Math.round(window.pdfZoom*100)+'%';
   pdfRenderTask=page.render({canvasContext:canvas.getContext('2d'),viewport:vp});
   try{await pdfRenderTask.promise;}catch(e){if(e.name!=='RenderingCancelledException')console.error('PDF render:',e);}
   pdfRenderTask=null;
-  // Extract date from page text
   extractPageDate(page);
 }
 function pdfPrev(){pdfPage(window.pg-1);}
 function pdfNext(){pdfPage(window.pg+1);}
 function pgGo(n){pdfPage(n);}
 window.pdfZoom=1.0;
-function pdfZoom(dir){
-  if(!pdfDoc)return;
-  const fw=window.pdfFitW||500;
+async function pdfZoom(dir){
+  if(!pdfDoc||!window.pg)return;
   if(dir===0){window.pdfZoom=1.0;}
   else{
     const steps=[0.5,0.75,1.0,1.25,1.5,2.0,2.5,3.0];
@@ -333,12 +330,9 @@ function pdfZoom(dir){
     const ni=Math.max(0,Math.min(steps.length-1,(idx===-1?2:idx)+dir));
     window.pdfZoom=steps[ni];
   }
-  const canvas=document.getElementById('pp-canvas');
-  canvas.style.width=(fw*window.pdfZoom)+'px';
-  canvas.style.height='auto';
-  const area=document.getElementById('pp-area');
-  if(window.pdfZoom<=1){area.scrollLeft=0;area.scrollTop=0;}
-  document.getElementById('pp-zoom-lbl').textContent=Math.round(window.pdfZoom*100)+'%';
+  // Always re-fetch page and re-render at new scale
+  window.pdfCurrentPage=await pdfDoc.getPage(window.pg);
+  await pdfRenderPage();
 }
 
 // ── DATE EXTRACTION FROM PDF PAGE ────────────────────────────────────
