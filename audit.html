@@ -351,6 +351,37 @@ async function pdfPage(n){
   await page.render({canvasContext:canvas.getContext('2d'),viewport:vp}).promise;
   document.getElementById('pp-pg').textContent=n+' / '+pdfDoc.numPages;
   document.getElementById('pp-jp').value=n;
+  // Extract text and auto-detect date — free, no API needed
+  try{
+    const tc=await page.getTextContent();
+    const text=tc.items.map(i=>i.str).join(' ');
+    const date=extractDateFromText(text);
+    if(date){
+      // Flash the date in status and auto-select if in dropdown
+      setSt('📅 '+date+' detected');
+      const sel=document.getElementById('d-sel');
+      const opt=[...sel.options].find(o=>o.value===date);
+      if(opt){sel.value=date;setDate(date);}
+      else setSt('📅 '+date+' — not in Parseur dates');
+    }
+  }catch(e){}
+}
+
+function extractDateFromText(text){
+  // Try M/D/YY or M/D/YYYY
+  let m=text.match(/\b(\d{1,2})\/(\d{1,2})\/(\d{2,4})\b/);
+  if(m){const y=m[3].length===2?'20'+m[3]:m[3];return y+'-'+m[1].padStart(2,'0')+'-'+m[2].padStart(2,'0');}
+  // Try Month DD, YYYY
+  const months={january:'01',february:'02',march:'03',april:'04',may:'05',june:'06',july:'07',august:'08',september:'09',october:'10',november:'11',december:'12',jan:'01',feb:'02',mar:'03',apr:'04',jun:'06',jul:'07',aug:'08',sep:'09',oct:'10',nov:'11',dec:'12'};
+  m=text.match(/\b(January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{1,2}),?\s+(\d{4})\b/i);
+  if(m){const mo=months[m[1].toLowerCase()];return m[3]+'-'+mo+'-'+m[2].padStart(2,'0');}
+  // Try YYYY-MM-DD
+  m=text.match(/\b(202[0-9]-\d{2}-\d{2})\b/);
+  if(m)return m[1];
+  // Try "Month YYYY" e.g. "July 2025"
+  m=text.match(/\b(January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(202[0-9])\b/i);
+  if(m){const mo=months[m[1].toLowerCase()];return m[2]+'-'+mo+'-01';}
+  return null;
 }
 function pgGo(n){pdfPage(n);}
 function pmsg(m){document.getElementById('pp-msg').textContent=m;}
@@ -421,13 +452,14 @@ async function setDate(date){
 }
 
 async function loadByDate(tbl,dateFld,date,useFieldIds){
-  const q=encodeURIComponent('{'+dateFld+'}="'+date+'"');
+  // Use IS_SAME() for AT date field comparison — simple = doesn't work on date fields
+  const q=encodeURIComponent('IS_SAME({'+dateFld+'},"'+date+'","day")');
   let recs=[],off=null;
   do{
     let url=tbl+'?filterByFormula='+q+'&pageSize=100'+(off?'&offset='+off:'');
     if(useFieldIds) url+='&returnFieldsByFieldId=true';
     const d=await atFetch(url);
-    if(!d.records) throw new Error('No records array in response: '+JSON.stringify(d).substring(0,200));
+    if(!d.records) throw new Error(JSON.stringify(d).substring(0,200));
     recs=recs.concat(d.records);off=d.offset;
   }while(off);
   return recs;
