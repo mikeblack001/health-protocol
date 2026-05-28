@@ -14,19 +14,44 @@ td{padding:6px 10px;border:1px solid #e2e5ea}
 #bar{background:#2563eb;height:24px;border-radius:6px;width:0%;font-size:13px;font-weight:700;color:#fff;text-align:center;line-height:24px;min-width:40px;transition:width .1s}
 </style></head><body>
 <h1>Normalize Parseur-Injections</h1>
-<p>Step 1: Fix Dates &nbsp;→&nbsp; Step 2: Populate Compound / Dose / Timing / Site</p>
+<p>Step 1: Compute actual dates (week-start + Day of Week offset) &nbsp;→&nbsp; Step 2: Populate Compound / Dose / Timing / Site</p>
 
-<button class="btn" style="background:#7c3aed;color:#fff" onclick="inspectDates()">🔍 Inspect Dates</button>
-<button class="btn" style="background:#dc2626;color:#fff" onclick="fixDates()">Fix Dates</button>
-<button class="btn" style="background:#2563eb;color:#fff" onclick="inspect()">Inspect Fields</button>
-<button class="btn" style="background:#16a34a;color:#fff" onclick="runAll()">Run All — Fields</button>
+<button class="btn" style="background:#7c3aed;color:#fff" onclick="previewDates()">1. Preview Date Fix (10 records)</button>
+<button class="btn" style="background:#dc2626;color:#fff" onclick="fixDates()">2. Fix All Dates</button>
+<button class="btn" style="background:#2563eb;color:#fff" onclick="inspect()">3. Inspect Fields (5 records)</button>
+<button class="btn" style="background:#16a34a;color:#fff" onclick="runFields()">4. Run All — Fields</button>
 
-<div id="out">Click Inspect Dates first.</div>
+<div id="out">Click Step 1 to preview date conversion.</div>
 <div id="bar-wrap"><div id="bar">0</div></div>
 
 <script>
 const AT='pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
 const BASE='appmHDG4TGT1xy6R6',TBL='tblCTOGIrF3NjdyTE';
+const FC='fldONAad3wQQzQDKE',FD='fldye77iWTIWaDNul',FT='fldIdHUojkqEFlCZL',FS='fldDxPQRuQFZ9MJoG';
+
+// Day of week → offset from Monday (week start)
+const DAY_OFF={
+  'mon':0,'monday':0,
+  'tue':1,'tues':1,'tuesday':1,
+  'wed':2,'wednesday':2,
+  'thu':3,'thur':3,'thurs':3,'thursday':3,
+  'fri':4,'friday':4,
+  'sat':5,'saturday':5,
+  'sun':6,'sunday':6
+};
+
+function addDays(isoDate, days){
+  const d=new Date(isoDate+'T12:00:00Z');
+  d.setUTCDate(d.getUTCDate()+days);
+  return d.toISOString().substring(0,10);
+}
+
+function computeActualDate(weekStart, dayOfWeek){
+  if(!weekStart||!dayOfWeek)return null;
+  const offset=DAY_OFF[dayOfWeek.toLowerCase().trim()];
+  if(offset===undefined)return null;
+  return addDays(weekStart, offset);
+}
 
 const CM={'tesamorelin':'Tesamorelin','lipominomix':'LipoMinoMix','lipo mino mix':'LipoMinoMix',
 'lipo-mino-mix':'LipoMinoMix','ipamorelin':'Ipamorelin','cjc-1295 no dac':'CJC-1295 No DAC',
@@ -38,13 +63,12 @@ const CM={'tesamorelin':'Tesamorelin','lipominomix':'LipoMinoMix','lipo mino mix
 'anavar':'Anavar (Oxandrolone)','oxandrolone':'Anavar (Oxandrolone)',
 'anavar (oxandrolone)':'Anavar (Oxandrolone)','winstrol':'Winstrol (Stanozolol)',
 'stanozolol':'Winstrol (Stanozolol)','stanzalol':'Winstrol (Stanozolol)',
-'stanzalol (winstrol)':'Winstrol (Stanozolol)','winstrol (stanozolol)':'Winstrol (Stanozolol)',
-'cagrilintide':'Cagrilintide','mots-c':'Mots-C','melanotan':'Melanotan II (MT2)'};
+'stanzalol (winstrol)':'Winstrol (Stanozolol)','cagrilintide':'Cagrilintide',
+'mots-c':'Mots-C','melanotan':'Melanotan II (MT2)'};
 
 function canC(r){return CM[r.toLowerCase().trim()]||r.trim();}
 function canT(t){return{morning:'Morning',night:'Night',evening:'Evening',daily:'Daily',am:'Morning',pm:'Night'}[t.toLowerCase()]||t;}
 function canS(l){if(!l)return'';return{l:'L',r:'R',left:'L',right:'R',pill:'Pill',x:'X',nasal:'Nasal',abd:'Abd',s:'S'}[l.toLowerCase().trim()]||l.trim();}
-
 function parseMed(s){
   if(!s)return{c:'',d:'',t:''};s=s.trim();
   let m=s.match(/^(.+?)\s*-\s*(.+?)\s*\((\w+)\)\s*$/i);
@@ -56,40 +80,9 @@ function parseMed(s){
   return{c:canC(s),d:'',t:''};
 }
 
-// Date correction logic
-// Name field contains the raw date string from Parseur: "8/18", "7/28/25", "2/24/2026" etc
-// Rule: no year → determine from value. If M/D would be ≤ May 28 2026 looking backwards, use 2025.
-// More precisely: injection data runs Jul 2025 - May 2026. Partial dates (no year) are 2025 if month >= 7, else 2026.
-function correctDate(name, existingDate) {
-  if (!name) return null;
-  const s = String(name).trim();
-
-  // Already ISO: "2025-07-28" — keep as-is
-  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
-
-  // Full date with year: "7/28/25" or "7/28/2025" or "2/24/2026"
-  const full = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
-  if (full) {
-    const m=full[1].padStart(2,'0'), d=full[2].padStart(2,'0');
-    let y=full[3]; if(y.length===2) y='20'+y;
-    return y+'-'+m+'-'+d;
-  }
-
-  // Partial date no year: "8/18", "8/4", "11/3" etc
-  const partial = s.match(/^(\d{1,2})\/(\d{1,2})$/);
-  if (partial) {
-    const mo=parseInt(partial[1]), dy=parseInt(partial[2]);
-    // Injection data: Jul 2025 onward. Month 7-12 = 2025, Month 1-5 = 2026
-    const yr = mo >= 7 ? 2025 : 2026;
-    return yr+'-'+String(mo).padStart(2,'0')+'-'+String(dy).padStart(2,'0');
-  }
-
-  return null; // can't determine
-}
-
 function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
 async function atGet(url){
-  const r=await fetch(url,{headers:{Authorization:'Bearer '+AT}});
+  const r=await fetch('https://api.airtable.com/v0/'+BASE+'/'+url,{headers:{Authorization:'Bearer '+AT}});
   const d=await r.json();if(!r.ok)throw new Error(d.error?.message||r.status);return d;
 }
 async function atPatch(records){
@@ -100,32 +93,35 @@ async function atPatch(records){
   const d=await r.json();if(!r.ok)throw new Error(d.error?.message||r.status);return d;
 }
 
-async function loadAll(){
+async function loadAll(fields){
   let recs=[],off=null;
+  const fq=fields.map(f=>'fields%5B%5D='+encodeURIComponent(f)).join('&');
   do{
-    const d=await atGet('https://api.airtable.com/v0/'+BASE+'/'+TBL+'?pageSize=100'+(off?'&offset='+off:''));
+    const d=await atGet(TBL+'?'+fq+'&pageSize=100'+(off?'&offset='+off:''));
     recs=recs.concat(d.records);off=d.offset;
     out('Loading… '+recs.length);
   }while(off);
   return recs;
 }
 
-async function inspectDates(){
+async function previewDates(){
   out('Loading 20 records…');
   try{
-    const d=await atGet('https://api.airtable.com/v0/'+BASE+'/'+TBL+'?pageSize=20');
-    let html='<table><tr><th>Name</th><th>Current Date</th><th>→ Corrected Date</th><th>Change?</th></tr>';
+    const d=await atGet(TBL+'?fields%5B%5D=Date&fields%5B%5D=Day+of+Week&fields%5B%5D=Compound&fields%5B%5D=Medication&pageSize=20');
+    let html='<table><tr><th>Week Start Date</th><th>Day of Week</th><th>Compound</th><th>→ Actual Date</th><th>Change?</th></tr>';
     let changes=0;
     d.records.forEach(r=>{
       const f=r.fields;
-      const name=f['Name']||'';
-      const cur=f['Date']||'';
-      const fix=correctDate(name,cur);
-      const changed=fix&&fix!==cur;
+      const ws=f['Date']||'';
+      const dow=f['Day of Week']||'';
+      const cmp=f['Compound']||f['Medication']||'';
+      const actual=computeActualDate(ws,dow);
+      const changed=actual&&actual!==ws;
       if(changed)changes++;
-      html+=`<tr><td>${name}</td><td>${cur}</td><td><b>${fix||'(no change)'}</b></td><td>${changed?'<span class="warn">✓ FIX</span>':'same'}</td></tr>`;
+      html+=`<tr><td>${ws||'(blank)'}</td><td>${dow||'(blank)'}</td><td>${cmp}</td>`+
+        `<td><b>${actual||'cannot compute'}</b></td><td>${changed?'<span class="warn">✓ FIX</span>':'same'}</td></tr>`;
     });
-    html+='</table><br><b>'+changes+' of 20 need fixing</b>';
+    html+=`</table><br><b>${changes} of 20 need date fix</b>`;
     out(html);
   }catch(e){out('<span class="err">'+e.message+'</span>');}
 }
@@ -135,7 +131,7 @@ async function fixDates(){
   document.getElementById('bar-wrap').style.display='';
   document.getElementById('bar').style.background='#7c3aed';
   try{
-    const recs=await loadAll();
+    const recs=await loadAll(['Date','Day of Week']);
     const total=recs.length;
     let fixed=0,skipped=0,errs=0;
 
@@ -144,16 +140,16 @@ async function fixDates(){
       const updates=[];
       batch.forEach(r=>{
         const f=r.fields;
-        const name=f['Name']||'';
-        const cur=f['Date']||'';
-        const fix=correctDate(name,cur);
-        if(fix&&fix!==cur){
-          updates.push({id:r.id,fields:{Date:fix}});
+        const ws=f['Date']||'';
+        const dow=f['Day of Week']||'';
+        const actual=computeActualDate(ws,dow);
+        if(actual&&actual!==ws){
+          updates.push({id:r.id,fields:{Date:actual}});
         } else skipped++;
       });
       if(updates.length){
         try{await atPatch(updates);fixed+=updates.length;}
-        catch(e){errs+=updates.length;}
+        catch(e){errs+=updates.length;console.error(e);}
       }
       const pct=Math.round((i+batch.length)/total*100);
       document.getElementById('bar').style.width=Math.max(pct,2)+'%';
@@ -161,31 +157,31 @@ async function fixDates(){
       await sleep(300);
     }
     document.getElementById('bar').style.background='#16a34a';
-    out('<span class="ok">✓ Dates fixed: '+fixed+' updated, '+skipped+' already correct'+(errs?' <span class="err">'+errs+' errors</span>':'')+'</span>');
+    out('<span class="ok">✓ Dates fixed: '+fixed+' updated, '+skipped+' already correct'+(errs?' <span class="err">'+errs+' errors</span>':'')+'</span><br><br>Now run Step 3 → Step 4 to populate Compound/Dose/Timing/Site.');
   }catch(e){out('<span class="err">'+e.message+'</span>');}
 }
 
 async function inspect(){
   out('Loading 5 records…');
   try{
-    const d=await atGet('https://api.airtable.com/v0/'+BASE+'/'+TBL+'?pageSize=5');
-    let html='<table><tr><th>Medication</th><th>Location</th><th>→ Compound</th><th>→ Dose</th><th>→ Timing</th><th>→ Site</th></tr>';
+    const d=await atGet(TBL+'?pageSize=5');
+    let html='<table><tr><th>Date</th><th>Day of Week</th><th>Medication</th><th>Location</th><th>→ Compound</th><th>→ Dose</th><th>→ Timing</th><th>→ Site</th></tr>';
     d.records.forEach(r=>{
       const f=r.fields;
       const p=parseMed(f['Medication']||'');
       const site=canS(f['Location']||'');
-      html+=`<tr><td>${f['Medication']||''}</td><td>${f['Location']||''}</td><td><b>${p.c}</b></td><td>${p.d}</td><td>${p.t}</td><td>${site}</td></tr>`;
+      html+=`<tr><td>${f['Date']||''}</td><td>${f['Day of Week']||''}</td><td>${f['Medication']||''}</td><td>${f['Location']||''}</td><td><b>${p.c}</b></td><td>${p.d}</td><td>${p.t}</td><td>${site}</td></tr>`;
     });
     out(html+'</table>');
   }catch(e){out('<span class="err">'+e.message+'</span>');}
 }
 
-async function runAll(){
+async function runFields(){
   out('Loading all records…');
   document.getElementById('bar-wrap').style.display='';
   document.getElementById('bar').style.background='#2563eb';
   try{
-    const recs=await loadAll();
+    const recs=await loadAll(['Medication','Location']);
     const total=recs.length;
     let done=0,errs=0;
     for(let i=0;i<recs.length;i+=10){
@@ -211,9 +207,10 @@ async function runAll(){
       await sleep(300);
     }
     document.getElementById('bar').style.background=errs?'#f59e0b':'#16a34a';
-    out('<span class="ok">✓ Fields done: '+done+' updated'+(errs?' <span class="err">'+errs+' errors</span>':'')+'</span>');
+    out('<span class="ok">✓ Fields done: '+done+' updated'+(errs?' <span class="err">'+errs+' errors</span>':'')+'</span><br><br>Parseur-Injections now has actual dates + Compound/Dose/Timing/Site. Ready for audit comparison.');
   }catch(e){out('<span class="err">'+e.message+'</span>');}
 }
 
 function out(html){document.getElementById('out').innerHTML=html;}
-</script></body></html>
+</script>
+</body></html>
