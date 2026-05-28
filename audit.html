@@ -769,7 +769,7 @@ function cardHTML(r){
 async function saveField(id,field,value){
   const fields={};fields[field]=value===''?null:value;
   try{
-    const res=await atFetch(LOG.tbl+'/'+id,{method:'PATCH',body:JSON.stringify({fields})});
+    const res=await atFetch(LOG.tbl+'/'+id+'?returnFieldsByFieldId=true',{method:'PATCH',body:JSON.stringify({fields})});
     const i=logRecs.findIndex(r=>r.id===id);
     if(i>=0){logRecs[i]=res;refreshCard(res);}
     flashSaved(id);
