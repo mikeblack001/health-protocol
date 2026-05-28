@@ -563,8 +563,9 @@ async function gridCellClick(date,cmp){
     // Fetch most recent record specifically for this compound
     try{
       // Use {Compound}="name" — standard AT formula with actual field name
-      const q=encodeURIComponent('{Compound}="'+cmp+'"');
-      const d=await atFetch(LOG.tbl+'?filterByFormula='+q+'&sort%5B0%5D%5Bfield%5D='+LOG.date+'&sort%5B0%5D%5Bdirection%5D=desc&returnFieldsByFieldId=true&pageSize=1');
+      // Filter to records BEFORE curDate so we get the last used dose for this date context
+      const beforeFilter=encodeURIComponent('AND({Compound}="'+cmp+'",IS_BEFORE({Date},"'+cmDate+'"))');
+      const d=await atFetch(LOG.tbl+'?filterByFormula='+beforeFilter+'&sort%5B0%5D%5Bfield%5D='+LOG.date+'&sort%5B0%5D%5Bdirection%5D=desc&returnFieldsByFieldId=true&pageSize=1');
       const rec=d.records?.[0];
       if(rec){
         const f=rec.fields;
