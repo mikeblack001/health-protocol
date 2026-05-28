@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html><head><meta charset="UTF-8"><title>Fix Parseur Dates</title>
+<html><head><meta charset="UTF-8"><title>Fix Missing Dates</title>
 <style>
 body{font-family:-apple-system,sans-serif;font-size:14px;padding:30px;max-width:900px;background:#f4f5f7}
 h1{font-size:18px;font-weight:900;margin-bottom:4px}
@@ -9,18 +9,17 @@ p{color:#6b7280;font-size:13px;margin-bottom:20px}
 table{width:100%;border-collapse:collapse;font-size:12px;margin-top:10px}
 th{background:#f0f0f0;padding:7px 10px;text-align:left;font-weight:700;border:1px solid #e2e5ea}
 td{padding:6px 10px;border:1px solid #e2e5ea}
-.ok{color:#166534;font-weight:700}.err{color:#dc2626}
+.ok{color:#166534;font-weight:700}.err{color:#dc2626;font-weight:700}
 #bar-wrap{background:#e2e5ea;border-radius:6px;height:24px;margin-top:12px;display:none}
 #bar{background:#2563eb;height:24px;border-radius:6px;width:0%;font-size:13px;font-weight:700;color:#fff;text-align:center;line-height:24px;min-width:40px;transition:width .1s}
 </style></head><body>
-<h1>Fix Parseur-Injections Dates (Clean Recompute)</h1>
-<p>Recomputes actual date from scratch using <b>Name field</b> (original week-start reference) + Day of Week offset. Ignores the current Date field entirely — fixes multiple-run corruption.</p>
+<h1>Fix Missing Dates — Parseur-Injections</h1>
+<p>Only touches records where Date is blank. Computes date from Name (week-start) + Day of Week. Name field is never changed.</p>
 
-<button class="btn" style="background:#7c3aed;color:#fff" onclick="preview()">Preview 20 Records</button>
-<button class="btn" style="background:#dc2626;color:#fff" onclick="runFix()">Fix All Dates (Recompute from Name)</button>
-<button class="btn" style="background:#16a34a;color:#fff" onclick="fixNames()">Fix Names after</button>
+<button class="btn" style="background:#7c3aed;color:#fff" onclick="preview()">Preview Blank-Date Records</button>
+<button class="btn" style="background:#dc2626;color:#fff" onclick="runFix()">Fix Blank Dates</button>
 
-<div id="out">Click Preview to verify before running.</div>
+<div id="out">Click Preview to see all blank-date records and what date will be assigned.</div>
 <div id="bar-wrap"><div id="bar">0</div></div>
 
 <script>
@@ -30,20 +29,15 @@ const BASE='appmHDG4TGT1xy6R6',TBL='tblCTOGIrF3NjdyTE';
 const DAY_OFF={mon:0,monday:0,tue:1,tues:1,tuesday:1,wed:2,wednesday:2,
   thu:3,thur:3,thurs:3,thursday:3,fri:4,friday:4,sat:5,saturday:5,sun:6,sunday:6};
 
-// Parse the Name field to get the original week-start date
-function parseNameToWeekStart(name){
+function nameToWeekStart(name){
   if(!name)return null;
   const s=String(name).trim();
-  // Skip "Week X" names — handled separately
-  if(/^week\s*\d+$/i.test(s))return null;
-  // M/D/YY or M/D/YYYY
+  if(/^week\s*\d+$/i.test(s))return null; // Week X — needs context
   let m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
   if(m){const y=m[3].length===2?'20'+m[3]:m[3];return y+'-'+m[1].padStart(2,'0')+'-'+m[2].padStart(2,'0');}
-  // M/D (no year — determine from month: Jul-Dec=2025, Jan-Jun=2026)
   m=s.match(/^(\d{1,2})\/(\d{1,2})$/);
   if(m){const mo=parseInt(m[1]),dy=parseInt(m[2]);const yr=mo>=7?2025:2026;
     return yr+'-'+String(mo).padStart(2,'0')+'-'+String(dy).padStart(2,'0');}
-  // Already ISO
   if(/^\d{4}-\d{2}-\d{2}$/.test(s))return s;
   return null;
 }
@@ -51,23 +45,22 @@ function parseNameToWeekStart(name){
 function addDays(iso,n){const d=new Date(iso+'T12:00:00Z');d.setUTCDate(d.getUTCDate()+n);return d.toISOString().substring(0,10);}
 
 function computeDate(name,dow){
-  const ws=parseNameToWeekStart(name);
+  const ws=nameToWeekStart(name);
   if(!ws)return null;
   const off=DAY_OFF[(dow||'').toLowerCase().trim()];
-  if(off===undefined)return ws; // no day info, use week start
-  return addDays(ws,off);
+  return off!==undefined?addDays(ws,off):ws;
 }
 
 function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
 async function atGet(url){const r=await fetch('https://api.airtable.com/v0/'+BASE+'/'+url,{headers:{Authorization:'Bearer '+AT}});const d=await r.json();if(!r.ok)throw new Error(d.error?.message||r.status);return d;}
 async function atPatch(records){const r=await fetch('https://api.airtable.com/v0/'+BASE+'/'+TBL+'?typecast=true',{method:'PATCH',headers:{Authorization:'Bearer '+AT,'Content-Type':'application/json'},body:JSON.stringify({records})});const d=await r.json();if(!r.ok)throw new Error(d.error?.message||r.status);return d;}
 
-async function loadAll(fields){
+async function loadAll(){
   let recs=[],off=null;
-  const fq=fields.map(f=>'fields%5B%5D='+encodeURIComponent(f)).join('&');
   document.getElementById('bar-wrap').style.display='';
   document.getElementById('bar').style.background='#6b7280';
-  do{const d=await atGet(TBL+'?'+fq+'&pageSize=100'+(off?'&offset='+off:''));
+  do{
+    const d=await atGet(TBL+'?fields%5B%5D=Name&fields%5B%5D=Date&fields%5B%5D=Day+of+Week&fields%5B%5D=Compound&pageSize=100'+(off?'&offset='+off:''));
     recs=recs.concat(d.records);off=d.offset;
     document.getElementById('bar').textContent='Loading… '+recs.length;
     document.getElementById('bar').style.width=Math.min(recs.length/16,99)+'%';
@@ -75,78 +68,54 @@ async function loadAll(fields){
   return recs;
 }
 
+let allBlank=[];
+
 async function preview(){
-  out('Loading 20 records…');
+  out('Loading all records to find blank dates…');
   try{
-    const d=await atGet(TBL+'?pageSize=20');
-    let html='<table><tr><th>Name (original)</th><th>Day of Week</th><th>Current Date</th><th>→ Recomputed Date</th><th>Change?</th></tr>';
-    let changes=0,cantFix=0;
-    d.records.forEach(r=>{
+    const recs=await loadAll();
+    allBlank=recs.filter(r=>!r.fields['Date']||String(r.fields['Date']).trim()==='');
+    if(!allBlank.length){out('<span class="ok">✓ No blank-date records found!</span>');return;}
+
+    let canFix=0,cantFix=0;
+    let html=`<b>${allBlank.length} records have no date:</b><table><tr><th>Name (original)</th><th>Day of Week</th><th>Compound</th><th>→ Computed Date</th></tr>`;
+    allBlank.forEach(r=>{
       const f=r.fields;
-      const name=f['Name']||'',dow=f['Day of Week']||'',cur=f['Date']||'';
-      const computed=computeDate(name,dow);
-      const changed=computed&&computed!==cur;
-      if(changed)changes++;
-      if(!computed)cantFix++;
-      html+=`<tr><td>${name||'(blank)'}</td><td>${dow}</td><td>${cur||'(blank)'}</td>`+
-        `<td><b>${computed||'<span class="err">Cannot compute</span>'}</b></td>`+
-        `<td>${changed?'<span class="ok">✓ FIX</span>':computed?'same':'<span class="err">skip</span>'}</td></tr>`;
+      const computed=computeDate(f['Name']||'',f['Day of Week']||'');
+      if(computed)canFix++;else cantFix++;
+      html+=`<tr><td>${f['Name']||'(blank)'}</td><td>${f['Day of Week']||''}</td><td>${f['Compound']||''}</td>`+
+        `<td>${computed?'<b>'+computed+'</b>':'<span class="err">Cannot compute — delete?</span>'}</td></tr>`;
     });
-    html+=`</table><br><b>${changes} of 20 need fixing, ${cantFix} cannot be computed (Week X or blank Name)</b>`;
+    html+=`</table><br><b class="ok">${canFix} can be fixed</b>${cantFix?' &nbsp; <span class="err">'+cantFix+' cannot (blank Name — delete these?)</span>':''}`;
     out(html);
+    document.getElementById('bar').style.background='#16a34a';
+    document.getElementById('bar').style.width='100%';
+    document.getElementById('bar').textContent=allBlank.length+' blank-date records found';
   }catch(e){out('<span class="err">'+e.message+'</span>');}
 }
 
 async function runFix(){
-  out('Loading all records…');
-  try{
-    const recs=await loadAll(['Name','Day of Week','Date']);
-    const total=recs.length;
-    document.getElementById('bar').style.background='#dc2626';
-    let fixed=0,skipped=0,errs=0;
-    for(let i=0;i<recs.length;i+=10){
-      const batch=recs.slice(i,i+10);
-      const updates=[];
-      batch.forEach(r=>{
-        const f=r.fields;
-        const computed=computeDate(f['Name']||'',f['Day of Week']||'');
-        if(computed&&computed!==f['Date']) updates.push({id:r.id,fields:{Date:computed}});
-        else skipped++;
-      });
-      if(updates.length){try{await atPatch(updates);fixed+=updates.length;}catch(e){errs+=updates.length;}}
-      const pct=Math.round((i+batch.length)/total*100);
-      document.getElementById('bar').style.width=Math.max(pct,2)+'%';
-      document.getElementById('bar').textContent=fixed+' fixed / '+total;
-      await sleep(300);
-    }
-    document.getElementById('bar').style.background=errs?'#f59e0b':'#16a34a';
-    out(`<span class="ok">✓ Done: ${fixed} dates recomputed from Name field, ${skipped} unchanged, ${errs>0?errs+' errors':''}</span><br>Now click <b>Fix Names</b> to update the Name display field.`);
-  }catch(e){out('<span class="err">'+e.message+'</span>');}
-}
+  if(!allBlank.length){alert('Run Preview first');return;}
+  const fixable=allBlank.filter(r=>computeDate(r.fields['Name']||'',r.fields['Day of Week']||''));
+  if(!fixable.length){out('<span class="err">No fixable records found</span>');return;}
+  if(!confirm('Fix dates for '+fixable.length+' records? Name field will NOT be changed.'))return;
 
-async function fixNames(){
-  out('Fixing Name fields…');
-  try{
-    const recs=await loadAll(['Name','Compound','Medication','Date','Day of Week']);
-    document.getElementById('bar').style.background='#16a34a';
-    let done=0;
-    for(let i=0;i<recs.length;i+=10){
-      const batch=recs.slice(i,i+10);
-      const updates=batch.map(r=>{
-        const f=r.fields;
-        const cmp=f['Compound']||'';
-        const date=f['Date']||'';
-        const dow=f['Day of Week']||'';
-        const name=cmp&&date?cmp+' | '+date+(dow?' ('+dow+')':''):cmp||date||'Unknown';
-        return{id:r.id,fields:{Name:name}};
-      });
-      try{await atPatch(updates);done+=updates.length;}catch(e){}
-      document.getElementById('bar').style.width=Math.max(Math.round((i+batch.length)/recs.length*100),2)+'%';
-      document.getElementById('bar').textContent=done+'/'+recs.length;
-      await sleep(300);
-    }
-    out(`<span class="ok">✓ ${done} Name fields updated — e.g. "Tesamorelin | 2025-07-28 (Mon)"</span>`);
-  }catch(e){out('<span class="err">'+e.message+'</span>');}
+  document.getElementById('bar').style.background='#2563eb';
+  let done=0,errs=0;
+  for(let i=0;i<fixable.length;i+=10){
+    const batch=fixable.slice(i,i+10);
+    const updates=batch.map(r=>({
+      id:r.id,
+      fields:{Date:computeDate(r.fields['Name']||'',r.fields['Day of Week']||'')}
+    }));
+    try{await atPatch(updates);done+=updates.length;}
+    catch(e){errs+=batch.length;}
+    document.getElementById('bar').style.width=Math.max(Math.round((i+batch.length)/fixable.length*100),2)+'%';
+    document.getElementById('bar').textContent=done+'/'+fixable.length;
+    await sleep(300);
+  }
+  document.getElementById('bar').style.background=errs?'#f59e0b':'#16a34a';
+  out(`<span class="ok">✓ ${done} blank dates filled in.</span>${errs?' <span class="err">'+errs+' errors</span>':''}${allBlank.length-fixable.length>0?'<br><span class="err">'+(allBlank.length-fixable.length)+' records still have no date — blank Name field, consider deleting.</span>':''}`);
 }
 
 function out(h){document.getElementById('out').innerHTML=h;}
