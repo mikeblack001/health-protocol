@@ -471,6 +471,8 @@ function initGridDrag(){
       tbody.querySelectorAll('.wg-drop-above').forEach(r=>r.classList.remove('wg-drop-above'));
       const order=[...tbody.querySelectorAll('tr[data-cmp]')].map(r=>r.dataset.cmp);
       saveRowOrder(order);src=null;
+      // Re-render records in same compound order
+      renderRecordsOrdered(order);
     });
     row.addEventListener('dragover',e=>{
       e.preventDefault();
@@ -522,15 +524,15 @@ async function gridCellClick(date,cmp){
   document.getElementById('cm-timing').selectedIndex=0;
   document.getElementById('cm-existing').innerHTML='<i>Loading…</i>';
   document.getElementById('cm').style.display='flex';
-  // If same as curDate, use cached logRecs; otherwise fetch from AT
+  // Use cached logRecs for current date; otherwise fetch all for that date and filter
   let ex=[];
   if(date===curDate){
-    ex=logRecs.filter(r=>r.fields[LOG.compound]===cmp);
+    ex=logRecs.filter(r=>(r.fields[LOG.compound]||'')===(cmp));
   } else {
     try{
-      const q=encodeURIComponent(`AND(IS_SAME({${LOG.date}},"${date}","day"),{${LOG.compound}}="${cmp}")`);
+      const q=encodeURIComponent(`IS_SAME({${LOG.date}},"${date}","day")`);
       const d=await atFetch(LOG.tbl+'?filterByFormula='+q+'&returnFieldsByFieldId=true&pageSize=100');
-      ex=d.records||[];
+      ex=(d.records||[]).filter(r=>(r.fields[LOG.compound]||'')===cmp);
     }catch(e){ex=[];}
   }
   document.getElementById('cm-existing').innerHTML=ex.length
@@ -670,6 +672,15 @@ async function toggleDateVerified(){
 }
 
 // ── RENDER ────────────────────────────────────────────────────────────
+function renderRecordsOrdered(order){
+  if(!logRecs.length)return;
+  const sorted=[...logRecs].sort((a,b)=>{
+    const ai=order.indexOf(a.fields[LOG.compound]||'');
+    const bi=order.indexOf(b.fields[LOG.compound]||'');
+    return (ai===-1?999:ai)-(bi===-1?999:bi);
+  });
+  document.getElementById('records').innerHTML=sorted.map(r=>cardHTML(r)).join('');
+}
 function renderRecords(){
   const el=document.getElementById('records');
   if(!logRecs.length){el.innerHTML='<div class="empty">No records for '+curDate+'</div>';return;}
