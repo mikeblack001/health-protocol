@@ -33,7 +33,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
 .pb:hover{background:#1d4ed8}
 .pg{background:#374151;color:#fff}.pg:hover{background:#1f2937}
 #pp-msg{font-size:12px;color:#9ca3af}
-#pp-area{flex:1;overflow-y:auto;background:#cbd5e1;padding:6px}
+#pp-area{flex:1;overflow:auto;background:#cbd5e1;padding:6px}
 #pp-canvas{width:100%;display:none;box-shadow:0 2px 8px rgba(0,0,0,.3)}
 #pp-nav{display:flex;align-items:center;padding:6px 8px;border-top:2px solid #2563eb;background:#fff;flex-shrink:0;gap:4px}
 #pp-nav button{padding:6px 14px;border:none;border-radius:5px;cursor:pointer;font-size:13px;font-weight:700;background:#2563eb;color:#fff}
@@ -130,6 +130,12 @@ select.fe{cursor:pointer}
       <input id="pp-jp" type="number" min="1" onchange="pgGo(+this.value)">
       <span id="pp-pg">— / —</span>
       <button id="btn-next" onclick="pdfNext()" disabled>▶</button>
+      <span style="margin-left:6px;border-left:1px solid #d1d5db;padding-left:6px;display:flex;align-items:center;gap:4px">
+        <button onclick="pdfZoom(-1)" style="padding:4px 8px;font-size:13px;font-weight:700;background:#e2e5ea;color:#374151;border:none;border-radius:4px;cursor:pointer">−</button>
+        <span id="pp-zoom-lbl" style="font-size:11px;font-weight:700;color:#374151;min-width:36px;text-align:center">100%</span>
+        <button onclick="pdfZoom(1)" style="padding:4px 8px;font-size:13px;font-weight:700;background:#e2e5ea;color:#374151;border:none;border-radius:4px;cursor:pointer">+</button>
+        <button onclick="pdfZoom(0)" title="Fit width" style="padding:4px 7px;font-size:11px;background:#e2e5ea;color:#374151;border:none;border-radius:4px;cursor:pointer">⊡</button>
+      </span>
     </div>
   </div>
 
@@ -257,8 +263,9 @@ async function pdfPage(n){
   const vp=page.getViewport({scale:2.0});
   canvas.width=vp.width;canvas.height=vp.height;
   canvas.style.display='block';
-  canvas.style.width='100%';
+  canvas.style.width=(window.pdfZoom*100)+'%';
   canvas.style.height='auto';
+  document.getElementById('pp-zoom-lbl').textContent=Math.round(window.pdfZoom*100)+'%';
   area.scrollTop=0;
   await page.render({canvasContext:canvas.getContext('2d'),viewport:vp}).promise;
   document.getElementById('pp-pg').textContent=n+' / '+pdfDoc.numPages;
@@ -269,6 +276,21 @@ async function pdfPage(n){
 function pdfPrev(){pdfPage(window.pg-1);}
 function pdfNext(){pdfPage(window.pg+1);}
 function pgGo(n){pdfPage(n);}
+window.pdfZoom=1.0;
+function pdfZoom(dir){
+  const canvas=document.getElementById('pp-canvas');
+  if(!canvas||canvas.style.display==='none')return;
+  if(dir===0){window.pdfZoom=1.0;}
+  else{
+    const steps=[0.5,0.75,1.0,1.25,1.5,2.0,2.5,3.0];
+    const idx=steps.findIndex(s=>Math.abs(s-window.pdfZoom)<0.01);
+    const ni=Math.max(0,Math.min(steps.length-1,(idx===-1?2:idx)+dir));
+    window.pdfZoom=steps[ni];
+  }
+  canvas.style.width=(window.pdfZoom*100)+'%';
+  canvas.style.height='auto';
+  document.getElementById('pp-zoom-lbl').textContent=Math.round(window.pdfZoom*100)+'%';
+}
 function pmsg(m){document.getElementById('pp-msg').textContent=m;}
 
 // ── AT ────────────────────────────────────────────────────────────────
