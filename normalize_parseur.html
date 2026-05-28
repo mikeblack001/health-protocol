@@ -1,21 +1,27 @@
 <!DOCTYPE html>
-<html><head><meta charset="UTF-8"><title>Normalize</title>
+<html><head><meta charset="UTF-8"><title>Normalize Parseur</title>
 <style>
 body{font-family:-apple-system,sans-serif;font-size:14px;padding:30px;max-width:900px;background:#f4f5f7}
-h1{font-size:18px;font-weight:900;margin-bottom:16px}
-.btn{display:inline-block;padding:12px 26px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;border:none;margin-right:10px;margin-bottom:10px}
-#out{background:#fff;border:2px solid #e2e5ea;border-radius:10px;padding:16px;margin-top:16px;font-size:13px;line-height:1.8;min-height:60px}
+h1{font-size:18px;font-weight:900;margin-bottom:4px}
+p{color:#6b7280;font-size:13px;margin-bottom:20px}
+.btn{display:inline-block;padding:11px 22px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;border:none;margin-right:8px;margin-bottom:8px}
+#out{background:#fff;border:2px solid #e2e5ea;border-radius:10px;padding:16px;margin-top:16px;font-size:13px;line-height:1.8;min-height:50px}
 table{width:100%;border-collapse:collapse;font-size:12px;margin-top:10px}
 th{background:#f0f0f0;padding:7px 10px;text-align:left;font-weight:700;border:1px solid #e2e5ea}
-td{padding:6px 10px;border:1px solid #e2e5ea;vertical-align:top}
+td{padding:6px 10px;border:1px solid #e2e5ea}
+.ok{color:#166534;font-weight:700}.err{color:#dc2626;font-weight:700}.warn{color:#92400e}
 #bar-wrap{background:#e2e5ea;border-radius:6px;height:24px;margin-top:12px;display:none}
 #bar{background:#2563eb;height:24px;border-radius:6px;width:0%;font-size:13px;font-weight:700;color:#fff;text-align:center;line-height:24px;min-width:40px;transition:width .1s}
 </style></head><body>
 <h1>Normalize Parseur-Injections</h1>
-<button class="btn" style="background:#2563eb;color:#fff" onclick="inspect()">Inspect 5 Records</button>
-<button class="btn" style="background:#16a34a;color:#fff" onclick="testOne()">Test 1 Record</button>
-<button class="btn" style="background:#dc2626;color:#fff" onclick="runAll()">Run All</button>
-<div id="out">Click Inspect first.</div>
+<p>Step 1: Fix Dates &nbsp;→&nbsp; Step 2: Populate Compound / Dose / Timing / Site</p>
+
+<button class="btn" style="background:#7c3aed;color:#fff" onclick="inspectDates()">🔍 Inspect Dates</button>
+<button class="btn" style="background:#dc2626;color:#fff" onclick="fixDates()">Fix Dates</button>
+<button class="btn" style="background:#2563eb;color:#fff" onclick="inspect()">Inspect Fields</button>
+<button class="btn" style="background:#16a34a;color:#fff" onclick="runAll()">Run All — Fields</button>
+
+<div id="out">Click Inspect Dates first.</div>
 <div id="bar-wrap"><div id="bar">0</div></div>
 
 <script>
@@ -30,17 +36,16 @@ const CM={'tesamorelin':'Tesamorelin','lipominomix':'LipoMinoMix','lipo mino mix
 'bpc-157':'BPC-157','tb-500':'TB-500','dsip':'DSIP','kpv':'KPV','semax':'Semax','selank':'Selank',
 'retatrutide':'Retatrutide','tirzepatide':'Tirzepatide','epitalon':'Epitalon',
 'anavar':'Anavar (Oxandrolone)','oxandrolone':'Anavar (Oxandrolone)',
-'anavar (oxandrolone)':'Anavar (Oxandrolone)',
-'winstrol':'Winstrol (Stanozolol)','stanozolol':'Winstrol (Stanozolol)',
-'stanzalol':'Winstrol (Stanozolol)','stanzalol (winstrol)':'Winstrol (Stanozolol)',
-'winstrol (stanozolol)':'Winstrol (Stanozolol)',
+'anavar (oxandrolone)':'Anavar (Oxandrolone)','winstrol':'Winstrol (Stanozolol)',
+'stanozolol':'Winstrol (Stanozolol)','stanzalol':'Winstrol (Stanozolol)',
+'stanzalol (winstrol)':'Winstrol (Stanozolol)','winstrol (stanozolol)':'Winstrol (Stanozolol)',
 'cagrilintide':'Cagrilintide','mots-c':'Mots-C','melanotan':'Melanotan II (MT2)'};
 
 function canC(r){return CM[r.toLowerCase().trim()]||r.trim();}
 function canT(t){return{morning:'Morning',night:'Night',evening:'Evening',daily:'Daily',am:'Morning',pm:'Night'}[t.toLowerCase()]||t;}
 function canS(l){if(!l)return'';return{l:'L',r:'R',left:'L',right:'R',pill:'Pill',x:'X',nasal:'Nasal',abd:'Abd',s:'S'}[l.toLowerCase().trim()]||l.trim();}
 
-function parse(s){
+function parseMed(s){
   if(!s)return{c:'',d:'',t:''};s=s.trim();
   let m=s.match(/^(.+?)\s*-\s*(.+?)\s*\((\w+)\)\s*$/i);
   if(m)return{c:canC(m[1]),d:m[2].trim(),t:canT(m[3])};
@@ -51,103 +56,164 @@ function parse(s){
   return{c:canC(s),d:'',t:''};
 }
 
-function out(html){document.getElementById('out').innerHTML=html;}
-function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+// Date correction logic
+// Name field contains the raw date string from Parseur: "8/18", "7/28/25", "2/24/2026" etc
+// Rule: no year → determine from value. If M/D would be ≤ May 28 2026 looking backwards, use 2025.
+// More precisely: injection data runs Jul 2025 - May 2026. Partial dates (no year) are 2025 if month >= 7, else 2026.
+function correctDate(name, existingDate) {
+  if (!name) return null;
+  const s = String(name).trim();
 
+  // Already ISO: "2025-07-28" — keep as-is
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+
+  // Full date with year: "7/28/25" or "7/28/2025" or "2/24/2026"
+  const full = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+  if (full) {
+    const m=full[1].padStart(2,'0'), d=full[2].padStart(2,'0');
+    let y=full[3]; if(y.length===2) y='20'+y;
+    return y+'-'+m+'-'+d;
+  }
+
+  // Partial date no year: "8/18", "8/4", "11/3" etc
+  const partial = s.match(/^(\d{1,2})\/(\d{1,2})$/);
+  if (partial) {
+    const mo=parseInt(partial[1]), dy=parseInt(partial[2]);
+    // Injection data: Jul 2025 onward. Month 7-12 = 2025, Month 1-5 = 2026
+    const yr = mo >= 7 ? 2025 : 2026;
+    return yr+'-'+String(mo).padStart(2,'0')+'-'+String(dy).padStart(2,'0');
+  }
+
+  return null; // can't determine
+}
+
+function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
 async function atGet(url){
   const r=await fetch(url,{headers:{Authorization:'Bearer '+AT}});
   const d=await r.json();if(!r.ok)throw new Error(d.error?.message||r.status);return d;
 }
-
-// PATCH using field NAMES (not IDs) with typecast=true
 async function atPatch(records){
   const r=await fetch('https://api.airtable.com/v0/'+BASE+'/'+TBL+'?typecast=true',{
-    method:'PATCH',
-    headers:{Authorization:'Bearer '+AT,'Content-Type':'application/json'},
-    body:JSON.stringify({records, returnFieldsByFieldId:false})
+    method:'PATCH',headers:{Authorization:'Bearer '+AT,'Content-Type':'application/json'},
+    body:JSON.stringify({records})
   });
-  const d=await r.json();
-  if(!r.ok)throw new Error(d.error?.message||r.status);
-  return d;
+  const d=await r.json();if(!r.ok)throw new Error(d.error?.message||r.status);return d;
 }
 
-function buildFields(f){
-  const med=f['Medication']||f['medication']||'';
-  const loc=f['Location']||f['location']||'';
-  const p=parse(med);
-  const site=canS(loc);
-  const fields={};
-  // Use FIELD NAMES not IDs
-  if(p.c) fields['Compound']=p.c;
-  if(p.d) fields['Dose']=p.d;
-  if(p.t) fields['Timing']=p.t;
-  if(site) fields['Site']=site;
-  return fields;
+async function loadAll(){
+  let recs=[],off=null;
+  do{
+    const d=await atGet('https://api.airtable.com/v0/'+BASE+'/'+TBL+'?pageSize=100'+(off?'&offset='+off:''));
+    recs=recs.concat(d.records);off=d.offset;
+    out('Loading… '+recs.length);
+  }while(off);
+  return recs;
+}
+
+async function inspectDates(){
+  out('Loading 20 records…');
+  try{
+    const d=await atGet('https://api.airtable.com/v0/'+BASE+'/'+TBL+'?pageSize=20');
+    let html='<table><tr><th>Name</th><th>Current Date</th><th>→ Corrected Date</th><th>Change?</th></tr>';
+    let changes=0;
+    d.records.forEach(r=>{
+      const f=r.fields;
+      const name=f['Name']||'';
+      const cur=f['Date']||'';
+      const fix=correctDate(name,cur);
+      const changed=fix&&fix!==cur;
+      if(changed)changes++;
+      html+=`<tr><td>${name}</td><td>${cur}</td><td><b>${fix||'(no change)'}</b></td><td>${changed?'<span class="warn">✓ FIX</span>':'same'}</td></tr>`;
+    });
+    html+='</table><br><b>'+changes+' of 20 need fixing</b>';
+    out(html);
+  }catch(e){out('<span class="err">'+e.message+'</span>');}
+}
+
+async function fixDates(){
+  out('Loading all records for date fix…');
+  document.getElementById('bar-wrap').style.display='';
+  document.getElementById('bar').style.background='#7c3aed';
+  try{
+    const recs=await loadAll();
+    const total=recs.length;
+    let fixed=0,skipped=0,errs=0;
+
+    for(let i=0;i<recs.length;i+=10){
+      const batch=recs.slice(i,i+10);
+      const updates=[];
+      batch.forEach(r=>{
+        const f=r.fields;
+        const name=f['Name']||'';
+        const cur=f['Date']||'';
+        const fix=correctDate(name,cur);
+        if(fix&&fix!==cur){
+          updates.push({id:r.id,fields:{Date:fix}});
+        } else skipped++;
+      });
+      if(updates.length){
+        try{await atPatch(updates);fixed+=updates.length;}
+        catch(e){errs+=updates.length;}
+      }
+      const pct=Math.round((i+batch.length)/total*100);
+      document.getElementById('bar').style.width=Math.max(pct,2)+'%';
+      document.getElementById('bar').textContent=fixed+' fixed / '+total;
+      await sleep(300);
+    }
+    document.getElementById('bar').style.background='#16a34a';
+    out('<span class="ok">✓ Dates fixed: '+fixed+' updated, '+skipped+' already correct'+(errs?' <span class="err">'+errs+' errors</span>':'')+'</span>');
+  }catch(e){out('<span class="err">'+e.message+'</span>');}
 }
 
 async function inspect(){
-  out('Loading…');
+  out('Loading 5 records…');
   try{
     const d=await atGet('https://api.airtable.com/v0/'+BASE+'/'+TBL+'?pageSize=5');
-    let html='<b>Fields: </b><code>'+Object.keys(d.records[0]?.fields||{}).join(', ')+'</code>';
-    html+='<table><tr><th>Medication</th><th>Location</th><th>→ Compound</th><th>→ Dose</th><th>→ Timing</th><th>→ Site</th></tr>';
+    let html='<table><tr><th>Medication</th><th>Location</th><th>→ Compound</th><th>→ Dose</th><th>→ Timing</th><th>→ Site</th></tr>';
     d.records.forEach(r=>{
-      const f=buildFields(r.fields);
-      const med=r.fields['Medication']||'';
-      const loc=r.fields['Location']||'';
-      html+=`<tr><td>${med}</td><td>${loc}</td><td><b>${f.Compound||''}</b></td><td>${f.Dose||''}</td><td>${f.Timing||''}</td><td>${f.Site||''}</td></tr>`;
+      const f=r.fields;
+      const p=parseMed(f['Medication']||'');
+      const site=canS(f['Location']||'');
+      html+=`<tr><td>${f['Medication']||''}</td><td>${f['Location']||''}</td><td><b>${p.c}</b></td><td>${p.d}</td><td>${p.t}</td><td>${site}</td></tr>`;
     });
-    html+='</table>';
-    out(html);
-  }catch(e){out('<b style="color:red">'+e.message+'</b>');}
-}
-
-async function testOne(){
-  out('Testing single record update…');
-  try{
-    const d=await atGet('https://api.airtable.com/v0/'+BASE+'/'+TBL+'?pageSize=1');
-    const r=d.records[0];
-    const fields=buildFields(r.fields);
-    out('Record ID: '+r.id+'<br>Will write: '+JSON.stringify(fields));
-    const res=await atPatch([{id:r.id,fields}]);
-    out('<b style="color:green">✓ PATCH succeeded!</b><br>Response: <code>'+JSON.stringify(res.records?.[0]?.fields,null,2)+'</code>');
-  }catch(e){out('<b style="color:red">PATCH failed: '+e.message+'</b>');}
+    out(html+'</table>');
+  }catch(e){out('<span class="err">'+e.message+'</span>');}
 }
 
 async function runAll(){
   out('Loading all records…');
   document.getElementById('bar-wrap').style.display='';
+  document.getElementById('bar').style.background='#2563eb';
   try{
-    let recs=[],off=null;
-    do{
-      const d=await atGet('https://api.airtable.com/v0/'+BASE+'/'+TBL+'?pageSize=100'+(off?'&offset='+off:''));
-      recs=recs.concat(d.records);off=d.offset;
-      out('Loading… '+recs.length);
-    }while(off);
-
+    const recs=await loadAll();
     const total=recs.length;
     let done=0,errs=0;
-
     for(let i=0;i<recs.length;i+=10){
       const batch=recs.slice(i,i+10);
-      const updates=batch.map(r=>({id:r.id,fields:buildFields(r.fields)}))
-                         .filter(u=>Object.keys(u.fields).length>0);
+      const updates=batch.map(r=>{
+        const f=r.fields;
+        const p=parseMed(f['Medication']||'');
+        const site=canS(f['Location']||'');
+        const fields={};
+        if(p.c)fields['Compound']=p.c;
+        if(p.d)fields['Dose']=p.d;
+        if(p.t)fields['Timing']=p.t;
+        if(site)fields['Site']=site;
+        return{id:r.id,fields};
+      }).filter(u=>Object.keys(u.fields).length>0);
       if(updates.length){
-        try{
-          await atPatch(updates);
-          done+=updates.length;
-        }catch(e){
-          errs+=batch.length;
-          out('Batch error: '+e.message);
-        }
+        try{await atPatch(updates);done+=updates.length;}
+        catch(e){errs+=batch.length;}
       }
       const pct=Math.round((i+batch.length)/total*100);
-      document.getElementById('bar').style.width=Math.max(pct,3)+'%';
+      document.getElementById('bar').style.width=Math.max(pct,2)+'%';
       document.getElementById('bar').textContent=done+'/'+total;
       await sleep(300);
     }
-    out('<b style="color:'+(errs?'orange':'green')+'">Done: '+done+' updated, '+errs+' errors</b>');
     document.getElementById('bar').style.background=errs?'#f59e0b':'#16a34a';
-  }catch(e){out('<b style="color:red">Fatal: '+e.message+'</b>');}
+    out('<span class="ok">✓ Fields done: '+done+' updated'+(errs?' <span class="err">'+errs+' errors</span>':'')+'</span>');
+  }catch(e){out('<span class="err">'+e.message+'</span>');}
 }
+
+function out(html){document.getElementById('out').innerHTML=html;}
 </script></body></html>
