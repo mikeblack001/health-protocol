@@ -373,8 +373,9 @@ async function loadWeekGrid(date){
     const f=r.fields,cmp=f[LOG.compound]||'',day=(f[LOG.date]||'').slice(0,10),site=f[LOG.site]||'',timing=f[LOG.timing]||'';
     if(!cmp||!day)return;
     if(!data[cmp])data[cmp]={timing,days:{}};
-    if(!data[cmp].days[day])data[cmp].days[day]=[];
-    if(site)data[cmp].days[day].push(site);
+    if(!data[cmp].days[day])data[cmp].days[day]={sites:[],n:0};
+    data[cmp].days[day].n++;
+    if(site)data[cmp].days[day].sites.push(site);
   });
 
   // Apply saved order, append new compounds at bottom
@@ -396,11 +397,12 @@ async function loadWeekGrid(date){
     const badge=timing?`<span style="font-size:9px;font-weight:600;color:#9ca3af;margin-left:4px">${timing.slice(0,3).toUpperCase()}</span>`:'';
     h+=`<tr draggable="true" data-cmp="${esc(cmp)}"><td><span class="drag-handle">⠿</span>${esc(cmp)}${badge}</td>`;
     days.forEach(d=>{
-      const sites=dayMap[d]||[];
-      if(!sites.length){h+=`<td></td>`;}
+      const cell=dayMap[d];
+      if(!cell||!cell.n){h+=`<td></td>`;}
+      else if(!cell.sites.length){h+=`<td style="background:#f3f4f6;color:#9ca3af;font-size:14px;text-align:center">·</td>`;}
       else{
-        const sc=siteColor(sites[0]);
-        h+=`<td style="background:${sc.bg};color:${sc.fg};font-weight:800;font-size:11px">${esc(sites.join('/'))}</td>`;
+        const sc=siteColor(cell.sites[0]);
+        h+=`<td style="background:${sc.bg};color:${sc.fg};font-weight:800;font-size:11px">${esc(cell.sites.join('/'))}</td>`;
       }
     });
     h+=`</tr>`;
@@ -707,6 +709,13 @@ window.onload=()=>{
   initAuth();
   document.getElementById('pp-id').value=LS.get('pdf')||'1Yk3aWqXPWRpFWCvXYasWoo9hA202KQG6';
   loadDates();
+  // Wheel at top/bottom auto-navigates pages
+  document.getElementById('pp-area').addEventListener('wheel',function(e){
+    const atBottom=this.scrollTop+this.clientHeight>=this.scrollHeight-4;
+    const atTop=this.scrollTop<=0;
+    if(e.deltaY>0&&atBottom&&pdfDoc&&window.pg<pdfDoc.numPages){e.preventDefault();pdfNext();}
+    else if(e.deltaY<0&&atTop&&pdfDoc&&window.pg>1){e.preventDefault();pdfPrev();}
+  },{passive:false});
 };
 </script>
 </body>
