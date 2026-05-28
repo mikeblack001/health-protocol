@@ -21,6 +21,7 @@ select{padding:3px 6px;border:1px solid #d1d5db;border-radius:4px;font-size:12px
 <button class="btn" style="background:#2563eb;color:#fff" onclick="run()">Run Analysis</button>
 <button class="btn" style="background:#7c3aed;color:#fff" onclick="fixNano()">Fix Nano → Deca</button>
 <button class="btn" style="background:#6b7280;color:#fff" onclick="deleteNonInjections()">🗑 Delete Weights/Training/Cardio/Sauna</button>
+<button class="btn" style="background:#f59e0b;color:#fff" onclick="fixCompoundNames()">Fix Compound Names</button>
 <button class="btn" style="background:#16a34a;color:#fff" id="apply-btn" onclick="applyAll()" style="display:none">Apply Assignments</button>
 <button class="btn" style="background:#dc2626;color:#fff" id="del-dup-btn" onclick="deleteDups()" style="display:none">Delete Duplicates</button>
 <div id="bar-wrap"><div id="bar">Loading…</div></div>
@@ -117,6 +118,51 @@ function out2(h){
   let el=document.getElementById('out2');
   if(!el){el=document.createElement('div');el.id='out2';el.style='background:#fff;border:1px solid #e2e5ea;border-radius:8px;padding:12px;margin-bottom:12px;font-size:12px';document.getElementById('out').before(el);}
   el.innerHTML=h;
+}
+
+async function fixCompoundNames(){
+  // Canonical map for non-canonical compound names still in the table
+  const FIX={
+    'BPC':'BPC-157','BPC157':'BPC-157',
+    'CJC':'CJC-1295','CJC 1295':'CJC-1295',
+    'CJC No DAC':'CJC-1295 No DAC','CJC-No-DAC':'CJC-1295 No DAC',
+    'SS 31':'SS-31','SS31':'SS-31',
+    'NAD':'NAD+',
+    'Tesa':'Tesamorelin',
+    'Ipa':'Ipamorelin',
+    'Deca':'Deca (Nandrolone)','Deca (Nano)':'Deca (Nandrolone)','Nandrolone':'Deca (Nandrolone)',
+    'GHK':'GHK-Cu',
+    'TB500':'TB-500','TB 500':'TB-500',
+    'Lipo':'LipoMinoMix','Lipo Mino Mix':'LipoMinoMix',
+    'Anavar':'Anavar (Oxandrolone)',
+    'Winstrol':'Winstrol (Stanozolol)','Stanozolol':'Winstrol (Stanozolol)',
+    'Mots C':'Mots-C','MOTS-C':'Mots-C',
+    'Tesamorelin (Night)':'Tesamorelin','Tesamorelin (Morning)':'Tesamorelin',
+    'TRT (Testosterone)':'Testosterone','TRT':'Testosterone'
+  };
+  out2('Scanning compound names…');
+  let recs=[],off=null;
+  do{
+    const d=await atGet(PAR+'?fields%5B%5D=Compound&pageSize=100'+(off?'&offset='+off:''));
+    recs=recs.concat(d.records);off=d.offset;
+  }while(off);
+  const toFix=recs.filter(r=>{
+    const c=r.fields['Compound']||'';
+    return FIX[c]!==undefined;
+  });
+  if(!toFix.length){out2('<span class="ok">✓ All compound names are canonical.</span>');return;}
+  const preview=[...new Set(toFix.map(r=>r.fields['Compound']+'→'+FIX[r.fields['Compound']]))].join(', ');
+  out2(`Found <b>${toFix.length} records</b> to rename:<br>${preview}<br><br>Fixing…`);
+  let done=0;
+  for(let i=0;i<toFix.length;i+=10){
+    const batch=toFix.slice(i,i+10);
+    try{
+      await atPatch(PAR,batch.map(r=>({id:r.id,fields:{Compound:FIX[r.fields['Compound']]}})));
+      done+=batch.length;
+    }catch(e){out2('Error: '+e.message);return;}
+    await sleep(200);
+  }
+  out2(`<span class="ok">✓ Fixed ${done} compound names. Run Analysis to recheck duplicates.</span>`);
 }
 
 async function deleteNonInjections(){
