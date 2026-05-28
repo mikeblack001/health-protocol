@@ -713,7 +713,7 @@ async function toggleDateVerified(){
 // ── RENDER ────────────────────────────────────────────────────────────
 function renderRecordsOrdered(order){
   if(!logRecs.length)return;
-  const sorted=[...logRecs].sort((a,b)=>{
+  const sorted=[...logRecs].filter(r=>r.fields[LOG.compound]).sort((a,b)=>{
     const ai=order.indexOf(a.fields[LOG.compound]||'');
     const bi=order.indexOf(b.fields[LOG.compound]||'');
     return (ai===-1?999:ai)-(bi===-1?999:bi);
@@ -723,7 +723,9 @@ function renderRecordsOrdered(order){
 function renderRecords(){
   const el=document.getElementById('records');
   if(!logRecs.length){el.innerHTML='<div class="empty">No records for '+curDate+'</div>';return;}
-  el.innerHTML=logRecs.map(r=>cardHTML(r)).join('');
+  const validRecs=logRecs.filter(r=>r.fields[LOG.compound]);
+  if(!validRecs.length){el.innerHTML='<div class="empty">No records for '+curDate+'</div>';return;}
+  el.innerHTML=validRecs.map(r=>cardHTML(r)).join('');
 }
 
 function cardHTML(r){
@@ -768,7 +770,7 @@ async function saveField(id,field,value){
     const i=logRecs.findIndex(r=>r.id===id);
     if(i>=0){logRecs[i]=res;refreshCard(res);}
     flashSaved(id);
-    loadWeekGrid(curDate);
+    await loadWeekGrid(curDate);
   }catch(e){setSt('Save error: '+e.message);}
 }
 
