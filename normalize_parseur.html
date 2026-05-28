@@ -123,7 +123,16 @@ function out2(h){
 async function fixCompoundNames(){
   // Canonical map for non-canonical compound names still in the table
   const FIX={
-    'BPC':'BPC-157','BPC157':'BPC-157','BPC 157':'BPC-157','S IPA':'Ipamorelin','S Ipa':'Ipamorelin','S ipa':'Ipamorelin',
+    'BPC':'BPC-157','BPC157':'BPC-157','BPC 157':'BPC-157','BPC 157':'BPC-157',
+    '10 BPC':'BPC-157','16 BPC':'BPC-157','10BPC':'BPC-157',
+    'S IPA':'Ipamorelin','S Ipa':'Ipamorelin','S ipa':'Ipamorelin','IPA':'Ipamorelin','Ipa':'Ipamorelin',
+    '2.5 CSC':'CJC-1295 No DAC','2.5CSC':'CJC-1295 No DAC','2.5 CJC':'CJC-1295 No DAC','2,5':'CJC-1295 No DAC',
+    'Reta':'Retatrutide','Retatrutide':'Retatrutide',
+    'Melanoten II':'Melanotan II (MT2)','Melanotan II':'Melanotan II (MT2)','Melanoten':'Melanotan II (MT2)',
+    'Stanozolah':'Winstrol (Stanozolol)','Stanazolol':'Winstrol (Stanozolol)',
+    'Moto-C':'Mots-C','Moto C':'Mots-C',
+    'Tesamorelin (Night)':'Tesamorelin','Tesamorelin (Morning)':'Tesamorelin',
+    'TRT (Testosterone)':'Testosterone','TRT':'Testosterone',
     'CJC':'CJC-1295','CJC 1295':'CJC-1295',
     'CJC No DAC':'CJC-1295 No DAC','CJC-No-DAC':'CJC-1295 No DAC',
     'SS 31':'SS-31','SS31':'SS-31',
@@ -166,7 +175,7 @@ async function fixCompoundNames(){
 }
 
 async function deleteNonInjections(){
-  const JUNK=['weight','training','cardio','sauna','tanning','exercise','workout','gym'];
+  const JUNK=['weight','training','cardio','sauna','tanning','exercise','workout','gym','48 tbsd','40 tbsd','tbsd'];
   out2('Scanning for non-injection records…');
   let recs=[],off=null;
   do{
@@ -175,7 +184,8 @@ async function deleteNonInjections(){
   }while(off);
   const toDelete=recs.filter(r=>{
     const med=(r.fields['Medication']||r.fields['Compound']||r.fields['Name']||'').toLowerCase();
-    return JUNK.some(j=>med.includes(j));
+    const cmpField=(r.fields['Compound']||'').toLowerCase();
+    return JUNK.some(j=>med.includes(j)||cmpField.includes(j));
   });
   if(!toDelete.length){out2('<span class="ok">No non-injection records found.</span>');return;}
   // Show preview
