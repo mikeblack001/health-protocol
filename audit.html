@@ -758,14 +758,28 @@ async function toggleVerify(id,currentVerified){
 }
 
 async function delRec(id){
-  if(!confirm('Delete this record?'))return;
-  try{
-    await atFetch(LOG.tbl+'/'+id,{method:'DELETE'});
-    logRecs=logRecs.filter(r=>r.id!==id);
-    document.getElementById('card_'+id)?.remove();
-    document.getElementById('b-total').textContent=logRecs.length+' records';
-    setSt('✓ Deleted');
-  }catch(e){setSt('Error: '+e.message);}
+  const card=document.getElementById('card_'+id);
+  if(!card)return;
+  // Soft-hide with undo option
+  card.style.opacity='0.3';card.style.pointerEvents='none';
+  setSt('Deleted — <a href="#" onclick="undoDel(event,\''+id+'\')">Undo</a>');
+  window._pendingDel=setTimeout(async()=>{
+    try{
+      await atFetch(LOG.tbl+'/'+id,{method:'DELETE'});
+      logRecs=logRecs.filter(r=>r.id!==id);
+      card.remove();
+      document.getElementById('b-total').textContent=logRecs.length+' records';
+      setSt('✓ Deleted');
+      loadWeekGrid(curDate);
+    }catch(e){card.style.opacity='';card.style.pointerEvents='';setSt('Error: '+e.message);}
+  },3000);
+}
+function undoDel(e,id){
+  e.preventDefault();
+  clearTimeout(window._pendingDel);
+  const card=document.getElementById('card_'+id);
+  if(card){card.style.opacity='';card.style.pointerEvents='';}
+  setSt('Undo — record kept');
 }
 
 // ── QUICK ADD ─────────────────────────────────────────────────────────
