@@ -783,23 +783,36 @@ function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').
 function setSt(m){document.getElementById('st').textContent=m;}
 
 async function deleteBlankDates(){
-  if(!confirm('Delete ALL Parseur-Injections records with no date? This cannot be undone.'))return;
-  setSt('Loading Parseur records…');
+  setSt('Loading — scanning for blank dates…');
+  // Load all records with Date + Compound + Medication fields so user can see what will be deleted
   let recs=[],off=null;
   do{
-    const d=await atFetch(PAR.tbl+'?fields%5B%5D=Date&pageSize=100'+(off?'&offset='+off:''));
+    const d=await atFetch(PAR.tbl+'?fields%5B%5D=Date&fields%5B%5D=Compound&fields%5B%5D=Medication&pageSize=100'+(off?'&offset='+off:''));
     recs=recs.concat(d.records);off=d.offset;
   }while(off);
   const noDates=recs.filter(r=>!r.fields['Date']||String(r.fields['Date']).trim()==='');
-  if(!noDates.length){setSt('No blank-date records found');return;}
-  if(!confirm(noDates.length+' records have no date. Delete them all?'))return;
+  setSt('');
+  if(!noDates.length){alert('No blank-date records found — nothing to delete.');return;}
+
+  // Show preview of exactly what will be deleted
+  const preview=noDates.slice(0,20).map(r=>{
+    const cmp=r.fields['Compound']||r.fields['Medication']||'(no compound)';
+    return '  • '+cmp+' ['+r.id+']';
+  }).join('\n');
+  const more=noDates.length>20?' \n  ...and '+(noDates.length-20)+' more':'';
+
+  const confirmed=confirm(
+    'PREVIEW — '+noDates.length+' records with NO DATE will be deleted:\n\n'+
+    preview+more+
+    '\n\n'+'These records have a blank Date field. All other records are safe.\n\nProceed?'
+  );
+  if(!confirmed)return;
+
   setSt('Deleting '+noDates.length+'…');
   let done=0;
   for(let i=0;i<noDates.length;i+=10){
     const batch=noDates.slice(i,i+10);
-    const ids=batch.map(r=>r.id);
-    // AT bulk delete: DELETE with ?records[]=id&records[]=id
-    const qs=ids.map(id=>'records%5B%5D='+id).join('&');
+    const qs=batch.map(r=>'records%5B%5D='+r.id).join('&');
     try{
       await atFetch(PAR.tbl+'?'+qs,{method:'DELETE'});
       done+=batch.length;
