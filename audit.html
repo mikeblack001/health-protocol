@@ -204,6 +204,7 @@ select.fe{cursor:pointer}
       <div id="wgrid-hdr">
         <b>📅 Week Overview</b>
         <span id="wg-status"></span>
+        <button onclick="verifyWeek()" style="padding:2px 10px;border:1px solid #16a34a;border-radius:4px;font-size:10px;font-weight:700;cursor:pointer;background:#16a34a;color:#fff">✓ Verify Week</button>
         <button id="wg-tog" onclick="toggleWGrid()">▲ Hide</button>
       </div>
       <div id="wgrid-body">
@@ -396,11 +397,12 @@ async function loadWeekGrid(date){
     h+=`<tr draggable="true" data-cmp="${esc(cmp)}"><td><span class="drag-handle">⠿</span>${esc(cmp)}${badge}</td>`;
     days.forEach(d=>{
       const cell=dayMap[d];
-      if(!cell||!cell.n){h+=`<td></td>`;}
-      else if(!cell.sites.length){const sc=siteColor('X');h+=`<td style="background:${sc.bg};color:${sc.fg};font-weight:800;font-size:11px">X</td>`;}
+      const clickAttr=`onclick="gridCellClick('${d}','${esc(cmp)}')" style="cursor:pointer"`;
+      if(!cell||!cell.n){h+=`<td ${clickAttr}></td>`;}
+      else if(!cell.sites.length){const sc=siteColor('X');h+=`<td ${clickAttr} style="cursor:pointer;background:${sc.bg};color:${sc.fg};font-weight:800;font-size:11px">X</td>`;}
       else{
         const sc=siteColor(cell.sites[0]);
-        h+=`<td style="background:${sc.bg};color:${sc.fg};font-weight:800;font-size:11px">${esc(cell.sites.join('/'))}</td>`;
+        h+=`<td ${clickAttr} style="cursor:pointer;background:${sc.bg};color:${sc.fg};font-weight:800;font-size:11px">${esc(cell.sites.join('/'))}</td>`;
       }
     });
     h+=`</tr>`;
@@ -435,6 +437,67 @@ function initGridDrag(){
   });
 }
 
+
+async function verifyWeek(){
+  if(!curDate){setSt('Select a date first');return;}
+  const days=getWkDates(curDate);
+  setSt('Verifying week…');
+  // Fetch all unverified records for the week
+  const orParts=days.map(d=>`IS_SAME({${LOG.date}},"${d}","day")`).join(',');
+  const q=encodeURIComponent(`AND(OR(${orParts}),{${LOG.verified}}=FALSE())`);
+  let recs=[],off=null;
+  try{
+    do{
+      const d=await atFetch(LOG.tbl+'?filterByFormula='+q+'&returnFieldsByFieldId=true&pageSize=100'+(off?'&offset='+off:''));
+      recs=recs.concat(d.records);off=d.offset;
+    }while(off);
+    if(!recs.length){setSt('Week already verified');return;}
+    // Patch in batches of 10
+    for(let i=0;i<recs.length;i+=10){
+      const batch=recs.slice(i,i+10).map(r=>({id:r.id,fields:{[LOG.verified]:true}}));
+      await atFetch(LOG.tbl,{method:'PATCH',body:JSON.stringify({records:batch,returnFieldsByFieldId:true})});
+    }
+    setSt('✓ Week verified ('+recs.length+' records)');
+    // Refresh current date view + week grid
+    await setDate(curDate);
+  }catch(e){setSt('Error: '+e.message);}
+}
+
+let cmDate=null,cmCmp=null;
+function gridCellClick(date,cmp){
+  cmDate=date;cmCmp=cmp;
+  document.getElementById('cm-title').textContent=cmp+' — '+date;
+  document.getElementById('cm-dose').value='';
+  document.getElementById('cm-site').selectedIndex=0;
+  document.getElementById('cm-timing').selectedIndex=0;
+  // Show any existing records for this date+compound
+  const ex=logRecs.filter(r=>r.fields[LOG.compound]===cmp&&(r.fields[LOG.date]||'').slice(0,10)===date);
+  document.getElementById('cm-existing').innerHTML=ex.length
+    ?ex.map(r=>`<span style="display:inline-block;background:#f3f4f6;border-radius:4px;padding:2px 6px;margin:2px;font-size:11px">${r.fields[LOG.dose]||''}${r.fields[LOG.site]?' '+r.fields[LOG.site]:''}${r.fields[LOG.timing]?' '+r.fields[LOG.timing]:''}</span>`).join('')
+    :'<i>No records yet</i>';
+  const m=document.getElementById('cm');
+  m.style.display='flex';
+}
+function closeCM(){document.getElementById('cm').style.display='none';}
+async function cmSave(){
+  const fields={};
+  fields[LOG.date]=cmDate;
+  fields[LOG.compound]=cmCmp;
+  fields[LOG.name]=cmCmp;
+  const dose=document.getElementById('cm-dose').value;if(dose)fields[LOG.dose]=dose;
+  const site=document.getElementById('cm-site').value;if(site)fields[LOG.site]=site;
+  const timing=document.getElementById('cm-timing').value;if(timing)fields[LOG.timing]=timing;
+  try{
+    const res=await atFetch(LOG.tbl,{method:'POST',body:JSON.stringify({fields,typecast:true})});
+    setSt('✓ Added '+cmCmp+' to '+cmDate);
+    closeCM();
+    // If this is the current date, refresh records
+    if(cmDate===curDate)await reloadLog();
+    // Refresh week grid
+    loadWeekGrid(curDate);
+  }catch(e){setSt('Error: '+e.message);}
+}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeCM();});
 function pmsg(m){document.getElementById('pp-msg').textContent=m;}
 
 // ── AT ────────────────────────────────────────────────────────────────
@@ -644,7 +707,7 @@ async function quickAdd(){
   const site=document.getElementById('q-site').value;if(site)fields[LOG.site]=site;
   const timing=document.getElementById('q-timing').value;if(timing)fields[LOG.timing]=timing;
   try{
-    const res=await atFetch(LOG.tbl,{method:'POST',body:JSON.stringify({fields})});
+    const res=await atFetch(LOG.tbl,{method:'POST',body:JSON.stringify({fields,typecast:true})});
     logRecs.push(res);
     document.getElementById('records').insertAdjacentHTML('beforeend',cardHTML(res));
     document.getElementById('b-total').textContent=logRecs.length+' records';
@@ -739,5 +802,28 @@ window.onload=()=>{
 
 };
 </script>
+
+  <!-- CELL MODAL -->
+  <div id="cm" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:center;justify-content:center">
+    <div style="background:#fff;border-radius:10px;width:340px;box-shadow:0 12px 40px rgba(0,0,0,.3);padding:0;overflow:hidden">
+      <div style="background:#1e2433;color:#fff;padding:10px 14px;display:flex;align-items:center;justify-content:space-between">
+        <span id="cm-title" style="font-weight:800;font-size:13px"></span>
+        <button onclick="closeCM()" style="background:none;border:none;color:#fff;font-size:18px;cursor:pointer;line-height:1">×</button>
+      </div>
+      <div style="padding:14px;display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;gap:8px">
+          <input id="cm-dose" placeholder="Dose (e.g. 50u)" style="flex:1;padding:7px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px">
+          <select id="cm-site" style="padding:7px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:13px">
+            <option value="">Site</option><option>L</option><option>R</option><option>Pill</option><option>X</option><option>S</option>
+          </select>
+          <select id="cm-timing" style="padding:7px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:13px">
+            <option value="">Timing</option><option>Morning</option><option>Night</option><option>Evening</option><option>Daily</option>
+          </select>
+        </div>
+        <div id="cm-existing" style="font-size:11px;color:#6b7280;max-height:80px;overflow-y:auto"></div>
+        <button onclick="cmSave()" style="background:#2563eb;color:#fff;border:none;border-radius:6px;padding:9px;font-size:13px;font-weight:700;cursor:pointer">+ Add Record</button>
+      </div>
+    </div>
+  </div>
 </body>
 </html>
