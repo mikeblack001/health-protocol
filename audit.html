@@ -395,17 +395,29 @@ function navD(dir){
 async function setDate(date){
   curDate=date;
   document.getElementById('d-sel').value=date;
-  setSt('Loading…');
+  setSt('Loading '+date+'…');
+  // Load each independently so one failure doesn't block the other
   try{
-    [parRecs,logRecs]=await Promise.all([loadByDate(PAR.tbl,'Date',date,false),loadByDate(LOG.tbl,LOG.date,date,true)]);
+    parRecs=await loadByDate(PAR.tbl,'Date',date,false);
     document.getElementById('pc').textContent=parRecs.length;
-    document.getElementById('lc').textContent=logRecs.length;
-    document.getElementById('pd-lbl').textContent=date;
-    document.getElementById('ld-lbl').textContent=date;
     document.getElementById('b-par').textContent='Parseur: '+parRecs.length;
+    document.getElementById('pd-lbl').textContent=date;
+    renderPar();
+  }catch(e){
+    document.getElementById('par-body').innerHTML='<div style="color:#dc2626;padding:16px;font-size:12px">Parseur error: '+e.message+'</div>';
+    setSt('Parseur err: '+e.message);
+  }
+  try{
+    logRecs=await loadByDate(LOG.tbl,LOG.date,date,true);
+    document.getElementById('lc').textContent=logRecs.length;
     document.getElementById('b-log').textContent='Log: '+logRecs.length;
-    renderPar();renderLog();updateBadges();setSt('');
-  }catch(e){setSt('Error: '+e.message);}
+    document.getElementById('ld-lbl').textContent=date;
+    renderLog();
+  }catch(e){
+    document.getElementById('log-body').innerHTML='<div style="color:#dc2626;padding:16px;font-size:12px">Log error: '+e.message+'</div>';
+    setSt('Log err: '+e.message);
+  }
+  updateBadges();setSt('');
 }
 
 async function loadByDate(tbl,dateFld,date,useFieldIds){
@@ -414,7 +426,9 @@ async function loadByDate(tbl,dateFld,date,useFieldIds){
   do{
     let url=tbl+'?filterByFormula='+q+'&pageSize=100'+(off?'&offset='+off:'');
     if(useFieldIds) url+='&returnFieldsByFieldId=true';
-    const d=await atFetch(url);recs=recs.concat(d.records);off=d.offset;
+    const d=await atFetch(url);
+    if(!d.records) throw new Error('No records array in response: '+JSON.stringify(d).substring(0,200));
+    recs=recs.concat(d.records);off=d.offset;
   }while(off);
   return recs;
 }
