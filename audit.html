@@ -461,8 +461,11 @@ async function verifyWeek(){
       await atFetch(LOG.tbl,{method:'PATCH',body:JSON.stringify({records:batch,returnFieldsByFieldId:true})});
     }
     setSt('✓ Week verified ('+recs.length+' records)');
-    // Refresh current date view + week grid
-    await setDate(curDate);
+    // Jump to first date after this week that has unverified records
+    const lastDayOfWeek=days[days.length-1];
+    const nextDate=allDates.find(d=>d>lastDayOfWeek);
+    if(nextDate)setTimeout(()=>setDate(nextDate),400);
+    else await setDate(curDate);
   }catch(e){setSt('Error: '+e.message);}
 }
 
