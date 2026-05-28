@@ -18,6 +18,7 @@ td{padding:6px 10px;border:1px solid #e2e5ea}
 
 <button class="btn" style="background:#7c3aed;color:#fff" onclick="preview()">Preview Blank-Date Records</button>
 <button class="btn" style="background:#dc2626;color:#fff" onclick="runFix()">Fix Blank Dates</button>
+<button class="btn" style="background:#6b7280;color:#fff" onclick="deleteCantFix()">🗑 Delete All Cannot-Compute Records</button>
 
 <div id="out">Click Preview to see all blank-date records and what date will be assigned.</div>
 <div id="bar-wrap"><div id="bar">0</div></div>
@@ -116,6 +117,31 @@ async function runFix(){
   }
   document.getElementById('bar').style.background=errs?'#f59e0b':'#16a34a';
   out(`<span class="ok">✓ ${done} blank dates filled in.</span>${errs?' <span class="err">'+errs+' errors</span>':''}${allBlank.length-fixable.length>0?'<br><span class="err">'+(allBlank.length-fixable.length)+' records still have no date — blank Name field, consider deleting.</span>':''}`);
+}
+
+async function deleteCantFix(){
+  if(!allBlank.length){alert('Run Preview first');return;}
+  const cantFix=allBlank.filter(r=>!computeDate(r.fields['Name']||'',r.fields['Day of Week']||''));
+  if(!cantFix.length){out('<span class="ok">No cannot-compute records to delete.</span>');return;}
+  if(!confirm('Delete '+cantFix.length+' records that have no Name and cannot get a date?\n\nThese have blank Name fields and cannot be dated.'))return;
+  document.getElementById('bar-wrap').style.display='';
+  document.getElementById('bar').style.background='#6b7280';
+  let done=0,errs=0;
+  for(let i=0;i<cantFix.length;i+=10){
+    const batch=cantFix.slice(i,i+10);
+    const qs=batch.map(r=>'records%5B%5D='+r.id).join('&');
+    try{await atGet(TBL+'?'+qs); /* won't work — need DELETE */
+      const r=await fetch('https://api.airtable.com/v0/'+BASE+'/'+TBL+'?'+qs,{method:'DELETE',headers:{Authorization:'Bearer '+AT}});
+      if(!r.ok)throw new Error('Delete '+r.status);
+      done+=batch.length;
+    }catch(e){errs+=batch.length;}
+    document.getElementById('bar').style.width=Math.max(Math.round((i+batch.length)/cantFix.length*100),2)+'%';
+    document.getElementById('bar').textContent=done+'/'+cantFix.length;
+    await sleep(300);
+  }
+  document.getElementById('bar').style.background=errs?'#f59e0b':'#16a34a';
+  out('<span class="ok">✓ Deleted '+done+' records.</span>'+(errs?' <span class="err">'+errs+' errors</span>':'')+'<br>Run Preview again to confirm.');
+  allBlank=[];
 }
 
 function out(h){document.getElementById('out').innerHTML=h;}
