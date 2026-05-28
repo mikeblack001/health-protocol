@@ -418,7 +418,7 @@ async function loadWeekGrid(date){
   ws.textContent='Loading…';
   const orParts=days.map(d=>`IS_SAME({${LOG.date}},"${d}","day")`).join(',');
   const q=encodeURIComponent(`OR(${orParts})`);
-  const flds=[LOG.date,LOG.compound,LOG.site,LOG.timing,LOG.dose].map(f=>'fields%5B%5D='+f).join('&');
+  const flds=[LOG.date,LOG.compound,LOG.site,LOG.timing,LOG.dose,LOG.verified].map(f=>'fields%5B%5D='+f).join('&');
   let recs=[],off=null;
   try{
     do{
@@ -475,6 +475,16 @@ async function loadWeekGrid(date){
   h+=`</tbody>`;
   wg.innerHTML=h;
   ws.textContent=ordered.length+' compounds';
+  // Update Verify Week button color based on week verification status
+  const wBtn=document.getElementById('verify-week-btn');
+  if(wBtn){
+    const totalRecs=recs.length;
+    const verifiedRecs=recs.filter(r=>r.fields[LOG.verified]===true).length;
+    const weekDone=totalRecs>0&&verifiedRecs===totalRecs;
+    wBtn.style.background=weekDone?'#16a34a':'#eab308';
+    wBtn.style.borderColor=weekDone?'#16a34a':'#eab308';
+    wBtn.textContent=weekDone?'✓ Week Verified':'✓ Verify Week';
+  }
   initGridDrag();
 }
 
