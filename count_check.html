@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>Count Check</title></head>
+<body>
+<pre id="out">Loading...</pre>
+<script>
+const AT='pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
+const BASE='appmHDG4TGT1xy6R6', TBL='tblCTOGIrF3NjdyTE';
+
+async function run(){
+  let recs=[],off=null;
+  do{
+    const r=await fetch('https://api.airtable.com/v0/'+BASE+'/'+TBL+'?pageSize=100'+(off?'&offset='+off:''),
+      {headers:{Authorization:'Bearer '+AT}});
+    const d=await r.json();recs=recs.concat(d.records);off=d.offset;
+    document.getElementById('out').textContent='Loading... '+recs.length;
+  }while(off);
+
+  let noDate=0,weekOnly=0,hasDate=0,badSite=0;
+  const compounds={},doses=new Set(),sites=new Set(),dateExamples=[];
+  
+  recs.forEach(r=>{
+    const f=r.fields;
+    const date=f['Date']||'';
+    const name=f['Name']||'';
+    const cmp=f['Compound']||'';
+    const dose=f['Dose']||'';
+    const site=f['Site']||'';
+    
+    if(!date) noDate++;
+    else if(name.toLowerCase().includes('week')) weekOnly++;
+    else hasDate++;
+    
+    if(site==='='||site==='--'||site==='-') badSite++;
+    sites.add(site||'(empty)');
+    
+    if(cmp) compounds[cmp]=(compounds[cmp]||0)+1;
+    if(dose) doses.add(dose);
+  });
+
+  const topCompounds=Object.entries(compounds).sort((a,b)=>b[1]-a[1]).slice(0,20);
+  const doseSamples=[...doses].slice(0,30);
+  const siteSamples=[...sites];
+
+  document.getElementById('out').textContent=
+    'TOTAL: '+recs.length+'\n\n'+
+    'DATES:\n'+
+    '  Has real date: '+hasDate+'\n'+
+    '  "Week X" name (no real date): '+weekOnly+'\n'+
+    '  No date at all: '+noDate+'\n\n'+
+    'SITE VALUES: '+siteSamples.join(', ')+'\n'+
+    '  Bad site (=, -, --): '+badSite+'\n\n'+
+    'TOP COMPOUNDS ('+Object.keys(compounds).length+' unique):\n'+
+    topCompounds.map(([c,n])=>'  '+c+': '+n).join('\n')+'\n\n'+
+    'DOSE SAMPLES:\n  '+doseSamples.join('\n  ');
+}
+run();
+</script>
+</body></html>
