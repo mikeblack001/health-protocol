@@ -336,8 +336,7 @@ function pdfNext(){pdfPage(window.pg+1);}
 function pgGo(n){pdfPage(n);}
 window.pdfZoom=1.0;
 function pdfZoom(dir){
-  const canvas=document.getElementById('pp-canvas');
-  if(!canvas||canvas.style.display==='none'||!canvas.offsetWidth)return;
+  if(!window.pdfCurrentPage)return;
   if(dir===0){window.pdfZoom=1.0;}
   else{
     const steps=[0.5,0.75,1.0,1.25,1.5,2.0,2.5,3.0];
@@ -659,8 +658,6 @@ function cardHTML(r){
   const cmpOpts=CMPS.map(c=>`<option ${c===cmp?'selected':''}>${c}</option>`).join('');
   const siteOpts=['','L','R','Pill','X','S'].map(s=>`<option ${s===site?'selected':''}>${s}</option>`).join('');
   const timingOpts=['','Morning','Night','Evening','Daily'].map(t=>`<option ${t===timing?'selected':''}>${t}</option>`).join('');
-  const statOpts=['','Todo','In progress','Done'].map(s=>`<option ${s===stat?'selected':''}>${s}</option>`).join('');
-
   return`<div class="card ${verified?'verified':'unverified'}" id="card_${r.id}">
     <div class="card-body">
       <select class="fe fe-compound" onchange="saveField('${r.id}','${LOG.compound}',this.value)" title="Compound">
@@ -675,7 +672,7 @@ function cardHTML(r){
       <select class="fe fe-timing" onchange="saveField('${r.id}','${LOG.timing}',this.value)" title="Timing">
         ${timingOpts}
       </select>
-      
+
     </div>
     <div class="card-actions">
       <button class="abtn a-verify" onclick="toggleVerify('${r.id}',${verified})">${verified?'✓':'○'}</button>
