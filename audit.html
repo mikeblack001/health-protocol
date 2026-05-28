@@ -558,10 +558,12 @@ async function gridCellClick(date,cmp){
     document.getElementById('cm-timing').selectedIndex=0;
     document.getElementById('cm-existing').innerHTML='<i>Loading…</i>';
     document.getElementById('cm').style.display='flex';
-    // Fetch recent records, filter client-side (formula field ID syntax unreliable)
+    // Fetch most recent record specifically for this compound
     try{
-      const d=await atFetch(LOG.tbl+'?sort%5B0%5D%5Bfield%5D='+LOG.date+'&sort%5B0%5D%5Bdirection%5D=desc&returnFieldsByFieldId=true&pageSize=100');
-      const rec=(d.records||[]).find(r=>(r.fields[LOG.compound]||'')===cmp);
+      // Use SEARCH() with field name - more reliable than field ID in formula
+      const q=encodeURIComponent('SEARCH("'+cmp+'",{Compound})');
+      const d=await atFetch(LOG.tbl+'?filterByFormula='+q+'&sort%5B0%5D%5Bfield%5D='+LOG.date+'&sort%5B0%5D%5Bdirection%5D=desc&returnFieldsByFieldId=true&pageSize=1');
+      const rec=d.records?.[0];
       if(rec){
         const f=rec.fields;
         const fromDate=(f[LOG.date]||'').slice(0,10);
