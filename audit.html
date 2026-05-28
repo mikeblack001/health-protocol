@@ -399,7 +399,7 @@ function cardHTML(r){
 
 // ── INLINE SAVE ───────────────────────────────────────────────────────
 async function saveField(id,field,value){
-  const fields={};fields[field]=value;
+  const fields={};fields[field]=value===''?null:value;
   try{
     const res=await atFetch(LOG.tbl+'/'+id,{method:'PATCH',body:JSON.stringify({fields})});
     const i=logRecs.findIndex(r=>r.id===id);
