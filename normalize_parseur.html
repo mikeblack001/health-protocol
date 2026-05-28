@@ -1,87 +1,73 @@
 <!DOCTYPE html>
-<html><head><meta charset="UTF-8"><title>Fix Names</title>
+<html><head><meta charset="UTF-8"><title>Fix Parseur Dates</title>
 <style>
-body{font-family:-apple-system,sans-serif;font-size:14px;padding:30px;max-width:700px;background:#f4f5f7}
+body{font-family:-apple-system,sans-serif;font-size:14px;padding:30px;max-width:900px;background:#f4f5f7}
 h1{font-size:18px;font-weight:900;margin-bottom:4px}
 p{color:#6b7280;font-size:13px;margin-bottom:20px}
-.btn{display:inline-block;padding:12px 24px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;border:none;margin-right:8px;margin-bottom:8px}
+.btn{display:inline-block;padding:11px 22px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;border:none;margin-right:8px;margin-bottom:8px}
 #out{background:#fff;border:2px solid #e2e5ea;border-radius:10px;padding:16px;margin-top:16px;font-size:13px;line-height:1.8;min-height:50px}
-#bar-wrap{background:#e2e5ea;border-radius:6px;height:24px;margin-top:12px;display:none}
-#bar{background:#2563eb;height:24px;border-radius:6px;width:0%;font-size:13px;font-weight:700;color:#fff;text-align:center;line-height:24px;min-width:40px;transition:width .1s}
 table{width:100%;border-collapse:collapse;font-size:12px;margin-top:10px}
 th{background:#f0f0f0;padding:7px 10px;text-align:left;font-weight:700;border:1px solid #e2e5ea}
 td{padding:6px 10px;border:1px solid #e2e5ea}
+.ok{color:#166534;font-weight:700}.err{color:#dc2626}
+#bar-wrap{background:#e2e5ea;border-radius:6px;height:24px;margin-top:12px;display:none}
+#bar{background:#2563eb;height:24px;border-radius:6px;width:0%;font-size:13px;font-weight:700;color:#fff;text-align:center;line-height:24px;min-width:40px;transition:width .1s}
 </style></head><body>
-<h1>Fix Parseur-Injections Name Field</h1>
-<p>Sets Name = "Compound | Date" for all records. Also available: fix all fields.</p>
+<h1>Fix Parseur-Injections Dates (Clean Recompute)</h1>
+<p>Recomputes actual date from scratch using <b>Name field</b> (original week-start reference) + Day of Week offset. Ignores the current Date field entirely — fixes multiple-run corruption.</p>
 
-<button class="btn" style="background:#7c3aed;color:#fff" onclick="preview()">Preview (10 records)</button>
-<button class="btn" style="background:#16a34a;color:#fff" onclick="runFix()">Fix All Names</button>
-<button class="btn" style="background:#2563eb;color:#fff" onclick="runFields()">Re-run All Fields</button>
+<button class="btn" style="background:#7c3aed;color:#fff" onclick="preview()">Preview 20 Records</button>
+<button class="btn" style="background:#dc2626;color:#fff" onclick="runFix()">Fix All Dates (Recompute from Name)</button>
+<button class="btn" style="background:#16a34a;color:#fff" onclick="fixNames()">Fix Names after</button>
 
-<div id="out">Click Preview to see what Name will be set to.</div>
+<div id="out">Click Preview to verify before running.</div>
 <div id="bar-wrap"><div id="bar">0</div></div>
 
 <script>
 const AT='pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
 const BASE='appmHDG4TGT1xy6R6',TBL='tblCTOGIrF3NjdyTE';
-const FC='fldONAad3wQQzQDKE',FD='fldye77iWTIWaDNul',FT='fldIdHUojkqEFlCZL',FS='fldDxPQRuQFZ9MJoG';
 
-const CM={'tesamorelin':'Tesamorelin','lipominomix':'LipoMinoMix','lipo mino mix':'LipoMinoMix',
-'lipo-mino-mix':'LipoMinoMix','ipamorelin':'Ipamorelin','cjc-1295 no dac':'CJC-1295 No DAC',
-'cjc-1295':'CJC-1295','cjc 1295':'CJC-1295','testosterone':'Testosterone','trt':'Testosterone',
-'deca (nandrolone)':'Deca (Nandrolone)','deca':'Deca (Nandrolone)','deca (nano)':'Deca (Nandrolone)',
-'ghk-cu':'GHK-Cu','ghk':'GHK-Cu','ss-31':'SS-31','nad+':'NAD+','nad':'NAD+','nano':'NAD+',
-'bpc-157':'BPC-157','tb-500':'TB-500','dsip':'DSIP','kpv':'KPV','semax':'Semax','selank':'Selank',
-'retatrutide':'Retatrutide','tirzepatide':'Tirzepatide','epitalon':'Epitalon',
-'anavar':'Anavar (Oxandrolone)','oxandrolone':'Anavar (Oxandrolone)',
-'anavar (oxandrolone)':'Anavar (Oxandrolone)','winstrol':'Winstrol (Stanozolol)',
-'stanozolol':'Winstrol (Stanozolol)','stanzalol':'Winstrol (Stanozolol)',
-'cagrilintide':'Cagrilintide','mots-c':'Mots-C','melanotan':'Melanotan II (MT2)'};
+const DAY_OFF={mon:0,monday:0,tue:1,tues:1,tuesday:1,wed:2,wednesday:2,
+  thu:3,thur:3,thurs:3,thursday:3,fri:4,friday:4,sat:5,saturday:5,sun:6,sunday:6};
 
-function canC(r){return CM[r.toLowerCase().trim()]||r.trim();}
-function canT(t){return{morning:'Morning',night:'Night',evening:'Evening',daily:'Daily'}[t.toLowerCase()]||t;}
-function canS(l){if(!l)return'';return{l:'L',r:'R',left:'L',right:'R',pill:'Pill',x:'X',nasal:'Nasal',abd:'Abd',s:'S'}[l.toLowerCase().trim()]||l.trim();}
-function parseMed(s){
-  if(!s)return{c:'',d:'',t:''};s=s.trim();
-  let m=s.match(/^(.+?)\s*-\s*(.+?)\s*\((\w+)\)\s*$/i);
-  if(m)return{c:canC(m[1]),d:m[2].trim(),t:canT(m[3])};
-  m=s.match(/^(.+?)\s*-\s*(.+)$/i);
-  if(m)return{c:canC(m[1]),d:m[2].trim(),t:''};
-  m=s.match(/^(.+?)\s+(\d+\S*)$/);
-  if(m)return{c:canC(m[1]),d:m[2],t:''};
-  return{c:canC(s),d:'',t:''};
+// Parse the Name field to get the original week-start date
+function parseNameToWeekStart(name){
+  if(!name)return null;
+  const s=String(name).trim();
+  // Skip "Week X" names — handled separately
+  if(/^week\s*\d+$/i.test(s))return null;
+  // M/D/YY or M/D/YYYY
+  let m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+  if(m){const y=m[3].length===2?'20'+m[3]:m[3];return y+'-'+m[1].padStart(2,'0')+'-'+m[2].padStart(2,'0');}
+  // M/D (no year — determine from month: Jul-Dec=2025, Jan-Jun=2026)
+  m=s.match(/^(\d{1,2})\/(\d{1,2})$/);
+  if(m){const mo=parseInt(m[1]),dy=parseInt(m[2]);const yr=mo>=7?2025:2026;
+    return yr+'-'+String(mo).padStart(2,'0')+'-'+String(dy).padStart(2,'0');}
+  // Already ISO
+  if(/^\d{4}-\d{2}-\d{2}$/.test(s))return s;
+  return null;
 }
 
-function buildName(f){
-  const cmp=f['Compound']||canC(parseMed(f['Medication']||'').c)||'';
-  const date=f['Date']||'';
-  const dow=f['Day of Week']||'';
-  if(cmp&&date) return cmp+' | '+date+(dow?' ('+dow+')':'');
-  if(cmp) return cmp;
-  if(date) return date;
-  return 'Unknown';
+function addDays(iso,n){const d=new Date(iso+'T12:00:00Z');d.setUTCDate(d.getUTCDate()+n);return d.toISOString().substring(0,10);}
+
+function computeDate(name,dow){
+  const ws=parseNameToWeekStart(name);
+  if(!ws)return null;
+  const off=DAY_OFF[(dow||'').toLowerCase().trim()];
+  if(off===undefined)return ws; // no day info, use week start
+  return addDays(ws,off);
 }
 
 function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
-async function atGet(url){
-  const r=await fetch('https://api.airtable.com/v0/'+BASE+'/'+url,{headers:{Authorization:'Bearer '+AT}});
-  const d=await r.json();if(!r.ok)throw new Error(d.error?.message||r.status);return d;
-}
-async function atPatch(records){
-  const r=await fetch('https://api.airtable.com/v0/'+BASE+'/'+TBL+'?typecast=true',{
-    method:'PATCH',headers:{Authorization:'Bearer '+AT,'Content-Type':'application/json'},
-    body:JSON.stringify({records})
-  });
-  const d=await r.json();if(!r.ok)throw new Error(d.error?.message||r.status);return d;
-}
+async function atGet(url){const r=await fetch('https://api.airtable.com/v0/'+BASE+'/'+url,{headers:{Authorization:'Bearer '+AT}});const d=await r.json();if(!r.ok)throw new Error(d.error?.message||r.status);return d;}
+async function atPatch(records){const r=await fetch('https://api.airtable.com/v0/'+BASE+'/'+TBL+'?typecast=true',{method:'PATCH',headers:{Authorization:'Bearer '+AT,'Content-Type':'application/json'},body:JSON.stringify({records})});const d=await r.json();if(!r.ok)throw new Error(d.error?.message||r.status);return d;}
+
 async function loadAll(fields){
   let recs=[],off=null;
   const fq=fields.map(f=>'fields%5B%5D='+encodeURIComponent(f)).join('&');
   document.getElementById('bar-wrap').style.display='';
   document.getElementById('bar').style.background='#6b7280';
-  do{
-    const d=await atGet(TBL+'?'+fq+'&pageSize=100'+(off?'&offset='+off:''));
+  do{const d=await atGet(TBL+'?'+fq+'&pageSize=100'+(off?'&offset='+off:''));
     recs=recs.concat(d.records);off=d.offset;
     document.getElementById('bar').textContent='Loading… '+recs.length;
     document.getElementById('bar').style.width=Math.min(recs.length/16,99)+'%';
@@ -90,71 +76,77 @@ async function loadAll(fields){
 }
 
 async function preview(){
-  out('Loading 10 records…');
+  out('Loading 20 records…');
   try{
-    const d=await atGet(TBL+'?pageSize=10');
-    let html='<table><tr><th>Current Name</th><th>Compound</th><th>Date</th><th>Day of Week</th><th>→ New Name</th></tr>';
+    const d=await atGet(TBL+'?pageSize=20');
+    let html='<table><tr><th>Name (original)</th><th>Day of Week</th><th>Current Date</th><th>→ Recomputed Date</th><th>Change?</th></tr>';
+    let changes=0,cantFix=0;
     d.records.forEach(r=>{
       const f=r.fields;
-      const newName=buildName(f);
-      html+=`<tr><td>${f['Name']||'(blank)'}</td><td>${f['Compound']||''}</td><td>${f['Date']||''}</td><td>${f['Day of Week']||''}</td><td><b>${newName}</b></td></tr>`;
+      const name=f['Name']||'',dow=f['Day of Week']||'',cur=f['Date']||'';
+      const computed=computeDate(name,dow);
+      const changed=computed&&computed!==cur;
+      if(changed)changes++;
+      if(!computed)cantFix++;
+      html+=`<tr><td>${name||'(blank)'}</td><td>${dow}</td><td>${cur||'(blank)'}</td>`+
+        `<td><b>${computed||'<span class="err">Cannot compute</span>'}</b></td>`+
+        `<td>${changed?'<span class="ok">✓ FIX</span>':computed?'same':'<span class="err">skip</span>'}</td></tr>`;
     });
-    out(html+'</table>');
-  }catch(e){out('<span style="color:#dc2626">'+e.message+'</span>');}
+    html+=`</table><br><b>${changes} of 20 need fixing, ${cantFix} cannot be computed (Week X or blank Name)</b>`;
+    out(html);
+  }catch(e){out('<span class="err">'+e.message+'</span>');}
 }
 
 async function runFix(){
   out('Loading all records…');
   try{
-    const recs=await loadAll(['Name','Compound','Medication','Date','Day of Week']);
+    const recs=await loadAll(['Name','Day of Week','Date']);
     const total=recs.length;
-    document.getElementById('bar').style.background='#2563eb';
-    let done=0,errs=0;
+    document.getElementById('bar').style.background='#dc2626';
+    let fixed=0,skipped=0,errs=0;
     for(let i=0;i<recs.length;i+=10){
       const batch=recs.slice(i,i+10);
-      const updates=batch.map(r=>({id:r.id,fields:{Name:buildName(r.fields)}}));
-      try{await atPatch(updates);done+=updates.length;}
-      catch(e){errs+=batch.length;}
+      const updates=[];
+      batch.forEach(r=>{
+        const f=r.fields;
+        const computed=computeDate(f['Name']||'',f['Day of Week']||'');
+        if(computed&&computed!==f['Date']) updates.push({id:r.id,fields:{Date:computed}});
+        else skipped++;
+      });
+      if(updates.length){try{await atPatch(updates);fixed+=updates.length;}catch(e){errs+=updates.length;}}
       const pct=Math.round((i+batch.length)/total*100);
       document.getElementById('bar').style.width=Math.max(pct,2)+'%';
-      document.getElementById('bar').textContent=done+'/'+total;
+      document.getElementById('bar').textContent=fixed+' fixed / '+total;
       await sleep(300);
     }
     document.getElementById('bar').style.background=errs?'#f59e0b':'#16a34a';
-    out('<b style="color:green">✓ '+done+' Name fields updated</b>'+(errs?' <span style="color:#dc2626">'+errs+' errors</span>':'')+'<br>Name = Compound | Date (Day of Week)');
-  }catch(e){out('<span style="color:#dc2626">'+e.message+'</span>');}
+    out(`<span class="ok">✓ Done: ${fixed} dates recomputed from Name field, ${skipped} unchanged, ${errs>0?errs+' errors':''}</span><br>Now click <b>Fix Names</b> to update the Name display field.`);
+  }catch(e){out('<span class="err">'+e.message+'</span>');}
 }
 
-async function runFields(){
-  out('Loading all records for field re-run…');
+async function fixNames(){
+  out('Fixing Name fields…');
   try{
-    const recs=await loadAll(['Medication','Location']);
-    const total=recs.length;
-    document.getElementById('bar').style.background='#2563eb';
-    let done=0,errs=0;
+    const recs=await loadAll(['Name','Compound','Medication','Date','Day of Week']);
+    document.getElementById('bar').style.background='#16a34a';
+    let done=0;
     for(let i=0;i<recs.length;i+=10){
       const batch=recs.slice(i,i+10);
       const updates=batch.map(r=>{
         const f=r.fields;
-        const p=parseMed(f['Medication']||'');
-        const site=canS(f['Location']||'');
-        const fields={};
-        if(p.c)fields['Compound']=p.c;if(p.d)fields['Dose']=p.d;
-        if(p.t)fields['Timing']=p.t;if(site)fields['Site']=site;
-        return{id:r.id,fields};
-      }).filter(u=>Object.keys(u.fields).length>0);
-      if(updates.length){
-        try{await atPatch(updates);done+=updates.length;}
-        catch(e){errs+=batch.length;}
-      }
-      const pct=Math.round((i+batch.length)/total*100);
-      document.getElementById('bar').style.width=Math.max(pct,2)+'%';
-      document.getElementById('bar').textContent=done+'/'+total;
+        const cmp=f['Compound']||'';
+        const date=f['Date']||'';
+        const dow=f['Day of Week']||'';
+        const name=cmp&&date?cmp+' | '+date+(dow?' ('+dow+')':''):cmp||date||'Unknown';
+        return{id:r.id,fields:{Name:name}};
+      });
+      try{await atPatch(updates);done+=updates.length;}catch(e){}
+      document.getElementById('bar').style.width=Math.max(Math.round((i+batch.length)/recs.length*100),2)+'%';
+      document.getElementById('bar').textContent=done+'/'+recs.length;
       await sleep(300);
     }
-    document.getElementById('bar').style.background=errs?'#f59e0b':'#16a34a';
-    out('<b style="color:green">✓ '+done+' records updated</b>');
-  }catch(e){out('<span style="color:#dc2626">'+e.message+'</span>');}
+    out(`<span class="ok">✓ ${done} Name fields updated — e.g. "Tesamorelin | 2025-07-28 (Mon)"</span>`);
+  }catch(e){out('<span class="err">'+e.message+'</span>');}
 }
 
 function out(h){document.getElementById('out').innerHTML=h;}
