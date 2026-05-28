@@ -91,8 +91,10 @@ select.fe{cursor:pointer}
 
 /* ACTION BUTTONS */
 .abtn{padding:3px 8px;border-radius:4px;font-size:10px;font-weight:700;cursor:pointer;border:1px solid;white-space:nowrap}
-.a-verify{background:#dcfce7;border-color:#86efac;color:#166534}
-.a-verify:hover{background:#bbf7d0}
+.a-verify{background:#fef9c3;border-color:#fde047;color:#854d0e}
+.a-verify:hover{background:#fef08a}
+.a-verified{background:#dcfce7;border-color:#86efac;color:#166534}
+.a-verified:hover{background:#bbf7d0}
 .a-del{background:#fff1f2;border-color:#fecdd3;color:#9f1239}
 .a-del:hover{background:#fecdd3}
 
@@ -172,7 +174,7 @@ select.fe{cursor:pointer}
       <span id="d-cnt"></span>
       <div id="dnav-r">
         <button class="hbtn" style="background:#2563eb;border-color:#2563eb;color:#fff" onclick="openAddModal()">+ Add Record</button>
-        <button id="verify-date-btn" class="hbtn" style="background:#16a34a;border-color:#16a34a;color:#fff" onclick="toggleDateVerified()">○ Mark Date Verified</button>
+        <button id="verify-date-btn" class="hbtn" style="background:#ca8a04;border-color:#ca8a04;color:#fff" onclick="toggleDateVerified()">○ Mark Date Verified</button>
       </div>
     </div>
 
@@ -560,8 +562,8 @@ async function gridCellClick(date,cmp){
     document.getElementById('cm').style.display='flex';
     // Fetch most recent record specifically for this compound
     try{
-      // Use SEARCH() with field name - more reliable than field ID in formula
-      const q=encodeURIComponent('SEARCH("'+cmp+'",{Compound})');
+      // Use {Compound}="name" — standard AT formula with actual field name
+      const q=encodeURIComponent('{Compound}="'+cmp+'"');
       const d=await atFetch(LOG.tbl+'?filterByFormula='+q+'&sort%5B0%5D%5Bfield%5D='+LOG.date+'&sort%5B0%5D%5Bdirection%5D=desc&returnFieldsByFieldId=true&pageSize=1');
       const rec=d.records?.[0];
       if(rec){
@@ -723,8 +725,8 @@ function updateVerifyBtn(verified){
   dateVerified=verified;
   const btn=document.getElementById('verify-date-btn');
   if(!btn)return;
-  if(verified){btn.textContent='✓ Date Verified';btn.style.background='#15803d';}
-  else{btn.textContent='○ Mark Date Verified';btn.style.background='#16a34a';}
+  if(verified){btn.textContent='✓ Date Verified';btn.style.background='#15803d';btn.style.borderColor='#15803d';}
+  else{btn.textContent='○ Mark Date Verified';btn.style.background='#ca8a04';btn.style.borderColor='#ca8a04';}
 }
 
 async function toggleDateVerified(){
@@ -799,7 +801,7 @@ function cardHTML(r){
 
     </div>
     <div class="card-actions">
-      <button class="abtn a-verify" onclick="toggleVerify('${r.id}',${verified})">${verified?'✓':'○'}</button>
+      <button class="abtn ${verified?'a-verified':'a-verify'}" onclick="toggleVerify('${r.id}',${verified})">${verified?'✓':'○'}</button>
       <button class="abtn a-del" onclick="delRec('${r.id}')">✕</button>
     </div>
   </div>`;
