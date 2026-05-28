@@ -526,7 +526,12 @@ function matchesLog(cmp,dose,site,timing){
   const m=logRecs.find(l=>l.fields[LOG.compound]===cmp);
   if(!m)return false;
   const f=m.fields;
-  return(!dose||f[LOG.dose]===dose)&&(!site||f[LOG.site]===site)&&(!timing||f[LOG.timing]===timing);
+  const nd=d=>String(d||'').replace(/\s+/g,'').toLowerCase().replace('units','u').replace('unit','u');
+  const ns=s=>String(s||'').trim().toUpperCase();
+  const doseOk=!dose||nd(f[LOG.dose])===nd(dose);
+  const siteOk=!site||site==='X'||ns(f[LOG.site])===ns(site);
+  // Ignore timing — not shown in PDF, unreliable in Parseur
+  return doseOk&&siteOk;
 }
 
 function diffHtml(cmp,dose,site,timing){
