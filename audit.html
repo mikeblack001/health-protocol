@@ -374,8 +374,14 @@ async function extractPageDate(page){
     if(m){
       const target=allDates.find(d=>d.startsWith(m[0]));
       if(target&&target!==curDate){
-        setSt('📅 '+m[0]);
-        setDate(target);
+        // Only navigate if target is unverified (don't override auto-order with verified dates)
+        const targetDate=new Date(target+'T12:00:00');
+        const curDateObj=new Date((curDate||'2099-01-01')+'T12:00:00');
+        // Only jump if target is ahead of or equal to current position
+        if(targetDate>=curDateObj){
+          setSt('📅 '+m[0]);
+          setDate(target);
+        }
       }
     }
   }catch(e){/* silent */}
