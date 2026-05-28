@@ -51,6 +51,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
 #dnav button:hover{background:#f3f4f6}
 #d-sel{padding:5px 9px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;font-weight:700;flex:1;max-width:260px}
 #d-cnt{font-size:11px;color:#9ca3af}
+#w-sel{padding:5px 9px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;font-weight:700;background:#fff;color:#374151;cursor:pointer}
 #dnav-r{margin-left:auto;display:flex;gap:6px;align-items:center}
 
 /* QUICK ADD */
@@ -166,6 +167,7 @@ select.fe{cursor:pointer}
     <div id="dnav">
       <button onclick="navD(-1)">◀ Prev</button>
       <select id="d-sel" onchange="selDate()"><option value="">— Select Date —</option></select>
+      <select id="w-sel" onchange="selWeek()" title="Jump to week"><option value="">— Week —</option></select>
       <button onclick="navD(1)">Next ▶</button>
       <span id="d-cnt"></span>
       <div id="dnav-r">
@@ -614,6 +616,7 @@ async function loadDates(){
   allDates=[...new Set(recs.map(r=>r.fields[LOG.date]).filter(Boolean))].sort();
   document.getElementById('d-cnt').textContent=allDates.length+' dates';
   buildDateSel();
+  buildWeekSel();
   setSt('');
   if(!allDates.length)return;
   // Group by date, check if ALL records per date are verified
@@ -648,6 +651,37 @@ function buildDateSel(){
   if(curDate)sel.value=curDate;
 }
 function selDate(){const d=document.getElementById('d-sel').value;if(d)setDate(d);}
+
+function buildWeekSel(){
+  const sel=document.getElementById('w-sel');
+  sel.innerHTML='<option value="">— Week —</option>';
+  // Build unique weeks from allDates
+  const seen=new Set();
+  allDates.forEach(d=>{
+    const dt=new Date(d+'T12:00:00'),dow=dt.getDay();
+    const mon=new Date(dt);mon.setDate(dt.getDate()-((dow+6)%7));
+    const monISO=mon.toISOString().slice(0,10);
+    if(!seen.has(monISO)){
+      seen.add(monISO);
+      const sun=new Date(mon);sun.setDate(mon.getDate()+6);
+      const fmt=d=>`${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}`;
+      const o=document.createElement('option');
+      o.value=monISO;
+      o.textContent=`${fmt(mon)} – ${fmt(sun)}`;
+      sel.appendChild(o);
+    }
+  });
+}
+
+function selWeek(){
+  const monISO=document.getElementById('w-sel').value;
+  if(!monISO)return;
+  // Find first date in allDates that falls in this week
+  const mon=new Date(monISO+'T12:00:00');
+  const sun=new Date(mon);sun.setDate(mon.getDate()+6);
+  const target=allDates.find(d=>{const dt=new Date(d+'T12:00:00');return dt>=mon&&dt<=sun;});
+  if(target)setDate(target);
+}
 function navD(dir){
   if(!allDates.length)return;
   const i=curDate?allDates.indexOf(curDate):-1;
@@ -658,6 +692,10 @@ function navD(dir){
 async function setDate(date){
   curDate=date;
   document.getElementById('d-sel').value=date;
+  // Sync week select to current date's week
+  const _dt=new Date(date+'T12:00:00'),_dow=_dt.getDay();
+  const _mon=new Date(_dt);_mon.setDate(_dt.getDate()-((_dow+6)%7));
+  document.getElementById('w-sel').value=_mon.toISOString().slice(0,10);
   setSt('Loading…');
   try{
     const q=encodeURIComponent('IS_SAME({'+LOG.date+'},"'+date+'","day")');
