@@ -556,11 +556,10 @@ async function gridCellClick(date,cmp){
     document.getElementById('cm-timing').selectedIndex=0;
     document.getElementById('cm-existing').innerHTML='<i>Loading…</i>';
     document.getElementById('cm').style.display='flex';
-    // Fetch most recent record for this compound to pre-fill
+    // Fetch recent records, filter client-side (formula field ID syntax unreliable)
     try{
-      const q=encodeURIComponent(`{${LOG.compound}}="${cmp}"`);
-      const d=await atFetch(LOG.tbl+'?filterByFormula='+q+'&sort%5B0%5D%5Bfield%5D='+LOG.date+'&sort%5B0%5D%5Bdirection%5D=desc&returnFieldsByFieldId=true&pageSize=1');
-      const rec=d.records?.[0];
+      const d=await atFetch(LOG.tbl+'?sort%5B0%5D%5Bfield%5D='+LOG.date+'&sort%5B0%5D%5Bdirection%5D=desc&returnFieldsByFieldId=true&pageSize=100');
+      const rec=(d.records||[]).find(r=>(r.fields[LOG.compound]||'')===cmp);
       if(rec){
         const f=rec.fields;
         const fromDate=(f[LOG.date]||'').slice(0,10);
@@ -770,6 +769,7 @@ async function saveField(id,field,value){
     const i=logRecs.findIndex(r=>r.id===id);
     if(i>=0){logRecs[i]=res;refreshCard(res);}
     flashSaved(id);
+    await new Promise(r=>setTimeout(r,300));
     await loadWeekGrid(curDate);
   }catch(e){setSt('Save error: '+e.message);}
 }
