@@ -550,21 +550,23 @@ async function gridCellClick(date,cmp){
     document.getElementById('cm-timing').selectedIndex=0;
     document.getElementById('cm-existing').innerHTML='<i>Loading…</i>';
     document.getElementById('cm').style.display='flex';
-    // Fetch most recent record for this compound to pre-fill
+    // Fetch last 30 records for this compound and use most common dose/site/timing
     try{
       const q=encodeURIComponent(`{${LOG.compound}}="${cmp}"`);
-      const d=await atFetch(LOG.tbl+'?filterByFormula='+q+'&sort%5B0%5D%5Bfield%5D='+LOG.date+'&sort%5B0%5D%5Bdirection%5D=desc&returnFieldsByFieldId=true&pageSize=1');
-      const rec=d.records?.[0];
-      if(rec){
-        const f=rec.fields;
-        if(f[LOG.dose])document.getElementById('cm-dose').value=f[LOG.dose];
-        const site=f[LOG.site]||'';
+      const d=await atFetch(LOG.tbl+'?filterByFormula='+q+'&sort%5B0%5D%5Bfield%5D='+LOG.date+'&sort%5B0%5D%5Bdirection%5D=desc&returnFieldsByFieldId=true&pageSize=30');
+      const recs=d.records||[];
+      if(recs.length){
+        // Mode: find most common non-empty value for each field
+        const mode=arr=>{const f=arr.filter(Boolean);if(!f.length)return '';const cnt={};f.forEach(v=>{cnt[v]=(cnt[v]||0)+1;});return Object.entries(cnt).sort((a,b)=>b[1]-a[1])[0][0];};
+        const dose=mode(recs.map(r=>r.fields[LOG.dose]||''));
+        const site=mode(recs.map(r=>r.fields[LOG.site]||''));
+        const timing=mode(recs.map(r=>r.fields[LOG.timing]||''));
+        if(dose)document.getElementById('cm-dose').value=dose;
         const siteEl=document.getElementById('cm-site');
         [...siteEl.options].forEach((o,i)=>{if(o.value===site||o.text===site)siteEl.selectedIndex=i;});
-        const timing=f[LOG.timing]||'';
         const timingEl=document.getElementById('cm-timing');
         [...timingEl.options].forEach((o,i)=>{if(o.value===timing||o.text===timing)timingEl.selectedIndex=i;});
-        document.getElementById('cm-existing').innerHTML=`<i>Pre-filled from ${(f[LOG.date]||'').slice(0,10)}</i>`;
+        document.getElementById('cm-existing').innerHTML=`<i>Pre-filled from ${recs.length} recent records</i>`;
       } else {
         document.getElementById('cm-existing').innerHTML='<i>No prior records found</i>';
       }
