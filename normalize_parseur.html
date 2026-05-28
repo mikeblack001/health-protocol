@@ -1,61 +1,32 @@
 <!DOCTYPE html>
-<html><head><meta charset="UTF-8"><title>Fix Missing Dates</title>
+<html><head><meta charset="UTF-8"><title>Date Gap Analysis</title>
 <style>
-body{font-family:-apple-system,sans-serif;font-size:13px;padding:24px;max-width:1100px;background:#f4f5f7}
+body{font-family:-apple-system,sans-serif;font-size:13px;padding:24px;max-width:1000px;background:#f4f5f7}
 h1{font-size:17px;font-weight:900;margin-bottom:4px}
 p{color:#6b7280;font-size:12px;margin-bottom:16px}
 .btn{display:inline-block;padding:9px 18px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;border:none;margin-right:6px;margin-bottom:8px}
 #out{background:#fff;border:2px solid #e2e5ea;border-radius:10px;padding:14px;margin-top:12px;font-size:12px;min-height:40px}
 table{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px}
-th{background:#f0f0f0;padding:6px 9px;text-align:left;font-weight:700;border:1px solid #e2e5ea}
-td{padding:5px 9px;border:1px solid #e2e5ea;vertical-align:middle}
+th{background:#1e2433;color:#fff;padding:7px 10px;text-align:left;font-weight:700}
+td{padding:6px 10px;border-bottom:1px solid #f3f4f6;vertical-align:top}
+tr:hover td{background:#f8f9fa}
 .ok{color:#166534;font-weight:700}.err{color:#dc2626;font-weight:700}.warn{color:#92400e;font-weight:700}
-select{padding:3px 6px;border:1px solid #d1d5db;border-radius:4px;font-size:12px;max-width:200px}
+select{padding:3px 6px;border:1px solid #d1d5db;border-radius:4px;font-size:12px}
 #bar-wrap{background:#e2e5ea;border-radius:6px;height:20px;margin-top:10px;display:none}
-#bar{background:#2563eb;height:20px;border-radius:6px;width:0%;font-size:12px;font-weight:700;color:#fff;text-align:center;line-height:20px;min-width:30px;transition:width .1s}
+#bar{background:#2563eb;height:20px;border-radius:6px;width:0%;font-size:12px;font-weight:700;color:#fff;text-align:center;line-height:20px;transition:width .1s}
 </style></head><body>
-<h1>Fix Missing Dates — Match to Injection Log</h1>
-<p>Fuzzy-matches blank-date Parseur records to Injection Log by compound name + day of week. Uses partial name matching (NAD matches NAD+, BPC matches BPC-157 etc).</p>
+<h1>Date Gap Analysis — Parseur vs Injection Log</h1>
+<p>Finds dates in the Log with no matching Parseur records. Assigns blank Parseur records to those gap dates.</p>
 
-<button class="btn" style="background:#7c3aed;color:#fff" onclick="loadAndMatch()">Load & Match</button>
-<button class="btn" style="background:#16a34a;color:#fff" onclick="applyAll()">Apply All Assigned Dates</button>
+<button class="btn" style="background:#2563eb;color:#fff" onclick="analyze()">Analyze Gaps</button>
+<button class="btn" style="background:#16a34a;color:#fff" onclick="applyAssignments()">Apply Assignments</button>
 
-<div id="out">Click Load & Match.</div>
-<div id="bar-wrap"><div id="bar">0</div></div>
+<div id="out">Click Analyze Gaps.</div>
+<div id="bar-wrap"><div id="bar">Loading…</div></div>
 
 <script>
 const AT='pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
 const BASE='appmHDG4TGT1xy6R6',PAR='tblCTOGIrF3NjdyTE',LOG='tblBvEaLkGGipnOFc';
-
-// Fuzzy compound match: does parseur compound match log compound?
-function fuzzyMatch(parCmp, logCmp){
-  if(!parCmp||!logCmp)return false;
-  const p=parCmp.toLowerCase().replace(/[^a-z0-9]/g,'');
-  const l=logCmp.toLowerCase().replace(/[^a-z0-9]/g,'');
-  // Exact after normalization
-  if(p===l)return true;
-  // One contains the other (handles NAD→NAD+, BPC→BPC-157, CJC→CJC-1295)
-  if(l.includes(p)||p.includes(l))return true;
-  // Special cases
-  const aliases={'10as':'nad','nad':'nad','bpc':'bpc157','cjc':'cjc1295','tb500':'tb500','tb':'tb500','tesa':'tesamorelin','ipa':'ipamorelin','trt':'testosterone'};
-  const pa=aliases[p]||p;
-  const la=aliases[l]||l;
-  return pa===la||la.includes(pa)||pa.includes(la);
-}
-
-// Day of week: parse "Thurs AM", "mon pm", "Wed" etc → 0-6 (Sun=0)
-function parseDow(s){
-  if(!s)return-1;
-  const clean=s.replace(/\s*(am|pm|AM|PM)\s*$/i,'').trim().toLowerCase();
-  const m={sun:0,sunday:0,mon:1,monday:1,tue:2,tues:2,tuesday:2,
-    wed:3,wednesday:3,thu:4,thur:4,thurs:4,thursday:4,fri:5,friday:5,sat:6,saturday:6};
-  return m[clean]!=null?m[clean]:-1;
-}
-
-function dateDow(iso){
-  // getUTCDay: 0=Sun,1=Mon...
-  return new Date(iso+'T12:00:00Z').getUTCDay();
-}
 
 function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
 async function atGet(url){
@@ -68,8 +39,7 @@ async function atPatch(tbl,records){
     body:JSON.stringify({records})});
   const d=await r.json();if(!r.ok)throw new Error(d.error?.message||r.status);return d;
 }
-
-async function loadAll(tbl, qs){
+async function loadAll(tbl,qs){
   let recs=[],off=null;
   do{const d=await atGet(tbl+'?'+qs+'&pageSize=100'+(off?'&offset='+off:''));
     recs=recs.concat(d.records);off=d.offset;
@@ -77,92 +47,115 @@ async function loadAll(tbl, qs){
   return recs;
 }
 
-let blankRecs=[], matchResults=[];
+let blankRecs=[], assignments=[];
 
-async function loadAndMatch(){
+async function analyze(){
   out('Loading…');
   document.getElementById('bar-wrap').style.display='';
-  document.getElementById('bar').style.background='#7c3aed';
-  document.getElementById('bar').style.width='15%';
-  document.getElementById('bar').textContent='Loading Parseur…';
+  document.getElementById('bar').style.width='10%';document.getElementById('bar').textContent='Loading Parseur…';
 
-  // Load blank-date Parseur records (by field name — no returnFieldsByFieldId)
-  const allPar=await loadAll(PAR,'fields%5B%5D=Name&fields%5B%5D=Date&fields%5B%5D=Day+of+Week&fields%5B%5D=Compound&fields%5B%5D=Medication');
-  blankRecs=allPar.filter(r=>!r.fields['Date']||String(r.fields['Date']).trim()==='');
+  // Load all Parseur: get dates + compounds
+  const parAll=await loadAll(PAR,'fields%5B%5D=Date&fields%5B%5D=Compound&fields%5B%5D=Medication&fields%5B%5D=Day+of+Week');
+  blankRecs=parAll.filter(r=>!r.fields['Date']||String(r.fields['Date']).trim()==='');
+  const parDates=new Set(parAll.filter(r=>r.fields['Date']).map(r=>r.fields['Date']));
 
-  document.getElementById('bar').style.width='45%';
-  document.getElementById('bar').textContent='Loading Log…';
+  document.getElementById('bar').style.width='50%';document.getElementById('bar').textContent='Loading Log…';
 
-  // Load Injection Log WITH returnFieldsByFieldId=true
-  const logAll=await loadAll(LOG,'returnFieldsByFieldId=true&fields%5B%5D=fldhYEtLEGA4VxvvO&fields%5B%5D=fldwVFyizH4mBANBa&fields%5B%5D=fldHDlJY8FpAvK018');
-
-  document.getElementById('bar').style.width='80%';
-  document.getElementById('bar').textContent='Matching…';
-
-  // Build log lookup: array of {date, compound, site, dow}
-  const logEntries=logAll.map(r=>{
-    const f=r.fields;
-    const date=f['fldhYEtLEGA4VxvvO']||'';
-    const cmp=f['fldwVFyizH4mBANBa']||'';
-    const site=f['fldHDlJY8FpAvK018']||'';
-    return{date,cmp,site,dow:date?dateDow(date):-1};
-  }).filter(e=>e.date&&e.cmp);
-
-  // Match each blank record
-  matchResults=blankRecs.map((r,i)=>{
-    const f=r.fields;
-    const rawCmp=f['Compound']||f['Medication']||'';
-    const dow=parseDow(f['Day of Week']||'');
-    // Find log entries where compound fuzzy-matches AND day of week matches
-    const candidates=logEntries.filter(e=>fuzzyMatch(rawCmp,e.cmp)&&(dow===-1||e.dow===dow));
-    // Deduplicate by date
-    const seen=new Set();
-    const unique=candidates.filter(e=>{if(seen.has(e.date))return false;seen.add(e.date);return true;});
-    return{i,id:r.id,rawCmp,dow:f['Day of Week']||'',candidates:unique,assigned:unique.length===1?unique[0].date:''};
+  // Load Log with field IDs
+  const logAll=await loadAll(LOG,'returnFieldsByFieldId=true&fields%5B%5D=fldhYEtLEGA4VxvvO&fields%5B%5D=fldwVFyizH4mBANBa');
+  
+  // Group log by date
+  const logByDate={};
+  logAll.forEach(r=>{
+    const date=r.fields['fldhYEtLEGA4VxvvO']||'';
+    const cmp=r.fields['fldwVFyizH4mBANBa']||'';
+    if(!date)return;
+    if(!logByDate[date])logByDate[date]=[];
+    logByDate[date].push(cmp);
   });
 
-  document.getElementById('bar').style.width='100%';
-  document.getElementById('bar').style.background='#16a34a';
+  // Group Parseur by date
+  const parByDate={};
+  parAll.filter(r=>r.fields['Date']).forEach(r=>{
+    const date=r.fields['Date'];
+    if(!parByDate[date])parByDate[date]=[];
+    parByDate[date].push(r.fields['Compound']||r.fields['Medication']||'');
+  });
 
-  const auto=matchResults.filter(m=>m.candidates.length===1).length;
-  const multi=matchResults.filter(m=>m.candidates.length>1).length;
-  const none=matchResults.filter(m=>m.candidates.length===0).length;
+  // Find Log dates NOT in Parseur
+  const logOnlyDates=Object.keys(logByDate).filter(d=>!parDates.has(d)).sort();
+  
+  document.getElementById('bar').style.width='80%';document.getElementById('bar').textContent='Analyzing…';
 
-  let html=`<b>${blankRecs.length} blank records — <span class="ok">${auto} auto-matched</span>, <span class="warn">${multi} multiple candidates</span>, <span class="err">${none} no match</span></b>`;
-  html+='<br><small>Auto-matched = only 1 possible date. Multiple = pick from dropdown. No match = bad data, delete.</small>';
-  html+='<table><tr><th>Compound (raw)</th><th>Day of Week</th><th>Matches</th><th>Assign Date</th></tr>';
+  // Group blank records by compound for easier assignment
+  const blankByCmp={};
+  blankRecs.forEach(r=>{
+    const cmp=r.fields['Compound']||r.fields['Medication']||'?';
+    if(!blankByCmp[cmp])blankByCmp[cmp]=[];
+    blankByCmp[cmp].push(r);
+  });
 
-  matchResults.forEach((m,i)=>{
-    const bg=m.candidates.length===1?'#f0fdf4':m.candidates.length>1?'#fffbeb':'#fff8f8';
-    const opts=m.candidates.map(c=>`<option value="${c.date}" ${m.assigned===c.date?'selected':''}>${c.date} (${c.cmp}, ${c.site||'?'})</option>`).join('');
-    const sel=m.candidates.length>0
-      ?`<select id="sel_${i}" onchange="matchResults[${i}].assigned=this.value"><option value="">— pick date —</option>${opts}</select>`
-      :`<span class="err">No match — delete</span>`;
-    html+=`<tr style="background:${bg}"><td>${m.rawCmp}</td><td>${m.dow}</td><td>${m.candidates.length}</td><td>${sel}</td></tr>`;
+  document.getElementById('bar').style.width='100%';document.getElementById('bar').style.background='#16a34a';
+  document.getElementById('bar').textContent='Done';
+
+  assignments=[];
+
+  let html=`<b>Summary:</b><br>
+  • Parseur: ${parAll.length} total records, ${parAll.length-blankRecs.length} dated, ${blankRecs.length} blank dates<br>
+  • Injection Log: ${logAll.length} records across ${Object.keys(logByDate).length} dates<br>
+  • <span class="warn">Log dates with NO Parseur records: ${logOnlyDates.length}</span><br><br>`;
+
+  if(logOnlyDates.length===0){
+    html+='<span class="ok">No gaps — every Log date has Parseur records.</span>';
+    out(html);return;
+  }
+
+  html+=`<b>Log dates missing from Parseur (${logOnlyDates.length}) — these are likely where the ${blankRecs.length} blank records belong:</b>`;
+  html+='<table><tr><th>Gap Date</th><th>Log has these compounds</th><th>Parseur blanks to assign</th><th>Assign blanks to this date?</th></tr>';
+
+  logOnlyDates.forEach((date,i)=>{
+    const logCmps=logByDate[date]||[];
+    // Find blank Parseur records whose compound matches something in Log for this date
+    const matchingBlanks=blankRecs.filter(r=>{
+      const cmp=(r.fields['Compound']||r.fields['Medication']||'').toLowerCase();
+      return logCmps.some(lc=>lc.toLowerCase().includes(cmp.replace(/[^a-z]/g,'').substring(0,4))||
+        cmp.includes(lc.toLowerCase().replace(/[^a-z]/g,'').substring(0,4)));
+    });
+    const asgId='asg_'+i;
+    assignments.push({date,matchingBlanks,asgId});
+    html+=`<tr>
+      <td><b>${date}</b></td>
+      <td style="font-size:11px">${logCmps.join('<br>')}</td>
+      <td style="font-size:11px">${matchingBlanks.length>0?matchingBlanks.map(r=>r.fields['Compound']||r.fields['Medication']||'?').join('<br>'):'<span class="err">No matching blanks</span>'}</td>
+      <td>${matchingBlanks.length>0?`<label><input type="checkbox" id="${asgId}" checked> Assign ${matchingBlanks.length} blank(s) → ${date}</label>`:'—'}</td>
+    </tr>`;
   });
   html+='</table>';
   out(html);
 }
 
-async function applyAll(){
-  const toUpdate=matchResults.filter(m=>m.assigned);
-  if(!toUpdate.length){alert('No dates assigned — select dates from dropdowns first');return;}
-  if(!confirm('Apply '+toUpdate.length+' date assignments?'))return;
+async function applyAssignments(){
+  const toApply=assignments.filter(a=>{
+    const cb=document.getElementById(a.asgId);
+    return cb&&cb.checked&&a.matchingBlanks.length>0;
+  });
+  if(!toApply.length){alert('No assignments selected');return;}
+  const total=toApply.reduce((s,a)=>s+a.matchingBlanks.length,0);
+  if(!confirm('Assign dates to '+total+' blank Parseur records across '+toApply.length+' dates?'))return;
   document.getElementById('bar').style.background='#2563eb';
   document.getElementById('bar').style.width='5%';
   let done=0,errs=0;
-  for(let i=0;i<toUpdate.length;i+=10){
-    const batch=toUpdate.slice(i,i+10);
-    try{
-      await atPatch(PAR,batch.map(m=>({id:m.id,fields:{Date:m.assigned}})));
-      done+=batch.length;
-    }catch(e){errs+=batch.length;}
-    document.getElementById('bar').style.width=Math.max(Math.round((i+batch.length)/toUpdate.length*100),2)+'%';
-    document.getElementById('bar').textContent=done+'/'+toUpdate.length;
+  const updates=[];
+  toApply.forEach(a=>a.matchingBlanks.forEach(r=>updates.push({id:r.id,fields:{Date:a.date}})));
+  for(let i=0;i<updates.length;i+=10){
+    const batch=updates.slice(i,i+10);
+    try{await atPatch(PAR,batch);done+=batch.length;}catch(e){errs+=batch.length;}
+    document.getElementById('bar').style.width=Math.max(Math.round((i+batch.length)/updates.length*100),2)+'%';
+    document.getElementById('bar').textContent=done+'/'+updates.length;
     await sleep(300);
   }
   document.getElementById('bar').style.background=errs?'#f59e0b':'#16a34a';
-  out(`<span class="ok">✓ ${done} dates applied.</span>${errs?' <span class="err">'+errs+' errors</span>':''}`);
+  out(`<span class="ok">✓ ${done} blank records assigned dates.</span>${errs?' <span class="err">'+errs+' errors</span>':''}`);
 }
 
 function out(h){document.getElementById('out').innerHTML=h;}
