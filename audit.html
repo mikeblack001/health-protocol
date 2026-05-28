@@ -189,8 +189,7 @@ select.fe{cursor:pointer}
       </select>
       <input id="q-dose" type="text" placeholder="Dose (e.g. 5u)">
       <select id="q-site" style="width:70px">
-        <option value="">Site</option><option>L</option><option>R</option>
-        <option>Pill</option><option>X</option><option>Nasal</option><option>Abd</option><option>S</option>
+        <option value="">Site</option><option>L</option><option>R</option><option>Pill</option><option>X</option><option>S</option>
       </select>
       <select id="q-timing" style="width:100px">
         <option value="">Timing</option><option>Morning</option><option>Night</option>
@@ -247,7 +246,7 @@ const GSCOPE='https://www.googleapis.com/auth/drive.readonly';
 const PDF_QA='https://mikeblack001.github.io/health-protocol/pdf_qa.html';
 const QUICK_PDF=[{n:'📋 Injections PDF',id:'1Yk3aWqXPWRpFWCvXYasWoo9hA202KQG6'}];
 const CMPS=['NAD+','LipoMinoMix','Tesamorelin','Tirzepatide','Anavar (Oxandrolone)','BPC-157','TB-500','CJC-1295','CJC-1295 No DAC','Ipamorelin','GHK-Cu','Retatrutide','Selank','DSIP','KPV','Semax','Mots-C','SS-31','Epitalon','Melanotan II (MT2)','Deca (Nandrolone)','Testosterone','Winstrol (Stanozolol)','Cagrilintide'];
-const SITES=['L','R','L+R','Pill','X','Nasal','Abd','S'];
+const SITES=['L','R','Pill','X','S'];
 const TIMINGS=['Morning','Night','Evening','Daily'];
 
 const LS={get:k=>localStorage.getItem('mba_'+k),set:(k,v)=>localStorage.setItem('mba_'+k,v)};
@@ -346,8 +345,7 @@ function getWkDates(dateStr){
 function getRowOrder(){try{return JSON.parse(LS.get('row_order')||'[]');}catch(e){return [];}}
 function saveRowOrder(arr){LS.set('row_order',JSON.stringify(arr));}
 function siteColor(s){
-  const m={'L':{bg:'#dbeafe',fg:'#1d4ed8'},'R':{bg:'#fef9c3',fg:'#92400e'},'S':{bg:'#fce7f3',fg:'#be185d'},
-    'X':{bg:'#d1fae5',fg:'#065f46'},'Pill':{bg:'#f3f4f6',fg:'#374151'},'Nasal':{bg:'#ede9fe',fg:'#5b21b6'},'Abd':{bg:'#ffedd5',fg:'#9a3412'}};
+  const m={'L':{bg:'#dbeafe',fg:'#1d4ed8'},'R':{bg:'#fef9c3',fg:'#92400e'},'S':{bg:'#fce7f3',fg:'#be185d'},'X':{bg:'#d1fae5',fg:'#065f46'},'Pill':{bg:'#f3f4f6',fg:'#374151'}};
   return m[s]||{bg:'#f3f4f6',fg:'#374151'};
 }
 
@@ -537,7 +535,7 @@ function cardHTML(r){
   const verified=stat==='Done';
 
   const cmpOpts=CMPS.map(c=>`<option ${c===cmp?'selected':''}>${c}</option>`).join('');
-  const siteOpts=['','L','R','L+R','Pill','X','Nasal','Abd','S'].map(s=>`<option ${s===site?'selected':''}>${s}</option>`).join('');
+  const siteOpts=['','L','R','Pill','X','S'].map(s=>`<option ${s===site?'selected':''}>${s}</option>`).join('');
   const timingOpts=['','Morning','Night','Evening','Daily'].map(t=>`<option ${t===timing?'selected':''}>${t}</option>`).join('');
   const statOpts=['','Todo','In progress','Done'].map(s=>`<option ${s===stat?'selected':''}>${s}</option>`).join('');
 
