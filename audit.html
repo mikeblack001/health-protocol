@@ -326,7 +326,7 @@ function pdfZoom(dir){
   if(dir===0){window.pdfZoom=1.0;}
   else{
     const steps=[0.75,1.0,1.5,2.0,3.0];
-    const idx=steps.findIndex(s=>Math.abs(s-window.pdfZoom)<0.01);
+    const idx=steps.findIndex(s=>Math.abs(s-window.pdfZoomLevel)<0.01);
     const ni=Math.max(0,Math.min(steps.length-1,(idx===-1?2:idx)+dir));
     window.pdfZoom=steps[ni];
   }
