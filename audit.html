@@ -440,7 +440,10 @@ async function loadWeekGrid(date){
   ordered.forEach(cmp=>{
     const dayMap=data[cmp].days,timing=data[cmp].timing;
     const badge=timing?`<span style="font-size:9px;font-weight:600;color:#9ca3af;margin-left:4px">${timing.slice(0,3).toUpperCase()}</span>`:'';
-    h+=`<tr draggable="true" data-cmp="${esc(cmp)}"><td><span class="drag-handle">⠿</span>${esc(cmp)}${badge}</td>`;
+    // Find first dose for this compound across the week
+    const firstDose=Object.values(dayMap).flatMap(d=>d.doses||[]).find(d=>d)||'';
+    const doseBadge=firstDose?`<span style="font-size:9px;font-weight:600;color:#2563eb;margin-left:4px">${esc(firstDose)}</span>`:'';
+    h+=`<tr draggable="true" data-cmp="${esc(cmp)}"><td><span class="drag-handle">⠿</span>${esc(cmp)}${doseBadge}${badge}</td>`;
     days.forEach(d=>{
       const cell=dayMap[d];
       const onclick=`onclick="gridCellClick('${d}','${esc(cmp)}')"`;
