@@ -402,7 +402,7 @@ async function loadWeekGrid(date){
   ws.textContent='Loading…';
   const orParts=days.map(d=>`IS_SAME({${LOG.date}},"${d}","day")`).join(',');
   const q=encodeURIComponent(`OR(${orParts})`);
-  const flds=[LOG.date,LOG.compound,LOG.site,LOG.timing].map(f=>'fields%5B%5D='+f).join('&');
+  const flds=[LOG.date,LOG.compound,LOG.site,LOG.timing,LOG.dose].map(f=>'fields%5B%5D='+f).join('&');
   let recs=[],off=null;
   try{
     do{
@@ -417,9 +417,10 @@ async function loadWeekGrid(date){
     const f=r.fields,cmp=f[LOG.compound]||'',day=(f[LOG.date]||'').slice(0,10),site=f[LOG.site]||'',timing=f[LOG.timing]||'';
     if(!cmp||!day)return;
     if(!data[cmp])data[cmp]={timing,days:{}};
-    if(!data[cmp].days[day])data[cmp].days[day]={sites:[],n:0};
+    if(!data[cmp].days[day])data[cmp].days[day]={sites:[],doses:[],n:0};
     data[cmp].days[day].n++;
     if(site)data[cmp].days[day].sites.push(site);
+    const dose=f[LOG.dose]||'';if(dose)data[cmp].days[day].doses.push(dose);
   });
 
   // Apply saved order, append new compounds at bottom
@@ -444,10 +445,11 @@ async function loadWeekGrid(date){
       const cell=dayMap[d];
       const onclick=`onclick="gridCellClick('${d}','${esc(cmp)}')"`;
       if(!cell||!cell.n){h+=`<td ${onclick} style="cursor:pointer"></td>`;}
-      else if(!cell.sites.length){const sc=siteColor('X');h+=`<td ${onclick} style="cursor:pointer;background:${sc.bg};color:${sc.fg};font-weight:800;font-size:11px">X</td>`;}
       else{
-        const sc=siteColor(cell.sites[0]);
-        h+=`<td ${onclick} style="cursor:pointer;background:${sc.bg};color:${sc.fg};font-weight:800;font-size:11px">${esc(cell.sites.join('/'))}</td>`;
+        const siteVal=cell.sites.length?cell.sites[0]:'X';
+        const sc=siteColor(siteVal);
+        const doseStr=cell.doses.length?`<span style="font-size:9px;opacity:.75;display:block;line-height:1.1">${esc(cell.doses[0])}</span>`:'';
+        h+=`<td ${onclick} style="cursor:pointer;background:${sc.bg};color:${sc.fg};font-weight:800;font-size:11px;line-height:1.2">${esc(siteVal)}${doseStr}</td>`;
       }
     });
     h+=`</tr>`;
