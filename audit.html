@@ -707,13 +707,7 @@ window.onload=()=>{
   initAuth();
   document.getElementById('pp-id').value=LS.get('pdf')||'1Yk3aWqXPWRpFWCvXYasWoo9hA202KQG6';
   loadDates();
-  // Wheel at top/bottom auto-navigates pages
-  document.getElementById('pp-area').addEventListener('wheel',function(e){
-    const atBottom=this.scrollTop+this.clientHeight>=this.scrollHeight-4;
-    const atTop=this.scrollTop<=0;
-    if(e.deltaY>0&&atBottom&&pdfDoc&&window.pg<pdfDoc.numPages){e.preventDefault();pdfNext();}
-    else if(e.deltaY<0&&atTop&&pdfDoc&&window.pg>1){e.preventDefault();pdfPrev();}
-  },{passive:false});
+
 };
 </script>
 </body>
