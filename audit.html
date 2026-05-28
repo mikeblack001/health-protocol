@@ -315,6 +315,8 @@ async function pdfRenderPage(){
   pdfRenderTask=page.render({canvasContext:canvas.getContext('2d'),viewport:vp});
   try{await pdfRenderTask.promise;}catch(e){if(e.name!=='RenderingCancelledException')console.error('PDF render:',e);}
   pdfRenderTask=null;
+  // Debug: show canvas + area dimensions in status
+  setSt(`pg${window.pg} canvas:${canvas.width}x${canvas.height} area:${area.clientWidth}x${area.clientHeight} zoom:${window.pdfZoom}`);
   extractPageDate(page);
 }
 function pdfPrev(){pdfPage(window.pg-1);}
