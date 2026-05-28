@@ -96,11 +96,15 @@ async function atPatch(records){
 async function loadAll(fields){
   let recs=[],off=null;
   const fq=fields.map(f=>'fields%5B%5D='+encodeURIComponent(f)).join('&');
+  document.getElementById('bar-wrap').style.display='';
+  document.getElementById('bar').style.background='#6b7280';
   do{
     const d=await atGet(TBL+'?'+fq+'&pageSize=100'+(off?'&offset='+off:''));
     recs=recs.concat(d.records);off=d.offset;
-    out('Loading… '+recs.length);
+    document.getElementById('bar').textContent='Loading… '+recs.length;
+    document.getElementById('bar').style.width=Math.min(recs.length/16,99)+'%';
   }while(off);
+  document.getElementById('bar').textContent='Loaded '+recs.length+' — updating…';
   return recs;
 }
 
