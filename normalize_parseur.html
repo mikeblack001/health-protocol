@@ -19,6 +19,7 @@ select{padding:3px 6px;border:1px solid #d1d5db;border-radius:4px;font-size:12px
 <h1>Fix Remaining Blanks + Full Comparison</h1>
 <p>Updated mappings: 10/10A S = Ipamorelin, CJC = CJC-1295, 2.5 dose = CJC-1295 No DAC, BPC = BPC-157. Targets Dec 2025 gap dates.</p>
 <button class="btn" style="background:#2563eb;color:#fff" onclick="run()">Run Analysis</button>
+<button class="btn" style="background:#7c3aed;color:#fff" onclick="fixNano()">Fix Nano → Deca</button>
 <button class="btn" style="background:#16a34a;color:#fff" id="apply-btn" onclick="applyAll()" style="display:none">Apply Assignments</button>
 <button class="btn" style="background:#dc2626;color:#fff" id="del-dup-btn" onclick="deleteDups()" style="display:none">Delete Duplicates</button>
 <div id="bar-wrap"><div id="bar">Loading…</div></div>
@@ -82,6 +83,40 @@ async function atPatch(tbl,records){const r=await fetch('https://api.airtable.co
 async function loadAll(tbl,qs){let recs=[],off=null;do{const d=await atGet(tbl+'?'+qs+'&pageSize=100'+(off?'&offset='+off:''));recs=recs.concat(d.records);off=d.offset;}while(off);return recs;}
 
 let dupIds=[], planRows=[], allBlanks=[];
+
+async function fixNano(){
+  // Find all Parseur records where Medication contains "nano" but Compound is wrong
+  out2('Scanning for Nano records…');
+  let recs=[],off=null;
+  do{
+    const d=await atGet(PAR+'?fields%5B%5D=Medication&fields%5B%5D=Compound&pageSize=100'+(off?'&offset='+off:''));
+    recs=recs.concat(d.records);off=d.offset;
+  }while(off);
+  const toFix=recs.filter(r=>{
+    const med=(r.fields['Medication']||'').toLowerCase();
+    const cmp=(r.fields['Compound']||'').toLowerCase();
+    // Medication contains "nano" but compound is NOT already Deca
+    return med.includes('nano')&&!cmp.includes('deca')&&!cmp.includes('nandrolone');
+  });
+  if(!toFix.length){out2('<span class="ok">No Nano→wrong records found.</span>');return;}
+  out2(`Found ${toFix.length} records with Nano in Medication but wrong Compound. Fixing…`);
+  let done=0;
+  for(let i=0;i<toFix.length;i+=10){
+    const batch=toFix.slice(i,i+10);
+    try{
+      await atPatch(PAR,batch.map(r=>({id:r.id,fields:{Compound:'Deca (Nandrolone)'}})));
+      done+=batch.length;
+    }catch(e){out2('Error: '+e.message);return;}
+    await sleep(250);
+  }
+  out2(`<span class="ok">✓ Fixed ${done} records: Compound set to Deca (Nandrolone). Run Analysis to verify.</span>`);
+}
+
+function out2(h){
+  let el=document.getElementById('out2');
+  if(!el){el=document.createElement('div');el.id='out2';el.style='background:#fff;border:1px solid #e2e5ea;border-radius:8px;padding:12px;margin-bottom:12px;font-size:12px';document.getElementById('out').before(el);}
+  el.innerHTML=h;
+}
 
 async function run(){
   document.getElementById('bar-wrap').style.display='';
