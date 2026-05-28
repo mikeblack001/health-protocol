@@ -539,6 +539,11 @@ async function toggleDateVerified(){
     logRecs.forEach(r=>r.fields[LOG.verified]=newVal);
     updateVerifyBtn(newVal);
     setSt(newVal?'✓ Date verified':'✓ Date unverified');
+    // Auto-advance to next date when marking verified
+    if(newVal){
+      const i=allDates.indexOf(curDate);
+      if(i>=0&&i+1<allDates.length)setTimeout(()=>setDate(allDates[i+1]),400);
+    }
   }catch(e){setSt('Error: '+e.message);}
 }
 
