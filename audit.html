@@ -296,8 +296,11 @@ async function pdfPage(n){
   document.getElementById('btn-prev').disabled=(n<=1);
   document.getElementById('btn-next').disabled=(n>=pdfDoc.numPages);
 }
+let pdfRenderTask=null;
 async function pdfRenderPage(){
   const page=window.pdfCurrentPage;if(!page)return;
+  // Cancel any in-progress render
+  if(pdfRenderTask){try{pdfRenderTask.cancel();}catch(e){} pdfRenderTask=null;}
   const canvas=document.getElementById('pp-canvas');
   const area=document.getElementById('pp-area');
   const vp1=page.getViewport({scale:1.0});
@@ -310,7 +313,9 @@ async function pdfRenderPage(){
   canvas.style.width='';canvas.style.height='';
   document.getElementById('pp-zoom-lbl').textContent=Math.round(window.pdfZoom*100)+'%';
   if(window.pdfZoom<=1.0){area.scrollLeft=0;area.scrollTop=0;}
-  await page.render({canvasContext:canvas.getContext('2d'),viewport:vp}).promise;
+  pdfRenderTask=page.render({canvasContext:canvas.getContext('2d'),viewport:vp});
+  try{await pdfRenderTask.promise;}catch(e){if(e.name!=='RenderingCancelledException')console.error('PDF render:',e);}
+  pdfRenderTask=null;
 }
 function pdfPrev(){pdfPage(window.pg-1);}
 function pdfNext(){pdfPage(window.pg+1);}
@@ -462,19 +467,28 @@ async function verifyWeek(){
 }
 
 let cmDate=null,cmCmp=null;
-function gridCellClick(date,cmp){
+async function gridCellClick(date,cmp){
   cmDate=date;cmCmp=cmp;
   document.getElementById('cm-title').textContent=cmp+' — '+date;
   document.getElementById('cm-dose').value='';
   document.getElementById('cm-site').selectedIndex=0;
   document.getElementById('cm-timing').selectedIndex=0;
-  // Show any existing records for this date+compound
-  const ex=logRecs.filter(r=>r.fields[LOG.compound]===cmp&&(r.fields[LOG.date]||'').slice(0,10)===date);
+  document.getElementById('cm-existing').innerHTML='<i>Loading…</i>';
+  document.getElementById('cm').style.display='flex';
+  // If same as curDate, use cached logRecs; otherwise fetch from AT
+  let ex=[];
+  if(date===curDate){
+    ex=logRecs.filter(r=>r.fields[LOG.compound]===cmp);
+  } else {
+    try{
+      const q=encodeURIComponent(`AND(IS_SAME({${LOG.date}},"${date}","day"),{${LOG.compound}}="${cmp}")`);
+      const d=await atFetch(LOG.tbl+'?filterByFormula='+q+'&returnFieldsByFieldId=true&pageSize=100');
+      ex=d.records||[];
+    }catch(e){ex=[];}
+  }
   document.getElementById('cm-existing').innerHTML=ex.length
-    ?ex.map(r=>`<span style="display:inline-block;background:#f3f4f6;border-radius:4px;padding:2px 6px;margin:2px;font-size:11px">${r.fields[LOG.dose]||''}${r.fields[LOG.site]?' '+r.fields[LOG.site]:''}${r.fields[LOG.timing]?' '+r.fields[LOG.timing]:''}</span>`).join('')
+    ?ex.map(r=>{const f=r.fields;return `<span style="display:inline-block;background:#f3f4f6;border-radius:4px;padding:2px 6px;margin:2px;font-size:11px">${f[LOG.dose]||''}${f[LOG.site]?' '+f[LOG.site]:''}${f[LOG.timing]?' '+f[LOG.timing]:''}</span>`;}).join('')
     :'<i>No records yet</i>';
-  const m=document.getElementById('cm');
-  m.style.display='flex';
 }
 function closeCM(){document.getElementById('cm').style.display='none';}
 async function cmSave(){
