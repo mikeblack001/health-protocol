@@ -252,7 +252,7 @@ const TIMINGS=['Morning','Night','Evening','Daily'];
 
 const LS={get:k=>localStorage.getItem('mba_'+k),set:(k,v)=>localStorage.setItem('mba_'+k,v)};
 let curDate=null,logRecs=[],allDates=[],gTok=null;
-window.pg=1;let pdfDoc=null,pickerFiles=[],pickerStack=[{id:'root',name:'My Drive'}];
+window.pg=1;window.pdfDoc=null;window.pdfInitLoad=true;let pickerFiles=[],pickerStack=[{id:'root',name:'My Drive'}];
 
 // ── AUTH ──────────────────────────────────────────────────────────────
 function initAuth(){
@@ -268,7 +268,7 @@ function initAuth(){
 function signIn(){sessionStorage.setItem('mb_oauth_return',location.href.split('#')[0]);location.href='https://accounts.google.com/o/oauth2/v2/auth?client_id='+encodeURIComponent(GCL_ID)+'&redirect_uri='+encodeURIComponent(PDF_QA)+'&response_type=token&scope='+encodeURIComponent(GSCOPE);}
 function setDriveOK(){const b=document.getElementById('drive-btn');b.textContent='🟢 Drive';b.className='ok';b.onclick=null;autoLoadPDF();}
 function setDriveNo(){const b=document.getElementById('drive-btn');b.textContent='🔴 Drive';b.className='no';b.onclick=signIn;}
-async function autoLoadPDF(){const id=LS.get('pdf')||'1Yk3aWqXPWRpFWCvXYasWoo9hA202KQG6';document.getElementById('pp-id').value=id;if(!pdfDoc)await pdfLoad();}
+async function autoLoadPDF(){const id=LS.get('pdf')||'1Yk3aWqXPWRpFWCvXYasWoo9hA202KQG6';document.getElementById('pp-id').value=id;if(!window.pdfDoc)await pdfLoad();}
 
 // ── PDF ───────────────────────────────────────────────────────────────
 async function pdfLoad(){
@@ -283,18 +283,18 @@ async function pdfLoad(){
 }
 function pdfLocal(inp){if(inp.files[0])inp.files[0].arrayBuffer().then(b=>pdfRender(b));}
 async function pdfRender(buf){
-  pdfDoc=await pdfjsLib.getDocument({data:buf}).promise;
-  window.pg=1;await pdfPage(1);pmsg(pdfDoc.numPages+' pages ✓');
+  window.window.pdfDoc=await pdfjsLib.getDocument({data:buf}).promise;
+  window.pg=1;await pdfPage(1);pmsg(window.pdfDoc.numPages+' pages ✓');
 }
 async function pdfPage(n){
-  if(!pdfDoc)return;
-  n=Math.max(1,Math.min(n,pdfDoc.numPages));window.pg=n;
-  window.pdfCurrentPage=await pdfDoc.getPage(n);
+  if(!window.pdfDoc)return;
+  n=Math.max(1,Math.min(n,window.pdfDoc.numPages));window.pg=n;
+  window.pdfCurrentPage=await window.pdfDoc.getPage(n);
   await pdfRenderPage();
   document.getElementById('pp-pg').textContent=n+' / '+pdfDoc.numPages;
   document.getElementById('pp-jp').value=n;
   document.getElementById('btn-prev').disabled=(n<=1);
-  document.getElementById('btn-next').disabled=(n>=pdfDoc.numPages);
+  document.getElementById('btn-next').disabled=(n>=window.pdfDoc.numPages);
 }
 let pdfRenderTask=null;
 async function pdfRenderPage(){
@@ -322,7 +322,7 @@ function pdfNext(){pdfPage(window.pg+1);}
 function pgGo(n){pdfPage(n);}
 window.pdfZoom=1.0;
 function pdfZoom(dir){
-  if(!pdfDoc||!window.pg)return;
+  if(!window.pdfDoc||!window.pg)return;
   if(dir===0){window.pdfZoom=1.0;}
   else{
     const steps=[0.5,0.75,1.0,1.25,1.5,2.0,2.5,3.0];
@@ -340,6 +340,8 @@ const ANTH_KEY='sk-ant-api03-jWnl5azwXKPce1ZVdPZ8_8edO87_hOD8uZpDXQFa4ByFkqqdJOz
 let lastExtractedPage=null;
 
 async function extractPageDate(page){
+  // Skip on initial page load — don't override auto-jump to first unverified
+  if(window.pdfInitLoad){window.pdfInitLoad=false;return;}
   // Avoid re-calling for same page
   if(lastExtractedPage===window.pg)return;
   lastExtractedPage=window.pg;
