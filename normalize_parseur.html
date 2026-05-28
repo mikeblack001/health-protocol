@@ -16,10 +16,11 @@ td{padding:6px 10px;border:1px solid #e2e5ea}
 <h1>Normalize Parseur-Injections</h1>
 <p>Step 1: Compute actual dates (week-start + Day of Week offset) &nbsp;→&nbsp; Step 2: Populate Compound / Dose / Timing / Site</p>
 
-<button class="btn" style="background:#7c3aed;color:#fff" onclick="previewDates()">1. Preview Date Fix (10 records)</button>
+<button class="btn" style="background:#7c3aed;color:#fff" onclick="previewDates()">1. Preview Date Fix</button>
 <button class="btn" style="background:#dc2626;color:#fff" onclick="fixDates()">2. Fix All Dates</button>
-<button class="btn" style="background:#2563eb;color:#fff" onclick="inspect()">3. Inspect Fields (5 records)</button>
-<button class="btn" style="background:#16a34a;color:#fff" onclick="runFields()">4. Run All — Fields</button>
+<button class="btn" style="background:#f59e0b;color:#fff" onclick="fixWeekX()">3. Fix "Week X" Records</button>
+<button class="btn" style="background:#2563eb;color:#fff" onclick="inspect()">4. Inspect Fields</button>
+<button class="btn" style="background:#16a34a;color:#fff" onclick="runFields()">5. Run All — Fields</button>
 
 <div id="out">Click Step 1 to preview date conversion.</div>
 <div id="bar-wrap"><div id="bar">0</div></div>
@@ -162,6 +163,105 @@ async function fixDates(){
     }
     document.getElementById('bar').style.background='#16a34a';
     out('<span class="ok">✓ Dates fixed: '+fixed+' updated, '+skipped+' already correct'+(errs?' <span class="err">'+errs+' errors</span>':'')+'</span><br><br>Now run Step 3 → Step 4 to populate Compound/Dose/Timing/Site.');
+  }catch(e){out('<span class="err">'+e.message+'</span>');}
+}
+
+async function fixWeekX(){
+  out('Loading all records to resolve Week X dates…');
+  document.getElementById('bar-wrap').style.display='';
+  document.getElementById('bar').style.background='#f59e0b';
+  try{
+    // Load all records with Name, Date, Day of Week
+    const recs=await loadAll(['Name','Date','Day of Week','Compound','Medication']);
+    const total=recs.length;
+
+    // Find Week X records
+    const weekRecs=recs.filter(r=>/^week\s*\d+$/i.test((r.fields['Name']||'').trim()));
+    out('Found <b>'+weekRecs.length+' Week X records</b> out of '+total+'. Computing dates…');
+
+    if(!weekRecs.length){out('<span class="ok">No Week X records found.</span>');return;}
+
+    // Get all records with real dates sorted to find month context
+    const datedRecs=recs.filter(r=>r.fields['Date']&&/^\d{4}-\d{2}-\d{2}$/.test(r.fields['Date']))
+      .map(r=>({id:r.id,date:r.fields['Date']}))
+      .sort((a,b)=>a.date.localeCompare(b.date));
+
+    // For each Week X record, find nearest dated records and infer month
+    function getNthMonday(year,month,n){
+      // Find the first Monday of the month, then add (n-1)*7 days
+      const d=new Date(year,month-1,1);
+      const dow=d.getDay(); // 0=Sun,1=Mon...
+      const firstMon=dow<=1?1+(1-dow):1+(8-dow);
+      const result=new Date(year,month-1,firstMon+(n-1)*7);
+      return result.toISOString().substring(0,10);
+    }
+
+    function inferMonth(recIdx){
+      // Look at surrounding records by array index for context
+      const surrounding=[];
+      for(let i=Math.max(0,recIdx-50);i<Math.min(recs.length,recIdx+50);i++){
+        const d=recs[i].fields['Date'];
+        if(d&&/^\d{4}-\d{2}-\d{2}$/.test(d)) surrounding.push(d);
+      }
+      if(!surrounding.length)return null;
+      // Use most common year-month
+      const months={};
+      surrounding.forEach(d=>{const ym=d.substring(0,7);months[ym]=(months[ym]||0)+1;});
+      return Object.entries(months).sort((a,b)=>b[1]-a[1])[0][0]; // "2025-07"
+    }
+
+    // Preview what we'll do
+    const updates=[];
+    let preview='<table><tr><th>Name</th><th>Day of Week</th><th>Compound</th><th>Inferred Month</th><th>→ Computed Date</th></tr>';
+    let cantFix=0;
+
+    weekRecs.forEach(r=>{
+      const f=r.fields;
+      const name=(f['Name']||'').trim();
+      const dow=f['Day of Week']||'';
+      const cmp=f['Compound']||f['Medication']||'';
+      const weekNum=parseInt(name.match(/\d+/)?.[0]||0);
+      const recIdx=recs.findIndex(x=>x.id===r.id);
+      const ym=inferMonth(recIdx);
+
+      if(!ym||!weekNum||!dow){
+        preview+=`<tr><td>${name}</td><td>${dow}</td><td>${cmp}</td><td style="color:#dc2626">Cannot determine</td><td>—</td></tr>`;
+        cantFix++;return;
+      }
+
+      const[year,month]=ym.split('-').map(Number);
+      const weekStart=getNthMonday(year,month,weekNum);
+      const DAY_OFF={mon:0,monday:0,tue:1,tues:1,tuesday:1,wed:2,wednesday:2,thu:3,thur:3,thurs:3,thursday:3,fri:4,friday:4,sat:5,saturday:5,sun:6,sunday:6};
+      const offset=DAY_OFF[dow.toLowerCase().trim()];
+      let actualDate=weekStart;
+      if(offset!==undefined){
+        const d=new Date(weekStart+'T12:00:00Z');
+        d.setUTCDate(d.getUTCDate()+offset);
+        actualDate=d.toISOString().substring(0,10);
+      }
+
+      preview+=`<tr><td>${name}</td><td>${dow}</td><td>${cmp}</td><td>${ym}</td><td><b>${actualDate}</b></td></tr>`;
+      updates.push({id:r.id,fields:{Date:actualDate}});
+    });
+    preview+='</table>';
+    preview+=`<br><b>${updates.length} can be fixed</b>${cantFix?' <span style="color:#dc2626">'+cantFix+' cannot be determined</span>':''}`;
+    out(preview);
+
+    if(!updates.length)return;
+    if(!confirm('Apply '+updates.length+' date fixes to Week X records?'))return;
+
+    // Apply updates
+    let done=0;
+    for(let i=0;i<updates.length;i+=10){
+      const batch=updates.slice(i,i+10);
+      try{await atPatch(batch);done+=batch.length;}catch(e){console.error(e);}
+      const pct=Math.round((i+batch.length)/updates.length*100);
+      document.getElementById('bar').style.width=Math.max(pct,2)+'%';
+      document.getElementById('bar').textContent=done+'/'+updates.length;
+      await sleep(300);
+    }
+    document.getElementById('bar').style.background='#16a34a';
+    out('<span class="ok">✓ Fixed '+done+' Week X records with computed dates.</span>');
   }catch(e){out('<span class="err">'+e.message+'</span>');}
 }
 
