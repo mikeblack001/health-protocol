@@ -397,7 +397,7 @@ async function loadWeekGrid(date){
     days.forEach(d=>{
       const cell=dayMap[d];
       if(!cell||!cell.n){h+=`<td></td>`;}
-      else if(!cell.sites.length){h+=`<td style="background:#f3f4f6;color:#9ca3af;font-size:14px;text-align:center">·</td>`;}
+      else if(!cell.sites.length){const sc=siteColor('X');h+=`<td style="background:${sc.bg};color:${sc.fg};font-weight:800;font-size:11px">X</td>`;}
       else{
         const sc=siteColor(cell.sites[0]);
         h+=`<td style="background:${sc.bg};color:${sc.fg};font-weight:800;font-size:11px">${esc(cell.sites.join('/'))}</td>`;
