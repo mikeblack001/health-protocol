@@ -816,11 +816,54 @@ async function saveField(id,field,value){
     const i=logRecs.findIndex(r=>r.id===id);
     if(i>=0){logRecs[i]=res;refreshCard(res);}
     flashSaved(id);
-    await new Promise(r=>setTimeout(r,300));
-    await loadWeekGrid(curDate);
+    updateGridCell(id);
   }catch(e){setSt('Save error: '+e.message);}
 }
 
+
+// Update grid cell immediately from in-memory logRecs (no AT refetch)
+function updateGridCell(recId){
+  const rec=logRecs.find(r=>r.id===recId);
+  if(!rec)return;
+  const cmp=rec.fields[LOG.compound]||'';
+  const site=rec.fields[LOG.site]||'';
+  const dose=rec.fields[LOG.dose]||'';
+  // Update row label dose
+  const row=document.querySelector(`#wgrid tbody tr[data-cmp="${CSS.escape(cmp)}"]`);
+  if(!row)return;
+  const label=row.querySelector('td');
+  if(label){
+    const handle=label.querySelector('.drag-handle');
+    const badge=label.querySelector('span:last-child');
+    // Rebuild inner content preserving drag handle and timing badge
+    const timingBadge=badge&&badge!==handle?badge.outerHTML:'';
+    const doseBadge=dose?`<span style="font-size:9px;font-weight:600;color:#2563eb;margin-left:4px">${esc(dose)}</span>`:'';
+    label.innerHTML=`<span class="drag-handle">⠿</span>${esc(cmp)}${doseBadge}${timingBadge}`;
+  }
+  // Update the cell for curDate
+  const days=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const hdr=[...document.querySelectorAll('#wgrid thead th')];
+  const colIdx=hdr.findIndex(th=>{
+    const d=th.querySelector('span');
+    if(!d)return false;
+    const txt=d.textContent.trim(); // MM-DD
+    const full='2025-'+txt; // approximate — use full date match
+    return curDate.endsWith(txt.replace('-','-'));
+  });
+  if(colIdx>0){
+    const cells=[...row.querySelectorAll('td')];
+    const cell=cells[colIdx];
+    if(cell){
+      if(!site&&!rec.fields[LOG.dose]){cell.textContent='';cell.style.background='';cell.style.color='';}
+      else{
+        const sc=siteColor(site||'X');
+        cell.style.background=sc.bg;cell.style.color=sc.fg;
+        cell.style.fontWeight='800';cell.style.fontSize='11px';
+        cell.textContent=site||'X';
+      }
+    }
+  }
+}
 function flashSaved(id){
   const card=document.getElementById('card_'+id);
   if(!card)return;
