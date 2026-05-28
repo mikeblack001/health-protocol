@@ -24,9 +24,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
 #drive-btn.no{background:#fee2e2;border-color:#fca5a5;color:#991b1b}
 #st{font-size:11px;color:#9ca3af}
 /* BODY */
-#body{display:flex;flex:1;overflow:hidden}
+#body{display:grid;grid-template-columns:45% 55%;flex:1;overflow:hidden}
 /* PDF PANEL */
-#pp{width:650px;min-width:500px;background:#fff;border-right:2px solid #e2e5ea;display:flex;flex-direction:column;flex-shrink:0}
+#pp{width:auto;min-width:0;background:#fff;border-right:2px solid #e2e5ea;display:flex;flex-direction:column;flex-shrink:0}
 .phdr{padding:8px 10px;background:#fafafa;border-bottom:1px solid #e2e5ea;flex-shrink:0}
 .plbl{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#9ca3af;display:block;margin-bottom:5px}
 .prow{display:flex;gap:4px;align-items:center;margin-bottom:4px}
@@ -36,7 +36,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
 .bs{background:#fff;border-color:#d1d5db;color:#374151}.bs:hover{background:#f3f4f6}
 .bxs{padding:3px 8px;font-size:10px}
 #pp-msg{font-size:10px;color:#9ca3af}
-#pp-area{flex:1;overflow-y:auto;background:#e5e7eb;padding:8px}
+#pp-area{flex:1;overflow-y:auto;background:#e5e7eb;padding:8px;min-height:0}
 #pp-canvas{max-width:100%;box-shadow:0 2px 8px rgba(0,0,0,.2);display:none}
 #pp-ph{color:#9ca3af;font-size:12px;text-align:center;padding:30px}
 #pp-nav{display:flex;align-items:center;gap:5px;padding:6px 8px;border-top:1px solid #e2e5ea;background:#fafafa;flex-shrink:0}
@@ -57,7 +57,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
 .col{display:flex;flex-direction:column;overflow:hidden;border-right:1px solid #e2e5ea}
 .col:last-child{border-right:none}
 .chdr{padding:6px 10px;background:#fafafa;border-bottom:1px solid #e2e5ea;flex-shrink:0;display:flex;align-items:center;gap:6px;min-height:32px}
-.ctitle{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#6b7280}
+.ctitle{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#6b7280}
 .ccnt{font-size:11px;font-weight:700;background:#e5e7eb;border-radius:10px;padding:2px 8px;color:#374151}
 .cbody{flex:1;overflow-y:auto;padding:7px}
 .cempty{color:#9ca3af;font-size:12px;text-align:center;padding:30px;font-style:italic}
@@ -157,10 +157,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
     </div>
     <div id="pp-area"><div id="pp-ph">Load PDF above</div><canvas id="pp-canvas"></canvas></div>
     <div id="pp-nav">
-      <button onclick="pgGo(pg-1)">◀</button>
+      <button id="btn-prev" onclick="pgGo(pg-1)">◀</button>
       <input id="pp-jp" type="number" min="1" onchange="pgGo(+this.value)">
       <span id="pp-pg">— / —</span>
-      <button onclick="pgGo(pg+1)">▶</button>
+      <button id="btn-next" onclick="pgGo(pg+1)">▶</button>
     </div>
   </div>
 
@@ -352,6 +352,8 @@ async function pdfPage(n){
   await page.render({canvasContext:canvas.getContext('2d'),viewport:vp}).promise;
   document.getElementById('pp-pg').textContent=n+' / '+pdfDoc.numPages;
   document.getElementById('pp-jp').value=n;
+  document.getElementById('btn-prev').disabled=(n<=1);
+  document.getElementById('btn-next').disabled=(n>=pdfDoc.numPages);
   // Extract text and auto-detect date — free, no API needed
   try{
     const tc=await page.getTextContent();
