@@ -26,7 +26,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
 /* BODY */
 #body{display:grid;grid-template-columns:45% 55%;flex:1;overflow:hidden}
 /* PDF PANEL */
-#pp{width:auto;min-width:0;background:#fff;border-right:2px solid #e2e5ea;display:flex;flex-direction:column;flex-shrink:0}
+#pp{width:auto;min-width:0;background:#fff;border-right:2px solid #e2e5ea;display:flex;flex-direction:column;overflow:hidden}
 .phdr{padding:8px 10px;background:#fafafa;border-bottom:1px solid #e2e5ea;flex-shrink:0}
 .plbl{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#9ca3af;display:block;margin-bottom:5px}
 .prow{display:flex;gap:4px;align-items:center;margin-bottom:4px}
@@ -159,10 +159,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
     </div>
     <div id="pp-area"><div id="pp-ph">Load PDF above</div><canvas id="pp-canvas"></canvas></div>
     <div id="pp-nav">
-      <button id="btn-prev" onclick="pgGo(pg-1)">◀</button>
-      <input id="pp-jp" type="number" min="1" onchange="pgGo(+this.value)">
+      <button id="btn-prev" onclick="pdfPrev()">◀</button>
+      <input id="pp-jp" type="number" min="1" onchange="pgGo(+this.value)" style="width:52px;padding:5px 6px;border:1px solid #d1d5db;border-radius:4px;font-size:13px;text-align:center;font-weight:700">
       <span id="pp-pg">— / —</span>
-      <button id="btn-next" onclick="pgGo(pg+1)">▶</button>
+      <button id="btn-next" onclick="pdfNext()">▶</button>
     </div>
   </div>
 
@@ -304,7 +304,7 @@ const LS={get:k=>localStorage.getItem('mba_'+k),set:(k,v)=>localStorage.setItem(
 
 let mode='inj', curDate=null, parRecs=[], logRecs=[], parDates=[];
 let editId=null, editTbl=null, pdfDoc=null, gTok=null;
-window.pg=1;
+window.pg=1; let pg=1;
 let pickerFiles=[], pickerStack=[{id:'root',name:'My Drive'}];
 
 // ── AUTH ────────────────────────────────────────────────────────────
@@ -339,13 +339,13 @@ async function pdfLoad(){
     const r=await fetch('https://www.googleapis.com/drive/v3/files/'+id+'?alt=media',{headers:{Authorization:'Bearer '+gTok}});
     if(!r.ok){if(r.status===401||r.status===403){localStorage.removeItem('mb_pdfqat');gTok=null;setDriveNo();signIn();}else throw new Error('Drive '+r.status);return;}
     pdfDoc=await pdfjsLib.getDocument({data:await r.arrayBuffer()}).promise;
-    window.pg=1;document.getElementById('pp-ph').style.display='none';document.getElementById('pp-canvas').style.display='block';
+    window.pg=1; let pg=1;document.getElementById('pp-ph').style.display='none';document.getElementById('pp-canvas').style.display='block';
     await pdfPage(1);LS.set('pdf_'+mode,id);pmsg(pdfDoc.numPages+' pages ✓');
   }catch(e){pmsg('Error: '+e.message);}
 }
-function pdfLocal(inp){if(!inp.files[0])return;pmsg('Loading…');inp.files[0].arrayBuffer().then(async buf=>{pdfDoc=await pdfjsLib.getDocument({data:buf}).promise;window.pg=1;document.getElementById('pp-ph').style.display='none';document.getElementById('pp-canvas').style.display='block';await pdfPage(1);pmsg(pdfDoc.numPages+' pages ✓');});}
+function pdfLocal(inp){if(!inp.files[0])return;pmsg('Loading…');inp.files[0].arrayBuffer().then(async buf=>{pdfDoc=await pdfjsLib.getDocument({data:buf}).promise;window.pg=1; let pg=1;document.getElementById('pp-ph').style.display='none';document.getElementById('pp-canvas').style.display='block';await pdfPage(1);pmsg(pdfDoc.numPages+' pages ✓');});}
 async function pdfPage(n){
-  if(!pdfDoc)return;n=Math.max(1,Math.min(n,pdfDoc.numPages));window.pg=n;
+  if(!pdfDoc)return;n=Math.max(1,Math.min(n,pdfDoc.numPages));window.pg=n; pg=n;
   const page=await pdfDoc.getPage(n);
   const canvas=document.getElementById('pp-canvas'),area=document.getElementById('pp-area');
   const vp1=page.getViewport({scale:1});
@@ -390,6 +390,8 @@ function extractDateFromText(text){
   return null;
 }
 function pgGo(n){pdfPage(n);}
+function pdfPrev(){if(pdfDoc&&pg>1)pdfPage(pg-1);}
+function pdfNext(){if(pdfDoc&&pg<pdfDoc.numPages)pdfPage(pg+1);}
 function pmsg(m){document.getElementById('pp-msg').textContent=m;}
 
 // ── AT ───────────────────────────────────────────────────────────────
