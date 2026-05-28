@@ -324,7 +324,8 @@ function pdfNext(){pdfPage(window.pg+1);}
 function pgGo(n){pdfPage(n);}
 window.pdfZoom=1.0;
 function pdfZoom(dir){
-  if(!window.pdfFitW)return;
+  if(!pdfDoc)return;
+  const fw=window.pdfFitW||500;
   if(dir===0){window.pdfZoom=1.0;}
   else{
     const steps=[0.5,0.75,1.0,1.25,1.5,2.0,2.5,3.0];
@@ -333,7 +334,7 @@ function pdfZoom(dir){
     window.pdfZoom=steps[ni];
   }
   const canvas=document.getElementById('pp-canvas');
-  canvas.style.width=(window.pdfFitW*window.pdfZoom)+'px';
+  canvas.style.width=(fw*window.pdfZoom)+'px';
   canvas.style.height='auto';
   const area=document.getElementById('pp-area');
   if(window.pdfZoom<=1){area.scrollLeft=0;area.scrollTop=0;}
@@ -520,27 +521,31 @@ async function verifyWeek(){
 
 let cmDate=null,cmCmp=null;
 async function gridCellClick(date,cmp){
-  cmDate=date;cmCmp=cmp;
-  document.getElementById('cm-title').textContent=cmp+' — '+date;
-  document.getElementById('cm-dose').value='';
-  document.getElementById('cm-site').selectedIndex=0;
-  document.getElementById('cm-timing').selectedIndex=0;
-  document.getElementById('cm-existing').innerHTML='<i>Loading…</i>';
-  document.getElementById('cm').style.display='flex';
-  // Use cached logRecs for current date; otherwise fetch all for that date and filter
-  let ex=[];
-  if(date===curDate){
-    ex=logRecs.filter(r=>(r.fields[LOG.compound]||'')===(cmp));
-  } else {
-    try{
-      const q=encodeURIComponent(`IS_SAME({${LOG.date}},"${date}","day")`);
-      const d=await atFetch(LOG.tbl+'?filterByFormula='+q+'&returnFieldsByFieldId=true&pageSize=100');
-      ex=(d.records||[]).filter(r=>(r.fields[LOG.compound]||'')===cmp);
-    }catch(e){ex=[];}
+  // Navigate to date if different, then scroll to compound in records
+  if(date!==curDate){
+    await setDate(date);
   }
-  document.getElementById('cm-existing').innerHTML=ex.length
-    ?ex.map(r=>{const f=r.fields;return `<span style="display:inline-block;background:#f3f4f6;border-radius:4px;padding:2px 6px;margin:2px;font-size:11px">${f[LOG.dose]||''}${f[LOG.site]?' '+f[LOG.site]:''}${f[LOG.timing]?' '+f[LOG.timing]:''}</span>`;}).join('')
-    :'<i>No records yet</i>';
+  // Scroll to and highlight the matching card
+  const cards=document.querySelectorAll('.card');
+  let found=null;
+  cards.forEach(card=>{
+    const sel=card.querySelector('select.fe-compound');
+    if(sel&&sel.value===cmp){found=card;}
+  });
+  if(found){
+    found.scrollIntoView({behavior:'smooth',block:'center'});
+    found.style.outline='3px solid #2563eb';
+    setTimeout(()=>found.style.outline='',1800);
+  } else {
+    // Compound not in records — open quick-add modal
+    cmDate=date;cmCmp=cmp;
+    document.getElementById('cm-title').textContent=cmp+' — '+date;
+    document.getElementById('cm-dose').value='';
+    document.getElementById('cm-site').selectedIndex=0;
+    document.getElementById('cm-timing').selectedIndex=0;
+    document.getElementById('cm-existing').innerHTML='<i>No records for this compound on this date</i>';
+    document.getElementById('cm').style.display='flex';
+  }
 }
 function closeCM(){document.getElementById('cm').style.display='none';}
 async function cmSave(){
