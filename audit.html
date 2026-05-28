@@ -535,9 +535,10 @@ async function gridCellClick(date,cmp){
     if(sel&&sel.value===cmp){found=card;}
   });
   if(found){
+    // Clear any previous highlight
+    document.querySelectorAll('.card').forEach(card=>card.style.outline='');
     found.scrollIntoView({behavior:'smooth',block:'center'});
     found.style.outline='3px solid #2563eb';
-    setTimeout(()=>found.style.outline='',1800);
   } else {
     // Compound not in records — open add modal, pre-fill from most recent record
     cmDate=date;cmCmp=cmp;
