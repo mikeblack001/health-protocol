@@ -143,6 +143,7 @@ select.fe{cursor:pointer}
       <span id="d-cnt"></span>
       <div id="dnav-r">
         <button class="hbtn" style="background:#2563eb;border-color:#2563eb;color:#fff" onclick="openAddModal()">+ Add Record</button>
+        <button id="verify-date-btn" class="hbtn" style="background:#16a34a;border-color:#16a34a;color:#fff" onclick="toggleDateVerified()">○ Mark Date Verified</button>
       </div>
     </div>
 
@@ -200,7 +201,8 @@ const AT_TOK='pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d
 const AT_BASE='appmHDG4TGT1xy6R6';
 const LOG={tbl:'tblBvEaLkGGipnOFc',name:'fldt9vYT8Tm37Gf3k',date:'fldhYEtLEGA4VxvvO',
   compound:'fldwVFyizH4mBANBa',site:'fldHDlJY8FpAvK018',timing:'fldIdzew4Jd0qO4Uc',
-  dose:'fld8d8mtRapfaIyqL',notes:'fldAbczu73mINwLmx',status:'fldD9kegiwk6mINV8'};
+  dose:'fld8d8mtRapfaIyqL',notes:'fldAbczu73mINwLmx',status:'fldD9kegiwk6mINV8',
+  verified:'fldCUuf2lg4hGwXZV'};
 const GCL_ID='478191426516-94rflpalsl5ev56ptck62k5imes6jk8l.apps.googleusercontent.com';
 const GSCOPE='https://www.googleapis.com/auth/drive.readonly';
 const PDF_QA='https://mikeblack001.github.io/health-protocol/pdf_qa.html';
@@ -311,11 +313,43 @@ async function setDate(date){
     do{const d=await atFetch(LOG.tbl+'?returnFieldsByFieldId=true&filterByFormula='+q+'&pageSize=100'+(off?'&offset='+off:''));recs=recs.concat(d.records);off=d.offset;}while(off);
     logRecs=recs;
     document.getElementById('b-total').textContent=recs.length+' records';
+    // Check if all records are verified
+    const allVerified=recs.length>0&&recs.every(r=>r.fields[LOG.verified]===true);
+    updateVerifyBtn(allVerified);
     renderRecords();setSt('');
   }catch(e){setSt('Error: '+e.message);}
 }
 
 async function reloadLog(){if(curDate)await setDate(curDate);}
+
+// Date-level verification — stores one checkbox per date using Injection Verified field
+// We mark ALL records for the date as verified (or unverified) at once
+let dateVerified=false;
+
+function updateVerifyBtn(verified){
+  dateVerified=verified;
+  const btn=document.getElementById('verify-date-btn');
+  if(!btn)return;
+  if(verified){btn.textContent='✓ Date Verified';btn.style.background='#15803d';}
+  else{btn.textContent='○ Mark Date Verified';btn.style.background='#16a34a';}
+}
+
+async function toggleDateVerified(){
+  if(!logRecs.length){setSt('No records to verify');return;}
+  const newVal=!dateVerified;
+  setSt('Saving…');
+  try{
+    // Update all records for this date
+    for(let i=0;i<logRecs.length;i+=10){
+      const batch=logRecs.slice(i,i+10);
+      const records=batch.map(r=>({id:r.id,fields:{[LOG.verified]:newVal}}));
+      await atFetch(LOG.tbl,{method:'PATCH',body:JSON.stringify({records,returnFieldsByFieldId:true})});
+    }
+    logRecs.forEach(r=>r.fields[LOG.verified]=newVal);
+    updateVerifyBtn(newVal);
+    setSt(newVal?'✓ Date verified':'✓ Date unverified');
+  }catch(e){setSt('Error: '+e.message);}
+}
 
 // ── RENDER ────────────────────────────────────────────────────────────
 function renderRecords(){
