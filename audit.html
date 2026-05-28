@@ -91,8 +91,8 @@ select.fe{cursor:pointer}
 
 /* ACTION BUTTONS */
 .abtn{padding:3px 8px;border-radius:4px;font-size:10px;font-weight:700;cursor:pointer;border:1px solid;white-space:nowrap}
-.a-verify{background:#fef9c3;border-color:#fde047;color:#854d0e}
-.a-verify:hover{background:#fef08a}
+.a-verify{background:#fefce8;border-color:#eab308;color:#713f12}
+.a-verify:hover{background:#fde047}
 .a-verified{background:#dcfce7;border-color:#86efac;color:#166534}
 .a-verified:hover{background:#bbf7d0}
 .a-del{background:#fff1f2;border-color:#fecdd3;color:#9f1239}
@@ -174,7 +174,7 @@ select.fe{cursor:pointer}
       <span id="d-cnt"></span>
       <div id="dnav-r">
         <button class="hbtn" style="background:#2563eb;border-color:#2563eb;color:#fff" onclick="openAddModal()">+ Add Record</button>
-        <button id="verify-date-btn" class="hbtn" style="background:#ca8a04;border-color:#ca8a04;color:#fff" onclick="toggleDateVerified()">○ Mark Date Verified</button>
+        <button id="verify-date-btn" class="hbtn" style="background:#eab308;border-color:#eab308;color:#fff" onclick="toggleDateVerified()">○ Mark Date Verified</button>
       </div>
     </div>
 
@@ -208,7 +208,7 @@ select.fe{cursor:pointer}
       <div id="wgrid-hdr">
         <b>📅 Week Overview</b>
         <span id="wg-status"></span>
-        <button onclick="verifyWeek()" style="padding:2px 10px;border:1px solid #16a34a;border-radius:4px;font-size:10px;font-weight:700;cursor:pointer;background:#16a34a;color:#fff">✓ Verify Week</button>
+        <button id="verify-week-btn" onclick="verifyWeek()" style="padding:2px 10px;border:1px solid #eab308;border-radius:4px;font-size:10px;font-weight:700;cursor:pointer;background:#eab308;color:#fff">✓ Verify Week</button>
         <button id="wg-tog" onclick="toggleWGrid()">▲ Hide</button>
       </div>
       <div id="wgrid-body">
@@ -726,7 +726,7 @@ function updateVerifyBtn(verified){
   const btn=document.getElementById('verify-date-btn');
   if(!btn)return;
   if(verified){btn.textContent='✓ Date Verified';btn.style.background='#15803d';btn.style.borderColor='#15803d';}
-  else{btn.textContent='○ Mark Date Verified';btn.style.background='#ca8a04';btn.style.borderColor='#ca8a04';}
+  else{btn.textContent='○ Mark Date Verified';btn.style.background='#eab308';btn.style.borderColor='#eab308';}
 }
 
 async function toggleDateVerified(){
