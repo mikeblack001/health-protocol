@@ -284,11 +284,13 @@ async function pdfLoad(){
 function pdfLocal(inp){if(inp.files[0])inp.files[0].arrayBuffer().then(b=>pdfRender(b));}
 async function pdfRender(buf){
   window.window.pdfDoc=await pdfjsLib.getDocument({data:buf}).promise;
-  window.pg=1;await pdfPage(1);pmsg(window.pdfDoc.numPages+' pages ✓');
+  const savedPg=parseInt(LS.get('pdf_pg')||'1',10)||1;
+  window.pg=1;await pdfPage(savedPg);pmsg(window.pdfDoc.numPages+' pages ✓');
 }
 async function pdfPage(n){
   if(!window.pdfDoc)return;
   n=Math.max(1,Math.min(n,window.pdfDoc.numPages));window.pg=n;
+  LS.set('pdf_pg',String(n));
   window.pdfCurrentPage=await window.pdfDoc.getPage(n);
   await pdfRenderPage();
   document.getElementById('pp-pg').textContent=n+' / '+pdfDoc.numPages;
