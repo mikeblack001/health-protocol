@@ -758,6 +758,7 @@ async function saveField(id,field,value){
     const i=logRecs.findIndex(r=>r.id===id);
     if(i>=0){logRecs[i]=res;refreshCard(res);}
     flashSaved(id);
+    loadWeekGrid(curDate);
   }catch(e){setSt('Save error: '+e.message);}
 }
 
