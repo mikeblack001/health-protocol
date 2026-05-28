@@ -1,155 +1,124 @@
 <!DOCTYPE html>
-<html><head><meta charset="UTF-8"><title>Date Gap Analysis</title>
+<html><head><meta charset="UTF-8"><title>Par vs Log Analysis</title>
 <style>
-body{font-family:-apple-system,sans-serif;font-size:13px;padding:24px;max-width:1000px;background:#f4f5f7}
+body{font-family:-apple-system,sans-serif;font-size:13px;padding:24px;max-width:1100px;background:#f4f5f7}
 h1{font-size:17px;font-weight:900;margin-bottom:4px}
 p{color:#6b7280;font-size:12px;margin-bottom:16px}
 .btn{display:inline-block;padding:9px 18px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;border:none;margin-right:6px;margin-bottom:8px}
-#out{background:#fff;border:2px solid #e2e5ea;border-radius:10px;padding:14px;margin-top:12px;font-size:12px;min-height:40px}
-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px}
-th{background:#1e2433;color:#fff;padding:7px 10px;text-align:left;font-weight:700}
-td{padding:5px 9px;border-bottom:1px solid #f3f4f6;vertical-align:top}
+.section{background:#fff;border:1px solid #e2e5ea;border-radius:10px;padding:14px;margin-bottom:16px}
+.section h2{font-size:13px;font-weight:800;margin-bottom:10px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{background:#1e2433;color:#fff;padding:6px 9px;text-align:left;font-weight:700}
+td{padding:5px 9px;border-bottom:1px solid #f3f4f6}
 tr:hover td{background:#f8f9fa}
 .ok{color:#166534;font-weight:700}.err{color:#dc2626;font-weight:700}.warn{color:#92400e;font-weight:700}
-#bar-wrap{background:#e2e5ea;border-radius:6px;height:20px;margin-top:10px;display:none}
-#bar{background:#2563eb;height:20px;border-radius:6px;width:0%;font-size:12px;font-weight:700;color:#fff;text-align:center;line-height:20px;transition:width .1s}
+#bar-wrap{background:#e2e5ea;border-radius:6px;height:18px;margin-bottom:12px;display:none}
+#bar{background:#2563eb;height:18px;border-radius:6px;width:0%;font-size:11px;font-weight:700;color:#fff;text-align:center;line-height:18px;transition:width .1s}
 </style></head><body>
-<h1>Date Gap Analysis — Parseur vs Injection Log</h1>
-<p>Matches blank Parseur records to gap dates using compound + day of week. One blank per compound per date max.</p>
-
-<button class="btn" style="background:#2563eb;color:#fff" onclick="analyze()">Analyze Gaps</button>
-<button class="btn" style="background:#16a34a;color:#fff" onclick="applyAll()">Apply All Checked</button>
-
-<div id="out">Click Analyze Gaps.</div>
+<h1>Parseur vs Injection Log — Full Comparison</h1>
+<p>Checks for duplicates in Parseur, finds Log records missing from Parseur, shows remaining blanks.</p>
+<button class="btn" style="background:#2563eb;color:#fff" onclick="run()">Run Analysis</button>
+<button class="btn" style="background:#dc2626;color:#fff" id="del-dups-btn" style="display:none" onclick="deleteDups()">Delete Duplicates</button>
 <div id="bar-wrap"><div id="bar">Loading…</div></div>
+<div id="out"></div>
 
 <script>
 const AT='pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
 const BASE='appmHDG4TGT1xy6R6',PAR='tblCTOGIrF3NjdyTE',LOG='tblBvEaLkGGipnOFc';
-const DOW_NAMES=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-
-function dateDow(iso){return new Date(iso+'T12:00:00Z').getUTCDay();}
-function parseDow(s){
-  const c=(s||'').replace(/\s*(am|pm|AM|PM)\s*$/i,'').trim().toLowerCase();
-  return{sun:0,sunday:0,mon:1,monday:1,tue:2,tues:2,tuesday:2,
-    wed:3,wednesday:3,thu:4,thur:4,thurs:4,thursday:4,fri:5,friday:5,sat:6,saturday:6}[c];
-}
-function fuzzy(a,b){
-  const n=s=>s.toLowerCase().replace(/[^a-z0-9]/g,'');
-  const na=n(a||''),nb=n(b||'');
-  if(!na||!nb)return false;
-  if(na===nb)return true;
-  if(na.length>=3&&nb.includes(na))return true;
-  if(nb.length>=3&&na.includes(nb))return true;
-  return false;
-}
 
 function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
 async function atGet(url){const r=await fetch('https://api.airtable.com/v0/'+BASE+'/'+url,{headers:{Authorization:'Bearer '+AT}});const d=await r.json();if(!r.ok)throw new Error(d.error?.message||r.status);return d;}
-async function atPatch(records){const r=await fetch('https://api.airtable.com/v0/'+BASE+'/'+PAR+'?typecast=true',{method:'PATCH',headers:{Authorization:'Bearer '+AT,'Content-Type':'application/json'},body:JSON.stringify({records})});const d=await r.json();if(!r.ok)throw new Error(d.error?.message||r.status);return d;}
-async function loadAll(tbl,qs){let recs=[],off=null;do{const d=await atGet(tbl+'?'+qs+'&pageSize=100'+(off?'&offset='+off:''));recs=recs.concat(d.records);off=d.offset;}while(off);return recs;}
+async function loadAll(tbl,qs){let recs=[],off=null;
+  do{const d=await atGet(tbl+'?'+qs+'&pageSize=100'+(off?'&offset='+off:''));recs=recs.concat(d.records);off=d.offset;}while(off);
+  return recs;}
 
-let planRows=[];
+let dupIds=[];
 
-async function analyze(){
-  out('Loading…');
+async function run(){
   document.getElementById('bar-wrap').style.display='';
-  document.getElementById('bar').style.width='10%';document.getElementById('bar').textContent='Parseur…';
+  document.getElementById('bar').style.width='5%';document.getElementById('bar').textContent='Loading Parseur…';
 
-  const parAll=await loadAll(PAR,'fields%5B%5D=Date&fields%5B%5D=Compound&fields%5B%5D=Medication&fields%5B%5D=Day+of+Week');
-  const blanks=parAll.filter(r=>!r.fields['Date']||!r.fields['Date'].trim());
-  const parDates=new Set(parAll.filter(r=>r.fields['Date']).map(r=>r.fields['Date']));
-
-  document.getElementById('bar').style.width='45%';document.getElementById('bar').textContent='Log…';
+  const parAll=await loadAll(PAR,'fields%5B%5D=Date&fields%5B%5D=Compound&fields%5B%5D=Medication');
+  document.getElementById('bar').style.width='40%';document.getElementById('bar').textContent='Loading Log…';
   const logAll=await loadAll(LOG,'returnFieldsByFieldId=true&fields%5B%5D=fldhYEtLEGA4VxvvO&fields%5B%5D=fldwVFyizH4mBANBa');
+  document.getElementById('bar').style.width='80%';document.getElementById('bar').textContent='Analyzing…';
 
-  // Group log by date→compounds
-  const logByDate={};
+  // ── 1. BLANKS REMAINING ───────────────────────────────────────────
+  const blanks=parAll.filter(r=>!r.fields['Date']||!String(r.fields['Date']).trim());
+
+  // ── 2. DUPLICATES IN PARSEUR ──────────────────────────────────────
+  const seen={};dupIds=[];
+  const dups=[];
+  parAll.filter(r=>r.fields['Date']).forEach(r=>{
+    const key=(r.fields['Compound']||r.fields['Medication']||'?')+'|'+(r.fields['Date']||'');
+    if(!seen[key]){seen[key]=r.id;}
+    else{dupIds.push(r.id);dups.push({id:r.id,compound:r.fields['Compound']||r.fields['Medication']||'?',date:r.fields['Date']});}
+  });
+
+  // ── 3. LOG vs PARSEUR — what Log has that Parseur doesn't ─────────
+  const parSet=new Set(parAll.filter(r=>r.fields['Date']).map(r=>(r.fields['Compound']||r.fields['Medication']||'?')+'|'+r.fields['Date']));
+  const missing=[];
+  const seenMissing=new Set();
   logAll.forEach(r=>{
-    const d=r.fields['fldhYEtLEGA4VxvvO']||'',c=r.fields['fldwVFyizH4mBANBa']||'';
-    if(!d||!c)return;
-    if(!logByDate[d])logByDate[d]=new Set();
-    logByDate[d].add(c); // Set deduplicates — one entry per unique compound per date
+    const date=r.fields['fldhYEtLEGA4VxvvO']||'';
+    const cmp=r.fields['fldwVFyizH4mBANBa']||'';
+    if(!date||!cmp)return;
+    const key=cmp+'|'+date;
+    if(!parSet.has(key)&&!seenMissing.has(key)){seenMissing.add(key);missing.push({date,cmp});}
   });
-  // Convert Sets to Arrays
-  Object.keys(logByDate).forEach(d=>logByDate[d]=[...logByDate[d]]);
+  missing.sort((a,b)=>a.date.localeCompare(b.date));
 
-  const gapDates=Object.keys(logByDate).filter(d=>!parDates.has(d)).sort();
-  document.getElementById('bar').style.width='80%';document.getElementById('bar').textContent='Matching…';
+  document.getElementById('bar').style.width='100%';document.getElementById('bar').style.background='#16a34a';document.getElementById('bar').textContent='Done';
 
-  // Track which blanks have been assigned (avoid double-assignment)
-  const usedBlanks=new Set();
-  planRows=[];
+  let html='';
 
-  gapDates.forEach(date=>{
-    const dow=dateDow(date); // 0=Sun
-    const logCmps=logByDate[date];
-    const assigned=[];
+  // Blanks section
+  html+=`<div class="section"><h2>1. Remaining Blank-Date Records: <span class="${blanks.length?'err':'ok'}">${blanks.length}</span></h2>`;
+  if(blanks.length){
+    html+='<table><tr><th>Compound</th><th>Day of Week</th></tr>';
+    blanks.forEach(r=>html+=`<tr><td>${r.fields['Compound']||r.fields['Medication']||'?'}</td><td>${r.fields['Day of Week']||''}</td></tr>`);
+    html+='</table>';
+  }else html+='<span class="ok">✓ No blank dates remaining.</span>';
+  html+='</div>';
 
-    // For each compound in Log on this date, find ONE matching blank
-    // that has correct DOW and hasn't been used yet
-    logCmps.forEach(logCmp=>{
-      // Find unassigned blank with matching compound AND matching DOW
-      const match=blanks.find(r=>{
-        if(usedBlanks.has(r.id))return false;
-        const cmp=r.fields['Compound']||r.fields['Medication']||'';
-        if(!fuzzy(cmp,logCmp))return false;
-        const bDow=parseDow(r.fields['Day of Week']||'');
-        // DOW must match OR be undefined (can't determine)
-        return bDow===undefined||bDow===dow;
-      });
-      if(match){
-        usedBlanks.add(match.id);
-        assigned.push({id:match.id,cmp:match.fields['Compound']||match.fields['Medication']||'',dow:match.fields['Day of Week']||''});
-      }
-    });
+  // Duplicates section
+  html+=`<div class="section"><h2>2. Duplicates in Parseur (same Compound + Date): <span class="${dups.length?'err':'ok'}">${dups.length}</span></h2>`;
+  if(dups.length){
+    document.getElementById('del-dups-btn').style.display='inline-block';
+    html+='<table><tr><th>Compound</th><th>Date</th><th>Note</th></tr>';
+    dups.forEach(d=>html+=`<tr><td>${d.compound}</td><td>${d.date}</td><td style="color:#9ca3af">Duplicate — will be deleted</td></tr>`);
+    html+='</table>';
+  }else html+='<span class="ok">✓ No duplicates.</span>';
+  html+='</div>';
 
-    planRows.push({date,dow,dowName:DOW_NAMES[dow],logCmps,assigned,noMatch:logCmps.filter(lc=>!assigned.some(a=>fuzzy(a.cmp,lc)))});
-  });
+  // Missing from Parseur section
+  html+=`<div class="section"><h2>3. In Log but NOT in Parseur: <span class="${missing.length?'warn':'ok'}">${missing.length} unique compound+date combos</span></h2>`;
+  if(missing.length){
+    html+='<table><tr><th>Date</th><th>Compound in Log (missing from Parseur)</th></tr>';
+    missing.slice(0,100).forEach(m=>html+=`<tr><td>${m.date}</td><td>${m.cmp}</td></tr>`);
+    if(missing.length>100)html+=`<tr><td colspan="2" style="color:#9ca3af">...and ${missing.length-100} more</td></tr>`;
+    html+='</table>';
+  }else html+='<span class="ok">✓ Parseur has all Log records.</span>';
+  html+='</div>';
 
-  const totalAssigned=planRows.reduce((s,r)=>s+r.assigned.length,0);
-  const unmatched=blanks.length-totalAssigned;
-
-  document.getElementById('bar').style.width='100%';document.getElementById('bar').style.background='#16a34a';
-  document.getElementById('bar').textContent='Done';
-
-  let html=`<b>Summary:</b> ${blanks.length} blanks, ${gapDates.length} gap dates, <span class="ok">${totalAssigned} matched</span>, <span class="err">${unmatched} blanks unmatched</span><br><br>`;
-  html+='<table><tr><th>Gap Date</th><th>Day</th><th>Log Compounds</th><th>Blanks to Assign</th><th>Apply?</th></tr>';
-
-  planRows.forEach((row,i)=>{
-    const hasBlanks=row.assigned.length>0;
-    const bg=hasBlanks?'':'background:#fff8f8';
-    html+=`<tr style="${bg}">
-      <td><b>${row.date}</b></td>
-      <td>${row.dowName}</td>
-      <td style="font-size:11px">${row.logCmps.join('<br>')}</td>
-      <td style="font-size:11px">${hasBlanks?row.assigned.map(a=>`${a.cmp} <span style="color:#9ca3af">(${a.dow})</span>`).join('<br>'):'<span class="err">No matching blanks</span>'}</td>
-      <td>${hasBlanks?`<label><input type="checkbox" id="chk_${i}" checked> ${row.assigned.length} record(s)</label>`:'—'}</td>
-    </tr>`;
-  });
-  html+='</table>';
-  out(html);
+  document.getElementById('out').innerHTML=html;
 }
 
-async function applyAll(){
-  const toApply=planRows.filter((row,i)=>{const cb=document.getElementById('chk_'+i);return cb&&cb.checked&&row.assigned.length>0;});
-  if(!toApply.length){alert('Nothing checked');return;}
-  const updates=[];
-  toApply.forEach(row=>row.assigned.forEach(a=>updates.push({id:a.id,fields:{Date:row.date}})));
-  if(!confirm('Assign dates to '+updates.length+' blank records across '+toApply.length+' dates?'))return;
-  document.getElementById('bar').style.background='#2563eb';document.getElementById('bar').style.width='5%';
-  let done=0,errs=0;
-  for(let i=0;i<updates.length;i+=10){
-    const batch=updates.slice(i,i+10);
-    try{await atPatch(batch);done+=batch.length;}catch(e){errs+=batch.length;}
-    document.getElementById('bar').style.width=Math.max(Math.round((i+batch.length)/updates.length*100),2)+'%';
-    document.getElementById('bar').textContent=done+'/'+updates.length;
-    await sleep(300);
+async function deleteDups(){
+  if(!dupIds.length){alert('No duplicates to delete');return;}
+  if(!confirm('Delete '+dupIds.length+' duplicate Parseur records?'))return;
+  document.getElementById('bar').style.background='#dc2626';document.getElementById('bar').style.width='5%';
+  let done=0;
+  for(let i=0;i<dupIds.length;i+=10){
+    const batch=dupIds.slice(i,i+10);
+    const qs=batch.map(id=>'records%5B%5D='+id).join('&');
+    try{await fetch('https://api.airtable.com/v0/'+BASE+'/'+PAR+'?'+qs,{method:'DELETE',headers:{Authorization:'Bearer '+AT}});done+=batch.length;}catch(e){}
+    document.getElementById('bar').style.width=Math.max(Math.round((i+batch.length)/dupIds.length*100),2)+'%';
+    document.getElementById('bar').textContent=done+'/'+dupIds.length;
+    await sleep(200);
   }
-  document.getElementById('bar').style.background=errs?'#f59e0b':'#16a34a';
-  out(`<span class="ok">✓ ${done} blanks assigned dates.</span>${errs?' <span class="err">'+errs+' errors</span>':''}<br>Run Analyze again to confirm remaining blanks.`);
+  document.getElementById('bar').style.background='#16a34a';
+  alert('✓ Deleted '+done+' duplicates. Run Analysis again to confirm.');
 }
-
-function out(h){document.getElementById('out').innerHTML=h;}
 </script>
 </body></html>
