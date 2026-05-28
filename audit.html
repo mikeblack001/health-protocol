@@ -446,13 +446,37 @@ async function atFetch(path,opts={}){
 
 async function loadDates(){
   setSt('Loading dates…');
+  const flds='fields%5B%5D='+LOG.date+'&fields%5B%5D='+LOG.verified;
   let recs=[],off=null;
-  do{const d=await atFetch(LOG.tbl+'?fields%5B%5D='+LOG.date+'&returnFieldsByFieldId=true&pageSize=100'+(off?'&offset='+off:''));recs=recs.concat(d.records);off=d.offset;}while(off);
+  do{const d=await atFetch(LOG.tbl+'?'+flds+'&returnFieldsByFieldId=true&pageSize=100'+(off?'&offset='+off:''));recs=recs.concat(d.records);off=d.offset;}while(off);
   allDates=[...new Set(recs.map(r=>r.fields[LOG.date]).filter(Boolean))].sort();
   document.getElementById('d-cnt').textContent=allDates.length+' dates';
   buildDateSel();
   setSt('');
-  if(allDates.length)setDate(allDates[allDates.length-1]);
+  if(!allDates.length)return;
+  // Group by date, check if ALL records per date are verified
+  const byDate={};
+  recs.forEach(r=>{
+    const dt=r.fields[LOG.date];if(!dt)return;
+    if(!byDate[dt])byDate[dt]={total:0,verified:0};
+    byDate[dt].total++;
+    if(r.fields[LOG.verified]===true)byDate[dt].verified++;
+  });
+  // Find last verified date, then jump to next unverified
+  let target=allDates[0];
+  for(let i=0;i<allDates.length;i++){
+    const s=byDate[allDates[i]];
+    if(s&&s.total>0&&s.verified===s.total){
+      // This date fully verified — target is the next one
+      if(i+1<allDates.length)target=allDates[i+1];
+      else target=allDates[i]; // all done
+    } else {
+      // First unverified date after the verified run
+      target=allDates[i];break;
+    }
+  }
+  setSt('');
+  setDate(target);
 }
 
 function buildDateSel(){
