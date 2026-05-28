@@ -20,6 +20,7 @@ select{padding:3px 6px;border:1px solid #d1d5db;border-radius:4px;font-size:12px
 <p>Updated mappings: 10/10A S = Ipamorelin, CJC = CJC-1295, 2.5 dose = CJC-1295 No DAC, BPC = BPC-157. Targets Dec 2025 gap dates.</p>
 <button class="btn" style="background:#2563eb;color:#fff" onclick="run()">Run Analysis</button>
 <button class="btn" style="background:#7c3aed;color:#fff" onclick="fixNano()">Fix Nano → Deca</button>
+<button class="btn" style="background:#6b7280;color:#fff" onclick="deleteNonInjections()">🗑 Delete Weights/Training/Cardio/Sauna</button>
 <button class="btn" style="background:#16a34a;color:#fff" id="apply-btn" onclick="applyAll()" style="display:none">Apply Assignments</button>
 <button class="btn" style="background:#dc2626;color:#fff" id="del-dup-btn" onclick="deleteDups()" style="display:none">Delete Duplicates</button>
 <div id="bar-wrap"><div id="bar">Loading…</div></div>
@@ -116,6 +117,32 @@ function out2(h){
   let el=document.getElementById('out2');
   if(!el){el=document.createElement('div');el.id='out2';el.style='background:#fff;border:1px solid #e2e5ea;border-radius:8px;padding:12px;margin-bottom:12px;font-size:12px';document.getElementById('out').before(el);}
   el.innerHTML=h;
+}
+
+async function deleteNonInjections(){
+  const JUNK=['weight','training','cardio','sauna','tanning','exercise','workout','gym'];
+  out2('Scanning for non-injection records…');
+  let recs=[],off=null;
+  do{
+    const d=await atGet(PAR+'?fields%5B%5D=Medication&fields%5B%5D=Compound&fields%5B%5D=Name&pageSize=100'+(off?'&offset='+off:''));
+    recs=recs.concat(d.records);off=d.offset;
+  }while(off);
+  const toDelete=recs.filter(r=>{
+    const med=(r.fields['Medication']||r.fields['Compound']||r.fields['Name']||'').toLowerCase();
+    return JUNK.some(j=>med.includes(j));
+  });
+  if(!toDelete.length){out2('<span class="ok">No non-injection records found.</span>');return;}
+  // Show preview
+  const preview=toDelete.slice(0,20).map(r=>r.fields['Medication']||r.fields['Compound']||r.fields['Name']||'?').join('<br>');
+  out2(`Found <b>${toDelete.length} records</b> to delete:<br>${preview}${toDelete.length>20?'<br>...and '+(toDelete.length-20)+' more':''}`);
+  if(!confirm('Delete '+toDelete.length+' non-injection records (weights/training/cardio/sauna/tanning)?'))return;
+  let done=0;
+  for(let i=0;i<toDelete.length;i+=10){
+    const qs=toDelete.slice(i,i+10).map(r=>'records%5B%5D='+r.id).join('&');
+    try{await fetch('https://api.airtable.com/v0/'+BASE+'/'+PAR+'?'+qs,{method:'DELETE',headers:{Authorization:'Bearer '+AT}});done+=10;}catch(e){}
+    await sleep(200);
+  }
+  out2(`<span class="ok">✓ Deleted ${done} non-injection records.</span>`);
 }
 
 async function run(){
