@@ -36,13 +36,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
 .bs{background:#fff;border-color:#d1d5db;color:#374151}.bs:hover{background:#f3f4f6}
 .bxs{padding:3px 8px;font-size:10px}
 #pp-msg{font-size:10px;color:#9ca3af}
-#pp-area{flex:1;overflow-y:auto;background:#e5e7eb;padding:8px;min-height:0}
+#pp-area{flex:1;overflow-y:scroll;background:#e5e7eb;padding:8px;min-height:0;-webkit-overflow-scrolling:touch}
 #pp-canvas{max-width:100%;box-shadow:0 2px 8px rgba(0,0,0,.2);display:none}
 #pp-ph{color:#9ca3af;font-size:12px;text-align:center;padding:30px}
-#pp-nav{display:flex;align-items:center;gap:5px;padding:6px 8px;border-top:1px solid #e2e5ea;background:#fafafa;flex-shrink:0}
-#pp-nav button{padding:4px 10px;border:1px solid #d1d5db;border-radius:4px;cursor:pointer;font-size:11px;background:#fff}
-#pp-pg{font-size:11px;color:#6b7280;flex:1;text-align:center}
-#pp-jp{width:44px;padding:3px 5px;border:1px solid #d1d5db;border-radius:4px;font-size:11px;text-align:center}
+#pp-nav{display:flex;align-items:center;gap:5px;padding:8px 10px;border-top:2px solid #2563eb;background:#fff;flex-shrink:0;min-height:44px}
+#pp-nav button{padding:7px 16px;border:2px solid #2563eb;border-radius:6px;cursor:pointer;font-size:14px;font-weight:700;background:#2563eb;color:#fff}
+#pp-nav button:hover{background:#1d4ed8}
+#pp-nav button:disabled{background:#e2e5ea;border-color:#e2e5ea;color:#9ca3af;cursor:default}
+#pp-pg{font-size:13px;font-weight:700;color:#374151;flex:1;text-align:center}
+#pp-jp{width:52px;padding:5px 6px;border:1px solid #d1d5db;border-radius:4px;font-size:13px;text-align:center;font-weight:700}
 /* MAIN */
 #main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
 /* DATE NAV */
@@ -301,7 +303,8 @@ const QUICK_WKT=[{n:'📁 Workouts 2024-25',id:'1eYtQT3c14psKbxRkKtbLoNtiLFEnOFh
 const LS={get:k=>localStorage.getItem('mba_'+k),set:(k,v)=>localStorage.setItem('mba_'+k,v)};
 
 let mode='inj', curDate=null, parRecs=[], logRecs=[], parDates=[];
-let editId=null, editTbl=null, pdfDoc=null, pg=1, gTok=null;
+let editId=null, editTbl=null, pdfDoc=null, gTok=null;
+window.pg=1;
 let pickerFiles=[], pickerStack=[{id:'root',name:'My Drive'}];
 
 // ── AUTH ────────────────────────────────────────────────────────────
@@ -336,13 +339,13 @@ async function pdfLoad(){
     const r=await fetch('https://www.googleapis.com/drive/v3/files/'+id+'?alt=media',{headers:{Authorization:'Bearer '+gTok}});
     if(!r.ok){if(r.status===401||r.status===403){localStorage.removeItem('mb_pdfqat');gTok=null;setDriveNo();signIn();}else throw new Error('Drive '+r.status);return;}
     pdfDoc=await pdfjsLib.getDocument({data:await r.arrayBuffer()}).promise;
-    pg=1;document.getElementById('pp-ph').style.display='none';document.getElementById('pp-canvas').style.display='block';
+    window.pg=1;document.getElementById('pp-ph').style.display='none';document.getElementById('pp-canvas').style.display='block';
     await pdfPage(1);LS.set('pdf_'+mode,id);pmsg(pdfDoc.numPages+' pages ✓');
   }catch(e){pmsg('Error: '+e.message);}
 }
-function pdfLocal(inp){if(!inp.files[0])return;pmsg('Loading…');inp.files[0].arrayBuffer().then(async buf=>{pdfDoc=await pdfjsLib.getDocument({data:buf}).promise;pg=1;document.getElementById('pp-ph').style.display='none';document.getElementById('pp-canvas').style.display='block';await pdfPage(1);pmsg(pdfDoc.numPages+' pages ✓');});}
+function pdfLocal(inp){if(!inp.files[0])return;pmsg('Loading…');inp.files[0].arrayBuffer().then(async buf=>{pdfDoc=await pdfjsLib.getDocument({data:buf}).promise;window.pg=1;document.getElementById('pp-ph').style.display='none';document.getElementById('pp-canvas').style.display='block';await pdfPage(1);pmsg(pdfDoc.numPages+' pages ✓');});}
 async function pdfPage(n){
-  if(!pdfDoc)return;n=Math.max(1,Math.min(n,pdfDoc.numPages));pg=n;
+  if(!pdfDoc)return;n=Math.max(1,Math.min(n,pdfDoc.numPages));window.pg=n;
   const page=await pdfDoc.getPage(n);
   const canvas=document.getElementById('pp-canvas'),area=document.getElementById('pp-area');
   const vp1=page.getViewport({scale:1});
