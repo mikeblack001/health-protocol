@@ -1,58 +1,31 @@
 <!DOCTYPE html>
-<html><head><meta charset="UTF-8"><title>Normalize Parseur</title>
+<html><head><meta charset="UTF-8"><title>Fix Names</title>
 <style>
-body{font-family:-apple-system,sans-serif;font-size:14px;padding:30px;max-width:900px;background:#f4f5f7}
+body{font-family:-apple-system,sans-serif;font-size:14px;padding:30px;max-width:700px;background:#f4f5f7}
 h1{font-size:18px;font-weight:900;margin-bottom:4px}
 p{color:#6b7280;font-size:13px;margin-bottom:20px}
-.btn{display:inline-block;padding:11px 22px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;border:none;margin-right:8px;margin-bottom:8px}
+.btn{display:inline-block;padding:12px 24px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;border:none;margin-right:8px;margin-bottom:8px}
 #out{background:#fff;border:2px solid #e2e5ea;border-radius:10px;padding:16px;margin-top:16px;font-size:13px;line-height:1.8;min-height:50px}
+#bar-wrap{background:#e2e5ea;border-radius:6px;height:24px;margin-top:12px;display:none}
+#bar{background:#2563eb;height:24px;border-radius:6px;width:0%;font-size:13px;font-weight:700;color:#fff;text-align:center;line-height:24px;min-width:40px;transition:width .1s}
 table{width:100%;border-collapse:collapse;font-size:12px;margin-top:10px}
 th{background:#f0f0f0;padding:7px 10px;text-align:left;font-weight:700;border:1px solid #e2e5ea}
 td{padding:6px 10px;border:1px solid #e2e5ea}
-.ok{color:#166534;font-weight:700}.err{color:#dc2626;font-weight:700}.warn{color:#92400e}
-#bar-wrap{background:#e2e5ea;border-radius:6px;height:24px;margin-top:12px;display:none}
-#bar{background:#2563eb;height:24px;border-radius:6px;width:0%;font-size:13px;font-weight:700;color:#fff;text-align:center;line-height:24px;min-width:40px;transition:width .1s}
 </style></head><body>
-<h1>Normalize Parseur-Injections</h1>
-<p>Step 1: Compute actual dates (week-start + Day of Week offset) &nbsp;→&nbsp; Step 2: Populate Compound / Dose / Timing / Site</p>
+<h1>Fix Parseur-Injections Name Field</h1>
+<p>Sets Name = "Compound | Date" for all records. Also available: fix all fields.</p>
 
-<button class="btn" style="background:#7c3aed;color:#fff" onclick="previewDates()">1. Preview Date Fix</button>
-<button class="btn" style="background:#dc2626;color:#fff" onclick="fixDates()">2. Fix All Dates</button>
-<button class="btn" style="background:#f59e0b;color:#fff" onclick="fixWeekX()">3. Fix "Week X" Records</button>
-<button class="btn" style="background:#2563eb;color:#fff" onclick="inspect()">4. Inspect Fields</button>
-<button class="btn" style="background:#16a34a;color:#fff" onclick="runFields()">5. Run All — Fields</button>
+<button class="btn" style="background:#7c3aed;color:#fff" onclick="preview()">Preview (10 records)</button>
+<button class="btn" style="background:#16a34a;color:#fff" onclick="runFix()">Fix All Names</button>
+<button class="btn" style="background:#2563eb;color:#fff" onclick="runFields()">Re-run All Fields</button>
 
-<div id="out">Click Step 1 to preview date conversion.</div>
+<div id="out">Click Preview to see what Name will be set to.</div>
 <div id="bar-wrap"><div id="bar">0</div></div>
 
 <script>
 const AT='pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
 const BASE='appmHDG4TGT1xy6R6',TBL='tblCTOGIrF3NjdyTE';
 const FC='fldONAad3wQQzQDKE',FD='fldye77iWTIWaDNul',FT='fldIdHUojkqEFlCZL',FS='fldDxPQRuQFZ9MJoG';
-
-// Day of week → offset from Monday (week start)
-const DAY_OFF={
-  'mon':0,'monday':0,
-  'tue':1,'tues':1,'tuesday':1,
-  'wed':2,'wednesday':2,
-  'thu':3,'thur':3,'thurs':3,'thursday':3,
-  'fri':4,'friday':4,
-  'sat':5,'saturday':5,
-  'sun':6,'sunday':6
-};
-
-function addDays(isoDate, days){
-  const d=new Date(isoDate+'T12:00:00Z');
-  d.setUTCDate(d.getUTCDate()+days);
-  return d.toISOString().substring(0,10);
-}
-
-function computeActualDate(weekStart, dayOfWeek){
-  if(!weekStart||!dayOfWeek)return null;
-  const offset=DAY_OFF[dayOfWeek.toLowerCase().trim()];
-  if(offset===undefined)return null;
-  return addDays(weekStart, offset);
-}
 
 const CM={'tesamorelin':'Tesamorelin','lipominomix':'LipoMinoMix','lipo mino mix':'LipoMinoMix',
 'lipo-mino-mix':'LipoMinoMix','ipamorelin':'Ipamorelin','cjc-1295 no dac':'CJC-1295 No DAC',
@@ -64,11 +37,10 @@ const CM={'tesamorelin':'Tesamorelin','lipominomix':'LipoMinoMix','lipo mino mix
 'anavar':'Anavar (Oxandrolone)','oxandrolone':'Anavar (Oxandrolone)',
 'anavar (oxandrolone)':'Anavar (Oxandrolone)','winstrol':'Winstrol (Stanozolol)',
 'stanozolol':'Winstrol (Stanozolol)','stanzalol':'Winstrol (Stanozolol)',
-'stanzalol (winstrol)':'Winstrol (Stanozolol)','cagrilintide':'Cagrilintide',
-'mots-c':'Mots-C','melanotan':'Melanotan II (MT2)'};
+'cagrilintide':'Cagrilintide','mots-c':'Mots-C','melanotan':'Melanotan II (MT2)'};
 
 function canC(r){return CM[r.toLowerCase().trim()]||r.trim();}
-function canT(t){return{morning:'Morning',night:'Night',evening:'Evening',daily:'Daily',am:'Morning',pm:'Night'}[t.toLowerCase()]||t;}
+function canT(t){return{morning:'Morning',night:'Night',evening:'Evening',daily:'Daily'}[t.toLowerCase()]||t;}
 function canS(l){if(!l)return'';return{l:'L',r:'R',left:'L',right:'R',pill:'Pill',x:'X',nasal:'Nasal',abd:'Abd',s:'S'}[l.toLowerCase().trim()]||l.trim();}
 function parseMed(s){
   if(!s)return{c:'',d:'',t:''};s=s.trim();
@@ -79,6 +51,16 @@ function parseMed(s){
   m=s.match(/^(.+?)\s+(\d+\S*)$/);
   if(m)return{c:canC(m[1]),d:m[2],t:''};
   return{c:canC(s),d:'',t:''};
+}
+
+function buildName(f){
+  const cmp=f['Compound']||canC(parseMed(f['Medication']||'').c)||'';
+  const date=f['Date']||'';
+  const dow=f['Day of Week']||'';
+  if(cmp&&date) return cmp+' | '+date+(dow?' ('+dow+')':'');
+  if(cmp) return cmp;
+  if(date) return date;
+  return 'Unknown';
 }
 
 function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
@@ -93,7 +75,6 @@ async function atPatch(records){
   });
   const d=await r.json();if(!r.ok)throw new Error(d.error?.message||r.status);return d;
 }
-
 async function loadAll(fields){
   let recs=[],off=null;
   const fq=fields.map(f=>'fields%5B%5D='+encodeURIComponent(f)).join('&');
@@ -105,188 +86,51 @@ async function loadAll(fields){
     document.getElementById('bar').textContent='Loading… '+recs.length;
     document.getElementById('bar').style.width=Math.min(recs.length/16,99)+'%';
   }while(off);
-  document.getElementById('bar').textContent='Loaded '+recs.length+' — updating…';
   return recs;
 }
 
-async function previewDates(){
-  out('Loading 20 records…');
+async function preview(){
+  out('Loading 10 records…');
   try{
-    const d=await atGet(TBL+'?fields%5B%5D=Date&fields%5B%5D=Day+of+Week&fields%5B%5D=Compound&fields%5B%5D=Medication&pageSize=20');
-    let html='<table><tr><th>Week Start Date</th><th>Day of Week</th><th>Compound</th><th>→ Actual Date</th><th>Change?</th></tr>';
-    let changes=0;
+    const d=await atGet(TBL+'?pageSize=10');
+    let html='<table><tr><th>Current Name</th><th>Compound</th><th>Date</th><th>Day of Week</th><th>→ New Name</th></tr>';
     d.records.forEach(r=>{
       const f=r.fields;
-      const ws=f['Date']||'';
-      const dow=f['Day of Week']||'';
-      const cmp=f['Compound']||f['Medication']||'';
-      const actual=computeActualDate(ws,dow);
-      const changed=actual&&actual!==ws;
-      if(changed)changes++;
-      html+=`<tr><td>${ws||'(blank)'}</td><td>${dow||'(blank)'}</td><td>${cmp}</td>`+
-        `<td><b>${actual||'cannot compute'}</b></td><td>${changed?'<span class="warn">✓ FIX</span>':'same'}</td></tr>`;
-    });
-    html+=`</table><br><b>${changes} of 20 need date fix</b>`;
-    out(html);
-  }catch(e){out('<span class="err">'+e.message+'</span>');}
-}
-
-async function fixDates(){
-  out('Loading all records for date fix…');
-  document.getElementById('bar-wrap').style.display='';
-  document.getElementById('bar').style.background='#7c3aed';
-  try{
-    const recs=await loadAll(['Date','Day of Week']);
-    const total=recs.length;
-    let fixed=0,skipped=0,errs=0;
-
-    for(let i=0;i<recs.length;i+=10){
-      const batch=recs.slice(i,i+10);
-      const updates=[];
-      batch.forEach(r=>{
-        const f=r.fields;
-        const ws=f['Date']||'';
-        const dow=f['Day of Week']||'';
-        const actual=computeActualDate(ws,dow);
-        if(actual&&actual!==ws){
-          updates.push({id:r.id,fields:{Date:actual}});
-        } else skipped++;
-      });
-      if(updates.length){
-        try{await atPatch(updates);fixed+=updates.length;}
-        catch(e){errs+=updates.length;console.error(e);}
-      }
-      const pct=Math.round((i+batch.length)/total*100);
-      document.getElementById('bar').style.width=Math.max(pct,2)+'%';
-      document.getElementById('bar').textContent=fixed+' fixed / '+total;
-      await sleep(300);
-    }
-    document.getElementById('bar').style.background='#16a34a';
-    out('<span class="ok">✓ Dates fixed: '+fixed+' updated, '+skipped+' already correct'+(errs?' <span class="err">'+errs+' errors</span>':'')+'</span><br><br>Now run Step 3 → Step 4 to populate Compound/Dose/Timing/Site.');
-  }catch(e){out('<span class="err">'+e.message+'</span>');}
-}
-
-async function fixWeekX(){
-  out('Loading all records to resolve Week X dates…');
-  document.getElementById('bar-wrap').style.display='';
-  document.getElementById('bar').style.background='#f59e0b';
-  try{
-    // Load all records with Name, Date, Day of Week
-    const recs=await loadAll(['Name','Date','Day of Week','Compound','Medication']);
-    const total=recs.length;
-
-    // Find Week X records
-    const weekRecs=recs.filter(r=>/^week\s*\d+$/i.test((r.fields['Name']||'').trim()));
-    out('Found <b>'+weekRecs.length+' Week X records</b> out of '+total+'. Computing dates…');
-
-    if(!weekRecs.length){out('<span class="ok">No Week X records found.</span>');return;}
-
-    // Get all records with real dates sorted to find month context
-    const datedRecs=recs.filter(r=>r.fields['Date']&&/^\d{4}-\d{2}-\d{2}$/.test(r.fields['Date']))
-      .map(r=>({id:r.id,date:r.fields['Date']}))
-      .sort((a,b)=>a.date.localeCompare(b.date));
-
-    // For each Week X record, find nearest dated records and infer month
-    function getNthMonday(year,month,n){
-      // Find the first Monday of the month, then add (n-1)*7 days
-      const d=new Date(year,month-1,1);
-      const dow=d.getDay(); // 0=Sun,1=Mon...
-      const firstMon=dow<=1?1+(1-dow):1+(8-dow);
-      const result=new Date(year,month-1,firstMon+(n-1)*7);
-      return result.toISOString().substring(0,10);
-    }
-
-    function inferMonth(recIdx){
-      // Look at surrounding records by array index for context
-      const surrounding=[];
-      for(let i=Math.max(0,recIdx-50);i<Math.min(recs.length,recIdx+50);i++){
-        const d=recs[i].fields['Date'];
-        if(d&&/^\d{4}-\d{2}-\d{2}$/.test(d)) surrounding.push(d);
-      }
-      if(!surrounding.length)return null;
-      // Use most common year-month
-      const months={};
-      surrounding.forEach(d=>{const ym=d.substring(0,7);months[ym]=(months[ym]||0)+1;});
-      return Object.entries(months).sort((a,b)=>b[1]-a[1])[0][0]; // "2025-07"
-    }
-
-    // Preview what we'll do
-    const updates=[];
-    let preview='<table><tr><th>Name</th><th>Day of Week</th><th>Compound</th><th>Inferred Month</th><th>→ Computed Date</th></tr>';
-    let cantFix=0;
-
-    weekRecs.forEach(r=>{
-      const f=r.fields;
-      const name=(f['Name']||'').trim();
-      const dow=f['Day of Week']||'';
-      const cmp=f['Compound']||f['Medication']||'';
-      const weekNum=parseInt(name.match(/\d+/)?.[0]||0);
-      const recIdx=recs.findIndex(x=>x.id===r.id);
-      const ym=inferMonth(recIdx);
-
-      if(!ym||!weekNum||!dow){
-        preview+=`<tr><td>${name}</td><td>${dow}</td><td>${cmp}</td><td style="color:#dc2626">Cannot determine</td><td>—</td></tr>`;
-        cantFix++;return;
-      }
-
-      const[year,month]=ym.split('-').map(Number);
-      const weekStart=getNthMonday(year,month,weekNum);
-      const DAY_OFF={mon:0,monday:0,tue:1,tues:1,tuesday:1,wed:2,wednesday:2,thu:3,thur:3,thurs:3,thursday:3,fri:4,friday:4,sat:5,saturday:5,sun:6,sunday:6};
-      const offset=DAY_OFF[dow.toLowerCase().trim()];
-      let actualDate=weekStart;
-      if(offset!==undefined){
-        const d=new Date(weekStart+'T12:00:00Z');
-        d.setUTCDate(d.getUTCDate()+offset);
-        actualDate=d.toISOString().substring(0,10);
-      }
-
-      preview+=`<tr><td>${name}</td><td>${dow}</td><td>${cmp}</td><td>${ym}</td><td><b>${actualDate}</b></td></tr>`;
-      updates.push({id:r.id,fields:{Date:actualDate}});
-    });
-    preview+='</table>';
-    preview+=`<br><b>${updates.length} can be fixed</b>${cantFix?' <span style="color:#dc2626">'+cantFix+' cannot be determined</span>':''}`;
-    out(preview);
-
-    if(!updates.length)return;
-    if(!confirm('Apply '+updates.length+' date fixes to Week X records?'))return;
-
-    // Apply updates
-    let done=0;
-    for(let i=0;i<updates.length;i+=10){
-      const batch=updates.slice(i,i+10);
-      try{await atPatch(batch);done+=batch.length;}catch(e){console.error(e);}
-      const pct=Math.round((i+batch.length)/updates.length*100);
-      document.getElementById('bar').style.width=Math.max(pct,2)+'%';
-      document.getElementById('bar').textContent=done+'/'+updates.length;
-      await sleep(300);
-    }
-    document.getElementById('bar').style.background='#16a34a';
-    out('<span class="ok">✓ Fixed '+done+' Week X records with computed dates.</span>');
-  }catch(e){out('<span class="err">'+e.message+'</span>');}
-}
-
-async function inspect(){
-  out('Loading 5 records…');
-  try{
-    const d=await atGet(TBL+'?pageSize=5');
-    let html='<table><tr><th>Date</th><th>Day of Week</th><th>Medication</th><th>Location</th><th>→ Compound</th><th>→ Dose</th><th>→ Timing</th><th>→ Site</th></tr>';
-    d.records.forEach(r=>{
-      const f=r.fields;
-      const p=parseMed(f['Medication']||'');
-      const site=canS(f['Location']||'');
-      html+=`<tr><td>${f['Date']||''}</td><td>${f['Day of Week']||''}</td><td>${f['Medication']||''}</td><td>${f['Location']||''}</td><td><b>${p.c}</b></td><td>${p.d}</td><td>${p.t}</td><td>${site}</td></tr>`;
+      const newName=buildName(f);
+      html+=`<tr><td>${f['Name']||'(blank)'}</td><td>${f['Compound']||''}</td><td>${f['Date']||''}</td><td>${f['Day of Week']||''}</td><td><b>${newName}</b></td></tr>`;
     });
     out(html+'</table>');
-  }catch(e){out('<span class="err">'+e.message+'</span>');}
+  }catch(e){out('<span style="color:#dc2626">'+e.message+'</span>');}
+}
+
+async function runFix(){
+  out('Loading all records…');
+  try{
+    const recs=await loadAll(['Name','Compound','Medication','Date','Day of Week']);
+    const total=recs.length;
+    document.getElementById('bar').style.background='#2563eb';
+    let done=0,errs=0;
+    for(let i=0;i<recs.length;i+=10){
+      const batch=recs.slice(i,i+10);
+      const updates=batch.map(r=>({id:r.id,fields:{Name:buildName(r.fields)}}));
+      try{await atPatch(updates);done+=updates.length;}
+      catch(e){errs+=batch.length;}
+      const pct=Math.round((i+batch.length)/total*100);
+      document.getElementById('bar').style.width=Math.max(pct,2)+'%';
+      document.getElementById('bar').textContent=done+'/'+total;
+      await sleep(300);
+    }
+    document.getElementById('bar').style.background=errs?'#f59e0b':'#16a34a';
+    out('<b style="color:green">✓ '+done+' Name fields updated</b>'+(errs?' <span style="color:#dc2626">'+errs+' errors</span>':'')+'<br>Name = Compound | Date (Day of Week)');
+  }catch(e){out('<span style="color:#dc2626">'+e.message+'</span>');}
 }
 
 async function runFields(){
-  out('Loading all records…');
-  document.getElementById('bar-wrap').style.display='';
-  document.getElementById('bar').style.background='#2563eb';
+  out('Loading all records for field re-run…');
   try{
     const recs=await loadAll(['Medication','Location']);
     const total=recs.length;
+    document.getElementById('bar').style.background='#2563eb';
     let done=0,errs=0;
     for(let i=0;i<recs.length;i+=10){
       const batch=recs.slice(i,i+10);
@@ -295,10 +139,8 @@ async function runFields(){
         const p=parseMed(f['Medication']||'');
         const site=canS(f['Location']||'');
         const fields={};
-        if(p.c)fields['Compound']=p.c;
-        if(p.d)fields['Dose']=p.d;
-        if(p.t)fields['Timing']=p.t;
-        if(site)fields['Site']=site;
+        if(p.c)fields['Compound']=p.c;if(p.d)fields['Dose']=p.d;
+        if(p.t)fields['Timing']=p.t;if(site)fields['Site']=site;
         return{id:r.id,fields};
       }).filter(u=>Object.keys(u.fields).length>0);
       if(updates.length){
@@ -311,10 +153,10 @@ async function runFields(){
       await sleep(300);
     }
     document.getElementById('bar').style.background=errs?'#f59e0b':'#16a34a';
-    out('<span class="ok">✓ Fields done: '+done+' updated'+(errs?' <span class="err">'+errs+' errors</span>':'')+'</span><br><br>Parseur-Injections now has actual dates + Compound/Dose/Timing/Site. Ready for audit comparison.');
-  }catch(e){out('<span class="err">'+e.message+'</span>');}
+    out('<b style="color:green">✓ '+done+' records updated</b>');
+  }catch(e){out('<span style="color:#dc2626">'+e.message+'</span>');}
 }
 
-function out(html){document.getElementById('out').innerHTML=html;}
+function out(h){document.getElementById('out').innerHTML=h;}
 </script>
 </body></html>
