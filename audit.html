@@ -722,9 +722,13 @@ function renderRecordsOrdered(order){
 function renderRecords(){
   const el=document.getElementById('records');
   if(!logRecs.length){el.innerHTML='<div class="empty">No records for '+curDate+'</div>';return;}
-  const validRecs=logRecs.filter(r=>r.fields[LOG.compound]);
-  if(!validRecs.length){el.innerHTML='<div class="empty">No records for '+curDate+'</div>';return;}
-  el.innerHTML=validRecs.map(r=>cardHTML(r)).join('');
+  const order=getRowOrder();
+  if(order.length){renderRecordsOrdered(order);}
+  else{
+    const validRecs=logRecs.filter(r=>r.fields[LOG.compound]);
+    if(!validRecs.length){el.innerHTML='<div class="empty">No records for '+curDate+'</div>';return;}
+    el.innerHTML=validRecs.map(r=>cardHTML(r)).join('');
+  }
 }
 
 function cardHTML(r){
