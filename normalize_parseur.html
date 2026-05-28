@@ -68,9 +68,11 @@ async function analyze(){
   logAll.forEach(r=>{
     const d=r.fields['fldhYEtLEGA4VxvvO']||'',c=r.fields['fldwVFyizH4mBANBa']||'';
     if(!d||!c)return;
-    if(!logByDate[d])logByDate[d]=[];
-    logByDate[d].push(c);
+    if(!logByDate[d])logByDate[d]=new Set();
+    logByDate[d].add(c); // Set deduplicates — one entry per unique compound per date
   });
+  // Convert Sets to Arrays
+  Object.keys(logByDate).forEach(d=>logByDate[d]=[...logByDate[d]]);
 
   const gapDates=Object.keys(logByDate).filter(d=>!parDates.has(d)).sort();
   document.getElementById('bar').style.width='80%';document.getElementById('bar').textContent='Matching…';
