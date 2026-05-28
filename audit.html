@@ -446,8 +446,7 @@ async function loadWeekGrid(date){
       else{
         const siteVal=cell.sites.length?cell.sites[0]:'X';
         const sc=siteColor(siteVal);
-        const doseStr=cell.doses.length?`<span style="font-size:9px;opacity:.75;display:block;line-height:1.1">${esc(cell.doses[0])}</span>`:'';
-        h+=`<td ${onclick} style="cursor:pointer;background:${sc.bg};color:${sc.fg};font-weight:800;font-size:11px;line-height:1.2">${esc(siteVal)}${doseStr}</td>`;
+        h+=`<td ${onclick} style="cursor:pointer;background:${sc.bg};color:${sc.fg};font-weight:800;font-size:11px">${esc(siteVal)}</td>`;
       }
     });
     h+=`</tr>`;
