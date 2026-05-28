@@ -315,15 +315,13 @@ async function pdfRenderPage(){
   pdfRenderTask=page.render({canvasContext:canvas.getContext('2d'),viewport:vp});
   try{await pdfRenderTask.promise;}catch(e){if(e.name!=='RenderingCancelledException')console.error('PDF render:',e);}
   pdfRenderTask=null;
-  // Debug: show canvas + area dimensions in status
-  setSt(`pg${window.pg} canvas:${canvas.width}x${canvas.height} area:${area.clientWidth}x${area.clientHeight} zoom:${window.pdfZoom}`);
   extractPageDate(page);
 }
 function pdfPrev(){pdfPage(window.pg-1);}
 function pdfNext(){pdfPage(window.pg+1);}
 function pgGo(n){pdfPage(n);}
 window.pdfZoom=1.0;
-async function pdfZoom(dir){
+function pdfZoom(dir){
   if(!pdfDoc||!window.pg)return;
   if(dir===0){window.pdfZoom=1.0;}
   else{
@@ -332,9 +330,8 @@ async function pdfZoom(dir){
     const ni=Math.max(0,Math.min(steps.length-1,(idx===-1?2:idx)+dir));
     window.pdfZoom=steps[ni];
   }
-  // Always re-fetch page and re-render at new scale
-  window.pdfCurrentPage=await pdfDoc.getPage(window.pg);
-  await pdfRenderPage();
+  document.getElementById('pp-zoom-lbl').textContent=Math.round(window.pdfZoom*100)+'%';
+  pdfPage(window.pg);
 }
 
 // ── DATE EXTRACTION FROM PDF PAGE ────────────────────────────────────
