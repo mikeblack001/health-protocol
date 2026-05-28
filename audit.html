@@ -525,10 +525,13 @@ async function verifyWeek(){
       await atFetch(LOG.tbl,{method:'PATCH',body:JSON.stringify({records:batch,returnFieldsByFieldId:true})});
     }
     setSt('✓ Week verified ('+recs.length+' records)');
+    // Flash verify week button green then back to yellow
+    const wBtn=document.getElementById('verify-week-btn');
+    if(wBtn){wBtn.style.background='#16a34a';wBtn.style.borderColor='#16a34a';wBtn.textContent='✓ Verified!';}
     // Jump to first date after this week that has unverified records
     const lastDayOfWeek=days[days.length-1];
     const nextDate=allDates.find(d=>d>lastDayOfWeek);
-    if(nextDate)setTimeout(()=>setDate(nextDate),400);
+    if(nextDate)setTimeout(()=>setDate(nextDate),1200);
     else await setDate(curDate);
   }catch(e){setSt('Error: '+e.message);}
 }
