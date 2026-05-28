@@ -251,11 +251,13 @@ async function pdfPage(n){
   const page=await pdfDoc.getPage(n);
   const canvas=document.getElementById('pp-canvas');
   const area=document.getElementById('pp-area');
-  const pp=document.getElementById('pp');
-  const w=(pp?pp.offsetWidth-16:0)||500;
-  const vp=page.getViewport({scale:w/page.getViewport({scale:1}).width});
+  // Render at 2x scale for crisp display, CSS stretches to fill panel
+  const vp=page.getViewport({scale:2.0});
   canvas.width=vp.width;canvas.height=vp.height;
-  canvas.style.display='block';area.scrollTop=0;
+  canvas.style.display='block';
+  canvas.style.width='100%';
+  canvas.style.height='auto';
+  area.scrollTop=0;
   await page.render({canvasContext:canvas.getContext('2d'),viewport:vp}).promise;
   document.getElementById('pp-pg').textContent=n+' / '+pdfDoc.numPages;
   document.getElementById('pp-jp').value=n;
