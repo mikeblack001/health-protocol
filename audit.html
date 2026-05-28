@@ -492,6 +492,7 @@ function parCard(r){
       ${dose?`<span class="pill pd">${esc(dose)}</span>`:''}
       ${timing?`<span class="pill pt">${esc(timing)}</span>`:''}
       ${site?`<span class="pill ps">${esc(site)}</span>`:''}
+      <span style="font-size:10px;color:#9ca3af;margin-left:2px">${r.fields[PAR.date]||'no date'}</span>
       <span class="mtag ${tag[1]}">${tag[0]}</span>
     </div>
     ${dh}
@@ -525,6 +526,7 @@ function logCard(r){
       ${timing?`<span class="pill pt">${esc(timing)}</span>`:''}
       ${site?`<span class="pill ps">${esc(site)}</span>`:''}
       ${stat?`<span class="pill ${stat==='Done'?'pk':'pn'}">${esc(stat)}</span>`:''}
+      <span style="font-size:10px;color:#9ca3af;margin-left:2px">${f[LOG.date]||'no date'}</span>
       <span class="mtag ${inPar?'tm':'te'}">${inPar?'✓ Confirmed':'Log Only'}</span>
     </div>
     ${notes?`<div style="font-size:11px;color:#9ca3af;margin-top:3px;font-style:italic">${esc(notes)}</div>`:''}
