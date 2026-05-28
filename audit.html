@@ -334,39 +334,47 @@ function pdfZoom(dir){
   pdfPage(window.pg);
 }
 
-// ── DATE EXTRACTION FROM PDF PAGE ────────────────────────────────────
+// ── DATE EXTRACTION VIA CLAUDE VISION ────────────────────────────────
+const WORKER='https://anthropic-proxy.mikeblack01.workers.dev';
+const ANTH_KEY='sk-ant-api03-jWnl5azwXKPce1ZVdPZ8_8edO87_hOD8uZpDXQFa4ByFkqqdJOzouZo6uZo6xiVwxykvwcp5MVNeYIaYn0dDE_dVAA-H3QK9wAA';
+let lastExtractedPage=null;
+
 async function extractPageDate(page){
+  // Avoid re-calling for same page
+  if(lastExtractedPage===window.pg)return;
+  lastExtractedPage=window.pg;
+  const canvas=document.getElementById('pp-canvas');
+  if(!canvas||canvas.width===0)return;
   try{
-    const txt=await page.getTextContent();
-    const str=txt.items.map(i=>i.str).join(' ').toUpperCase();
-    // Match patterns: "JUN 2025", "JUNE 2025", "07/28/25", "7/28/2025"
-    const months={JAN:1,FEB:2,MAR:3,APR:4,MAY:5,JUN:6,JUL:7,AUG:8,SEP:9,OCT:10,NOV:11,DEC:12,
-      JANUARY:1,FEBRUARY:2,MARCH:3,APRIL:4,JUNE:6,JULY:7,AUGUST:8,SEPTEMBER:9,OCTOBER:10,NOVEMBER:11,DECEMBER:12};
-    let target=null;
-    // Try "MON YYYY" or "MONTH YYYY"
-    const mMatch=str.match(/\b(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC|JANUARY|FEBRUARY|MARCH|APRIL|JUNE|JULY|AUGUST|SEPTEMBER|OCTOBER|NOVEMBER|DECEMBER)\s+(20\d\d)\b/);
-    if(mMatch){
-      const mo=String(months[mMatch[1]]).padStart(2,'0');
-      const yr=mMatch[2];
-      // Find first AT date in that month
-      target=allDates.find(d=>d.startsWith(yr+'-'+mo));
-    }
-    // Try "M/D/YY" or "M/D/YYYY" — prefer earliest date on page
-    if(!target){
-      const dMatch=str.match(/\b(\d{1,2})\/(\d{1,2})\/(\d{2,4})\b/);
-      if(dMatch){
-        let yr=parseInt(dMatch[3]);if(yr<100)yr+=2000;
-        const mo=String(parseInt(dMatch[1])).padStart(2,'0');
-        const dy=String(parseInt(dMatch[2])).padStart(2,'0');
-        const iso=yr+'-'+mo+'-'+dy;
-        target=allDates.find(d=>d>=iso)||iso;
+    // Capture top portion of canvas (date is at top of page)
+    const crop=document.createElement('canvas');
+    crop.width=canvas.width;
+    crop.height=Math.min(canvas.height,Math.round(canvas.height*0.18));
+    crop.getContext('2d').drawImage(canvas,0,0,crop.width,crop.height,0,0,crop.width,crop.height);
+    const b64=crop.toDataURL('image/jpeg',0.85).split(',')[1];
+    const resp=await fetch(WORKER,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':ANTH_KEY,'anthropic-version':'2023-06-01'},
+      body:JSON.stringify({
+        model:'claude-opus-4-5',
+        max_tokens:60,
+        messages:[{role:'user',content:[
+          {type:'image',source:{type:'base64',media_type:'image/jpeg',data:b64}},
+          {type:'text',text:'What is the month and year shown at the top of this page? Reply with ONLY: YYYY-MM (e.g. 2025-07). If unclear reply UNKNOWN.'}
+        ]}]
+      })
+    });
+    const data=await resp.json();
+    const txt=(data.content?.[0]?.text||'').trim();
+    const m=txt.match(/(20\d\d)-(0[1-9]|1[0-2])/);
+    if(m){
+      const target=allDates.find(d=>d.startsWith(m[0]));
+      if(target&&target!==curDate){
+        setSt('📅 '+m[0]);
+        setDate(target);
       }
     }
-    if(target&&target!==curDate){
-      setSt('📅 Jumping to '+target);
-      setDate(target);
-    }
-  }catch(e){/* text extraction not available */}
+  }catch(e){/* silent */}
 }
 
 // ── WEEK GRID ──────────────────────────────────────────────────────────
