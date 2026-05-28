@@ -251,7 +251,8 @@ async function pdfPage(n){
   const page=await pdfDoc.getPage(n);
   const canvas=document.getElementById('pp-canvas');
   const area=document.getElementById('pp-area');
-  const w=area.clientWidth||320;
+  const pp=document.getElementById('pp');
+  const w=(pp?pp.offsetWidth-16:0)||500;
   const vp=page.getViewport({scale:w/page.getViewport({scale:1}).width});
   canvas.width=vp.width;canvas.height=vp.height;
   canvas.style.display='block';area.scrollTop=0;
