@@ -480,7 +480,7 @@ async function loadWeekGrid(date){
   });
   h+=`</tbody>`;
   wg.innerHTML=h;
-  ws.textContent=ordered.length+' compounds';
+  ws.textContent=orderedKeys.length+' compounds';
   // Update Verify Week button color based on week verification status
   const wBtn=document.getElementById('verify-week-btn');
   if(wBtn){
