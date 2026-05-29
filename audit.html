@@ -800,8 +800,12 @@ async function toggleDateVerified(){
 // ── RENDER ────────────────────────────────────────────────────────────
 function renderRecordsOrdered(order){
   if(!logRecs.length)return;
-  // order contains compound||timing keys — extract compound names for card sort
-  const cmpOrder=order.map(k=>k.includes('||')?k.split('||')[0]:k);
+  // order contains compound||timing keys — build deduplicated compound order (first occurrence wins)
+  const cmpOrder=[];
+  order.forEach(k=>{
+    const c=k.includes('||')?k.split('||')[0]:k;
+    if(!cmpOrder.includes(c))cmpOrder.push(c);
+  });
   const sorted=[...logRecs].filter(r=>r.fields[LOG.compound]).sort((a,b)=>{
     const ac=a.fields[LOG.compound]||'', bc=b.fields[LOG.compound]||'';
     const ai=cmpOrder.indexOf(ac), bi=cmpOrder.indexOf(bc);
