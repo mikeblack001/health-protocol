@@ -502,6 +502,7 @@ function initGridDrag(){
     if(!row)return;
     src=row;
     row.classList.add('wg-dragging');
+    document.body.style.userSelect='none';
   });
 
   tbody.addEventListener('mouseover',e=>{
@@ -517,6 +518,7 @@ function initGridDrag(){
     const target=e.target.closest('tr[data-key]');
     tbody.querySelectorAll('.wg-dragging').forEach(r=>r.classList.remove('wg-dragging'));
     tbody.querySelectorAll('.wg-drop-above').forEach(r=>r.classList.remove('wg-drop-above'));
+    document.body.style.userSelect='';
     if(target&&target!==src){
       const rows=[...tbody.querySelectorAll('tr[data-key]')];
       if(rows.indexOf(target)>rows.indexOf(src))tbody.insertBefore(src,target.nextSibling);
