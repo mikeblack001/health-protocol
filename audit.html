@@ -498,18 +498,28 @@ function initGridDrag(){
   const tbody=document.querySelector('#wgrid tbody');
   if(!tbody)return;
   let src=null;
-  // dragstart/dragend on each row
-  tbody.querySelectorAll('tr[draggable]').forEach(row=>{
-    row.addEventListener('dragstart',e=>{src=row;row.classList.add('wg-dragging');e.dataTransfer.effectAllowed='move';});
-    row.addEventListener('dragend',()=>{
-      src&&src.classList.remove('wg-dragging');
-      tbody.querySelectorAll('.wg-drop-above').forEach(r=>r.classList.remove('wg-drop-above'));
-      const order=[...tbody.querySelectorAll('tr[data-key]')].map(r=>r.dataset.key);
-      saveRowOrder(order);src=null;
-      renderRecordsOrdered(order);
-    });
+
+  // Delegated dragstart — fired on tr because tr has draggable=true
+  tbody.addEventListener('dragstart',e=>{
+    const row=e.target.closest('tr[draggable]');
+    if(!row)return;
+    src=row;
+    row.classList.add('wg-dragging');
+    e.dataTransfer.effectAllowed='move';
+    e.dataTransfer.setData('text/plain',''); // required for Firefox
   });
-  // Single delegated dragover on tbody — works even as rows reorder
+
+  tbody.addEventListener('dragend',e=>{
+    const row=e.target.closest('tr[draggable]');
+    if(row)row.classList.remove('wg-dragging');
+    tbody.querySelectorAll('.wg-drop-above').forEach(r=>r.classList.remove('wg-drop-above'));
+    if(!src)return;
+    const order=[...tbody.querySelectorAll('tr[data-key]')].map(r=>r.dataset.key);
+    saveRowOrder(order);
+    src=null;
+    renderRecordsOrdered(order);
+  });
+
   tbody.addEventListener('dragover',e=>{
     e.preventDefault();
     if(!src)return;
