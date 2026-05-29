@@ -591,7 +591,7 @@ async function gridCellClick(date,cmp,timing=''){
     found.scrollIntoView({behavior:'smooth',block:'center'});
     found.style.outline='3px solid #2563eb';
     window._highlightedCard={cmp,timing};
-    setTimeout(()=>{window._highlightedCard=null;},3000);
+    setTimeout(()=>{window._highlightedCard=null;document.querySelectorAll('.card').forEach(c=>c.style.outline='');},8000);
   } else {
     // Compound not in records — open add modal, pre-fill from most recent record
     cmDate=date;cmCmp=cmp;
@@ -830,7 +830,13 @@ function renderRecordsOrdered(order){
       const s=c.querySelector('select.fe-compound'),t=c.querySelector('select.fe-timing');
       return s&&s.value===cmp&&(!timing||(t&&t.value===timing));
     });
-    if(card){card.style.outline='3px solid #2563eb';card.scrollIntoView({behavior:'smooth',block:'center'});}
+    if(card){
+      card.style.outline='3px solid #2563eb';
+      // Re-scroll only if card is not visible
+      const rect=card.getBoundingClientRect();
+      const inView=rect.top>=0&&rect.bottom<=(window.innerHeight||document.documentElement.clientHeight);
+      if(!inView)card.scrollIntoView({behavior:'smooth',block:'center'});
+    }
   }
 }
 function renderRecords(){
