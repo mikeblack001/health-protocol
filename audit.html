@@ -946,8 +946,31 @@ function undoDel(e,id){
   setSt('Undo — record kept');
 }
 
-// ── QUICK ADD ─────────────────────────────────────────────────────────
-async function quickAdd(){
+async function qCmpChange(){
+  const cmp=document.getElementById('q-cmp').value;
+  if(!cmp)return;
+  // Clear fields while loading
+  document.getElementById('q-dose').value='';
+  document.getElementById('q-site').selectedIndex=0;
+  document.getElementById('q-timing').selectedIndex=0;
+  try{
+    const beforeFilter=encodeURIComponent('AND({Compound}="'+cmp+'"'+(curDate?',IS_BEFORE({Date},"'+curDate+'")':'')+')');
+    const d=await atFetch(LOG.tbl+'?filterByFormula='+beforeFilter+'&sort%5B0%5D%5Bfield%5D='+LOG.date+'&sort%5B0%5D%5Bdirection%5D=desc&returnFieldsByFieldId=true&pageSize=1');
+    const rec=d.records?.[0];
+    if(rec){
+      const f=rec.fields;
+      if(f[LOG.dose])document.getElementById('q-dose').value=f[LOG.dose];
+      const site=f[LOG.site]||'';
+      const siteEl=document.getElementById('q-site');
+      [...siteEl.options].forEach((o,i)=>{if(o.text===site)siteEl.selectedIndex=i;});
+      const timing=f[LOG.timing]||'';
+      const timingEl=document.getElementById('q-timing');
+      [...timingEl.options].forEach((o,i)=>{if(o.text===timing)timingEl.selectedIndex=i;});
+    }
+  }catch(e){/* silent fail */}
+}
+
+
   const cmp=document.getElementById('q-cmp').value;
   if(!cmp||!curDate){alert('Select a compound and date first');return;}
   const fields={};
@@ -1053,6 +1076,7 @@ window.onload=()=>{
   // Populate quickAdd compound dropdown from CMPS (A-Z)
   const qCmp=document.getElementById('q-cmp');
   qCmp.innerHTML='<option value="">Compound…</option>'+CMPS.map(c=>`<option>${c}</option>`).join('');
+  qCmp.onchange=qCmpChange;
   loadDates();
 
 };
