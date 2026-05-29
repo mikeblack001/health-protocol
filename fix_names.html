@@ -1,10 +1,11 @@
 <!DOCTYPE html>
 <html>
-<head><meta charset="UTF-8"><title>Fix Injection Log</title>
+<head><meta charset="UTF-8"><title>Sync Compound Colors</title>
 <style>
 body{font-family:-apple-system,sans-serif;padding:20px;background:#f0f2f5;color:#1a1a2e}
 button{padding:10px 24px;background:#2563eb;color:#fff;border:none;border-radius:6px;font-size:14px;font-weight:700;cursor:pointer;margin-right:8px;margin-bottom:8px}
 button:disabled{background:#9ca3af}.green{background:#16a34a}
+.swatch{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:middle}
 table{width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden;margin-top:12px;font-size:12px}
 th{background:#1e2433;color:#fff;padding:6px 10px;text-align:left}
 td{padding:5px 10px;border-bottom:1px solid #e2e5ea}
@@ -12,102 +13,113 @@ td{padding:5px 10px;border-bottom:1px solid #e2e5ea}
 </style>
 </head>
 <body>
-<h2 style="margin:0 0 4px">Injection Log — Dose Cleanup</h2>
-<p style="color:#6b7280;font-size:13px;margin:0 0 12px">Numbers missing 'u' get it appended. Blanks filled from most recent prior dose for that compound.</p>
+<h2 style="margin:0 0 4px">Sync Compound Colors Across Tables</h2>
+<p style="color:#6b7280;font-size:13px;margin:0 0 12px">Reads compound colors from the Injection Log Compound field and applies the same colors to all other tables with a Compound single-select field.</p>
 <button onclick="scan()">1. Scan / Preview</button>
-<button id="fix-btn" class="green" onclick="applyFix()" disabled>2. Apply Fix</button>
+<button id="fix-btn" class="green" onclick="applyFix()" disabled>2. Apply Sync</button>
 <div id="log">Ready.</div>
 <div id="preview"></div>
 <script>
 const TOKEN='pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
 const BASE='appmHDG4TGT1xy6R6';
-const TBL='tblBvEaLkGGipnOFc';
-let toFix=[];
+let sourceColors={};
+let updates=[];
 
 function log(m){const el=document.getElementById('log');el.textContent+='\n'+m;el.scrollTop=el.scrollHeight;}
 
-async function fetchAll(fields){
-  let records=[],offset=null;
-  do{
-    const f=fields.map(f=>`fields[]=${encodeURIComponent(f)}`).join('&');
-    const url=`https://api.airtable.com/v0/${BASE}/${TBL}?${f}&sort[0][field]=Date&sort[0][direction]=asc&pageSize=100`+(offset?`&offset=${offset}`:'');
-    const r=await fetch(url,{headers:{Authorization:`Bearer ${TOKEN}`}});
-    const d=await r.json();
-    if(!d.records)throw new Error(JSON.stringify(d.error));
-    records=records.concat(d.records);
-    offset=d.offset;
-  }while(offset);
-  return records;
-}
-
 async function scan(){
-  toFix=[];
+  updates=[];sourceColors={};
   document.getElementById('preview').innerHTML='';
   document.getElementById('fix-btn').disabled=true;
-  document.getElementById('log').textContent='Loading all records sorted by date...';
+  document.getElementById('log').textContent='Loading base schema...';
 
-  const recs=await fetchAll(['Dose','Compound','Date']);
-  log(`Loaded ${recs.length} records.`);
-
-  // Build last-known dose per compound as we walk forward in time
-  const lastDose={};
-  const issues=[];
-
-  for(const rec of recs){
-    const dose=(rec.fields['Dose']||'').toString().trim();
-    const cmp=(rec.fields['Compound']||'').trim();
-    const isBlank=!dose;
-    const isNoUnit=/^\d+(\.\d+)?$/.test(dose);
-
-    if(isBlank||isNoUnit){
-      const newDose=isNoUnit ? dose+'u' : (lastDose[cmp]||'');
-      issues.push({id:rec.id,cmp,dose,newDose,
-        source:isNoUnit?'add u':(newDose?'prev dose for '+cmp:'⚠ no prior dose found')});
-    }
-
-    // Update last known dose (only if this record has a valid dose)
-    const cleanDose=isNoUnit?dose+'u':(!isBlank?dose:'');
-    if(cleanDose) lastDose[cmp]=cleanDose;
-  }
-
-  toFix=issues;
-  const fixable=toFix.filter(r=>r.newDose);
-  const unknown=toFix.filter(r=>!r.newDose);
-  log(`Found ${toFix.length} issues: ${issues.filter(r=>/add u/.test(r.source)).length} missing 'u', ${issues.filter(r=>!r.newDose||/prev/.test(r.source)).length} blank.\n${fixable.length} can be auto-fixed, ${unknown.length} still unknown.`);
-
-  let html=`<table><thead><tr><th>#</th><th>Compound</th><th>Date</th><th>Current Dose</th><th>→ New Dose</th><th>Source</th></tr></thead><tbody>`;
-  toFix.slice(0,300).forEach((r,i)=>{
-    const color=r.newDose?'#16a34a':'#f59e0b';
-    const date=recs.find(x=>x.id===r.id)?.fields['Date']||'';
-    html+=`<tr><td>${i+1}</td><td>${r.cmp}</td><td>${date}</td><td style="color:#dc2626">${r.dose||'(blank)'}</td><td style="color:${color};font-weight:600">${r.newDose||'⚠ unknown'}</td><td style="color:#9ca3af;font-size:11px">${r.source}</td></tr>`;
+  // Get all tables and fields via metadata API
+  const r=await fetch(`https://api.airtable.com/v0/meta/bases/${BASE}/tables`,{
+    headers:{Authorization:`Bearer ${TOKEN}`}
   });
-  if(toFix.length>300)html+=`<tr><td colspan="6" style="text-align:center;color:#6b7280">...and ${toFix.length-300} more</td></tr>`;
+  const d=await r.json();
+  if(!d.tables){log('Error: '+JSON.stringify(d));return;}
+  log(`Found ${d.tables.length} tables.`);
+
+  // Find Injection Log Compound field as source of truth
+  const injLog=d.tables.find(t=>t.id==='tblBvEaLkGGipnOFc');
+  if(!injLog){log('Could not find Injection Log table.');return;}
+  const srcField=injLog.fields.find(f=>f.name==='Compound'&&f.type==='singleSelect');
+  if(!srcField){log('Could not find Compound field in Injection Log.');return;}
+
+  srcField.options.choices.forEach(c=>{sourceColors[c.name]={color:c.color,id:c.id};});
+  log(`Source: ${Object.keys(sourceColors).length} compound colors from Injection Log.`);
+
+  // Show source colors
+  let html='<h3 style="margin:12px 0 6px;font-size:13px;font-weight:700">Source Colors (Injection Log)</h3>';
+  html+='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px">';
+  Object.entries(sourceColors).forEach(([name,{color}])=>{
+    html+=`<span style="background:#f3f4f6;border-radius:4px;padding:3px 8px;font-size:11px"><span class="swatch" style="background:${colorHex(color)}"></span>${name}</span>`;
+  });
+  html+='</div>';
+
+  // Find all other tables with a Compound singleSelect field
+  html+='<h3 style="margin:12px 0 6px;font-size:13px;font-weight:700">Fields to Update</h3>';
+  html+='<table><thead><tr><th>Table</th><th>Field</th><th>Options to sync</th></tr></thead><tbody>';
+
+  for(const tbl of d.tables){
+    if(tbl.id==='tblBvEaLkGGipnOFc') continue; // skip source
+    for(const fld of tbl.fields){
+      if(fld.type!=='singleSelect') continue;
+      const choices=fld.options?.choices||[];
+      const compoundChoices=choices.filter(c=>sourceColors[c.name]);
+      if(!compoundChoices.length) continue;
+
+      // Find choices that need color update
+      const toUpdate=compoundChoices.filter(c=>c.color!==sourceColors[c.name]?.color);
+      if(!toUpdate.length) continue;
+
+      updates.push({tableId:tbl.id,tableName:tbl.name,fieldId:fld.id,fieldName:fld.name,choices,toUpdate});
+      html+=`<tr><td>${tbl.name}</td><td>${fld.name}</td><td>${toUpdate.map(c=>`<span style="font-size:11px"><span class="swatch" style="background:${colorHex(c.color)}"></span>${c.name} → <span class="swatch" style="background:${colorHex(sourceColors[c.name].color)}"></span></span>`).join(', ')}</td></tr>`;
+    }
+  }
   html+='</tbody></table>';
   document.getElementById('preview').innerHTML=html;
-  if(fixable.length) document.getElementById('fix-btn').disabled=false;
+  log(`${updates.length} fields need updating.`);
+  if(updates.length) document.getElementById('fix-btn').disabled=false;
 }
+
+// Airtable color names to approximate hex
+const COLOR_MAP={
+  'redBright':'#ef4444','orangeBright':'#f97316','yellowBright':'#eab308',
+  'greenBright':'#22c55e','tealBright':'#14b8a6','blueBright':'#3b82f6',
+  'purpleBright':'#a855f7','pinkBright':'#ec4899','grayBright':'#9ca3af',
+  'red':'#dc2626','orange':'#ea580c','yellow':'#ca8a04','green':'#16a34a',
+  'teal':'#0d9488','blue':'#2563eb','purple':'#9333ea','pink':'#db2777','gray':'#6b7280',
+  'redLight':'#fca5a5','orangeLight':'#fdba74','yellowLight':'#fde047',
+  'greenLight':'#86efac','tealLight':'#5eead4','blueLight':'#93c5fd',
+  'purpleLight':'#d8b4fe','pinkLight':'#f9a8d4','grayLight':'#d1d5db',
+};
+function colorHex(c){return COLOR_MAP[c]||'#e5e7eb';}
 
 async function applyFix(){
   document.getElementById('fix-btn').disabled=true;
-  const fixable=toFix.filter(r=>r.newDose);
-  let fixed=0,errors=0;
-  log(`Fixing ${fixable.length} records...`);
-  for(let i=0;i<fixable.length;i+=10){
-    const batch=fixable.slice(i,i+10);
-    const records=batch.map(r=>({id:r.id,fields:{Dose:r.newDose}}));
+  let done=0,errors=0;
+  log(`Applying to ${updates.length} fields...`);
+  for(const u of updates){
+    // Rebuild choices array with updated colors
+    const newChoices=u.choices.map(c=>{
+      if(sourceColors[c.name]) return {...c,color:sourceColors[c.name].color};
+      return c;
+    });
     try{
-      const res=await fetch(`https://api.airtable.com/v0/${BASE}/${TBL}`,{
+      const r=await fetch(`https://api.airtable.com/v0/meta/bases/${BASE}/tables/${u.tableId}/fields/${u.fieldId}`,{
         method:'PATCH',
         headers:{Authorization:`Bearer ${TOKEN}`,'Content-Type':'application/json'},
-        body:JSON.stringify({records,typecast:true})
+        body:JSON.stringify({options:{choices:newChoices}})
       });
-      const d=await res.json();
-      if(d.records)fixed+=d.records.length;
-      else{errors++;log('Error: '+JSON.stringify(d.error));}
+      const d=await r.json();
+      if(d.id){done++;log(`✓ ${u.tableName} / ${u.fieldName}`);}
+      else{errors++;log(`✗ ${u.tableName} / ${u.fieldName}: `+JSON.stringify(d.error));}
     }catch(e){errors++;log('Error: '+e.message);}
-    await new Promise(res=>setTimeout(res,120));
+    await new Promise(res=>setTimeout(res,200));
   }
-  log(`Done. ${fixed} fixed, ${errors} errors.`);
+  log(`Done. ${done} fields updated, ${errors} errors.`);
 }
 </script>
 </body></html>
