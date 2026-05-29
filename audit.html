@@ -448,6 +448,11 @@ async function loadWeekGrid(date){
       if(CMPS.includes(cmp)){data[s]={cmp,timing,days:{}};keyOrder.push(s);}
     }
   });
+  // Also seed any CMPS compound not yet in data at all (no records ever + not in saved order)
+  CMPS.forEach(cmp=>{
+    const hasKey=keyOrder.some(k=>k.split('||')[0]===cmp);
+    if(!hasKey){const k=cmp+'||';data[k]={cmp,timing:'',days:{}};keyOrder.push(k);}
+  });
 
   // Apply saved order
   const allKeys=keyOrder;
@@ -530,9 +535,13 @@ function initGridDrag(){
       const rows=[...tbody.querySelectorAll('tr[data-key]')];
       if(rows.indexOf(target)>rows.indexOf(src))tbody.insertBefore(src,target.nextSibling);
       else tbody.insertBefore(src,target);
-      const order=rows=[...tbody.querySelectorAll('tr[data-key]')].map(r=>r.dataset.key);
-      saveRowOrder(order);
-      renderRecordsOrdered(order);
+      const visibleOrder=[...tbody.querySelectorAll('tr[data-key]')].map(r=>r.dataset.key);
+      // Preserve keys for compounds not in DOM this week (paused/no records) at their saved positions
+      const prevSaved=getRowOrder();
+      const merged=[...visibleOrder];
+      prevSaved.forEach(k=>{if(!merged.includes(k))merged.push(k);});
+      saveRowOrder(merged);
+      renderRecordsOrdered(merged);
     }
     src=null;
   });
