@@ -72,7 +72,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
 .card{background:#fff;border:1px solid #e2e5ea;border-radius:8px;padding:0;margin-bottom:8px;display:flex;align-items:stretch;overflow:hidden}
 .card.verified{border-left:4px solid #4ade80}
 .card.unverified{border-left:4px solid #e2e5ea}
-.card-body{flex:1;padding:10px 12px;display:flex;align-items:center;gap:6px;min-width:0;overflow:hidden}
+.card-body{flex:1;padding:10px 12px;display:flex;align-items:center;gap:6px;min-width:0;flex-wrap:nowrap}
 .card-actions{display:flex;flex-direction:column;justify-content:center;gap:4px;padding:6px 8px;border-left:1px solid #f3f4f6;background:#fafafa;flex-shrink:0}
 
 /* INLINE EDIT FIELDS */
@@ -80,7 +80,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
 .fe:hover{border-color:#d1d5db;background:#f9fafb}
 .fe:focus{border-color:#2563eb;background:#fff;outline:none;cursor:text}
 select.fe{cursor:pointer}
-.fe-compound{font-size:14px;font-weight:800;color:#1e2433;min-width:120px}
+.fe-compound{font-size:14px;font-weight:800;color:#1e2433;min-width:80px;max-width:160px;flex-shrink:1}
 .fe-dose{background:#dbeafe;color:#1d4ed8;min-width:50px}
 .fe-dose:hover{background:#bfdbfe}
 .fe-dose:focus{background:#fff;color:#1e2433}
