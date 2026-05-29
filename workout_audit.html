@@ -6,398 +6,524 @@
 <title>Workout Audit</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f0f2f5;color:#1e2433;font-size:13px;height:100vh;overflow:hidden;display:flex;flex-direction:column}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;background:#f0f2f5;color:#1a1a2e;height:100vh;display:flex;flex-direction:column;overflow:hidden}
 
-/* TOP BAR */
-#topbar{display:flex;align-items:center;gap:6px;padding:6px 10px;background:#1e2433;color:#fff;flex-shrink:0;flex-wrap:wrap}
-#topbar button{padding:4px 10px;border-radius:4px;border:1px solid #374151;background:#2d3748;color:#fff;font-size:11px;font-weight:700;cursor:pointer}
-#topbar button:hover{background:#374151}
-#date-sel{padding:4px 8px;border-radius:4px;border:1px solid #374151;background:#2d3748;color:#fff;font-size:12px;font-weight:700;max-width:160px}
-#week-sel{padding:4px 8px;border-radius:4px;border:1px solid #374151;background:#2d3748;color:#fff;font-size:11px;max-width:120px}
-#date-input{padding:4px 8px;border-radius:4px;border:1px solid #374151;background:#2d3748;color:#fff;font-size:11px;width:110px}
-#date-input::placeholder{color:#6b7280}
-#topbar-right{margin-left:auto;display:flex;align-items:center;gap:6px}
-#b-total{font-size:10px;color:#9ca3af}
-#st{font-size:10px;color:#9ca3af;min-width:80px}
-#verify-date-btn{padding:4px 12px;border-radius:4px;border:none;background:#eab308;color:#fff;font-size:11px;font-weight:700;cursor:pointer}
-#verify-date-btn.verified{background:#16a34a}
+/* HEADER */
+#hdr{background:#1e2433;padding:0 14px;height:44px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+#hdr h1{font-size:14px;font-weight:800;color:#fff;white-space:nowrap}
+#st{font-size:11px;color:#9ca3af;margin-left:4px}
+#hdr-r{margin-left:auto;display:flex;align-items:center;gap:6px}
+.hbtn{padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid #374151;background:#374151;color:#d1d5db}
+.hbtn:hover{background:#4b5563}
+
+/* BODY */
+#body{display:flex;flex:1;overflow:hidden}
+
+/* PDF */
+#pp{width:500px;flex-shrink:0;background:#fff;border-right:2px solid #e2e5ea;display:flex;flex-direction:column;overflow:hidden}
+#pp-top{padding:10px 14px;border-bottom:1px solid #e2e5ea;flex-shrink:0;background:#fafafa}
+#pp-top label{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#9ca3af;display:block;margin-bottom:6px}
+#pp-sel{width:100%;padding:5px 8px;border:1px solid #d1d5db;border-radius:5px;font-size:12px;margin-bottom:6px}
+#pp-frame{flex:1;border:none;width:100%;background:#e5e7eb}
+#pp-msg{font-size:10px;color:#9ca3af;margin-top:2px}
+
+/* MAIN */
+#main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+
+/* DATE NAV */
+#dnav{background:#fff;border-bottom:2px solid #e2e5ea;padding:8px 14px;display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap}
+#dnav button{padding:5px 12px;border:1px solid #d1d5db;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700;background:#fff}
+#dnav button:hover{background:#f3f4f6}
+#d-sel{padding:5px 9px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;font-weight:700;max-width:260px}
+#w-sel{padding:5px 9px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;font-weight:700;background:#fff;color:#374151;cursor:pointer}
+#w-date{padding:5px 6px;border:1px solid #d1d5db;border-radius:6px;font-size:12px;color:#374151;width:110px}
+#d-cnt{font-size:11px;color:#9ca3af}
+#dnav-r{margin-left:auto;display:flex;gap:6px;align-items:center}
 
 /* QUICK ADD */
-#qadd{display:flex;align-items:center;gap:6px;padding:6px 10px;background:#f8fafc;border-bottom:1px solid #e5e7eb;flex-shrink:0;flex-wrap:wrap}
-#qadd select,#qadd input{padding:4px 8px;border:1px solid #d1d5db;border-radius:4px;font-size:12px;background:#fff}
-#qadd input{width:80px}
-#q-save{padding:4px 14px;background:#16a34a;color:#fff;border:none;border-radius:4px;font-size:12px;font-weight:700;cursor:pointer}
+#qadd{background:#f0fdf4;border-bottom:1px solid #86efac;padding:8px 14px;display:flex;gap:6px;align-items:center;flex-shrink:0;flex-wrap:wrap}
+#qadd select,#qadd input{padding:5px 7px;border:1px solid #d1d5db;border-radius:5px;font-size:12px;background:#fff}
+#q-ex{min-width:180px}
+#q-var{width:100px}
+#q-reps{width:60px}
+#q-wt{width:70px}
+#q-notes{width:100px}
+#q-save{padding:6px 14px;border:none;border-radius:5px;font-size:12px;font-weight:700;cursor:pointer;background:#16a34a;color:#fff}
 #q-save:hover{background:#15803d}
 
-/* MAIN LAYOUT */
-#main{display:flex;flex:1;overflow:hidden}
+/* WEEK GRID */
+#wgrid-wrap{background:#fff;border-bottom:2px solid #e2e5ea;flex-shrink:0}
+#wgrid-hdr{padding:5px 14px;display:flex;align-items:center;gap:8px;border-bottom:1px solid #f0f2f5;background:#f8fafc}
+#wgrid-hdr b{font-size:11px;font-weight:800;color:#374151;text-transform:uppercase;letter-spacing:.5px}
+#wgrid-body{overflow:auto;max-height:220px}
+#wg-tog{padding:2px 8px;border:1px solid #d1d5db;border-radius:4px;font-size:10px;font-weight:700;cursor:pointer;background:#fff;color:#374151;margin-left:auto}
+#wg-status{font-size:10px;color:#9ca3af}
+#wgrid{width:100%;border-collapse:collapse;font-size:11px}
+#wgrid thead th{background:#1e2433;color:#fff;padding:4px 6px;font-size:10px;font-weight:700;text-align:center;position:sticky;top:0;z-index:2;white-space:nowrap}
+#wgrid thead th:first-child{text-align:left;min-width:180px;cursor:default;padding-left:20px}
+#wgrid thead th.wg-today{background:#2563eb}
+#wgrid thead th.wg-day{cursor:pointer}
+#wgrid thead th.wg-day:hover{background:#374151}
+#wgrid tbody tr{cursor:grab}
+#wgrid td{border:1px solid #e2e5ea;padding:3px 4px;text-align:center;white-space:nowrap}
+#wgrid td:first-child{text-align:left;padding:3px 6px 3px 6px;font-weight:700;color:#1e2433;max-width:200px;overflow:hidden;text-overflow:ellipsis}
+#wgrid .drag-handle{color:#d1d5db;font-size:13px;padding-right:4px;user-select:none;pointer-events:none}
+#wgrid tbody tr.wg-dragging{opacity:.4;cursor:grabbing}
+#wgrid tbody tr.wg-drop-above{border-top:2px solid #2563eb}
+#wgrid tbody tr.wg-selected td{background:#eff6ff !important}
+#wgrid tbody tr.wg-selected td:first-child{color:#1d4ed8}
 
-/* LEFT PANEL */
-#left{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
-
-/* SESSION INFO */
-#sess-info{padding:8px 12px;background:#fff;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;gap:12px;flex-shrink:0}
-.sess-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;background:#dbeafe;color:#1d4ed8}
-.sess-badge.night{background:#ede9fe;color:#6d28d9}
-.sess-badge.legs{background:#dcfce7;color:#15803d}
-.sess-badge.arms{background:#fef9c3;color:#854d0e}
-.sess-badge.pull{background:#ffedd5;color:#c2410c}
-.sess-stat{font-size:11px;color:#6b7280}
-.sess-stat span{font-weight:700;color:#1e2433}
-#sess-notes-input{flex:1;padding:3px 8px;border:1px solid #e5e7eb;border-radius:4px;font-size:11px;min-width:0}
-#sess-notes-input:focus{outline:none;border-color:#2563eb}
-
-/* SETS AREA */
-#sets-wrap{flex:1;overflow-y:auto;padding:10px}
-.ex-group{background:#fff;border-radius:8px;margin-bottom:10px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+/* SETS PANEL */
+#records{flex:1;overflow-y:auto;padding:10px 14px}
+.ex-group{background:#fff;border:1px solid #e2e5ea;border-radius:8px;margin-bottom:8px;overflow:hidden}
 .ex-header{padding:8px 12px;background:#1e2433;color:#fff;font-size:12px;font-weight:800;display:flex;align-items:center;gap:8px}
 .ex-header .ex-count{font-size:10px;font-weight:500;color:#9ca3af}
-.set-row{display:flex;align-items:center;gap:0;border-bottom:1px solid #f3f4f6;padding:0}
-.set-row:last-child{border-bottom:none}
+.ex-header .ex-var{font-size:10px;color:#6b7280;background:#374151;padding:1px 6px;border-radius:8px}
+.set-row{display:grid;grid-template-columns:28px 90px 54px 70px 1fr 30px;align-items:center;border-bottom:1px solid #f3f4f6;padding:2px 0}
+.set-row:last-of-type{border-bottom:none}
 .set-row:hover{background:#f9fafb}
-.set-num{width:32px;text-align:center;font-size:11px;font-weight:700;color:#6b7280;flex-shrink:0;padding:8px 0}
-.fe{padding:5px 8px;border:1px solid transparent;border-radius:4px;font-size:12px;background:transparent;cursor:pointer;color:#1e2433}
+.set-num{text-align:center;font-size:11px;font-weight:700;color:#6b7280;padding:6px 0}
+.fe{padding:3px 6px;border:1px solid transparent;border-radius:4px;font-size:12px;font-weight:700;background:transparent;cursor:pointer;color:#1e2433}
 .fe:hover{border-color:#d1d5db;background:#f9fafb}
 .fe:focus{border-color:#2563eb;background:#fff;outline:none}
-.fe-var{min-width:90px;color:#6b7280;font-size:11px}
-.fe-reps{width:52px;text-align:center;font-weight:700;color:#1d4ed8;background:#dbeafe;border-radius:4px}
+.fe-var{font-size:11px;color:#6b7280;font-weight:600;width:100%}
+.fe-reps{text-align:center;color:#1d4ed8;background:#dbeafe;border-radius:4px;width:100%}
 .fe-reps:hover{background:#bfdbfe}
-.fe-weight{width:68px;text-align:center;font-weight:700;color:#15803d;background:#dcfce7;border-radius:4px}
+.fe-weight{text-align:center;color:#15803d;background:#dcfce7;border-radius:4px;width:100%}
 .fe-weight:hover{background:#bbf7d0}
-.fe-notes{flex:1;font-size:11px;color:#6b7280;min-width:0}
-.set-del{padding:4px 8px;border:none;background:none;color:#d1d5db;cursor:pointer;font-size:14px;flex-shrink:0}
+.fe-notes{font-size:11px;color:#6b7280;width:100%}
+.set-del{border:none;background:none;color:#d1d5db;cursor:pointer;font-size:14px;text-align:center}
 .set-del:hover{color:#ef4444}
-.set-add-row{padding:6px 12px;border-top:1px dashed #e5e7eb}
+.set-add-row{padding:5px 10px;border-top:1px dashed #e5e7eb}
 .set-add-row button{font-size:10px;padding:2px 8px;border:1px solid #d1d5db;border-radius:4px;background:#f9fafb;cursor:pointer;color:#6b7280}
 .set-add-row button:hover{background:#f3f4f6;color:#374151}
-
-/* EMPTY STATE */
-#empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;color:#6b7280;gap:8px}
-#empty-state .big{font-size:32px}
-
-/* PDF PANEL */
-#pp{width:520px;flex-shrink:0;display:flex;flex-direction:column;background:#fff;border-left:1px solid #e5e7eb}
-#pp-hdr{display:flex;align-items:center;gap:6px;padding:6px 10px;background:#f8fafc;border-bottom:1px solid #e5e7eb;flex-shrink:0}
-#pp-hdr b{font-size:11px;font-weight:800;color:#374151}
-#pp-load{padding:3px 10px;background:#2563eb;color:#fff;border:none;border-radius:4px;font-size:10px;cursor:pointer;font-weight:700}
-#pp-msg{font-size:10px;color:#ef4444;padding:2px 6px}
-#pp-frame{flex:1;border:none;width:100%;background:#e5e7eb}
+.empty{color:#9ca3af;text-align:center;padding:40px;font-style:italic}
+#sess-bar{display:none;padding:6px 14px;background:#fff;border-bottom:1px solid #e5e7eb;flex-shrink:0;display:flex;align-items:center;gap:12px}
+.s-badge{font-size:11px;font-weight:800;padding:2px 10px;border-radius:10px;background:#dbeafe;color:#1d4ed8}
+.s-stat{font-size:11px;color:#6b7280}
+.s-stat span{font-weight:700;color:#1e2433}
+#sess-notes{flex:1;padding:3px 8px;border:1px solid #e5e7eb;border-radius:4px;font-size:11px}
+#sess-notes:focus{outline:none;border-color:#2563eb}
 </style>
 </head>
 <body>
-
-<!-- TOP BAR -->
-<div id="topbar">
-  <button onclick="navDate(-1)">◄ Prev</button>
-  <select id="date-sel" onchange="selDate()"><option value="">— Select Date —</option></select>
-  <select id="week-sel" onchange="selWeek()"><option value="">— Week —</option></select>
-  <input id="date-input" placeholder="MMDDYYYY" maxlength="10" onkeydown="if(event.key==='Enter')jumpDateInput()">
-  <button onclick="navDate(1)">Next ►</button>
-  <div id="topbar-right">
-    <span id="b-total"></span>
-    <span id="st"></span>
-    <button id="verify-date-btn" onclick="toggleVerifySession()">○ Verify Session</button>
+<div id="hdr">
+  <h1>🏋️ Workout Audit</h1>
+  <span id="st"></span>
+  <div id="hdr-r">
+    <span id="b-total" style="font-size:11px;color:#9ca3af"></span>
+    <button class="hbtn" onclick="reloadAll()">↻</button>
   </div>
 </div>
 
-<!-- QUICK ADD -->
-<div id="qadd">
-  <select id="q-ex"><option value="">Exercise…</option></select>
-  <input id="q-var" placeholder="Variation" style="width:100px">
-  <input id="q-reps" placeholder="Reps" type="number" style="width:60px">
-  <input id="q-weight" placeholder="Weight" type="number" style="width:70px">
-  <input id="q-notes" placeholder="Notes" style="width:100px">
-  <button id="q-save" onclick="quickAddSet()">+ Add Set</button>
-  <span style="font-size:10px;color:#9ca3af">Quick add to current session</span>
-</div>
-
-<!-- MAIN -->
-<div id="main">
-  <div id="left">
-    <!-- SESSION INFO -->
-    <div id="sess-info" style="display:none">
-      <span id="sess-day-badge" class="sess-badge"></span>
-      <span class="sess-stat">Duration: <span id="sess-dur">—</span> min</span>
-      <span class="sess-stat">Sleep: <span id="sess-sleep">—</span> hrs</span>
-      <span class="sess-stat">Deep: <span id="sess-deep">—</span> min</span>
-      <input id="sess-notes-input" placeholder="Session notes…" onblur="saveSessNotes()">
-    </div>
-
-    <!-- SETS -->
-    <div id="sets-wrap">
-      <div id="empty-state">
-        <div class="big">🏋️</div>
-        <div>Loading sessions…</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- PDF PANEL -->
+<div id="body">
+  <!-- PDF -->
   <div id="pp">
-    <div id="pp-hdr">
-      <b>📄 PDF</b>
-      <select id="pp-sel" onchange="pdfSelChange()" style="padding:3px 6px;border:1px solid #374151;border-radius:4px;font-size:10px;background:#2d3748;color:#fff;max-width:130px">
+    <div id="pp-top">
+      <label>📄 PDF Reference</label>
+      <select id="pp-sel" onchange="pdfSelChange()">
         <option value="">— Select PDF —</option>
         <option value="1eYtQT3c14psKbxRkKtbLoNtiLFEnOFhF">2024-25 Workouts</option>
         <option value="1VgIqXOQUc5qLzzAaWQ1FQZxIMBAacGP9">2025 Workouts</option>
         <option value="1u7wc9rGFZD_n7e0L2hbwnEhRciVwxykvwcp5MVNeYIaYn0dDE">2026 Workouts</option>
-        <option value="custom">Custom ID…</option>
       </select>
-      <input id="pp-id" placeholder="Drive File ID" style="display:none;padding:3px 6px;border:1px solid #374151;border-radius:4px;font-size:10px;background:#2d3748;color:#fff;width:160px">
-      <button id="pp-load" onclick="loadPDF()">Load</button>
       <span id="pp-msg"></span>
     </div>
     <iframe id="pp-frame" src="about:blank" allowfullscreen></iframe>
+  </div>
+
+  <!-- MAIN -->
+  <div id="main">
+    <!-- DATE NAV -->
+    <div id="dnav">
+      <button onclick="navD(-1)">◀ Prev</button>
+      <select id="d-sel" onchange="selDate()"><option value="">— Select Date —</option></select>
+      <select id="w-sel" onchange="selWeek()" title="Jump to week"><option value="">— Week —</option></select>
+      <input id="w-date" type="text" placeholder="MM/DD/YYYY" oninput="autoSlash(this)" onkeydown="if(event.key==='Enter')jumpToDate(this.value)" style="padding:5px 6px;border:1px solid #d1d5db;border-radius:6px;font-size:12px;color:#374151;width:110px">
+      <button onclick="navD(1)">Next ▶</button>
+      <span id="d-cnt"></span>
+      <div id="dnav-r">
+        <button id="verify-date-btn" class="hbtn" style="background:#eab308;border-color:#eab308;color:#fff" onclick="toggleDateVerified()">○ Verify Day</button>
+      </div>
+    </div>
+
+    <!-- SESSION BAR -->
+    <div id="sess-bar">
+      <span id="sess-badge" class="s-badge"></span>
+      <span class="s-stat">Duration: <span id="sess-dur">—</span> min</span>
+      <span class="s-stat">Sleep: <span id="sess-sleep">—</span> hrs</span>
+      <span class="s-stat">Deep: <span id="sess-deep">—</span> min</span>
+      <input id="sess-notes" placeholder="Session notes…" onblur="saveSessNotes()">
+    </div>
+
+    <!-- QUICK ADD -->
+    <div id="qadd">
+      <select id="q-ex"><option value="">Exercise…</option></select>
+      <input id="q-var" placeholder="Variation" style="width:100px">
+      <input id="q-reps" type="number" placeholder="Reps" style="width:58px">
+      <input id="q-wt" type="number" placeholder="Weight" style="width:70px">
+      <input id="q-notes" placeholder="Notes" style="width:100px">
+      <button id="q-save" onclick="quickAdd()">+ Add Set</button>
+      <span style="font-size:10px;color:#9ca3af">Quick add to current session</span>
+    </div>
+
+    <!-- WEEK GRID -->
+    <div id="wgrid-wrap">
+      <div id="wgrid-hdr">
+        <b>📅 Week Overview</b>
+        <span id="wg-status"></span>
+        <button id="verify-week-btn" onclick="verifyWeek()" style="padding:2px 10px;border:1px solid #eab308;border-radius:4px;font-size:10px;font-weight:700;cursor:pointer;background:#eab308;color:#fff">✓ Verify Week</button>
+        <button id="wg-tog" onclick="toggleWGrid()">▲ Hide</button>
+      </div>
+      <div id="wgrid-body">
+        <table id="wgrid"><tr><td class="empty" style="padding:12px 14px;font-size:11px">Select a date to load week</td></tr></table>
+      </div>
+    </div>
+
+    <!-- SETS RECORDS -->
+    <div id="records"><div class="empty">Select a date to load sets</div></div>
   </div>
 </div>
 
 <script>
 const AT_TOK='pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
 const AT_BASE='appmHDG4TGT1xy6R6';
-const SESS={
-  tbl:'tblk9tTYIcIY4tWjF',
-  session:'fldtyX5g2302mdKRM',
-  date:'fld0NOLsoRvUklsUx',
-  day:'fldCOlVjVlkvg7xQ6',
-  sleep:'flduCm2fVfbj9fhIE',
-  deepSleep:'fldhIwgdnwSN3qSCk',
-  duration:'flddFOAaEqasewACu',
-  notes:'fldHoMvfrVusyffXP'
-};
-const SETS={
-  tbl:'tblKDqjy5RzqaJvjr',
-  setId:'fld4hUpEzC9IqN0xh',
-  date:'fld75zYXknF0RtCWH',
-  session:'fldBChNmPkNg61oTN',
-  exercise:'fldZ93A1t7fGjjsSS',
-  variation:'fld2TZdmCOloH0gAK',
-  setNum:'fldNm9Ao0rmcwwDXo',
-  reps:'fldelUngWHRTm48m1',
-  weight:'fldmrbBmfgSMtREMt',
-  day:'fldypzlwqw9AzWrEE',
-  notes:'fldfR4vyBtj2VWB2b'
-};
-const LS={get:k=>localStorage.getItem(k),set:(k,v)=>localStorage.setItem(k,v)};
-const VERIFIED_KEY='wa_verified_dates';
+const SESS={tbl:'tblk9tTYIcIY4tWjF',session:'fldtyX5g2302mdKRM',date:'fld0NOLsoRvUklsUx',day:'fldCOlVjVlkvg7xQ6',sleep:'flduCm2fVfbj9fhIE',deepSleep:'fldhIwgdnwSN3qSCk',duration:'flddFOAaEqasewACu',notes:'fldHoMvfrVusyffXP'};
+const SETS={tbl:'tblKDqjy5RzqaJvjr',setId:'fld4hUpEzC9IqN0xh',date:'fld75zYXknF0RtCWH',session:'fldBChNmPkNg61oTN',exercise:'fldZ93A1t7fGjjsSS',variation:'fld2TZdmCOloH0gAK',setNum:'fldNm9Ao0rmcwwDXo',reps:'fldelUngWHRTm48m1',weight:'fldmrbBmfgSMtREMt',day:'fldypzlwqw9AzWrEE',notes:'fldfR4vyBtj2VWB2b'};
 
-let allDates=[],curDate=null,sessRecs={},curSets=[],curSessRec=null;
+const CANONICAL=['Bench Press','Incline Press','Decline Press','Incline Fly','Lateral Raises','Seated Shoulder Press','Tricep Pushdowns 1/2','Overhead Tricep Ext','High Cable Fly 1/2 ea','Cable Cross Overs 1/2 ea','Wrist Twist','Lat Pulldown','Bent Over Rows','Cable Rows','Face Pulls','Rear Delt Raises','Bicep Curls-Preacher','Hammer Curls','Cable Shrugs 1/2','Cable Curls 1/2 ea','Barbell Shrugs','Leg Press','Leg Extensions','Leg Curls','Hip Thrust','Nordic Curl','Reverse Hyper','DB Calf Raises','Smith Mach Calf Raises','Back Extension','Forward Back Stretch','Cable Press 1/2 ea','Low Cable Fly 1/2 ea','Incline Curls','Overhead Tricep Press','Curls (Standing)','Tricep Ext Down 1/2','Tricep Ext Up','Forearm Raise - Cable 1/2'].sort();
 
+const PDF_BOOKS=[{id:'1eYtQT3c14psKbxRkKtbLoNtiLFEnOFhF',from:'2024-10-28',to:'2025-04-30'},{id:'1VgIqXOQUc5qLzzAaWQ1FQZxIMBAacGP9',from:'2025-05-01',to:'2025-12-31'},{id:'1u7wc9rGFZD_n7e0L2hbwnEhRciVwxykvwcp5MVNeYIaYn0dDE',from:'2026-01-01',to:'2099-12-31'}];
+
+const LS={get:k=>localStorage.getItem('wa2_'+k),set:(k,v)=>localStorage.setItem('wa2_'+k,v)};
+const VERIFIED_KEY='wa2_verified';
+
+let curDate=null,allDates=[],sessRecs={},curSessRec=null,curSets=[],wgVisible=true;
 
 function setSt(m){document.getElementById('st').innerHTML=m;}
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
+// ── VERIFIED ──────────────────────────────────────────────────────────────
 function getVerified(){try{return JSON.parse(LS.get(VERIFIED_KEY)||'[]');}catch{return[];}}
 function isVerified(d){return getVerified().includes(d);}
-function setVerified(d,v){
-  let arr=getVerified();
-  if(v&&!arr.includes(d))arr.push(d);
-  else if(!v)arr=arr.filter(x=>x!==d);
-  LS.set(VERIFIED_KEY,JSON.stringify(arr));
-}
+function setVerified(d,v){let a=getVerified();if(v&&!a.includes(d))a.push(d);else if(!v)a=a.filter(x=>x!==d);LS.set(VERIFIED_KEY,JSON.stringify(a));}
 
+// ── AT ────────────────────────────────────────────────────────────────────
 async function atFetch(path,opts={}){
   const r=await fetch('https://api.airtable.com/v0/'+AT_BASE+'/'+path,{...opts,headers:{Authorization:'Bearer '+AT_TOK,'Content-Type':'application/json',...(opts.headers||{})}});
   if(!r.ok){const e=await r.json().catch(()=>({error:{message:r.status}}));throw new Error(e.error?.message||r.status);}
   return r.json();
 }
 
+// ── LOAD ALL SESSIONS ─────────────────────────────────────────────────────
 async function loadSessions(){
   setSt('Loading…');
   const flds='fields%5B%5D='+SESS.date+'&fields%5B%5D='+SESS.day+'&fields%5B%5D='+SESS.duration+'&fields%5B%5D='+SESS.sleep+'&fields%5B%5D='+SESS.deepSleep+'&fields%5B%5D='+SESS.notes+'&fields%5B%5D='+SESS.session;
   let recs=[],off=null;
-  do{
-    const d=await atFetch(SESS.tbl+'?'+flds+'&returnFieldsByFieldId=true&pageSize=100'+(off?'&offset='+off:''));
-    recs=recs.concat(d.records);off=d.offset;
-  }while(off);
+  do{const d=await atFetch(SESS.tbl+'?'+flds+'&returnFieldsByFieldId=true&pageSize=100'+(off?'&offset='+off:''));recs=recs.concat(d.records);off=d.offset;}while(off);
   sessRecs={};
-  recs.forEach(r=>{
-    const dt=(r.fields[SESS.date]||'').slice(0,10);
-    if(dt)sessRecs[dt]=r;
-  });
+  recs.forEach(r=>{const dt=(r.fields[SESS.date]||'').slice(0,10);if(dt)sessRecs[dt]=r;});
   allDates=[...new Set(recs.map(r=>(r.fields[SESS.date]||'').slice(0,10)).filter(Boolean))].sort();
   document.getElementById('b-total').textContent=allDates.length+' sessions';
-  buildDateSel();
-  buildWeekSel();
-  populateExList();
+  buildDateSel();buildWeekSel();populateExList();
   setSt('');
-  // Go to first unverified
   const firstUnverified=allDates.find(d=>!isVerified(d));
   if(firstUnverified)setDate(firstUnverified);
   else if(allDates.length)setDate(allDates[allDates.length-1]);
 }
 
+function reloadAll(){loadSessions();}
+
+function populateExList(){
+  const sel=document.getElementById('q-ex');
+  sel.innerHTML='<option value="">Exercise…</option>'+CANONICAL.map(c=>`<option>${esc(c)}</option>`).join('');
+}
+
+// ── DATE NAV ──────────────────────────────────────────────────────────────
 function buildDateSel(){
-  const sel=document.getElementById('date-sel');
-  sel.innerHTML='<option value="">— Session —</option>';
+  const sel=document.getElementById('d-sel');
+  sel.innerHTML='<option value="">— Select Date —</option>';
   allDates.forEach(d=>{
-    const v=isVerified(d);
-    const day=sessRecs[d]?.fields[SESS.day]||'';
-    const opt=document.createElement('option');
-    opt.value=d;
-    opt.textContent=(v?'✓ ':'')+d+(day?' ('+day+')':'');
-    if(v)opt.style.color='#16a34a';
-    sel.appendChild(opt);
+    const v=isVerified(d),day=sessRecs[d]?.fields[SESS.day]||'';
+    const o=document.createElement('option');
+    o.value=d;o.textContent=(v?'✓ ':'')+d+(day?' ('+day+')':'');
+    if(v)o.style.color='#16a34a';
+    sel.appendChild(o);
   });
   if(curDate)sel.value=curDate;
 }
 
 function buildWeekSel(){
-  const sel=document.getElementById('week-sel');
-  const weeks={};
-  allDates.forEach(d=>{
-    const dt=new Date(d+'T12:00:00');
-    const diff=dt.getDay()===0?-6:1-dt.getDay();
-    const mon=new Date(dt);mon.setDate(dt.getDate()+diff);
-    const wk=mon.toISOString().slice(0,10);
-    if(!weeks[wk])weeks[wk]=[];
-    weeks[wk].push(d);
-  });
+  const sel=document.getElementById('w-sel');
+  const seen=new Set();
   sel.innerHTML='<option value="">— Week —</option>';
-  Object.keys(weeks).sort().forEach(wk=>{
-    const dates=weeks[wk];
-    const allV=dates.every(d=>isVerified(d));
-    const d=new Date(wk+'T12:00:00');
-    const e=new Date(d);e.setDate(d.getDate()+6);
-    const label=(allV?'✓ ':'')+`${(d.getMonth()+1)}/${d.getDate()} – ${(e.getMonth()+1)}/${e.getDate()}`;
-    const opt=document.createElement('option');
-    opt.value=dates[0];opt.textContent=label;
-    if(allV)opt.style.color='#16a34a';
-    sel.appendChild(opt);
+  allDates.forEach(d=>{
+    const dt=new Date(d+'T12:00:00'),dow=dt.getDay();
+    const mon=new Date(dt);mon.setDate(dt.getDate()-((dow+6)%7));
+    const monISO=mon.toISOString().slice(0,10);
+    if(!seen.has(monISO)){
+      seen.add(monISO);
+      const sun=new Date(mon);sun.setDate(mon.getDate()+6);
+      const fmt=x=>`${String(x.getMonth()+1).padStart(2,'0')}/${String(x.getDate()).padStart(2,'0')}`;
+      const o=document.createElement('option');o.value=monISO;o.textContent=`${fmt(mon)} – ${fmt(sun)}`;
+      sel.appendChild(o);
+    }
   });
 }
 
-function populateExList(){
-  // Will be populated dynamically from sets data
-  const canonical=[
-    'Bench Press','Incline Press','Decline Press','Incline Fly','Lateral Raises',
-    'Seated Shoulder Press','Tricep Pushdowns 1/2','Overhead Tricep Ext','High Cable Fly 1/2 ea',
-    'Cable Cross Overs 1/2 ea','Wrist Twist','Lat Pulldown','Bent Over Rows','Cable Rows',
-    'Face Pulls','Rear Delt Raises','Bicep Curls-Preacher','Hammer Curls','Cable Shrugs 1/2',
-    'Cable Curls 1/2 ea','Barbell Shrugs','Leg Press','Leg Extensions','Leg Curls',
-    'Hip Thrust','Nordic Curl','Reverse Hyper','DB Calf Raises','Smith Mach Calf Raises',
-    'Back Extension','Forward Back Stretch','Cable Press 1/2 ea','Low Cable Fly 1/2 ea',
-    'Incline Curls','Overhead Tricep Press','Curls (Standing)','Tricep Ext Down 1/2',
-    'Tricep Ext Up','Forearm Raise - Cable 1/2'
-  ].sort();
-  const sel=document.getElementById('q-ex');
-  sel.innerHTML='<option value="">Exercise…</option>'+canonical.map(c=>`<option>${esc(c)}</option>`).join('');
-}
-
-function selDate(){
-  const v=document.getElementById('date-sel').value;
-  if(v)setDate(v);
-}
+function selDate(){const v=document.getElementById('d-sel').value;if(v)setDate(v);}
 function selWeek(){
-  const v=document.getElementById('week-sel').value;
-  if(v)setDate(v);
-  document.getElementById('week-sel').value='';
+  const monISO=document.getElementById('w-sel').value;if(!monISO)return;
+  const mon=new Date(monISO+'T12:00:00'),sun=new Date(mon);sun.setDate(mon.getDate()+6);
+  const t=allDates.find(d=>{const dt=new Date(d+'T12:00:00');return dt>=mon&&dt<=sun;});
+  if(t)setDate(t);
 }
-function navDate(dir){
-  if(!curDate){if(allDates.length)setDate(allDates[0]);return;}
-  const i=allDates.indexOf(curDate);
-  const ni=i+dir;
-  if(ni>=0&&ni<allDates.length)setDate(allDates[ni]);
+function navD(dir){
+  if(!allDates.length)return;
+  const i=curDate?allDates.indexOf(curDate):-1;
+  const d=allDates[Math.max(0,Math.min(allDates.length-1,i+dir))];
+  if(d)setDate(d);
 }
-function jumpDateInput(){
-  let v=document.getElementById('date-input').value.replace(/\D/g,'');
-  if(v.length===8){
-    const d=v.slice(0,2)+'/'+v.slice(2,4)+'/'+v.slice(4);
-    const [mm,dd,yyyy]=d.split('/');
-    const iso=`${yyyy}-${mm}-${dd}`;
-    if(allDates.includes(iso)){setDate(iso);document.getElementById('date-input').value='';}
-    else setSt('Date not found');
-  }
+function autoSlash(el){
+  let v=el.value.replace(/\D/g,'').slice(0,8);
+  if(v.length>4)v=v.slice(0,2)+'/'+v.slice(2,4)+'/'+v.slice(4);
+  else if(v.length>2)v=v.slice(0,2)+'/'+v.slice(2);
+  el.value=v;
 }
-// Auto-format date input
-document.getElementById('date-input').addEventListener('input',function(){
-  let v=this.value.replace(/\D/g,'');
-  if(v.length>2)v=v.slice(0,2)+'/'+v.slice(2);
-  if(v.length>5)v=v.slice(0,5)+'/'+v.slice(5);
-  this.value=v.slice(0,10);
-});
+function jumpToDate(date){
+  if(!date)return;
+  let iso=date.trim();
+  const m=iso.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if(m)iso=m[3]+'-'+m[1].padStart(2,'0')+'-'+m[2].padStart(2,'0');
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(iso)){setSt('Use MM/DD/YYYY');return;}
+  setDate(iso);
+  document.getElementById('w-date').value='';
+}
 
 async function setDate(d){
   curDate=d;
-  document.getElementById('date-sel').value=d;
+  document.getElementById('d-sel').value=d;
   curSessRec=sessRecs[d]||null;
-  renderSessInfo();
-  updateVerifyBtn();
-  autoSelectPDFForDate(d);
+  renderSessBar();updateVerifyBtn();autoSelectPDF(d);
   await loadSets(d);
+  loadWeekGrid(d);
 }
 
-function renderSessInfo(){
-  const info=document.getElementById('sess-info');
-  if(!curSessRec){info.style.display='none';return;}
-  const f=curSessRec.fields;
-  const day=f[SESS.day]||'';
-  const dur=f[SESS.duration]||'';
-  const slp=f[SESS.sleep]||'';
-  const deep=f[SESS.deepSleep]||'';
-  const notes=f[SESS.notes]||'';
-  info.style.display='flex';
-  const badge=document.getElementById('sess-day-badge');
-  badge.textContent=day||curDate;
-  // Color badge by day type
-  const dl=day.toLowerCase();
-  const badgeType=dl.includes('leg')||dl.includes('wed')?'legs':dl.includes('pull')||dl.includes('tue')||dl.includes('fri')?'pull':dl.includes('arm')||dl.includes('thu')?'arms':'';
-  badge.className='sess-badge'+(badgeType?' '+badgeType:'');
-  document.getElementById('sess-dur').textContent=dur||'—';
-  document.getElementById('sess-sleep').textContent=slp||'—';
-  document.getElementById('sess-deep').textContent=deep||'—';
-  document.getElementById('sess-notes-input').value=notes;
+function renderSessBar(){
+  const bar=document.getElementById('sess-bar');
+  if(!curSessRec){bar.style.display='none';return;}
+  const f=curSessRec.fields,day=f[SESS.day]||'';
+  bar.style.display='flex';
+  document.getElementById('sess-badge').textContent=day||curDate;
+  document.getElementById('sess-dur').textContent=f[SESS.duration]||'—';
+  document.getElementById('sess-sleep').textContent=f[SESS.sleep]||'—';
+  document.getElementById('sess-deep').textContent=f[SESS.deepSleep]||'—';
+  document.getElementById('sess-notes').value=f[SESS.notes]||'';
 }
 
 async function saveSessNotes(){
   if(!curSessRec)return;
-  const val=document.getElementById('sess-notes-input').value;
+  const val=document.getElementById('sess-notes').value;
   const fields={};fields[SESS.notes]=val||null;
-  try{
-    const res=await atFetch(SESS.tbl+'/'+curSessRec.id+'?returnFieldsByFieldId=true',{method:'PATCH',body:JSON.stringify({fields})});
-    curSessRec={...curSessRec,fields:{...curSessRec.fields,...res.fields}};
-    sessRecs[curDate]=curSessRec;
-    setSt('✓ Saved');setTimeout(()=>setSt(''),1200);
-  }catch(e){setSt('Error: '+e.message);}
+  try{const res=await atFetch(SESS.tbl+'/'+curSessRec.id+'?returnFieldsByFieldId=true',{method:'PATCH',body:JSON.stringify({fields})});curSessRec={...curSessRec,fields:{...curSessRec.fields,...res.fields}};sessRecs[curDate]=curSessRec;setSt('✓ Saved');setTimeout(()=>setSt(''),1200);}catch(e){setSt('Error: '+e.message);}
 }
 
+// ── VERIFY ────────────────────────────────────────────────────────────────
+function updateVerifyBtn(){
+  const btn=document.getElementById('verify-date-btn');
+  const v=curDate&&isVerified(curDate);
+  btn.textContent=v?'✓ Day Verified':'○ Verify Day';
+  btn.style.background=v?'#16a34a':'#eab308';
+  btn.style.borderColor=v?'#16a34a':'#eab308';
+}
+function toggleDateVerified(){
+  if(!curDate)return;
+  const v=!isVerified(curDate);
+  setVerified(curDate,v);
+  updateVerifyBtn();buildDateSel();buildWeekSel();
+  setSt(v?'✓ Day verified':'Day unverified');setTimeout(()=>setSt(''),1500);
+  if(v){const next=allDates.find(d=>d>curDate&&!isVerified(d));if(next)setTimeout(()=>setDate(next),600);}
+}
+
+// ── WEEK GRID ─────────────────────────────────────────────────────────────
+function getWkDates(dateStr){
+  const [yr,mo,dy]=dateStr.split('-').map(Number);
+  const d=new Date(yr,mo-1,dy),dow=d.getDay(),diff=(dow+6)%7;
+  const mon=new Date(yr,mo-1,dy-diff);
+  return Array.from({length:7},(_,i)=>{
+    const dd=new Date(mon.getFullYear(),mon.getMonth(),mon.getDate()+i);
+    return dd.getFullYear()+'-'+String(dd.getMonth()+1).padStart(2,'0')+'-'+String(dd.getDate()).padStart(2,'0');
+  });
+}
+function getRowOrder(){try{return JSON.parse(LS.get('row_order')||'[]');}catch{return[];}}
+function saveRowOrder(arr){LS.set('row_order',JSON.stringify(arr));}
+function toggleWGrid(){wgVisible=!wgVisible;document.getElementById('wgrid-body').style.display=wgVisible?'':'none';document.getElementById('wg-tog').textContent=wgVisible?'▲ Hide':'▼ Show';}
+
+async function loadWeekGrid(date){
+  const wg=document.getElementById('wgrid'),ws=document.getElementById('wg-status');
+  if(!wg)return;
+  const days=getWkDates(date);
+  ws.textContent='Loading…';
+  const orParts=days.map(d=>`IS_SAME({Date},"${d}","day")`).join(',');
+  const q=encodeURIComponent(`OR(${orParts})`);
+  const flds=['date','exercise','variation','setNum','reps','weight'].map(k=>'fields%5B%5D='+SETS[k]).join('&');
+  let recs=[],off=null;
+  try{
+    do{const d=await atFetch(SETS.tbl+'?returnFieldsByFieldId=true&filterByFormula='+q+'&'+flds+'&pageSize=100'+(off?'&offset='+off:''));recs=recs.concat(d.records);off=d.offset;}while(off);
+  }catch(e){wg.innerHTML=`<tr><td style="color:#dc2626;padding:8px">Grid error: ${e.message}</td></tr>`;ws.textContent='';return;}
+
+  // Build exercise → day → {count, maxWt} lookup
+  const data={};const keyOrder=[];
+  recs.forEach(r=>{
+    const f=r.fields,ex=f[SETS.exercise]||'',day=(f[SETS.date]||'').slice(0,10);
+    if(!ex||!day)return;
+    if(!data[ex]){data[ex]={ex,days:{}};keyOrder.push(ex);}
+    if(!data[ex].days[day])data[ex].days[day]={n:0,maxWt:null};
+    data[ex].days[day].n++;
+    const wt=f[SETS.weight];
+    if(wt&&(data[ex].days[day].maxWt===null||wt>data[ex].days[day].maxWt))data[ex].days[day].maxWt=wt;
+  });
+
+  // Apply saved row order (only keys that exist in data)
+  const saved=getRowOrder().filter(s=>keyOrder.includes(s));
+  const orderedKeys=[...saved];
+  keyOrder.forEach(k=>{if(!orderedKeys.includes(k))orderedKeys.push(k);});
+
+  const DN=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const today=new Date().toISOString().slice(0,10);
+  let h=`<thead><tr><th>Exercise</th>`;
+  days.forEach((d,i)=>{
+    const isToday=d===date,isReal=allDates.includes(d);
+    h+=`<th class="wg-day${isToday?' wg-today':''}" onclick="setDate('${d}')" title="${d}">${DN[i]}<br><span style="font-size:9px;opacity:.8">${d.slice(5)}</span></th>`;
+  });
+  h+=`</tr></thead><tbody>`;
+
+  orderedKeys.forEach(ex=>{
+    const {days:dayMap}=data[ex];
+    h+=`<tr data-key="${esc(ex)}"><td><span class="drag-handle">⠿</span>${esc(ex)}</td>`;
+    days.forEach(d=>{
+      const cell=dayMap[d];
+      const isSelected=d===curDate;
+      const onclick=`onclick="gridCellClick('${d}','${esc(ex)}')"`;
+      if(!cell||!cell.n){
+        h+=`<td ${onclick} style="cursor:pointer${isSelected?';background:#eff6ff':''}"></td>`;
+      }else{
+        const wt=cell.maxWt!==null?cell.maxWt:'';
+        const bg=isSelected?'#1d4ed8':'#1e2433';
+        const fg='#fff';
+        h+=`<td ${onclick} style="cursor:pointer;background:${bg};color:${fg};font-weight:800;font-size:10px">${cell.n}×${wt?'<br><span style="font-size:9px;opacity:.85">'+wt+'</span>':''}</td>`;
+      }
+    });
+    h+=`</tr>`;
+  });
+  h+=`</tbody>`;
+  wg.innerHTML=h;
+  ws.textContent=orderedKeys.length+' exercises';
+  initGridDrag();
+
+  // Highlight current day column
+  highlightGridDay(date);
+
+  // Check verify week button
+  const wBtn=document.getElementById('verify-week-btn');
+  if(wBtn){
+    const weekDays=days.filter(d=>allDates.includes(d));
+    const allVer=weekDays.length>0&&weekDays.every(d=>isVerified(d));
+    wBtn.style.background=allVer?'#16a34a':'#eab308';
+    wBtn.style.borderColor=allVer?'#16a34a':'#eab308';
+    wBtn.textContent=allVer?'✓ Week Verified':'✓ Verify Week';
+  }
+}
+
+function highlightGridDay(date){
+  const tbody=document.querySelector('#wgrid tbody');
+  if(!tbody)return;
+  tbody.querySelectorAll('tr.wg-selected').forEach(r=>r.classList.remove('wg-selected'));
+  // Don't highlight rows, just let column header show it
+}
+
+async function gridCellClick(date,ex){
+  if(date!==curDate)await setDate(date);
+  else{
+    // Scroll to exercise group in records
+    const el=document.getElementById('exg_'+CSS.escape(ex));
+    if(el){el.scrollIntoView({behavior:'smooth',block:'center'});el.style.outline='3px solid #2563eb';setTimeout(()=>el.style.outline='',1500);}
+  }
+}
+
+function initGridDrag(){
+  const tbody=document.querySelector('#wgrid tbody');
+  if(!tbody)return;
+  let src=null,lastOver=null;
+  tbody.addEventListener('mousedown',e=>{
+    const row=e.target.closest('tr[data-key]');if(!row)return;
+    src=row;row.classList.add('wg-dragging');document.body.style.userSelect='none';
+  });
+  tbody.addEventListener('mouseover',e=>{
+    if(!src)return;
+    const target=e.target.closest('tr[data-key]');
+    if(target===lastOver)return;
+    if(lastOver)lastOver.classList.remove('wg-drop-above');
+    lastOver=null;
+    if(!target||target===src)return;
+    target.classList.add('wg-drop-above');lastOver=target;
+  });
+  document.addEventListener('mouseup',e=>{
+    if(!src)return;
+    const target=e.target.closest('tr[data-key]');
+    tbody.querySelectorAll('.wg-dragging').forEach(r=>r.classList.remove('wg-dragging'));
+    tbody.querySelectorAll('.wg-drop-above').forEach(r=>r.classList.remove('wg-drop-above'));
+    document.body.style.userSelect='';lastOver=null;
+    if(target&&target!==src){
+      const rows=[...tbody.querySelectorAll('tr[data-key]')];
+      if(rows.indexOf(target)>rows.indexOf(src))tbody.insertBefore(src,target.nextSibling);
+      else tbody.insertBefore(src,target);
+      const visibleOrder=[...tbody.querySelectorAll('tr[data-key]')].map(r=>r.dataset.key);
+      saveRowOrder(visibleOrder);
+    }
+    src=null;
+  });
+}
+
+async function verifyWeek(){
+  if(!curDate){setSt('Select a date first');return;}
+  const days=getWkDates(curDate).filter(d=>allDates.includes(d));
+  days.forEach(d=>setVerified(d,true));
+  updateVerifyBtn();buildDateSel();buildWeekSel();
+  setSt('✓ Week verified ('+days.length+' sessions)');
+  const wBtn=document.getElementById('verify-week-btn');
+  if(wBtn){wBtn.style.background='#16a34a';wBtn.style.borderColor='#16a34a';wBtn.textContent='✓ Week Verified';}
+  const lastDay=days[days.length-1];
+  const next=allDates.find(d=>d>lastDay&&!isVerified(d));
+  if(next)setTimeout(()=>setDate(next),800);
+}
+
+// ── SETS ──────────────────────────────────────────────────────────────────
 async function loadSets(d){
   setSt('Loading sets…');
-  document.getElementById('sets-wrap').innerHTML='<div id="empty-state"><div class="big">⏳</div><div>Loading…</div></div>';
+  document.getElementById('records').innerHTML='<div class="empty">⏳ Loading…</div>';
   try{
     const filter=encodeURIComponent('IS_SAME({Date},"'+d+'","day")');
     const flds=['setId','date','session','exercise','variation','setNum','reps','weight','day','notes'].map(k=>'fields%5B%5D='+SETS[k]).join('&');
     let recs=[],off=null;
-    do{
-      const res=await atFetch(SETS.tbl+'?filterByFormula='+filter+'&'+flds+'&returnFieldsByFieldId=true&pageSize=100&sort%5B0%5D%5Bfield%5D='+SETS.setNum+'&sort%5B0%5D%5Bdirection%5D=asc'+(off?'&offset='+off:''));
-      recs=recs.concat(res.records);off=res.offset;
-    }while(off);
+    do{const res=await atFetch(SETS.tbl+'?filterByFormula='+filter+'&'+flds+'&returnFieldsByFieldId=true&pageSize=100&sort%5B0%5D%5Bfield%5D='+SETS.setNum+'&sort%5B0%5D%5Bdirection%5D=asc'+(off?'&offset='+off:''));recs=recs.concat(res.records);off=res.offset;}while(off);
     curSets=recs;
     setSt('');
     renderSets(recs);
-  }catch(e){setSt('Error: '+e.message);document.getElementById('sets-wrap').innerHTML='<div id="empty-state"><div class="big">⚠️</div><div>'+esc(e.message)+'</div></div>';}
+  }catch(e){setSt('Error: '+e.message);document.getElementById('records').innerHTML='<div class="empty">⚠️ '+esc(e.message)+'</div>';}
 }
 
 function renderSets(recs){
-  const wrap=document.getElementById('sets-wrap');
-  if(!recs.length){
-    wrap.innerHTML='<div id="empty-state"><div class="big">🏋️</div><div>No sets found for '+esc(curDate||'')+'</div></div>';
-    return;
-  }
-  // Group by exercise
-  const groups={};const order=[];
-  recs.forEach(r=>{
-    const ex=r.fields[SETS.exercise]||'Unknown';
-    if(!groups[ex]){groups[ex]=[];order.push(ex);}
-    groups[ex].push(r);
-  });
+  const wrap=document.getElementById('records');
+  if(!recs.length){wrap.innerHTML='<div class="empty">🏋️ No sets for '+esc(curDate||'')+'</div>';return;}
+  const groups={},order=[];
+  recs.forEach(r=>{const ex=r.fields[SETS.exercise]||'Unknown';if(!groups[ex]){groups[ex]=[];order.push(ex);}groups[ex].push(r);});
   let html='';
   order.forEach(ex=>{
     const sets=groups[ex];
     html+=`<div class="ex-group" id="exg_${CSS.escape(ex)}">
       <div class="ex-header">${esc(ex)}<span class="ex-count">${sets.length} set${sets.length!==1?'s':''}</span></div>`;
-    sets.forEach(r=>{
-      html+=setRowHTML(r);
-    });
+    sets.forEach(r=>{html+=setRowHTML(r);});
     html+=`<div class="set-add-row"><button onclick="quickAddToEx('${esc(ex)}')">+ set</button></div>`;
     html+='</div>';
   });
@@ -405,26 +531,13 @@ function renderSets(recs){
 }
 
 function setRowHTML(r){
-  const f=r.fields;
-  const sn=f[SETS.setNum]||'';
-  const va=f[SETS.variation]||'';
-  const rp=f[SETS.reps]||'';
-  const wt=f[SETS.weight]||'';
-  const nt=f[SETS.notes]||'';
+  const f=r.fields,sn=f[SETS.setNum]||'',va=f[SETS.variation]||'',rp=f[SETS.reps]||'',wt=f[SETS.weight]||'',nt=f[SETS.notes]||'';
   return`<div class="set-row" id="setr_${r.id}">
     <div class="set-num">${esc(sn)}</div>
-    <input class="fe fe-var" value="${esc(va)}" placeholder="Variation"
-      onblur="saveSetField('${r.id}','${SETS.variation}',this.value)"
-      onkeydown="if(event.key==='Enter')this.blur()">
-    <input class="fe fe-reps" value="${esc(rp)}" placeholder="Reps" type="number"
-      onblur="saveSetField('${r.id}','${SETS.reps}',this.value?+this.value:null)"
-      onkeydown="if(event.key==='Enter')this.blur()">
-    <input class="fe fe-weight" value="${esc(wt)}" placeholder="Wt" type="number"
-      onblur="saveSetField('${r.id}','${SETS.weight}',this.value?+this.value:null)"
-      onkeydown="if(event.key==='Enter')this.blur()">
-    <input class="fe fe-notes" value="${esc(nt)}" placeholder="Notes"
-      onblur="saveSetField('${r.id}','${SETS.notes}',this.value)"
-      onkeydown="if(event.key==='Enter')this.blur()">
+    <input class="fe fe-var" value="${esc(va)}" placeholder="Variation" onblur="saveSetField('${r.id}','${SETS.variation}',this.value)" onkeydown="if(event.key==='Enter')this.blur()">
+    <input class="fe fe-reps" value="${esc(rp)}" placeholder="Reps" type="number" onblur="saveSetField('${r.id}','${SETS.reps}',this.value?+this.value:null)" onkeydown="if(event.key==='Enter')this.blur()">
+    <input class="fe fe-weight" value="${esc(wt)}" placeholder="Wt" type="number" onblur="saveSetField('${r.id}','${SETS.weight}',this.value?+this.value:null)" onkeydown="if(event.key==='Enter')this.blur()">
+    <input class="fe fe-notes" value="${esc(nt)}" placeholder="Notes" onblur="saveSetField('${r.id}','${SETS.notes}',this.value)" onkeydown="if(event.key==='Enter')this.blur()">
     <button class="set-del" onclick="delSet('${r.id}')">✕</button>
   </div>`;
 }
@@ -434,174 +547,77 @@ async function saveSetField(id,field,value){
   try{
     const res=await atFetch(SETS.tbl+'/'+id+'?returnFieldsByFieldId=true',{method:'PATCH',body:JSON.stringify({fields})});
     const i=curSets.findIndex(r=>r.id===id);
-    if(i>=0){curSets[i]={...curSets[i],fields:{...curSets[i].fields,...res.fields}};}
-    flashRow(id);
-    setSt('✓ Saved');setTimeout(()=>setSt(''),1200);
+    if(i>=0)curSets[i]={...curSets[i],fields:{...curSets[i].fields,...res.fields}};
+    flashRow(id);setSt('✓ Saved');setTimeout(()=>setSt(''),1200);
   }catch(e){setSt('Error: '+e.message);}
 }
 
-function flashRow(id){
-  const el=document.getElementById('setr_'+id);
-  if(!el)return;
-  el.style.background='#f0fdf4';
-  setTimeout(()=>el.style.background='',800);
-}
+function flashRow(id){const el=document.getElementById('setr_'+id);if(!el)return;el.style.background='#f0fdf4';setTimeout(()=>el.style.background='',800);}
 
 async function delSet(id){
-  const el=document.getElementById('setr_'+id);
-  if(!el)return;
+  const el=document.getElementById('setr_'+id);if(!el)return;
   el.style.opacity='0.3';el.style.pointerEvents='none';
   setSt('Deleted — <a href="#" onclick="undoDelSet(event,\''+id+'\')">Undo</a>');
   window._pendingSetDel=setTimeout(async()=>{
-    try{
-      await atFetch(SETS.tbl+'/'+id,{method:'DELETE'});
-      curSets=curSets.filter(r=>r.id!==id);
-      el.remove();
-      setSt('✓ Deleted');
-    }catch(e){el.style.opacity='';el.style.pointerEvents='';setSt('Error: '+e.message);}
+    try{await atFetch(SETS.tbl+'/'+id,{method:'DELETE'});curSets=curSets.filter(r=>r.id!==id);el.remove();setSt('✓ Deleted');}
+    catch(e){el.style.opacity='';el.style.pointerEvents='';setSt('Error: '+e.message);}
   },3000);
 }
-function undoDelSet(e,id){
-  e.preventDefault();
-  clearTimeout(window._pendingSetDel);
-  const el=document.getElementById('setr_'+id);
-  if(el){el.style.opacity='';el.style.pointerEvents='';}
-  setSt('Undo — kept');
-}
+function undoDelSet(e,id){e.preventDefault();clearTimeout(window._pendingSetDel);const el=document.getElementById('setr_'+id);if(el){el.style.opacity='';el.style.pointerEvents='';}setSt('Undo — kept');}
 
-async function quickAddSet(){
+async function quickAdd(){
   const ex=document.getElementById('q-ex').value;
-  if(!ex||!curDate){alert('Select an exercise and session first');return;}
+  if(!ex||!curDate){alert('Select an exercise first');return;}
   const sessRec=sessRecs[curDate];
   const fields={};
-  fields[SETS.date]=curDate;
-  fields[SETS.exercise]=ex;
+  fields[SETS.date]=curDate;fields[SETS.exercise]=ex;
   fields[SETS.day]=sessRec?.fields[SESS.day]||'';
   if(sessRec)fields[SETS.session]=[sessRec.id];
   const va=document.getElementById('q-var').value;if(va)fields[SETS.variation]=va;
   const rp=document.getElementById('q-reps').value;if(rp)fields[SETS.reps]=+rp;
-  const wt=document.getElementById('q-weight').value;if(wt)fields[SETS.weight]=+wt;
+  const wt=document.getElementById('q-wt').value;if(wt)fields[SETS.weight]=+wt;
   const nt=document.getElementById('q-notes').value;if(nt)fields[SETS.notes]=nt;
-  // Auto set number
   const existing=curSets.filter(r=>r.fields[SETS.exercise]===ex);
   fields[SETS.setNum]=existing.length+1;
-  // SetID format: YYYY-MM-DD-ABBREV-SETNUM
   const abbrev=ex.replace(/[^A-Za-z0-9]/g,'').slice(0,6).toUpperCase();
   fields[SETS.setId]=curDate+'-'+abbrev+'-'+fields[SETS.setNum];
   try{
     const res=await atFetch(SETS.tbl+'?returnFieldsByFieldId=true',{method:'POST',body:JSON.stringify({fields,typecast:true})});
     curSets.push(res);
-    // Add row to existing exercise group or re-render
     const exg=document.getElementById('exg_'+CSS.escape(ex));
-    if(exg){
-      const addRow=exg.querySelector('.set-add-row');
-      addRow.insertAdjacentHTML('beforebegin',setRowHTML(res));
-      const cnt=exg.querySelector('.ex-count');
-      if(cnt){const n=exg.querySelectorAll('.set-row').length;cnt.textContent=n+' set'+(n!==1?'s':'');}
-    }else{
-      renderSets(curSets);
-    }
-    // Clear fields
-    document.getElementById('q-ex').selectedIndex=0;
-    document.getElementById('q-var').value='';
-    document.getElementById('q-reps').value='';
-    document.getElementById('q-weight').value='';
-    document.getElementById('q-notes').value='';
+    if(exg){const addRow=exg.querySelector('.set-add-row');addRow.insertAdjacentHTML('beforebegin',setRowHTML(res));const cnt=exg.querySelector('.ex-count');if(cnt){const n=exg.querySelectorAll('.set-row').length;cnt.textContent=n+' set'+(n!==1?'s':'');}}
+    else renderSets(curSets);
+    ['q-ex','q-var','q-reps','q-wt','q-notes'].forEach(id=>{const el=document.getElementById(id);if(el.tagName==='SELECT')el.selectedIndex=0;else el.value='';});
     setSt('✓ Added');
   }catch(e){setSt('Error: '+e.message);}
 }
+function quickAddToEx(ex){document.getElementById('q-ex').value=ex;document.getElementById('q-reps').focus();}
 
-function quickAddToEx(ex){
-  document.getElementById('q-ex').value=ex;
-  document.getElementById('q-reps').focus();
-}
+// ── PDF ────────────────────────────────────────────────────────────────────
+const PDF_BOOKS_ARR=[{id:'1eYtQT3c14psKbxRkKtbLoNtiLFEnOFhF',from:'2024-10-28',to:'2025-04-30'},{id:'1VgIqXOQUc5qLzzAaWQ1FQZxIMBAacGP9',from:'2025-05-01',to:'2025-12-31'},{id:'1u7wc9rGFZD_n7e0L2hbwnEhRciVwxykvwcp5MVNeYIaYn0dDE',from:'2026-01-01',to:'2099-12-31'}];
 
-function toggleVerifySession(){
-  if(!curDate)return;
-  const v=!isVerified(curDate);
-  setVerified(curDate,v);
-  updateVerifyBtn();
-  buildDateSel();
-  buildWeekSel();
-  setSt(v?'✓ Session verified':'Session unverified');
-  setTimeout(()=>setSt(''),1500);
-  if(v){
-    // Auto-advance to next unverified
-    const next=allDates.find(d=>d>curDate&&!isVerified(d));
-    if(next)setTimeout(()=>setDate(next),600);
-  }
-}
-
-function updateVerifyBtn(){
-  const btn=document.getElementById('verify-date-btn');
-  const v=curDate&&isVerified(curDate);
-  btn.textContent=v?'✓ Verified':'○ Verify Session';
-  btn.className=v?'verified':'';
-}
-
-// ── PDF PANEL ──────────────────────────────────────────────────────────
-const PDF_BOOKS=[
-  {id:'1eYtQT3c14psKbxRkKtbLoNtiLFEnOFhF', label:'2024-25', from:'2024-10-28', to:'2025-04-30'},
-  {id:'1VgIqXOQUc5qLzzAaWQ1FQZxIMBAacGP9', label:'2025',    from:'2025-05-01', to:'2025-12-31'},
-  {id:'1u7wc9rGFZD_n7e0L2hbwnEhRciVwxykvwcp5MVNeYIaYn0dDE', label:'2026', from:'2026-01-01', to:'2099-12-31'}
-];
-
-function autoSelectPDFForDate(d){
+function autoSelectPDF(d){
   if(!d)return;
-  const book=PDF_BOOKS.find(b=>d>=b.from&&d<=b.to);
+  const book=PDF_BOOKS_ARR.find(b=>d>=b.from&&d<=b.to);
   if(!book)return;
   const sel=document.getElementById('pp-sel');
-  if(sel.value!==book.id){
-    sel.value=book.id;
-    document.getElementById('pp-id').style.display='none';
-    loadPDF();
-  }
+  if(sel.value!==book.id){sel.value=book.id;loadPDF();}
 }
-
-function pdfSelChange(){
-  const sel=document.getElementById('pp-sel');
-  const customInput=document.getElementById('pp-id');
-  if(sel.value==='custom'){
-    customInput.style.display='';
-    customInput.focus();
-  } else {
-    customInput.style.display='none';
-    if(sel.value)loadPDF();
-  }
-}
-
-function pmsg(m){document.getElementById('pp-msg').textContent=m;}
-
+function pdfSelChange(){const sel=document.getElementById('pp-sel');if(sel.value)loadPDF();}
 function loadPDF(){
-  const sel=document.getElementById('pp-sel');
-  const customInput=document.getElementById('pp-id');
-  const id=(sel.value&&sel.value!=='custom')?sel.value:customInput.value.trim();
-  if(!id){pmsg('Select a PDF');return;}
-  LS.set('wa_pdf_sel',sel.value);
-  if(sel.value==='custom')LS.set('wa_pdf_custom',customInput.value.trim());
-  pmsg('');
-  const url='https://drive.google.com/file/d/'+id+'/preview';
-  document.getElementById('pp-frame').src=url;
+  const id=document.getElementById('pp-sel').value;if(!id)return;
+  LS.set('pdf_sel',id);
+  document.getElementById('pp-frame').src='https://drive.google.com/file/d/'+id+'/preview';
+  document.getElementById('pp-msg').textContent='';
 }
 
+// ── INIT ──────────────────────────────────────────────────────────────────
 window.onload=()=>{
-  // Restore PDF selection
-  const savedSel=LS.get('wa_pdf_sel');
-  const savedCustom=LS.get('wa_pdf_custom');
+  const saved=LS.get('pdf_sel');
   const sel=document.getElementById('pp-sel');
-  const customInput=document.getElementById('pp-id');
-  if(savedSel&&savedSel!=='custom'&&sel.querySelector('option[value="'+savedSel+'"]')){
-    sel.value=savedSel;
-    loadPDF();
-  } else if(savedSel==='custom'&&savedCustom){
-    sel.value='custom';
-    customInput.style.display='';
-    customInput.value=savedCustom;
-    loadPDF();
-  }
+  if(saved&&sel.querySelector('option[value="'+saved+'"]')){sel.value=saved;loadPDF();}
   loadSessions();
 };
 </script>
 </body>
 </html>
-
