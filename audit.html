@@ -574,23 +574,18 @@ async function gridCellClick(date,cmp,timing=''){
   if(date!==curDate){
     await setDate(date);
   }
-  // Scroll to and highlight the matching card — match by compound+timing when available
-  const cards=document.querySelectorAll('.card');
-  let found=null;
-  cards.forEach(card=>{
+  // Scroll to and highlight the matching card — match by compound+timing
+  const cards=[...document.querySelectorAll('.card')];
+  let found=cards.find(card=>{
     const sel=card.querySelector('select.fe-compound');
     const tim=card.querySelector('select.fe-timing');
-    if(sel&&sel.value===cmp){
-      if(!timing||!tim||(tim.value||'')===(timing)){found=card;}
-    }
+    return sel&&sel.value===cmp&&(!timing||(tim&&tim.value===timing));
   });
-  // Fallback: first compound match if timing didn't narrow it down
-  if(!found){
-    cards.forEach(card=>{
-      const sel=card.querySelector('select.fe-compound');
-      if(sel&&sel.value===cmp&&!found){found=card;}
-    });
-  }
+  // Fallback: first compound match
+  if(!found)found=cards.find(card=>{
+    const sel=card.querySelector('select.fe-compound');
+    return sel&&sel.value===cmp;
+  });
   if(found){
     // Clear any previous highlight
     document.querySelectorAll('.card').forEach(card=>card.style.outline='');
