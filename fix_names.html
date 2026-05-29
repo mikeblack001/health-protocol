@@ -9,7 +9,7 @@ button:disabled{background:#9ca3af}.green{background:#16a34a}
 </style>
 </head>
 <body>
-<h2 style="margin:0 0 4px">Sync Compound Colors <span style="font-size:12px;color:#9ca3af">v9</span></h2>
+<h2 style="margin:0 0 4px">Sync Compound Colors <span style="font-size:12px;color:#9ca3af">v10</span></h2>
 <p style="color:#6b7280;font-size:13px;margin:0 0 12px">Reads Color Code from Peptides table, maps to Airtable colors, applies to all Compound fields.</p>
 <button onclick="scan()">1. Preview</button>
 <button id="fix-btn" class="green" onclick="apply()" disabled>2. Apply</button>
@@ -45,10 +45,17 @@ async function scan(){
   document.getElementById('log').textContent='Loading Peptides...';
   document.getElementById('fix-btn').disabled=true;
 
-  // Load peptides with Name + Color Code
+  // Load peptides — get Color Code field only, then discover name field from schema
+  // First get schema to find the primary field name
+  const schemaR=await fetch(`https://api.airtable.com/v0/meta/bases/${BASE}/tables`,{headers:{Authorization:`Bearer ${TOKEN}`}});
+  const schemaD=await schemaR.json();
+  const pepTable=schemaD.tables.find(t=>t.id===PEPTIDES);
+  const primaryField=pepTable.fields[0]; // Primary field is always first
+  log('Primary field: '+primaryField.name+' ('+primaryField.id+')');
+
   let recs=[],offset=null;
   do{
-    const url=`https://api.airtable.com/v0/${BASE}/${PEPTIDES}?fields[]=Name&fields[]=${COLOR_CODE_FLD}&pageSize=100`+(offset?`&offset=${offset}`:'');
+    const url=`https://api.airtable.com/v0/${BASE}/${PEPTIDES}?fields[]=${primaryField.id}&fields[]=${COLOR_CODE_FLD}&pageSize=100`+(offset?`&offset=${offset}`:'');
     const r=await fetch(url,{headers:{Authorization:`Bearer ${TOKEN}`}});
     const d=await r.json();
     if(!d.records){log('Error: '+JSON.stringify(d));return;}
@@ -57,7 +64,7 @@ async function scan(){
   }while(offset);
 
   recs.forEach(r=>{
-    const name=(r.fields['Name']||'').trim();
+    const name=(r.fields[primaryField.id]||r.fields[primaryField.name]||'').trim();
     const colorCode=(r.fields[COLOR_CODE_FLD]||'').trim();
     const atColor=COLOR_MAP[colorCode];
     if(name&&atColor) compoundColors[name]=atColor;
