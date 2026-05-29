@@ -8,12 +8,12 @@ button:disabled{background:#9ca3af}
 table{width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden;margin-top:12px;font-size:12px}
 th{background:#1e2433;color:#fff;padding:6px 10px;text-align:left}
 td{padding:5px 10px;border-bottom:1px solid #e2e5ea}
-#log{background:#fff;border-radius:8px;padding:12px;font-size:12px;font-family:monospace;margin-top:12px;max-height:150px;overflow-y:auto;white-space:pre-wrap}
+#log{background:#fff;border-radius:8px;padding:12px;font-size:12px;font-family:monospace;margin-top:12px;max-height:200px;overflow-y:auto;white-space:pre-wrap}
 </style>
 </head>
 <body>
 <h2 style="margin:0 0 4px">Fix Name = Compound</h2>
-<p style="color:#6b7280;font-size:13px;margin:0 0 12px">Step 1: Scan to preview. Step 2: Apply fix.</p>
+<p style="color:#6b7280;font-size:13px;margin:0 0 12px">Step 1: Scan to see field names and preview mismatches. Step 2: Apply fix.</p>
 <button onclick="scan()">1. Scan / Preview</button>
 <button id="fix-btn" onclick="fix()" disabled style="background:#16a34a">2. Apply Fix</button>
 <div id="log">Ready.</div>
@@ -24,41 +24,53 @@ const TOKEN='pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3
 const BASE='appmHDG4TGT1xy6R6';
 const TBL='tblBvEaLkGGipnOFc';
 let toFix=[];
+let nameField=null,cmpField=null;
 
-function log(m){document.getElementById('log').textContent+='\n'+m;}
+function log(m){const el=document.getElementById('log');el.textContent+='\n'+m;el.scrollTop=el.scrollHeight;}
 
 async function scan(){
-  toFix=[];
+  toFix=[];nameField=null;cmpField=null;
   document.getElementById('preview').innerHTML='';
   document.getElementById('log').textContent='Scanning...';
   document.getElementById('fix-btn').disabled=true;
-  let offset=null,scanned=0;
 
+  // First pull ONE record with all fields to discover field names
+  const probe=await fetch(`https://api.airtable.com/v0/${BASE}/${TBL}?pageSize=1`,{headers:{Authorization:`Bearer ${TOKEN}`}});
+  const pd=await probe.json();
+  if(!pd.records||!pd.records.length){log('No records found.');return;}
+  const sampleFields=pd.records[0].fields;
+  log('Fields found on first record: '+JSON.stringify(Object.keys(sampleFields)));
+
+  // Find name and compound fields
+  const keys=Object.keys(sampleFields);
+  nameField=keys.find(k=>k.toLowerCase()==='name')||keys.find(k=>k.toLowerCase().includes('name'));
+  cmpField=keys.find(k=>k.toLowerCase()==='compound')||keys.find(k=>k.toLowerCase().includes('compound'));
+  log(`Name field: "${nameField}" | Compound field: "${cmpField}"`);
+  if(!nameField||!cmpField){log('Could not identify fields. Check field names above.');return;}
+
+  let offset=null,scanned=0;
   do{
-    // Use field names directly (typecast handles it)
-    const url=`https://api.airtable.com/v0/${BASE}/${TBL}?fields[]=Name&fields[]=Compound&pageSize=100`+(offset?`&offset=${offset}`:'');
+    const url=`https://api.airtable.com/v0/${BASE}/${TBL}?fields[]=${encodeURIComponent(nameField)}&fields[]=${encodeURIComponent(cmpField)}&pageSize=100`+(offset?`&offset=${offset}`:'');
     const r=await fetch(url,{headers:{Authorization:`Bearer ${TOKEN}`}});
     const d=await r.json();
     if(!d.records){log('Error: '+JSON.stringify(d));return;}
     for(const rec of d.records){
-      const name=rec.fields['Name']||'';
-      const cmp=rec.fields['Compound']||'';
-      if(cmp && name!==cmp) toFix.push({id:rec.id, name, cmp});
+      const name=(rec.fields[nameField]||'').trim();
+      const cmp=(rec.fields[cmpField]||'').trim();
+      if(cmp&&name!==cmp) toFix.push({id:rec.id,name,cmp});
     }
     scanned+=d.records.length;
     offset=d.offset;
   }while(offset);
 
   log(`Scanned ${scanned} records. Found ${toFix.length} where Name ≠ Compound.`);
-
   if(!toFix.length){log('Nothing to fix.');return;}
 
-  // Show preview table
-  let html=`<table><thead><tr><th>#</th><th>Record ID</th><th>Current Name</th><th>Compound (will set Name to this)</th></tr></thead><tbody>`;
-  toFix.slice(0,100).forEach((r,i)=>{
-    html+=`<tr><td>${i+1}</td><td style="font-family:monospace;font-size:11px">${r.id}</td><td style="color:#dc2626">${r.name||'(blank)'}</td><td style="color:#16a34a">${r.cmp}</td></tr>`;
+  let html=`<table><thead><tr><th>#</th><th>Record ID</th><th>Current Name</th><th>→ Will be set to</th></tr></thead><tbody>`;
+  toFix.slice(0,200).forEach((r,i)=>{
+    html+=`<tr><td>${i+1}</td><td style="font-family:monospace;font-size:11px">${r.id}</td><td style="color:#dc2626">${r.name||'(blank)'}</td><td style="color:#16a34a;font-weight:600">${r.cmp}</td></tr>`;
   });
-  if(toFix.length>100)html+=`<tr><td colspan="4" style="color:#6b7280;text-align:center">...and ${toFix.length-100} more</td></tr>`;
+  if(toFix.length>200)html+=`<tr><td colspan="4" style="color:#6b7280;text-align:center">...and ${toFix.length-200} more</td></tr>`;
   html+='</tbody></table>';
   document.getElementById('preview').innerHTML=html;
   document.getElementById('fix-btn').disabled=false;
@@ -67,10 +79,10 @@ async function scan(){
 async function fix(){
   document.getElementById('fix-btn').disabled=true;
   let fixed=0,errors=0;
-  log(`Fixing ${toFix.length} records...`);
+  log(`Applying fix to ${toFix.length} records...`);
   for(let i=0;i<toFix.length;i+=10){
     const batch=toFix.slice(i,i+10);
-    const records=batch.map(r=>({id:r.id,fields:{Name:r.cmp}}));
+    const records=batch.map(r=>({id:r.id,fields:{[nameField]:r.cmp}}));
     try{
       const r=await fetch(`https://api.airtable.com/v0/${BASE}/${TBL}`,{
         method:'PATCH',
