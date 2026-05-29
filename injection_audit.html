@@ -421,11 +421,11 @@ async function saveRecord() {
   try {
     let result;
     if (editId) {
-      result = await atFetch(AT_TBL+'/'+editId, {method:'PATCH',body:JSON.stringify({fields})});
+      result = await atFetch(AT_TBL+'/'+editId+'?returnFieldsByFieldId=true', {method:'PATCH',body:JSON.stringify({fields})});
       const idx = atRecs.findIndex(r=>r.id===editId);
       if (idx>=0) atRecs[idx] = result;
     } else {
-      result = await atFetch(AT_TBL, {method:'POST',body:JSON.stringify({fields})});
+      result = await atFetch(AT_TBL+'?returnFieldsByFieldId=true', {method:'POST',body:JSON.stringify({fields})});
       atRecs.push(result);
     }
     indexAT();
