@@ -439,18 +439,8 @@ async function loadWeekGrid(date){
     const dose=f[LOG.dose]||'';if(dose)data[key].days[day].doses.push(dose);
   });
 
-  // Seed grid with ALL saved-order compounds so paused ones (BPC-157, TB-500) always appear
-  const saved=getRowOrder();
-  saved.forEach(s=>{
-    if(!data[s]){
-      const parts=s.split('||');
-      const cmp=parts[0],timing=parts.slice(1).join('||');
-      if(CMPS.includes(cmp)){data[s]={cmp,timing,days:{}};keyOrder.push(s);}
-    }
-  });
-
-
-  // Apply saved order
+  // Apply saved order — only use keys that exist in actual data this week
+  const saved=getRowOrder().filter(s=>keyOrder.includes(s)||keyOrder.some(k=>k.startsWith(s+'||')));
   const allKeys=keyOrder;
   const orderedKeys=[];
   saved.forEach(s=>{
@@ -532,12 +522,8 @@ function initGridDrag(){
       if(rows.indexOf(target)>rows.indexOf(src))tbody.insertBefore(src,target.nextSibling);
       else tbody.insertBefore(src,target);
       const visibleOrder=[...tbody.querySelectorAll('tr[data-key]')].map(r=>r.dataset.key);
-      // Preserve keys for compounds not in DOM this week (paused/no records) at their saved positions
-      const prevSaved=getRowOrder();
-      const merged=[...visibleOrder];
-      prevSaved.forEach(k=>{if(!merged.includes(k))merged.push(k);});
-      saveRowOrder(merged);
-      renderRecordsOrdered(merged);
+      saveRowOrder(visibleOrder);
+      renderRecordsOrdered(visibleOrder);
     }
     src=null;
   });
