@@ -886,8 +886,12 @@ function updateGridCell(recId){
   const cmp=rec.fields[LOG.compound]||'';
   const site=rec.fields[LOG.site]||'';
   const dose=rec.fields[LOG.dose]||'';
-  // Update row label dose
-  const row=document.querySelector(`#wgrid tbody tr[data-cmp="${CSS.escape(cmp)}"]`);
+  const timing=rec.fields[LOG.timing]||'';
+  // Match by compound+timing key to handle duplicates like BPC-157 MOR/NIG
+  const key=cmp+'||'+timing;
+  let row=document.querySelector(`#wgrid tbody tr[data-key="${CSS.escape(key)}"]`);
+  // Fallback to compound-only if key not found
+  if(!row)row=document.querySelector(`#wgrid tbody tr[data-cmp="${CSS.escape(cmp)}"]`);
   if(!row)return;
   const label=row.querySelector('td');
   if(label){
