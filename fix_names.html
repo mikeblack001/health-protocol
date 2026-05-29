@@ -9,7 +9,7 @@ button:disabled{background:#9ca3af}.green{background:#16a34a}
 </style>
 </head>
 <body>
-<h2 style="margin:0 0 4px">Assign Compound Colors <span style="font-size:12px;color:#9ca3af">v4</span></h2>
+<h2 style="margin:0 0 4px">Assign Compound Colors <span style="font-size:12px;color:#9ca3af">v5</span></h2>
 <p style="color:#6b7280;font-size:13px;margin:0 0 12px">Assigns a distinct color to each compound and syncs across all tables.</p>
 <button onclick="run()">Apply Colors to All Tables</button>
 <div id="log">Ready.</div>
@@ -87,8 +87,10 @@ async function run(){
       }));
 
       try{
-        const payload={options:{choices:newChoices}};
-        log(`Sending to ${tbl.name}/${fld.name}: `+JSON.stringify(newChoices.slice(0,2)));
+        // Try without IDs on choices — some API versions reject them
+        const cleanChoices=newChoices.map(c=>({name:c.name,color:c.color}));
+        const payload={type:'singleSelect',options:{choices:cleanChoices}};
+        log(`Sending to ${tbl.name}/${fld.name}: `+JSON.stringify(cleanChoices.slice(0,2)));
         const res=await fetch(`https://api.airtable.com/v0/meta/bases/${BASE}/tables/${tbl.id}/fields/${fld.id}`,{
           method:'PATCH',
           headers:{Authorization:`Bearer ${TOKEN}`,'Content-Type':'application/json'},
