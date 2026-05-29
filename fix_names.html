@@ -4,8 +4,7 @@
 <style>
 body{font-family:-apple-system,sans-serif;padding:20px;background:#f0f2f5;color:#1a1a2e}
 button{padding:10px 24px;background:#2563eb;color:#fff;border:none;border-radius:6px;font-size:14px;font-weight:700;cursor:pointer;margin-right:8px;margin-bottom:8px}
-button:disabled{background:#9ca3af}
-.green{background:#16a34a}.red{background:#dc2626}
+button:disabled{background:#9ca3af}.green{background:#16a34a}
 table{width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden;margin-top:12px;font-size:12px}
 th{background:#1e2433;color:#fff;padding:6px 10px;text-align:left}
 td{padding:5px 10px;border-bottom:1px solid #e2e5ea}
@@ -14,7 +13,7 @@ td{padding:5px 10px;border-bottom:1px solid #e2e5ea}
 </head>
 <body>
 <h2 style="margin:0 0 4px">Injection Log — Dose Cleanup</h2>
-<p style="color:#6b7280;font-size:13px;margin:0 0 12px">Scans dose field. Numbers get 'u' appended. Blanks are looked up from Peptides table dose.</p>
+<p style="color:#6b7280;font-size:13px;margin:0 0 12px">Numbers missing 'u' get it appended. Blanks filled from most recent prior dose for that compound.</p>
 <button onclick="scan()">1. Scan / Preview</button>
 <button id="fix-btn" class="green" onclick="applyFix()" disabled>2. Apply Fix</button>
 <div id="log">Ready.</div>
@@ -23,16 +22,15 @@ td{padding:5px 10px;border-bottom:1px solid #e2e5ea}
 const TOKEN='pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
 const BASE='appmHDG4TGT1xy6R6';
 const TBL='tblBvEaLkGGipnOFc';
-const PEPTIDES_TBL='tblMs6YRdP4wkndUp';
 let toFix=[];
 
 function log(m){const el=document.getElementById('log');el.textContent+='\n'+m;el.scrollTop=el.scrollHeight;}
 
-async function fetchAll(tbl,fields){
+async function fetchAll(fields){
   let records=[],offset=null;
   do{
     const f=fields.map(f=>`fields[]=${encodeURIComponent(f)}`).join('&');
-    const url=`https://api.airtable.com/v0/${BASE}/${tbl}?${f}&pageSize=100`+(offset?`&offset=${offset}`:'');
+    const url=`https://api.airtable.com/v0/${BASE}/${TBL}?${f}&sort[0][field]=Date&sort[0][direction]=asc&pageSize=100`+(offset?`&offset=${offset}`:'');
     const r=await fetch(url,{headers:{Authorization:`Bearer ${TOKEN}`}});
     const d=await r.json();
     if(!d.records)throw new Error(JSON.stringify(d.error));
@@ -46,57 +44,47 @@ async function scan(){
   toFix=[];
   document.getElementById('preview').innerHTML='';
   document.getElementById('fix-btn').disabled=true;
-  document.getElementById('log').textContent='Scanning...';
+  document.getElementById('log').textContent='Loading all records sorted by date...';
 
-  // Load peptide doses for lookup
-  log('Loading Peptides table for dose lookup...');
-  let peptideDoses={};
-  try{
-    const peps=await fetchAll(PEPTIDES_TBL,['Name','Dose']);
-    peps.forEach(r=>{
-      const name=(r.fields['Name']||'').trim();
-      const dose=(r.fields['Dose']||'').toString().trim();
-      if(name&&dose) peptideDoses[name.toLowerCase()]=dose;
-    });
-    log(`Loaded ${Object.keys(peptideDoses).length} peptide doses.`);
-  }catch(e){log('Warning: could not load Peptides: '+e.message);}
+  const recs=await fetchAll(['Dose','Compound','Date']);
+  log(`Loaded ${recs.length} records.`);
 
-  // Scan injection log
-  log('Scanning injection log...');
-  const recs=await fetchAll(TBL,['Dose','Compound']);
-  let scanned=recs.length,blanks=0,noUnit=0;
+  // Build last-known dose per compound as we walk forward in time
+  const lastDose={};
+  const issues=[];
 
   for(const rec of recs){
     const dose=(rec.fields['Dose']||'').toString().trim();
     const cmp=(rec.fields['Compound']||'').trim();
     const isBlank=!dose;
     const isNoUnit=/^\d+(\.\d+)?$/.test(dose);
-    if(!isBlank&&!isNoUnit) continue;
 
-    let newDose='';
-    if(isNoUnit){
-      newDose=dose+'u';
-      noUnit++;
-    } else {
-      // Look up from peptides
-      const match=peptideDoses[cmp.toLowerCase()];
-      if(match) newDose=match;
-      blanks++;
+    if(isBlank||isNoUnit){
+      const newDose=isNoUnit ? dose+'u' : (lastDose[cmp]||'');
+      issues.push({id:rec.id,cmp,dose,newDose,
+        source:isNoUnit?'add u':(newDose?'prev dose for '+cmp:'⚠ no prior dose found')});
     }
-    toFix.push({id:rec.id,cmp,dose,newDose,source:isNoUnit?'add u':'peptides lookup'});
+
+    // Update last known dose (only if this record has a valid dose)
+    const cleanDose=isNoUnit?dose+'u':(!isBlank?dose:'');
+    if(cleanDose) lastDose[cmp]=cleanDose;
   }
 
-  log(`Scanned ${scanned}. ${noUnit} missing 'u', ${blanks} blank.\n${toFix.filter(r=>r.newDose).length} can be auto-fixed, ${toFix.filter(r=>!r.newDose).length} still unknown after lookup.`);
+  toFix=issues;
+  const fixable=toFix.filter(r=>r.newDose);
+  const unknown=toFix.filter(r=>!r.newDose);
+  log(`Found ${toFix.length} issues: ${issues.filter(r=>/add u/.test(r.source)).length} missing 'u', ${issues.filter(r=>!r.newDose||/prev/.test(r.source)).length} blank.\n${fixable.length} can be auto-fixed, ${unknown.length} still unknown.`);
 
-  let html=`<table><thead><tr><th>#</th><th>Compound</th><th>Current Dose</th><th>→ New Dose</th><th>Source</th></tr></thead><tbody>`;
+  let html=`<table><thead><tr><th>#</th><th>Compound</th><th>Date</th><th>Current Dose</th><th>→ New Dose</th><th>Source</th></tr></thead><tbody>`;
   toFix.slice(0,300).forEach((r,i)=>{
     const color=r.newDose?'#16a34a':'#f59e0b';
-    html+=`<tr><td>${i+1}</td><td>${r.cmp}</td><td style="color:#dc2626">${r.dose||'(blank)'}</td><td style="color:${color};font-weight:600">${r.newDose||'⚠ unknown'}</td><td style="color:#9ca3af">${r.source}</td></tr>`;
+    const date=recs.find(x=>x.id===r.id)?.fields['Date']||'';
+    html+=`<tr><td>${i+1}</td><td>${r.cmp}</td><td>${date}</td><td style="color:#dc2626">${r.dose||'(blank)'}</td><td style="color:${color};font-weight:600">${r.newDose||'⚠ unknown'}</td><td style="color:#9ca3af;font-size:11px">${r.source}</td></tr>`;
   });
-  if(toFix.length>300)html+=`<tr><td colspan="5" style="text-align:center;color:#6b7280">...and ${toFix.length-300} more</td></tr>`;
+  if(toFix.length>300)html+=`<tr><td colspan="6" style="text-align:center;color:#6b7280">...and ${toFix.length-300} more</td></tr>`;
   html+='</tbody></table>';
   document.getElementById('preview').innerHTML=html;
-  if(toFix.filter(r=>r.newDose).length) document.getElementById('fix-btn').disabled=false;
+  if(fixable.length) document.getElementById('fix-btn').disabled=false;
 }
 
 async function applyFix(){
@@ -108,12 +96,12 @@ async function applyFix(){
     const batch=fixable.slice(i,i+10);
     const records=batch.map(r=>({id:r.id,fields:{Dose:r.newDose}}));
     try{
-      const r=await fetch(`https://api.airtable.com/v0/${BASE}/${TBL}`,{
+      const res=await fetch(`https://api.airtable.com/v0/${BASE}/${TBL}`,{
         method:'PATCH',
         headers:{Authorization:`Bearer ${TOKEN}`,'Content-Type':'application/json'},
         body:JSON.stringify({records,typecast:true})
       });
-      const d=await r.json();
+      const d=await res.json();
       if(d.records)fixed+=d.records.length;
       else{errors++;log('Error: '+JSON.stringify(d.error));}
     }catch(e){errors++;log('Error: '+e.message);}
