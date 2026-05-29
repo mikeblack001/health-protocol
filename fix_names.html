@@ -1,138 +1,110 @@
 <!DOCTYPE html>
 <html>
-<head><meta charset="UTF-8"><title>Assign Compound Colors</title>
+<head><meta charset="UTF-8"><title>Sync Compound Colors v9</title>
 <style>
 body{font-family:-apple-system,sans-serif;padding:20px;background:#f0f2f5;color:#1a1a2e}
-button{padding:10px 24px;background:#2563eb;color:#fff;border:none;border-radius:6px;font-size:14px;font-weight:700;cursor:pointer;margin-right:8px;margin-bottom:8px}
+button{padding:10px 24px;background:#2563eb;color:#fff;border:none;border-radius:6px;font-size:14px;font-weight:700;cursor:pointer;margin-right:8px}
 button:disabled{background:#9ca3af}.green{background:#16a34a}
-#log{background:#fff;border-radius:8px;padding:12px;font-size:12px;font-family:monospace;margin-top:12px;max-height:180px;overflow-y:auto;white-space:pre-wrap}
+#log{background:#fff;border-radius:8px;padding:12px;font-size:12px;font-family:monospace;margin-top:12px;max-height:200px;overflow-y:auto;white-space:pre-wrap}
 </style>
 </head>
 <body>
-<h2 style="margin:0 0 4px">Assign Compound Colors <span style="font-size:12px;color:#9ca3af">v8</span></h2>
-<p style="color:#6b7280;font-size:13px;margin:0 0 12px">Assigns a distinct color to each compound and syncs across all tables.</p>
-<button onclick="testOne()" style="background:#7c3aed">0. Test Single Field</button> <button onclick="run()">Apply Colors to All Tables</button>
+<h2 style="margin:0 0 4px">Sync Compound Colors <span style="font-size:12px;color:#9ca3af">v9</span></h2>
+<p style="color:#6b7280;font-size:13px;margin:0 0 12px">Reads Color Code from Peptides table, maps to Airtable colors, applies to all Compound fields.</p>
+<button onclick="scan()">1. Preview</button>
+<button id="fix-btn" class="green" onclick="apply()" disabled>2. Apply</button>
 <div id="log">Ready.</div>
 <script>
 const TOKEN='pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
 const BASE='appmHDG4TGT1xy6R6';
+const PEPTIDES='tblMs6YRdP4wkndUp';
+const COLOR_CODE_FLD='fldQ2YK9IYI9B4UA0';
+const NAME_FLD='fldVd7mNbNfIc4JOJ'; // Peptide Name
 
-// Airtable's full color palette
-const COLORS=[
-  'redBright','orangeBright','yellowBright','greenBright','tealBright','cyanBright',
-  'blueBright','purpleBright','pinkBright','grayBright',
-  'red','orange','yellow','green','teal','cyan','blue','purple','pink',
-  'redLight2','orangeLight2','yellowLight2','greenLight2','tealLight2','cyanLight2','blueLight2','purpleLight2','pinkLight2'
-];
-
-// Assigned colors per compound — visually distinct
-const COMPOUND_COLORS={
-  'Testosterone':        'redBright',
-  'Deca (Nandrolone)':   'orangeBright',
-  'Tirzepatide':         'yellowBright',
-  'Retatrutide':         'yellow',
-  'Cagrilintide':        'orangeLight2',
-  'NAD+':                'greenBright',
-  'Tesamorelin':         'tealBright',
-  'GHK-Cu':              'cyanBright',
-  'CJC-1295 No DAC':     'blueBright',
-  'CJC-1295':            'blue',
-  'Ipamorelin':          'purpleBright',
-  'KPV':                 'pinkBright',
-  'DSIP':                'teal',
-  'BPC-157':             'greenLight2',
-  'TB-500':              'tealLight2',
-  'Mots-C':              'cyanLight2',
-  'SS-31':               'blueLight2',
-  'Melanotan II (MT2)':  'pink',
-  'Anavar (Oxandrolone)':'red',
-  'Winstrol (Stanozolol)':'orange',
-  'LipoMinoMix':         'yellowLight2',
-  'Selank':              'purpleLight2',
-  'Semax':               'pinkLight2',
-  'Sermorelin':          'grayBright',
-  'Epitalon':            'purple',
+// Map friendly color names → Airtable palette names
+const COLOR_MAP={
+  'Orange':'orange','Gray':'gray','Navy':'blue','Brown':'orange',
+  'Coral':'pink','Mint':'teal','Aqua':'cyan','Pink':'pink',
+  'Tan':'yellow','Turquoise':'teal','Green':'green','Blue':'blue',
+  'Purple':'purple','Lavender':'purple','Magenta':'pink','Lime':'green',
+  'Teal':'teal','Cyan':'cyan','Silver':'gray','Gold':'yellow',
+  'Beige':'yellowLight2','Olive':'green','Maroon':'red','Black':'gray',
+  'Red':'red','Yellow':'yellow','White':'gray',
+  // Bright variants
+  'Orange Bright':'orangeBright','Red Bright':'redBright','Blue Bright':'blueBright',
+  'Green Bright':'greenBright','Purple Bright':'purpleBright','Pink Bright':'pinkBright',
 };
+
+let compoundColors={};
+let fieldUpdates=[];
 
 function log(m){const el=document.getElementById('log');el.textContent+='\n'+m;el.scrollTop=el.scrollHeight;}
 
-async function testOne(){
-  document.getElementById('log').textContent='Testing single field update...';
-  const r=await fetch(`https://api.airtable.com/v0/meta/bases/${BASE}/tables`,{headers:{Authorization:`Bearer ${TOKEN}`}});
-  const d=await r.json();
-  const injLog=d.tables.find(t=>t.id==='tblBvEaLkGGipnOFc');
-  const fld=injLog.fields.find(f=>f.name==='Compound');
-  log('Field ID: '+fld.id);
-  log('Current first choice: '+JSON.stringify(fld.options.choices[0]));
-  // Test 1: try updating just field description (simpler than choices)
-  log('Test 1: update field description...');
-  const res1=await fetch(`https://api.airtable.com/v0/meta/bases/${BASE}/tables/${injLog.id}/fields/${fld.id}`,{
-    method:'PATCH',
-    headers:{Authorization:`Bearer ${TOKEN}`,'Content-Type':'application/json'},
-    body:JSON.stringify({description:'Compound name'})
+async function scan(){
+  compoundColors={};fieldUpdates=[];
+  document.getElementById('log').textContent='Loading Peptides...';
+  document.getElementById('fix-btn').disabled=true;
+
+  // Load peptides with Name + Color Code
+  let recs=[],offset=null;
+  do{
+    const url=`https://api.airtable.com/v0/${BASE}/${PEPTIDES}?fields[]=Name&fields[]=${COLOR_CODE_FLD}&pageSize=100`+(offset?`&offset=${offset}`:'');
+    const r=await fetch(url,{headers:{Authorization:`Bearer ${TOKEN}`}});
+    const d=await r.json();
+    if(!d.records){log('Error: '+JSON.stringify(d));return;}
+    recs=recs.concat(d.records);
+    offset=d.offset;
+  }while(offset);
+
+  recs.forEach(r=>{
+    const name=(r.fields['Name']||'').trim();
+    const colorCode=(r.fields[COLOR_CODE_FLD]||'').trim();
+    const atColor=COLOR_MAP[colorCode];
+    if(name&&atColor) compoundColors[name]=atColor;
   });
-  log('Response ('+res1.status+'): '+JSON.stringify(await res1.json()));
+  log(`Loaded ${Object.keys(compoundColors).length} compound→color mappings:`);
+  Object.entries(compoundColors).forEach(([n,c])=>log(`  ${n} → ${c}`));
 
-  // Test 2: try full choices update
-  log('Test 2: full choices update...');
-  const allChoices=fld.options.choices.map((c,i)=>({id:c.id,name:c.name,color:i===0?'redBright':c.color}));
-  const res2=await fetch(`https://api.airtable.com/v0/meta/bases/${BASE}/tables/${injLog.id}/fields/${fld.id}`,{
-    method:'PATCH',
-    headers:{Authorization:`Bearer ${TOKEN}`,'Content-Type':'application/json'},
-    body:JSON.stringify({options:{choices:allChoices}})
-  });
-  log('Response ('+res2.status+'): '+JSON.stringify(await res2.json()));
-}
+  // Load base schema
+  log('\nLoading schema...');
+  const sr=await fetch(`https://api.airtable.com/v0/meta/bases/${BASE}/tables`,{headers:{Authorization:`Bearer ${TOKEN}`}});
+  const sd=await sr.json();
 
-async function run(){
-  document.querySelector('button').disabled=true;
-  document.getElementById('log').textContent='Loading base schema...';
-
-  const r=await fetch(`https://api.airtable.com/v0/meta/bases/${BASE}/tables`,{
-    headers:{Authorization:`Bearer ${TOKEN}`}
-  });
-  const d=await r.json();
-  if(!d.tables){log('Error: '+JSON.stringify(d));return;}
-  log(`Found ${d.tables.length} tables.`);
-
-  let done=0,errors=0;
-  for(const tbl of d.tables){
+  for(const tbl of sd.tables){
     for(const fld of tbl.fields){
       if(fld.type!=='singleSelect') continue;
       const choices=fld.options?.choices||[];
-      const compoundChoices=choices.filter(c=>COMPOUND_COLORS[c.name]);
-      if(!compoundChoices.length) continue;
-
-      // Check if any need updating
-      const needsUpdate=compoundChoices.some(c=>c.color!==COMPOUND_COLORS[c.name]);
+      const hasCompounds=choices.some(c=>compoundColors[c.name]);
+      if(!hasCompounds) continue;
+      const needsUpdate=choices.some(c=>compoundColors[c.name]&&c.color!==compoundColors[c.name]);
       if(!needsUpdate) continue;
-
-      // Include ALL choices, only update color for known compounds, preserve id for existing ones
-      const newChoices=choices.map(c=>({
-        id:c.id,
-        name:c.name,
-        color:COMPOUND_COLORS[c.name]||c.color
-      }));
-
-      try{
-        // Try without IDs on choices — some API versions reject them
-        const cleanChoices=newChoices.map(c=>({name:c.name,color:c.color}));
-        const payload={type:'singleSelect',options:{choices:cleanChoices}};
-        log(`Sending to ${tbl.name}/${fld.name}: `+JSON.stringify(cleanChoices.slice(0,2)));
-        const res=await fetch(`https://api.airtable.com/v0/meta/bases/${BASE}/tables/${tbl.id}/fields/${fld.id}`,{
-          method:'PATCH',
-          headers:{Authorization:`Bearer ${TOKEN}`,'Content-Type':'application/json'},
-          body:JSON.stringify(payload)
-        });
-        const rd=await res.json();
-        if(rd.id){done++;log(`✓ ${tbl.name} / ${fld.name}`);}
-        else{errors++;log(`✗ ${tbl.name} / ${fld.name}: `+JSON.stringify(rd));}
-      }catch(e){errors++;log('Error: '+e.message);}
-      await new Promise(res=>setTimeout(res,200));
+      fieldUpdates.push({tableId:tbl.id,tableName:tbl.name,fieldId:fld.id,fieldName:fld.name,choices});
+      log(`Will update: ${tbl.name} / ${fld.name}`);
     }
   }
-  log(`\nDone. ${done} fields updated, ${errors} errors.`);
-  document.querySelector('button').disabled=false;
+  log(`\n${fieldUpdates.length} fields to update.`);
+  if(fieldUpdates.length) document.getElementById('fix-btn').disabled=false;
+}
+
+async function apply(){
+  document.getElementById('fix-btn').disabled=true;
+  let done=0,errors=0;
+  for(const u of fieldUpdates){
+    const newChoices=u.choices.map(c=>({
+      id:c.id,name:c.name,
+      color:compoundColors[c.name]||c.color
+    }));
+    const res=await fetch(`https://api.airtable.com/v0/meta/bases/${BASE}/tables/${u.tableId}/fields/${u.fieldId}`,{
+      method:'PATCH',
+      headers:{Authorization:`Bearer ${TOKEN}`,'Content-Type':'application/json'},
+      body:JSON.stringify({options:{choices:newChoices}})
+    });
+    const d=await res.json();
+    if(d.id){done++;log(`✓ ${u.tableName} / ${u.fieldName}`);}
+    else{errors++;log(`✗ ${u.tableName} / ${u.fieldName}: `+JSON.stringify(d.error||d));}
+    await new Promise(r=>setTimeout(r,200));
+  }
+  log(`\nDone. ${done} updated, ${errors} errors.`);
 }
 </script>
 </body></html>
