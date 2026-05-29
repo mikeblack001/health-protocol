@@ -498,6 +498,7 @@ function initGridDrag(){
   const tbody=document.querySelector('#wgrid tbody');
   if(!tbody)return;
   let src=null;
+  // dragstart/dragend on each row
   tbody.querySelectorAll('tr[draggable]').forEach(row=>{
     row.addEventListener('dragstart',e=>{src=row;row.classList.add('wg-dragging');e.dataTransfer.effectAllowed='move';});
     row.addEventListener('dragend',()=>{
@@ -505,18 +506,19 @@ function initGridDrag(){
       tbody.querySelectorAll('.wg-drop-above').forEach(r=>r.classList.remove('wg-drop-above'));
       const order=[...tbody.querySelectorAll('tr[data-key]')].map(r=>r.dataset.key);
       saveRowOrder(order);src=null;
-      // Re-render records in same compound order
       renderRecordsOrdered(order);
     });
-    row.addEventListener('dragover',e=>{
-      e.preventDefault();
-      tbody.querySelectorAll('.wg-drop-above').forEach(r=>r.classList.remove('wg-drop-above'));
-      if(row!==src){
-        const mid=row.getBoundingClientRect().top+row.getBoundingClientRect().height/2;
-        if(e.clientY<mid){row.classList.add('wg-drop-above');tbody.insertBefore(src,row);}
-        else tbody.insertBefore(src,row.nextSibling);
-      }
-    });
+  });
+  // Single delegated dragover on tbody — works even as rows reorder
+  tbody.addEventListener('dragover',e=>{
+    e.preventDefault();
+    if(!src)return;
+    const target=e.target.closest('tr[draggable]');
+    if(!target||target===src)return;
+    tbody.querySelectorAll('.wg-drop-above').forEach(r=>r.classList.remove('wg-drop-above'));
+    const mid=target.getBoundingClientRect().top+target.getBoundingClientRect().height/2;
+    if(e.clientY<mid){target.classList.add('wg-drop-above');tbody.insertBefore(src,target);}
+    else tbody.insertBefore(src,target.nextSibling);
   });
 }
 
