@@ -965,6 +965,8 @@ async function quickAdd(){
     document.getElementById('q-site').selectedIndex=0;
     document.getElementById('q-timing').selectedIndex=0;
     setSt('✓ Added');
+    updateGridCell(res.id);
+    loadWeekGrid(curDate);
   }catch(e){setSt('Error: '+e.message);}
 }
 
