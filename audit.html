@@ -616,7 +616,7 @@ async function cmSave(){
   const site=document.getElementById('cm-site').value;if(site)fields[LOG.site]=site;
   const timing=document.getElementById('cm-timing').value;if(timing)fields[LOG.timing]=timing;
   try{
-    const res=await atFetch(LOG.tbl,{method:'POST',body:JSON.stringify({fields,typecast:true})});
+    const res=await atFetch(LOG.tbl+'?returnFieldsByFieldId=true',{method:'POST',body:JSON.stringify({fields,typecast:true})});
     setSt('✓ Added '+cmCmp+' to '+cmDate);
     closeCM();
     // If this is the current date, refresh records
@@ -955,7 +955,7 @@ async function quickAdd(){
   const site=document.getElementById('q-site').value;if(site)fields[LOG.site]=site;
   const timing=document.getElementById('q-timing').value;if(timing)fields[LOG.timing]=timing;
   try{
-    const res=await atFetch(LOG.tbl,{method:'POST',body:JSON.stringify({fields,typecast:true})});
+    const res=await atFetch(LOG.tbl+'?returnFieldsByFieldId=true',{method:'POST',body:JSON.stringify({fields,typecast:true})});
     logRecs.push(res);
     document.getElementById('records').insertAdjacentHTML('beforeend',cardHTML(res));
     document.getElementById('b-total').textContent=logRecs.length+' records';
