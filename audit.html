@@ -970,7 +970,8 @@ async function qCmpChange(){
   }catch(e){/* silent fail */}
 }
 
-
+// ── QUICK ADD ─────────────────────────────────────────────────────────
+async function quickAdd(){
   const cmp=document.getElementById('q-cmp').value;
   if(!cmp||!curDate){alert('Select a compound and date first');return;}
   const fields={};
