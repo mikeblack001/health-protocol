@@ -143,7 +143,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div id="pp">
     <div id="pp-hdr">
       <b>📄 PDF</b>
-      <input id="pp-id" placeholder="Google Drive PDF ID">
+      <select id="pp-sel" onchange="pdfSelChange()" style="padding:3px 6px;border:1px solid #374151;border-radius:4px;font-size:10px;background:#2d3748;color:#fff;max-width:130px">
+        <option value="">— Select PDF —</option>
+        <option value="1eYtQT3c14psKbxRkKtbLoNtiLFEnOFhF">2024-25 Workouts</option>
+        <option value="1VgIqXOQUc5qLzzAaWQ1FQZxIMBAacGP9">2025 Workouts</option>
+        <option value="1u7wc9rGFZD_n7e0L2hbwnEhRciVwxykvwcp5MVNeYIaYn0dDE">2026 Workouts</option>
+        <option value="custom">Custom ID…</option>
+      </select>
+      <input id="pp-id" placeholder="Drive ID" style="display:none;width:130px">
       <button id="pp-load" onclick="loadPDF()">Load</button>
       <div id="pp-zoom">
         <button onclick="zoomPDF(-25)">−</button>
@@ -332,6 +339,7 @@ async function setDate(d){
   curSessRec=sessRecs[d]||null;
   renderSessInfo();
   updateVerifyBtn();
+  autoSelectPDFForDate(d);
   await loadSets(d);
 }
 
@@ -349,7 +357,8 @@ function renderSessInfo(){
   badge.textContent=day||curDate;
   // Color badge by day type
   const dl=day.toLowerCase();
-  badge.className='sess-badge'+(dl.includes('leg')||dl.includes('wed')?'legs':dl.includes('pull')||dl.includes('tue')||dl.includes('fri')?'pull':dl.includes('arm')||dl.includes('thu')?'arms':'');
+  const badgeType=dl.includes('leg')||dl.includes('wed')?'legs':dl.includes('pull')||dl.includes('tue')||dl.includes('fri')?'pull':dl.includes('arm')||dl.includes('thu')?'arms':'';
+  badge.className='sess-badge'+(badgeType?' '+badgeType:'');
   document.getElementById('sess-dur').textContent=dur||'—';
   document.getElementById('sess-sleep').textContent=slp||'—';
   document.getElementById('sess-deep').textContent=deep||'—';
@@ -485,6 +494,7 @@ async function quickAddSet(){
   fields[SETS.date]=curDate;
   fields[SETS.exercise]=ex;
   fields[SETS.day]=sessRec?.fields[SESS.day]||'';
+  if(sessRec)fields[SETS.session]=[sessRec.id];
   const va=document.getElementById('q-var').value;if(va)fields[SETS.variation]=va;
   const rp=document.getElementById('q-reps').value;if(rp)fields[SETS.reps]=+rp;
   const wt=document.getElementById('q-weight').value;if(wt)fields[SETS.weight]=+wt;
@@ -547,14 +557,47 @@ function updateVerifyBtn(){
 }
 
 // ── PDF PANEL ──────────────────────────────────────────────────────────
+const PDF_BOOKS=[
+  {id:'1eYtQT3c14psKbxRkKtbLoNtiLFEnOFhF', label:'2024-25', from:'2024-10-28', to:'2025-04-30'},
+  {id:'1VgIqXOQUc5qLzzAaWQ1FQZxIMBAacGP9', label:'2025',    from:'2025-05-01', to:'2025-12-31'},
+  {id:'1u7wc9rGFZD_n7e0L2hbwnEhRciVwxykvwcp5MVNeYIaYn0dDE', label:'2026', from:'2026-01-01', to:'2099-12-31'}
+];
+
+function autoSelectPDFForDate(d){
+  if(!d)return;
+  const book=PDF_BOOKS.find(b=>d>=b.from&&d<=b.to);
+  if(!book)return;
+  const sel=document.getElementById('pp-sel');
+  if(sel.value!==book.id){
+    sel.value=book.id;
+    document.getElementById('pp-id').style.display='none';
+    loadPDF();
+  }
+}
+
+function pdfSelChange(){
+  const sel=document.getElementById('pp-sel');
+  const customInput=document.getElementById('pp-id');
+  if(sel.value==='custom'){
+    customInput.style.display='';
+    customInput.focus();
+  } else {
+    customInput.style.display='none';
+    if(sel.value)loadPDF();
+  }
+}
+
 pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
 function pmsg(m){document.getElementById('pp-msg').textContent=m;}
 
 async function loadPDF(){
-  const id=document.getElementById('pp-id').value.trim();
-  if(!id){pmsg('Enter a Google Drive PDF ID');return;}
-  LS.set('wa_pdf',id);
+  const sel=document.getElementById('pp-sel');
+  const customInput=document.getElementById('pp-id');
+  const id=(sel.value&&sel.value!=='custom')?sel.value:customInput.value.trim();
+  if(!id){pmsg('Select a PDF');return;}
+  LS.set('wa_pdf_sel',sel.value);
+  if(sel.value==='custom')LS.set('wa_pdf_custom',customInput.value.trim());
   pmsg('Loading…');
   try{
     const url='https://drive.google.com/uc?export=download&id='+id;
@@ -568,6 +611,8 @@ async function loadPDF(){
 
 async function renderPDFPage(){
   if(!pdfDoc)return;
+  const sel=document.getElementById('pp-sel');
+  const curId=(sel.value&&sel.value!=='custom')?sel.value:document.getElementById('pp-id').value.trim();
   const page=await pdfDoc.getPage(pdfPage);
   const scale=pdfZoom/100;
   const vp=page.getViewport({scale});
@@ -576,7 +621,7 @@ async function renderPDFPage(){
   await page.render({canvasContext:canvas.getContext('2d'),viewport:vp}).promise;
   document.getElementById('pp-pg-label').textContent=pdfPage+'/'+pdfDoc.numPages;
   document.getElementById('pp-zoom-val').textContent=pdfZoom+'%';
-  LS.set('wa_pdf_pg_'+(document.getElementById('pp-id').value.trim()),pdfPage);
+  LS.set('wa_pdf_pg_'+curId,pdfPage);
 }
 
 function changePage(dir){
@@ -591,10 +636,23 @@ function zoomPDF(delta){
 }
 
 window.onload=()=>{
-  const savedId=LS.get('wa_pdf');
-  if(savedId){document.getElementById('pp-id').value=savedId;loadPDF();}
+  // Restore PDF selection
+  const savedSel=LS.get('wa_pdf_sel');
+  const savedCustom=LS.get('wa_pdf_custom');
+  const sel=document.getElementById('pp-sel');
+  const customInput=document.getElementById('pp-id');
+  if(savedSel&&savedSel!=='custom'&&sel.querySelector('option[value="'+savedSel+'"]')){
+    sel.value=savedSel;
+    loadPDF();
+  } else if(savedSel==='custom'&&savedCustom){
+    sel.value='custom';
+    customInput.style.display='';
+    customInput.value=savedCustom;
+    loadPDF();
+  }
   loadSessions();
 };
 </script>
 </body>
 </html>
+
