@@ -114,12 +114,11 @@ select.fe{cursor:pointer}
 #wgrid thead th.wg-today{background:#2563eb}
 #wgrid thead th.wg-day{cursor:pointer}
 #wgrid thead th.wg-day:hover{background:#374151}
-#wgrid tbody td[draggable]{cursor:grab}
-#wgrid tbody td[draggable]:active{cursor:grabbing}
+#wgrid tbody tr{cursor:grab}
 #wgrid td{border:1px solid #e2e5ea;padding:3px 4px;text-align:center;white-space:nowrap}
 #wgrid td:first-child{text-align:left;padding:3px 6px 3px 6px;font-weight:700;color:#1e2433;max-width:160px;overflow:hidden;text-overflow:ellipsis}
-#wgrid .drag-handle{color:#d1d5db;font-size:13px;padding-right:4px;cursor:grab;user-select:none;pointer-events:none}
-#wgrid tbody tr.wg-dragging{opacity:.4}
+#wgrid .drag-handle{color:#d1d5db;font-size:13px;padding-right:4px;user-select:none;pointer-events:none}
+#wgrid tbody tr.wg-dragging{opacity:.4;cursor:grabbing}
 #wgrid tbody tr.wg-drop-above{border-top:2px solid #2563eb}
 </style>
 </head>
@@ -465,7 +464,7 @@ async function loadWeekGrid(date){
     const badge=timing?`<span style="font-size:9px;font-weight:600;color:#9ca3af;margin-left:4px">${timing.slice(0,3).toUpperCase()}</span>`:'';
     const firstDose=Object.values(dayMap).flatMap(d=>d.doses||[]).find(d=>d)||'';
     const doseBadge=firstDose?`<span style="font-size:9px;font-weight:600;color:#2563eb;margin-left:4px">${esc(firstDose)}</span>`:'';
-    h+=`<tr data-cmp="${esc(cmp)}" data-key="${esc(key)}"><td draggable="true" style="cursor:grab;user-select:none"><span class="drag-handle" style="pointer-events:none">⠿</span>${esc(cmp)}${doseBadge}${badge}</td>`;
+    h+=`<tr data-cmp="${esc(cmp)}" data-key="${esc(key)}"><td><span class="drag-handle">⠿</span>${esc(cmp)}${doseBadge}${badge}</td>`;
     days.forEach(d=>{
       const cell=dayMap[d];
       const onclick=`onclick="gridCellClick('${d}','${esc(cmp)}')"`;
@@ -499,35 +498,35 @@ function initGridDrag(){
   if(!tbody)return;
   let src=null;
 
-  // dragstart fires on td[draggable] — find parent tr
-  tbody.addEventListener('dragstart',e=>{
-    const td=e.target.closest('td[draggable]');
-    if(!td)return;
-    src=td.closest('tr');
-    src.classList.add('wg-dragging');
-    e.dataTransfer.effectAllowed='move';
-    e.dataTransfer.setData('text/plain','');
+  tbody.addEventListener('mousedown',e=>{
+    const row=e.target.closest('tr[data-key]');
+    if(!row)return;
+    src=row;
+    row.classList.add('wg-dragging');
   });
 
-  tbody.addEventListener('dragend',e=>{
-    tbody.querySelectorAll('.wg-dragging').forEach(r=>r.classList.remove('wg-dragging'));
-    tbody.querySelectorAll('.wg-drop-above').forEach(r=>r.style.borderTop='');
-    if(!src)return;
-    const order=[...tbody.querySelectorAll('tr[data-key]')].map(r=>r.dataset.key);
-    saveRowOrder(order);
-    src=null;
-    renderRecordsOrdered(order);
-  });
-
-  tbody.addEventListener('dragover',e=>{
-    e.preventDefault();
+  tbody.addEventListener('mouseover',e=>{
     if(!src)return;
     const target=e.target.closest('tr[data-key]');
     if(!target||target===src)return;
-    tbody.querySelectorAll('tr').forEach(r=>r.style.borderTop='');
-    const mid=target.getBoundingClientRect().top+target.getBoundingClientRect().height/2;
-    if(e.clientY<mid){target.style.borderTop='2px solid #2563eb';tbody.insertBefore(src,target);}
-    else tbody.insertBefore(src,target.nextSibling);
+    tbody.querySelectorAll('.wg-drop-above').forEach(r=>r.classList.remove('wg-drop-above'));
+    target.classList.add('wg-drop-above');
+  });
+
+  document.addEventListener('mouseup',e=>{
+    if(!src)return;
+    const target=e.target.closest('tr[data-key]');
+    tbody.querySelectorAll('.wg-dragging').forEach(r=>r.classList.remove('wg-dragging'));
+    tbody.querySelectorAll('.wg-drop-above').forEach(r=>r.classList.remove('wg-drop-above'));
+    if(target&&target!==src){
+      const rows=[...tbody.querySelectorAll('tr[data-key]')];
+      if(rows.indexOf(target)>rows.indexOf(src))tbody.insertBefore(src,target.nextSibling);
+      else tbody.insertBefore(src,target);
+      const order=rows=[...tbody.querySelectorAll('tr[data-key]')].map(r=>r.dataset.key);
+      saveRowOrder(order);
+      renderRecordsOrdered(order);
+    }
+    src=null;
   });
 }
 
