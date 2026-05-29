@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>Fix Injection Log Names</title>
+<style>
+body{font-family:-apple-system,sans-serif;padding:20px;background:#f0f2f5;color:#1a1a2e}
+button{padding:10px 24px;background:#2563eb;color:#fff;border:none;border-radius:6px;font-size:14px;font-weight:700;cursor:pointer;margin-right:8px}
+button:disabled{background:#9ca3af;cursor:default}
+#stats{display:flex;gap:12px;margin:16px 0}
+.stat{background:#fff;border-radius:8px;padding:12px 20px;min-width:100px}
+.stat-label{font-size:11px;color:#9ca3af;font-weight:700;text-transform:uppercase}
+.stat-val{font-size:24px;font-weight:700;margin-top:4px}
+#log{background:#fff;border-radius:8px;padding:12px;font-size:12px;font-family:monospace;height:200px;overflow-y:auto;white-space:pre-wrap}
+</style>
+</head>
+<body>
+<h2 style="margin:0 0 4px">Injection Log — Fix Name = Compound</h2>
+<p style="color:#6b7280;margin:0 0 16px;font-size:13px">Scans all records and sets Name to match Compound where they differ.</p>
+<button id="btn" onclick="run()">Run Fix</button>
+<button onclick="stopped=true" id="stop">Stop</button>
+<div id="stats">
+  <div class="stat"><div class="stat-label">Scanned</div><div class="stat-val" id="s-scanned">0</div></div>
+  <div class="stat"><div class="stat-label">Mismatches</div><div class="stat-val" id="s-mismatch">0</div></div>
+  <div class="stat"><div class="stat-label">Fixed</div><div class="stat-val" id="s-fixed">0</div></div>
+  <div class="stat"><div class="stat-label">Errors</div><div class="stat-val" id="s-errors">0</div></div>
+</div>
+<div id="log">Ready.</div>
+
+<script>
+const TOKEN='pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
+const BASE='appmHDG4TGT1xy6R6';
+const TBL='tblBvEaLkGGipnOFc';
+const F_NAME='fldt9vYT8Tm37Gf3k';
+const F_CMP='fldwVFyizH4mBANBa';
+let stopped=false;
+
+function log(m){const el=document.getElementById('log');el.textContent+='\n'+m;el.scrollTop=el.scrollHeight;}
+function set(id,v){document.getElementById(id).textContent=v;}
+
+async function run(){
+  stopped=false;
+  document.getElementById('btn').disabled=true;
+  document.getElementById('stop').disabled=false;
+  let offset=null,scanned=0,mismatches=[],errors=0;
+
+  log('Scanning...');
+  do{
+    if(stopped){log('Stopped.');break;}
+    const url=`https://api.airtable.com/v0/${BASE}/${TBL}?fields[]=${F_NAME}&fields[]=${F_CMP}&pageSize=100`+(offset?`&offset=${offset}`:'');
+    const r=await fetch(url,{headers:{Authorization:`Bearer ${TOKEN}`}});
+    const d=await r.json();
+    if(!d.records){log('Error: '+JSON.stringify(d));break;}
+    for(const rec of d.records){
+      const name=rec.fields[F_NAME]||'';
+      const cmp=rec.fields[F_CMP]||'';
+      if(cmp&&name!==cmp)mismatches.push({id:rec.id,cmp});
+    }
+    scanned+=d.records.length;
+    offset=d.offset;
+    set('s-scanned',scanned);
+    set('s-mismatch',mismatches.length);
+  }while(offset);
+
+  log(`Scan done. ${scanned} records, ${mismatches.length} mismatches.`);
+  if(stopped||!mismatches.length){document.getElementById('btn').disabled=false;return;}
+
+  let fixed=0;
+  for(let i=0;i<mismatches.length;i+=10){
+    if(stopped)break;
+    const batch=mismatches.slice(i,i+10);
+    const records=batch.map(r=>({id:r.id,fields:{[F_NAME]:r.cmp}}));
+    try{
+      const r=await fetch(`https://api.airtable.com/v0/${BASE}/${TBL}`,{
+        method:'PATCH',
+        headers:{Authorization:`Bearer ${TOKEN}`,'Content-Type':'application/json'},
+        body:JSON.stringify({records,returnFieldsByFieldId:true})
+      });
+      const d=await r.json();
+      if(d.records){fixed+=d.records.length;set('s-fixed',fixed);}
+      else{errors++;set('s-errors',errors);log('Patch error: '+JSON.stringify(d.error));}
+    }catch(e){errors++;set('s-errors',errors);log('Error: '+e.message);}
+    await new Promise(res=>setTimeout(res,120));
+  }
+  log(stopped?`Stopped at ${fixed} fixed.`:`Done. ${fixed} fixed, ${errors} errors.`);
+  document.getElementById('btn').disabled=false;
+  document.getElementById('stop').disabled=true;
+}
+</script>
+</body></html>
