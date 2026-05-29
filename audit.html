@@ -72,7 +72,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
 .card{background:#fff;border:1px solid #e2e5ea;border-radius:8px;padding:0;margin-bottom:8px;display:flex;align-items:stretch;overflow:hidden}
 .card.verified{border-left:4px solid #4ade80}
 .card.unverified{border-left:4px solid #e2e5ea}
-.card-body{flex:1;padding:10px 12px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0}
+.card-body{flex:1;padding:10px 12px;display:flex;align-items:center;gap:6px;min-width:0;overflow:hidden}
 .card-actions{display:flex;flex-direction:column;justify-content:center;gap:4px;padding:6px 8px;border-left:1px solid #f3f4f6;background:#fafafa;flex-shrink:0}
 
 /* INLINE EDIT FIELDS */
@@ -182,17 +182,7 @@ select.fe{cursor:pointer}
 
     <!-- QUICK ADD BAR -->
     <div id="qadd">
-      <select id="q-cmp">
-        <option value="">Compound…</option>
-        <option>NAD+</option><option>LipoMinoMix</option><option>Tesamorelin</option>
-        <option>Tirzepatide</option><option>Anavar (Oxandrolone)</option><option>BPC-157</option>
-        <option>TB-500</option><option>CJC-1295</option><option>CJC-1295 No DAC</option>
-        <option>Ipamorelin</option><option>GHK-Cu</option><option>Retatrutide</option>
-        <option>Selank</option><option>DSIP</option><option>KPV</option><option>Semax</option>
-        <option>Mots-C</option><option>SS-31</option><option>Epitalon</option>
-        <option>Melanotan II (MT2)</option><option>Deca (Nandrolone)</option>
-        <option>Testosterone</option><option>Winstrol (Stanozolol)</option><option>Cagrilintide</option>
-      </select>
+      <select id="q-cmp"></select>
       <input id="q-dose" type="text" placeholder="Dose (e.g. 5u)">
       <select id="q-site" style="width:70px">
         <option value="">Site</option><option>L</option><option>R</option><option>X</option><option>S</option>
@@ -1048,6 +1038,9 @@ function setSt(m){document.getElementById('st').textContent=m;}
 window.onload=()=>{
   initAuth();
   document.getElementById('pp-id').value=LS.get('pdf')||'1Yk3aWqXPWRpFWCvXYasWoo9hA202KQG6';
+  // Populate quickAdd compound dropdown from CMPS (A-Z)
+  const qCmp=document.getElementById('q-cmp');
+  qCmp.innerHTML='<option value="">Compound…</option>'+CMPS.map(c=>`<option>${c}</option>`).join('');
   loadDates();
 
 };
