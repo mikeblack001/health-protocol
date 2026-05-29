@@ -902,7 +902,19 @@ function flashSaved(id){
 function refreshCard(r){
   const el=document.getElementById('card_'+r.id);
   if(!el)return;
-  el.outerHTML=cardHTML(r);
+  const f=r.fields;
+  const doseEl=el.querySelector('.fe-dose');
+  const siteEl=el.querySelector('.fe-site');
+  const timingEl=el.querySelector('.fe-timing');
+  const cmpEl=el.querySelector('.fe-compound');
+  if(doseEl)doseEl.value=f[LOG.dose]||'';
+  if(siteEl)siteEl.value=f[LOG.site]||'';
+  if(timingEl)timingEl.value=f[LOG.timing]||'';
+  if(cmpEl)cmpEl.value=f[LOG.compound]||'';
+  const verified=f[LOG.verified]===true;
+  el.className='card '+(verified?'verified':'unverified');
+  const vBtn=el.querySelector('.abtn');
+  if(vBtn){vBtn.className='abtn '+(verified?'a-verified':'a-verify');vBtn.textContent=verified?'✓':'○';}
 }
 
 async function toggleVerify(id,currentVerified){
