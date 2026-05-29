@@ -9,7 +9,7 @@ button:disabled{background:#9ca3af}.green{background:#16a34a}
 </style>
 </head>
 <body>
-<h2 style="margin:0 0 4px">Assign Compound Colors <span style="font-size:12px;color:#9ca3af">v7</span></h2>
+<h2 style="margin:0 0 4px">Assign Compound Colors <span style="font-size:12px;color:#9ca3af">v8</span></h2>
 <p style="color:#6b7280;font-size:13px;margin:0 0 12px">Assigns a distinct color to each compound and syncs across all tables.</p>
 <button onclick="testOne()" style="background:#7c3aed">0. Test Single Field</button> <button onclick="run()">Apply Colors to All Tables</button>
 <div id="log">Ready.</div>
@@ -64,17 +64,24 @@ async function testOne(){
   const fld=injLog.fields.find(f=>f.name==='Compound');
   log('Field ID: '+fld.id);
   log('Current first choice: '+JSON.stringify(fld.options.choices[0]));
-  // Send ALL choices, only change first one to redBright
-  const allChoices=fld.options.choices.map((c,i)=>({id:c.id,name:c.name,color:i===0?'redBright':c.color}));
-  const testPayload={options:{choices:allChoices}};
-  log('Sending '+allChoices.length+' choices. First: '+JSON.stringify(allChoices[0]));
-  const res=await fetch(`https://api.airtable.com/v0/meta/bases/${BASE}/tables/${injLog.id}/fields/${fld.id}`,{
+  // Test 1: try updating just field description (simpler than choices)
+  log('Test 1: update field description...');
+  const res1=await fetch(`https://api.airtable.com/v0/meta/bases/${BASE}/tables/${injLog.id}/fields/${fld.id}`,{
     method:'PATCH',
     headers:{Authorization:`Bearer ${TOKEN}`,'Content-Type':'application/json'},
-    body:JSON.stringify(testPayload)
+    body:JSON.stringify({description:'Compound name'})
   });
-  const rd=await res.json();
-  log('Response ('+res.status+'): '+JSON.stringify(rd));
+  log('Response ('+res1.status+'): '+JSON.stringify(await res1.json()));
+
+  // Test 2: try full choices update
+  log('Test 2: full choices update...');
+  const allChoices=fld.options.choices.map((c,i)=>({id:c.id,name:c.name,color:i===0?'redBright':c.color}));
+  const res2=await fetch(`https://api.airtable.com/v0/meta/bases/${BASE}/tables/${injLog.id}/fields/${fld.id}`,{
+    method:'PATCH',
+    headers:{Authorization:`Bearer ${TOKEN}`,'Content-Type':'application/json'},
+    body:JSON.stringify({options:{choices:allChoices}})
+  });
+  log('Response ('+res2.status+'): '+JSON.stringify(await res2.json()));
 }
 
 async function run(){
