@@ -9,9 +9,9 @@ button:disabled{background:#9ca3af}.green{background:#16a34a}
 </style>
 </head>
 <body>
-<h2 style="margin:0 0 4px">Assign Compound Colors <span style="font-size:12px;color:#9ca3af">v5</span></h2>
+<h2 style="margin:0 0 4px">Assign Compound Colors <span style="font-size:12px;color:#9ca3af">v6</span></h2>
 <p style="color:#6b7280;font-size:13px;margin:0 0 12px">Assigns a distinct color to each compound and syncs across all tables.</p>
-<button onclick="run()">Apply Colors to All Tables</button>
+<button onclick="testOne()" style="background:#7c3aed">0. Test Single Field</button> <button onclick="run()">Apply Colors to All Tables</button>
 <div id="log">Ready.</div>
 <script>
 const TOKEN='pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
@@ -55,6 +55,26 @@ const COMPOUND_COLORS={
 };
 
 function log(m){const el=document.getElementById('log');el.textContent+='\n'+m;el.scrollTop=el.scrollHeight;}
+
+async function testOne(){
+  document.getElementById('log').textContent='Testing single field update...';
+  const r=await fetch(`https://api.airtable.com/v0/meta/bases/${BASE}/tables`,{headers:{Authorization:`Bearer ${TOKEN}`}});
+  const d=await r.json();
+  const injLog=d.tables.find(t=>t.id==='tblBvEaLkGGipnOFc');
+  const fld=injLog.fields.find(f=>f.name==='Compound');
+  log('Field ID: '+fld.id);
+  log('Current first choice: '+JSON.stringify(fld.options.choices[0]));
+  // Try patching just the first choice color
+  const testPayload={options:{choices:[{id:fld.options.choices[0].id,name:fld.options.choices[0].name,color:'redBright'}]}};
+  log('Sending: '+JSON.stringify(testPayload));
+  const res=await fetch(`https://api.airtable.com/v0/meta/bases/${BASE}/tables/${injLog.id}/fields/${fld.id}`,{
+    method:'PATCH',
+    headers:{Authorization:`Bearer ${TOKEN}`,'Content-Type':'application/json'},
+    body:JSON.stringify(testPayload)
+  });
+  const rd=await res.json();
+  log('Response ('+res.status+'): '+JSON.stringify(rd));
+}
 
 async function run(){
   document.querySelector('button').disabled=true;
