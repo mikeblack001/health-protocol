@@ -9,7 +9,7 @@ button:disabled{background:#9ca3af}.green{background:#16a34a}
 </style>
 </head>
 <body>
-<h2 style="margin:0 0 4px">Assign Compound Colors <span style="font-size:12px;color:#9ca3af">v3</span></h2>
+<h2 style="margin:0 0 4px">Assign Compound Colors <span style="font-size:12px;color:#9ca3af">v4</span></h2>
 <p style="color:#6b7280;font-size:13px;margin:0 0 12px">Assigns a distinct color to each compound and syncs across all tables.</p>
 <button onclick="run()">Apply Colors to All Tables</button>
 <div id="log">Ready.</div>
@@ -79,11 +79,12 @@ async function run(){
       const needsUpdate=compoundChoices.some(c=>c.color!==COMPOUND_COLORS[c.name]);
       if(!needsUpdate) continue;
 
-      // Strip id from choices — Metadata API rejects existing IDs on PATCH
-      const newChoices=choices.map(c=>{
-        const base={name:c.name,color:COMPOUND_COLORS[c.name]||c.color};
-        return base;
-      });
+      // Include ALL choices, only update color for known compounds, preserve id for existing ones
+      const newChoices=choices.map(c=>({
+        id:c.id,
+        name:c.name,
+        color:COMPOUND_COLORS[c.name]||c.color
+      }));
 
       try{
         const payload={options:{choices:newChoices}};
