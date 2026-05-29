@@ -495,7 +495,7 @@ async function loadWeekGrid(date){
 function initGridDrag(){
   const tbody=document.querySelector('#wgrid tbody');
   if(!tbody)return;
-  let src=null;
+  let src=null,lastOver=null;
 
   tbody.addEventListener('mousedown',e=>{
     const row=e.target.closest('tr[data-key]');
@@ -507,10 +507,13 @@ function initGridDrag(){
 
   tbody.addEventListener('mouseover',e=>{
     if(!src)return;
-    tbody.querySelectorAll('.wg-drop-above').forEach(r=>r.classList.remove('wg-drop-above'));
     const target=e.target.closest('tr[data-key]');
+    if(target===lastOver)return;
+    if(lastOver)lastOver.classList.remove('wg-drop-above');
+    lastOver=null;
     if(!target||target===src)return;
     target.classList.add('wg-drop-above');
+    lastOver=target;
   });
 
   document.addEventListener('mouseup',e=>{
@@ -519,6 +522,7 @@ function initGridDrag(){
     tbody.querySelectorAll('.wg-dragging').forEach(r=>r.classList.remove('wg-dragging'));
     tbody.querySelectorAll('.wg-drop-above').forEach(r=>r.classList.remove('wg-drop-above'));
     document.body.style.userSelect='';
+    lastOver=null;
     if(target&&target!==src){
       const rows=[...tbody.querySelectorAll('tr[data-key]')];
       if(rows.indexOf(target)>rows.indexOf(src))tbody.insertBefore(src,target.nextSibling);
