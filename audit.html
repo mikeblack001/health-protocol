@@ -506,9 +506,9 @@ function initGridDrag(){
 
   tbody.addEventListener('mouseover',e=>{
     if(!src)return;
+    tbody.querySelectorAll('.wg-drop-above').forEach(r=>r.classList.remove('wg-drop-above'));
     const target=e.target.closest('tr[data-key]');
     if(!target||target===src)return;
-    tbody.querySelectorAll('.wg-drop-above').forEach(r=>r.classList.remove('wg-drop-above'));
     target.classList.add('wg-drop-above');
   });
 
