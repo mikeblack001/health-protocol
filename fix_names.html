@@ -79,9 +79,11 @@ async function run(){
       const needsUpdate=compoundChoices.some(c=>c.color!==COMPOUND_COLORS[c.name]);
       if(!needsUpdate) continue;
 
-      const newChoices=choices.map(c=>
-        COMPOUND_COLORS[c.name] ? {...c,color:COMPOUND_COLORS[c.name]} : c
-      );
+      // Strip id from choices — Metadata API rejects existing IDs on PATCH
+      const newChoices=choices.map(c=>{
+        const base={name:c.name,color:COMPOUND_COLORS[c.name]||c.color};
+        return base;
+      });
 
       try{
         const res=await fetch(`https://api.airtable.com/v0/meta/bases/${BASE}/tables/${tbl.id}/fields/${fld.id}`,{
