@@ -130,7 +130,6 @@ select.fe{cursor:pointer}
   <div id="hdr-r">
     <span id="b-total" style="font-size:11px;color:#9ca3af"></span>
     <button class="hbtn" onclick="reloadLog()">↻</button>
-    <button class="hbtn" style="background:#7c3aed;border-color:#7c3aed;color:#fff" onclick="fixNames()" id="fix-names-btn">Fix Names</button>
   </div>
 </div>
 
@@ -774,34 +773,6 @@ async function setDate(date){
 }
 
 async function reloadLog(){if(curDate)await setDate(curDate);}
-
-async function fixNames(){
-  const btn=document.getElementById('fix-names-btn');
-  btn.textContent='Fixing...';btn.disabled=true;
-  let offset=null,mismatches=[],fetched=0;
-  try{
-    do{
-      const d=await atFetch(LOG.tbl+'?fields[]='+LOG.name+'&fields[]='+LOG.compound+'&pageSize=100'+(offset?'&offset='+offset:''));
-      for(const r of d.records){
-        const name=r.fields[LOG.name]||'',cmp=r.fields[LOG.compound]||'';
-        if(cmp&&name!==cmp)mismatches.push({id:r.id,cmp});
-      }
-      fetched+=d.records.length;offset=d.offset;
-      btn.textContent='Scanning '+fetched+'...';
-    }while(offset);
-    btn.textContent='Fixing '+mismatches.length+'...';
-    let fixed=0;
-    for(let i=0;i<mismatches.length;i+=10){
-      const batch=mismatches.slice(i,i+10);
-      const records=batch.map(r=>({id:r.id,fields:{[LOG.name]:r.cmp}}));
-      await atFetch(LOG.tbl,{method:'PATCH',body:JSON.stringify({records,returnFieldsByFieldId:true})});
-      fixed+=batch.length;
-      btn.textContent='Fixed '+fixed+'/'+mismatches.length;
-    }
-    btn.textContent='✓ '+fixed+' fixed';
-    setTimeout(()=>{btn.textContent='Fix Names';btn.disabled=false;},3000);
-  }catch(e){btn.textContent='Error: '+e.message;btn.disabled=false;}
-}
 
 // Date-level verification — stores one checkbox per date using Injection Verified field
 // We mark ALL records for the date as verified (or unverified) at once
