@@ -806,16 +806,15 @@ async function toggleDateVerified(){
 // ── RENDER ────────────────────────────────────────────────────────────
 function renderRecordsOrdered(order){
   if(!logRecs.length)return;
-  // order contains compound||timing keys — build deduplicated compound order (first occurrence wins)
-  const cmpOrder=[];
-  order.forEach(k=>{
-    const c=k.includes('||')?k.split('||')[0]:k;
-    if(!cmpOrder.includes(c))cmpOrder.push(c);
-  });
+  // Sort cards by compound||timing key to match grid order exactly
   const sorted=[...logRecs].filter(r=>r.fields[LOG.compound]).sort((a,b)=>{
-    const ac=a.fields[LOG.compound]||'', bc=b.fields[LOG.compound]||'';
-    const ai=cmpOrder.indexOf(ac), bi=cmpOrder.indexOf(bc);
-    return (ai===-1?999:ai)-(bi===-1?999:bi);
+    const ak=(a.fields[LOG.compound]||'')+'||'+(a.fields[LOG.timing]||'');
+    const bk=(b.fields[LOG.compound]||'')+'||'+(b.fields[LOG.timing]||'');
+    const ai=order.indexOf(ak), bi=order.indexOf(bk);
+    // Fall back to compound-only position for unmatched keys
+    const aFallback=ai===-1?order.findIndex(k=>k.split('||')[0]===(a.fields[LOG.compound]||'')):ai;
+    const bFallback=bi===-1?order.findIndex(k=>k.split('||')[0]===(b.fields[LOG.compound]||'')):bi;
+    return (aFallback===-1?999:aFallback)-(bFallback===-1?999:bFallback);
   });
   document.getElementById('records').innerHTML=sorted.map(r=>cardHTML(r)).join('');
 }
