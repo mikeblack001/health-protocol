@@ -466,7 +466,7 @@ async function loadWeekGrid(date){
     h+=`<tr data-cmp="${esc(cmp)}" data-key="${esc(key)}"><td><span class="drag-handle">⠿</span>${esc(cmp)}${doseBadge}${badge}</td>`;
     days.forEach(d=>{
       const cell=dayMap[d];
-      const onclick=`onclick="gridCellClick('${d}','${esc(cmp)}')"`;
+      const onclick=`onclick="gridCellClick('${d}','${esc(cmp)}','${esc(timing)}')"`;
       if(!cell||!cell.n){h+=`<td ${onclick} style="cursor:pointer"></td>`;}
       else{
         const siteVal=cell.sites.length?cell.sites[0]:'X';
@@ -569,18 +569,28 @@ async function verifyWeek(){
 }
 
 let cmDate=null,cmCmp=null;
-async function gridCellClick(date,cmp){
+async function gridCellClick(date,cmp,timing=''){
   // Navigate to date if different, then scroll to compound in records
   if(date!==curDate){
     await setDate(date);
   }
-  // Scroll to and highlight the matching card
+  // Scroll to and highlight the matching card — match by compound+timing when available
   const cards=document.querySelectorAll('.card');
   let found=null;
   cards.forEach(card=>{
     const sel=card.querySelector('select.fe-compound');
-    if(sel&&sel.value===cmp){found=card;}
+    const tim=card.querySelector('select.fe-timing');
+    if(sel&&sel.value===cmp){
+      if(!timing||!tim||(tim.value||'')===(timing)){found=card;}
+    }
   });
+  // Fallback: first compound match if timing didn't narrow it down
+  if(!found){
+    cards.forEach(card=>{
+      const sel=card.querySelector('select.fe-compound');
+      if(sel&&sel.value===cmp&&!found){found=card;}
+    });
+  }
   if(found){
     // Clear any previous highlight
     document.querySelectorAll('.card').forEach(card=>card.style.outline='');
