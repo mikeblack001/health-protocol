@@ -9,7 +9,7 @@ button:disabled{background:#9ca3af}.green{background:#16a34a}
 </style>
 </head>
 <body>
-<h2 style="margin:0 0 4px">Sync Compound Colors <span style="font-size:12px;color:#9ca3af">v10</span></h2>
+<h2 style="margin:0 0 4px">Sync Compound Colors <span style="font-size:12px;color:#9ca3af">v11</span></h2>
 <p style="color:#6b7280;font-size:13px;margin:0 0 12px">Reads Color Code from Peptides table, maps to Airtable colors, applies to all Compound fields.</p>
 <button onclick="scan()">1. Preview</button>
 <button id="fix-btn" class="green" onclick="apply()" disabled>2. Apply</button>
@@ -63,9 +63,11 @@ async function scan(){
     offset=d.offset;
   }while(offset);
 
+  log('Sample record fields: '+JSON.stringify(recs[0]?.fields));
   recs.forEach(r=>{
     const name=(r.fields[primaryField.id]||r.fields[primaryField.name]||'').trim();
-    const colorCode=(r.fields[COLOR_CODE_FLD]||'').trim();
+    const raw=r.fields[COLOR_CODE_FLD];
+    const colorCode=(typeof raw==='object'?raw?.name:raw||'').trim();
     const atColor=COLOR_MAP[colorCode];
     if(name&&atColor) compoundColors[name]=atColor;
   });
