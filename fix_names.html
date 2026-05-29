@@ -4,85 +4,86 @@
 <style>
 body{font-family:-apple-system,sans-serif;padding:20px;background:#f0f2f5;color:#1a1a2e}
 button{padding:10px 24px;background:#2563eb;color:#fff;border:none;border-radius:6px;font-size:14px;font-weight:700;cursor:pointer;margin-right:8px}
-button:disabled{background:#9ca3af;cursor:default}
-#stats{display:flex;gap:12px;margin:16px 0}
-.stat{background:#fff;border-radius:8px;padding:12px 20px;min-width:100px}
-.stat-label{font-size:11px;color:#9ca3af;font-weight:700;text-transform:uppercase}
-.stat-val{font-size:24px;font-weight:700;margin-top:4px}
-#log{background:#fff;border-radius:8px;padding:12px;font-size:12px;font-family:monospace;height:200px;overflow-y:auto;white-space:pre-wrap}
+button:disabled{background:#9ca3af}
+table{width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden;margin-top:12px;font-size:12px}
+th{background:#1e2433;color:#fff;padding:6px 10px;text-align:left}
+td{padding:5px 10px;border-bottom:1px solid #e2e5ea}
+#log{background:#fff;border-radius:8px;padding:12px;font-size:12px;font-family:monospace;margin-top:12px;max-height:150px;overflow-y:auto;white-space:pre-wrap}
 </style>
 </head>
 <body>
-<h2 style="margin:0 0 4px">Injection Log — Fix Name = Compound</h2>
-<p style="color:#6b7280;margin:0 0 16px;font-size:13px">Scans all records and sets Name to match Compound where they differ.</p>
-<button id="btn" onclick="run()">Run Fix</button>
-<button onclick="stopped=true" id="stop">Stop</button>
-<div id="stats">
-  <div class="stat"><div class="stat-label">Scanned</div><div class="stat-val" id="s-scanned">0</div></div>
-  <div class="stat"><div class="stat-label">Mismatches</div><div class="stat-val" id="s-mismatch">0</div></div>
-  <div class="stat"><div class="stat-label">Fixed</div><div class="stat-val" id="s-fixed">0</div></div>
-  <div class="stat"><div class="stat-label">Errors</div><div class="stat-val" id="s-errors">0</div></div>
-</div>
+<h2 style="margin:0 0 4px">Fix Name = Compound</h2>
+<p style="color:#6b7280;font-size:13px;margin:0 0 12px">Step 1: Scan to preview. Step 2: Apply fix.</p>
+<button onclick="scan()">1. Scan / Preview</button>
+<button id="fix-btn" onclick="fix()" disabled style="background:#16a34a">2. Apply Fix</button>
 <div id="log">Ready.</div>
+<div id="preview"></div>
 
 <script>
 const TOKEN='pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
 const BASE='appmHDG4TGT1xy6R6';
 const TBL='tblBvEaLkGGipnOFc';
-const F_NAME='fldt9vYT8Tm37Gf3k';
-const F_CMP='fldwVFyizH4mBANBa';
-let stopped=false;
+let toFix=[];
 
-function log(m){const el=document.getElementById('log');el.textContent+='\n'+m;el.scrollTop=el.scrollHeight;}
-function set(id,v){document.getElementById(id).textContent=v;}
+function log(m){document.getElementById('log').textContent+='\n'+m;}
 
-async function run(){
-  stopped=false;
-  document.getElementById('btn').disabled=true;
-  document.getElementById('stop').disabled=false;
-  let offset=null,scanned=0,mismatches=[],errors=0;
+async function scan(){
+  toFix=[];
+  document.getElementById('preview').innerHTML='';
+  document.getElementById('log').textContent='Scanning...';
+  document.getElementById('fix-btn').disabled=true;
+  let offset=null,scanned=0;
 
-  log('Scanning...');
   do{
-    if(stopped){log('Stopped.');break;}
-    const url=`https://api.airtable.com/v0/${BASE}/${TBL}?fields[]=${F_NAME}&fields[]=${F_CMP}&pageSize=100`+(offset?`&offset=${offset}`:'');
+    // Use field names directly (typecast handles it)
+    const url=`https://api.airtable.com/v0/${BASE}/${TBL}?fields[]=Name&fields[]=Compound&pageSize=100`+(offset?`&offset=${offset}`:'');
     const r=await fetch(url,{headers:{Authorization:`Bearer ${TOKEN}`}});
     const d=await r.json();
-    if(!d.records){log('Error: '+JSON.stringify(d));break;}
+    if(!d.records){log('Error: '+JSON.stringify(d));return;}
     for(const rec of d.records){
-      const name=rec.fields[F_NAME]||'';
-      const cmp=rec.fields[F_CMP]||'';
-      if(cmp&&name!==cmp)mismatches.push({id:rec.id,cmp});
+      const name=rec.fields['Name']||'';
+      const cmp=rec.fields['Compound']||'';
+      if(cmp && name!==cmp) toFix.push({id:rec.id, name, cmp});
     }
     scanned+=d.records.length;
     offset=d.offset;
-    set('s-scanned',scanned);
-    set('s-mismatch',mismatches.length);
   }while(offset);
 
-  log(`Scan done. ${scanned} records, ${mismatches.length} mismatches.`);
-  if(stopped||!mismatches.length){document.getElementById('btn').disabled=false;return;}
+  log(`Scanned ${scanned} records. Found ${toFix.length} where Name ≠ Compound.`);
 
-  let fixed=0;
-  for(let i=0;i<mismatches.length;i+=10){
-    if(stopped)break;
-    const batch=mismatches.slice(i,i+10);
-    const records=batch.map(r=>({id:r.id,fields:{[F_NAME]:r.cmp}}));
+  if(!toFix.length){log('Nothing to fix.');return;}
+
+  // Show preview table
+  let html=`<table><thead><tr><th>#</th><th>Record ID</th><th>Current Name</th><th>Compound (will set Name to this)</th></tr></thead><tbody>`;
+  toFix.slice(0,100).forEach((r,i)=>{
+    html+=`<tr><td>${i+1}</td><td style="font-family:monospace;font-size:11px">${r.id}</td><td style="color:#dc2626">${r.name||'(blank)'}</td><td style="color:#16a34a">${r.cmp}</td></tr>`;
+  });
+  if(toFix.length>100)html+=`<tr><td colspan="4" style="color:#6b7280;text-align:center">...and ${toFix.length-100} more</td></tr>`;
+  html+='</tbody></table>';
+  document.getElementById('preview').innerHTML=html;
+  document.getElementById('fix-btn').disabled=false;
+}
+
+async function fix(){
+  document.getElementById('fix-btn').disabled=true;
+  let fixed=0,errors=0;
+  log(`Fixing ${toFix.length} records...`);
+  for(let i=0;i<toFix.length;i+=10){
+    const batch=toFix.slice(i,i+10);
+    const records=batch.map(r=>({id:r.id,fields:{Name:r.cmp}}));
     try{
       const r=await fetch(`https://api.airtable.com/v0/${BASE}/${TBL}`,{
         method:'PATCH',
         headers:{Authorization:`Bearer ${TOKEN}`,'Content-Type':'application/json'},
-        body:JSON.stringify({records,returnFieldsByFieldId:true})
+        body:JSON.stringify({records,typecast:true})
       });
       const d=await r.json();
-      if(d.records){fixed+=d.records.length;set('s-fixed',fixed);}
-      else{errors++;set('s-errors',errors);log('Patch error: '+JSON.stringify(d.error));}
-    }catch(e){errors++;set('s-errors',errors);log('Error: '+e.message);}
+      if(d.records){fixed+=d.records.length;}
+      else{errors++;log('Error: '+JSON.stringify(d.error));}
+    }catch(e){errors++;log('Error: '+e.message);}
     await new Promise(res=>setTimeout(res,120));
   }
-  log(stopped?`Stopped at ${fixed} fixed.`:`Done. ${fixed} fixed, ${errors} errors.`);
-  document.getElementById('btn').disabled=false;
-  document.getElementById('stop').disabled=true;
+  log(`Done. ${fixed} fixed, ${errors} errors.`);
 }
 </script>
 </body></html>
