@@ -448,11 +448,7 @@ async function loadWeekGrid(date){
       if(CMPS.includes(cmp)){data[s]={cmp,timing,days:{}};keyOrder.push(s);}
     }
   });
-  // Also seed any CMPS compound not yet in data at all (no records ever + not in saved order)
-  CMPS.forEach(cmp=>{
-    const hasKey=keyOrder.some(k=>k.split('||')[0]===cmp);
-    if(!hasKey){const k=cmp+'||';data[k]={cmp,timing:'',days:{}};keyOrder.push(k);}
-  });
+
 
   // Apply saved order
   const allKeys=keyOrder;
