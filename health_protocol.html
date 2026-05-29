@@ -514,6 +514,7 @@
 <button class="drop-item" onclick="navDrop('peptides','nav-pep')">Peptides</button>
         <button class="drop-item" onclick="navDrop('tracker','nav-pep')">Peptide Tracker</button>
         <button class="drop-item" onclick="navDrop('changes','nav-pep')">Peptide Changes</button>
+        <button class="drop-item" onclick="navDrop('injlog','nav-pep')">Injection Log</button>
         <div class="drop-divider"></div>
         <button class="drop-item" onclick="navDrop('pricing','nav-pep')">Pricing</button>
         <button class="drop-item" onclick="navDrop('purchases','nav-pep')">Purchases</button>
@@ -592,6 +593,7 @@
     <button class="mobile-item" onclick="mobileNav('peptides')">Peptides</button>
     <button class="mobile-item" onclick="mobileNav('tracker')">Peptide Tracker</button>
     <button class="mobile-item" onclick="mobileNav('changes')">Peptide Changes</button>
+    <button class="mobile-item" onclick="mobileNav('injlog')">Injection Log</button>
     <button class="mobile-item" onclick="mobileNav('pricing')">Pricing</button>
     <button class="mobile-item" onclick="mobileNav('purchases')">Purchases</button>
     <button class="mobile-item" onclick="mobileNav('vendors')">Peptide Vendors</button>
@@ -854,6 +856,24 @@
       <span style="background:#fee2e2;border:1px solid #dc2626;color:#dc2626;padding:2px 8px;border-radius:4px">S = Skipped</span>
       <span style="background:#e5e7eb;border:1px solid #6b7280;color:#6b7280;padding:2px 8px;border-radius:4px">N = Not Available</span>
     </div>
+  </div>
+
+  <!-- INJECTION LOG -->
+  <div id="view-injlog" class="view">
+    <div class="section-header">
+      <h2>Injection Log</h2>
+      <p class="section-sub">All injections from Airtable — sorted newest first</p>
+    </div>
+
+    <!-- SUMMARY TABLE -->
+    <div style="margin-bottom:24px">
+      <h3 style="font-size:14px;font-family:'DM Sans',sans-serif;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">Current Protocol — Latest per Compound</h3>
+      <div id="injlog-summary"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
+    </div>
+
+    <!-- FULL LOG -->
+    <h3 style="font-size:14px;font-family:'DM Sans',sans-serif;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">Full Log</h3>
+    <div id="injlog-full"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
   </div>
 
   <!-- DAILY LOG -->
@@ -2693,6 +2713,7 @@ function mobileNav(viewId) {
   if (viewId === 'labs') loadLabs();
   if (viewId === 'changes') loadChanges();
   if (viewId === 'injaudit') loadInjAudit();
+  if (viewId === 'injlog') loadInjLog();
   if (viewId === 'goals') loadGoals();
   if (viewId === 'profile') loadProfileView();
   if (viewId === 'aicontext') loadAIContext();
@@ -3404,6 +3425,111 @@ async function loadChanges() {
     changesData = records;
     renderChanges();
   } catch(e) { el.innerHTML = `<p style="color:var(--red);padding:16px">Error: ${e.message}</p>`; }
+}
+
+async function loadInjLog() {
+  const AT_BASE = 'appmHDG4TGT1xy6R6';
+  const AT_TOKEN = 'pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
+  const TABLE = 'tblBvEaLkGGipnOFc';
+  // Field IDs
+  const F = {
+    name:     'fldt9vYT8Tm37Gf3k',
+    date:     'fldhYEtLEGA4VxvvO',
+    compound: 'fldwVFyizH4mBANBa',
+    site:     'fldHDlJY8FpAvK018',
+    timing:   'fldIdzew4Jd0qO4Uc',
+    dose:     'fld8d8mtRapfaIyqL',
+    notes:    'fldAbczu73mINwLmx',
+  };
+
+  const summEl = document.getElementById('injlog-summary');
+  const fullEl = document.getElementById('injlog-full');
+  const loadHtml = '<div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div>';
+  summEl.innerHTML = loadHtml;
+  fullEl.innerHTML = loadHtml;
+
+  // Fetch all records sorted by date desc
+  let records = [], offset = null;
+  try {
+    do {
+      const url = new URL(`https://api.airtable.com/v0/${AT_BASE}/${TABLE}`);
+      url.searchParams.set('sort[0][field]', F.date);
+      url.searchParams.set('sort[0][direction]', 'desc');
+      url.searchParams.set('pageSize', '100');
+      if (offset) url.searchParams.set('offset', offset);
+      const r = await fetch(url, { headers: { Authorization: 'Bearer ' + AT_TOKEN } });
+      const d = await r.json();
+      if (d.error) throw new Error(d.error.message || JSON.stringify(d.error));
+      records = records.concat(d.records || []);
+      offset = d.offset || null;
+    } while (offset);
+  } catch(e) {
+    const err = `<p style="color:var(--danger);font-size:13px">Error: ${e.message}</p>`;
+    summEl.innerHTML = err; fullEl.innerHTML = err; return;
+  }
+
+  if (!records.length) {
+    summEl.innerHTML = '<p style="color:var(--muted);font-size:13px">No records found.</p>';
+    fullEl.innerHTML = '';
+    return;
+  }
+
+  const fv = (rec, fid) => rec.fields[fid] || '';
+
+  // --- SUMMARY: latest record per compound ---
+  const seen = new Map();
+  records.forEach(rec => {
+    const compound = fv(rec, F.compound);
+    if (compound && !seen.has(compound)) seen.set(compound, rec);
+  });
+  const summRows = [...seen.values()].sort((a,b) => (fv(a,F.compound)||'').localeCompare(fv(b,F.compound)||''));
+
+  let summHtml = `<table style="width:100%;border-collapse:collapse;font-size:13px;font-family:'DM Sans',sans-serif">
+    <thead><tr style="background:var(--surface-alt,#f3f4f6);text-align:left">
+      <th style="padding:8px 10px;font-weight:600;border-bottom:1px solid var(--border)">Compound</th>
+      <th style="padding:8px 10px;font-weight:600;border-bottom:1px solid var(--border)">Dose</th>
+      <th style="padding:8px 10px;font-weight:600;border-bottom:1px solid var(--border)">Site</th>
+      <th style="padding:8px 10px;font-weight:600;border-bottom:1px solid var(--border)">Timing</th>
+      <th style="padding:8px 10px;font-weight:600;border-bottom:1px solid var(--border)">Last Logged</th>
+    </tr></thead><tbody>`;
+  summRows.forEach((rec,i) => {
+    const bg = i % 2 === 0 ? '' : 'background:var(--surface-alt,#f9fafb)';
+    summHtml += `<tr style="${bg}">
+      <td style="padding:7px 10px;border-bottom:1px solid var(--border);font-weight:500">${fv(rec,F.compound)}</td>
+      <td style="padding:7px 10px;border-bottom:1px solid var(--border)">${fv(rec,F.dose)}</td>
+      <td style="padding:7px 10px;border-bottom:1px solid var(--border)">${fv(rec,F.site)}</td>
+      <td style="padding:7px 10px;border-bottom:1px solid var(--border)">${fv(rec,F.timing)}</td>
+      <td style="padding:7px 10px;border-bottom:1px solid var(--border);color:var(--muted)">${fv(rec,F.date)}</td>
+    </tr>`;
+  });
+  summHtml += '</tbody></table>';
+  summEl.innerHTML = summHtml;
+
+  // --- FULL LOG ---
+  let fullHtml = `<p style="font-size:12px;color:var(--muted);margin-bottom:8px">${records.length} records</p>
+    <table style="width:100%;border-collapse:collapse;font-size:12px;font-family:'DM Mono',monospace">
+    <thead><tr style="background:var(--surface-alt,#f3f4f6);text-align:left">
+      <th style="padding:7px 10px;font-weight:600;border-bottom:1px solid var(--border)">Date</th>
+      <th style="padding:7px 10px;font-weight:600;border-bottom:1px solid var(--border)">Compound</th>
+      <th style="padding:7px 10px;font-weight:600;border-bottom:1px solid var(--border)">Dose</th>
+      <th style="padding:7px 10px;font-weight:600;border-bottom:1px solid var(--border)">Site</th>
+      <th style="padding:7px 10px;font-weight:600;border-bottom:1px solid var(--border)">Timing</th>
+      <th style="padding:7px 10px;font-weight:600;border-bottom:1px solid var(--border)">Notes</th>
+    </tr></thead><tbody>`;
+  records.forEach((rec,i) => {
+    const bg = i % 2 === 0 ? '' : 'background:var(--surface-alt,#f9fafb)';
+    const notes = fv(rec,F.notes);
+    fullHtml += `<tr style="${bg}">
+      <td style="padding:6px 10px;border-bottom:1px solid var(--border)">${fv(rec,F.date)}</td>
+      <td style="padding:6px 10px;border-bottom:1px solid var(--border);font-weight:500">${fv(rec,F.compound)}</td>
+      <td style="padding:6px 10px;border-bottom:1px solid var(--border)">${fv(rec,F.dose)}</td>
+      <td style="padding:6px 10px;border-bottom:1px solid var(--border)">${fv(rec,F.site)}</td>
+      <td style="padding:6px 10px;border-bottom:1px solid var(--border)">${fv(rec,F.timing)}</td>
+      <td style="padding:6px 10px;border-bottom:1px solid var(--border);color:var(--muted);max-width:200px;word-break:break-word">${notes}</td>
+    </tr>`;
+  });
+  fullHtml += '</tbody></table>';
+  fullEl.innerHTML = fullHtml;
 }
 
 function renderChanges() {
