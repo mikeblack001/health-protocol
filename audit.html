@@ -52,6 +52,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
 #d-sel{padding:5px 9px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;font-weight:700;flex:1;max-width:260px}
 #d-cnt{font-size:11px;color:#9ca3af}
 #w-sel{padding:5px 9px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;font-weight:700;background:#fff;color:#374151;cursor:pointer}
+#w-date{width:140px}
 #dnav-r{margin-left:auto;display:flex;gap:6px;align-items:center}
 
 /* QUICK ADD */
@@ -170,6 +171,7 @@ select.fe{cursor:pointer}
       <button onclick="navD(-1)">◀ Prev</button>
       <select id="d-sel" onchange="selDate()"><option value="">— Select Date —</option></select>
       <select id="w-sel" onchange="selWeek()" title="Jump to week"><option value="">— Week —</option></select>
+      <input id="w-date" type="date" title="Jump to any date" style="padding:5px 6px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;color:#374151;cursor:pointer" onchange="jumpToDate(this.value)">
       <button onclick="navD(1)">Next ▶</button>
       <span id="d-cnt"></span>
       <div id="dnav-r">
@@ -691,6 +693,12 @@ function buildWeekSel(){
   });
 }
 
+function jumpToDate(date){
+  if(!date)return;
+  // setDate works even for dates not in allDates
+  setDate(date);
+  document.getElementById('w-date').value='';
+}
 function selWeek(){
   const monISO=document.getElementById('w-sel').value;
   if(!monISO)return;
