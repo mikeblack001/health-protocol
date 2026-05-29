@@ -51,7 +51,7 @@
   .drop-item { display: block; width: 100%; text-align: left; background: none; border: none; color: var(--muted); font-family: 'DM Sans', sans-serif; font-size: 14px; padding: 8px 14px; border-radius: 5px; cursor: pointer; text-decoration: none; }
   .drop-item:hover:not(:disabled) { color: var(--text); background: var(--surface2); }
   .drop-soon { opacity: 0.4; cursor: default; font-style: italic; }
-  .drop-soon::after { content: ' Â· soon'; font-size: 11px; }
+  .drop-soon::after { content: ' · soon'; font-size: 11px; }
   .drop-divider { height: 1px; background: var(--border); margin: 4px 8px; }
   .nav-right { display: flex; align-items: center; gap: 10px; }
   .status-dot { width: 7px; height: 7px; border-radius: 50%; background: #d1d5db; flex-shrink: 0; }
@@ -244,7 +244,7 @@
     .nav-right .sync-btn { display: none; }
   }
 
-/* ââ PRINT STYLES ââ */
+/* ── PRINT STYLES ── */
 .print-page {
   width: 100%;
   margin-bottom: 24px;
@@ -340,7 +340,7 @@
 
   @page { size: letter portrait; margin: 0.4in 0.4in 0.4in 0.4in; }
 }
-/* ââ PDF QA VIEW ââââââââââââââââââââââââââââââââââââââââââââââââââââ */
+/* ── PDF QA VIEW ──────────────────────────────────────────────────── */
 #view-pdfqa.active {
   position: fixed; top: 56px; left: 0; right: 0; bottom: 0;
   display: flex !important; z-index: 50; background: #f5f6f8;
@@ -390,7 +390,7 @@
 .pdfqa-root .tc.active{display:flex}
 /* REVIEW SPLIT VIEW */
 .pdfqa-root .rev-wrap{flex:1;display:flex;overflow:hidden}
-/* LEFT â IMAGE VIEWER */
+/* LEFT — IMAGE VIEWER */
 .pdfqa-root .img-panel{width:50%;border-right:1px solid var(--b);display:flex;flex-direction:column;overflow:hidden;background:#1a1a1a}
 .pdfqa-root .img-toolbar{background:#111;padding:8px 12px;display:flex;align-items:center;gap:10px;flex-shrink:0}
 .pdfqa-root .img-nav{display:flex;align-items:center;gap:6px}
@@ -409,7 +409,7 @@
 .pdfqa-root .thumb img{width:100%;height:100%;object-fit:cover}
 .pdfqa-root .thumb-num{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.7);color:#aaa;font-size:8px;text-align:center;padding:1px;font-family:var(--mono)}
 .pdfqa-root .thumb.active .thumb-num{color:#fff}
-/* RIGHT â AIRTABLE PANEL */
+/* RIGHT — AIRTABLE PANEL */
 .pdfqa-root .at-panel{width:50%;display:flex;flex-direction:column;overflow:hidden;background:var(--s)}
 .pdfqa-root .at-toolbar{padding:10px 14px;border-bottom:1px solid var(--b);display:flex;align-items:center;gap:8px;flex-shrink:0;background:var(--s2)}
 .pdfqa-root .at-toolbar-title{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--d);font-family:var(--mono);flex:1}
@@ -508,7 +508,7 @@
     <button class="nav-tab active" id="nav-dashboard" onclick="showView('dashboard', event)">Dashboard</button>
 
     <div class="nav-dropdown">
-      <button class="nav-tab drop-trigger" id="nav-pep" onclick="toggleDrop('drop-pep',event)">Peptides <span class="drop-caret">â¾</span></button>
+      <button class="nav-tab drop-trigger" id="nav-pep" onclick="toggleDrop('drop-pep',event)">Peptides <span class="drop-caret">▾</span></button>
       <div class="drop-menu" id="drop-pep">
 <button class="drop-item" onclick="navDrop('peptides','nav-pep')">Peptides</button>
         <button class="drop-item" onclick="navDrop('tracker','nav-pep')">Peptide Tracker</button>
@@ -521,7 +521,7 @@
     </div>
 
     <div class="nav-dropdown">
-      <button class="nav-tab drop-trigger" id="nav-supp" onclick="toggleDrop('drop-supp',event)">Supplements <span class="drop-caret">â¾</span></button>
+      <button class="nav-tab drop-trigger" id="nav-supp" onclick="toggleDrop('drop-supp',event)">Supplements <span class="drop-caret">▾</span></button>
       <div class="drop-menu" id="drop-supp">
         <button class="drop-item" onclick="navDrop('supplements','nav-supp')">Supplements</button>
         <button class="drop-item" onclick="navDrop('suppchanges','nav-supp')">Supplement Changes</button>
@@ -530,7 +530,7 @@
     </div>
 
     <div class="nav-dropdown">
-      <button class="nav-tab drop-trigger" id="nav-ex" onclick="toggleDrop('drop-ex',event)">Exercise <span class="drop-caret">â¾</span></button>
+      <button class="nav-tab drop-trigger" id="nav-ex" onclick="toggleDrop('drop-ex',event)">Exercise <span class="drop-caret">▾</span></button>
       <div class="drop-menu" id="drop-ex">
         <button class="drop-item" onclick="navDrop('workouts','nav-ex')">Workouts</button>
         <button class="drop-item" onclick="navDrop('workout-suggestions','nav-ex')">Workout Suggestions</button>
@@ -538,7 +538,7 @@
     </div>
 
     <div class="nav-dropdown">
-      <button class="nav-tab drop-trigger" id="nav-personal" onclick="toggleDrop('drop-personal',event)">Personal <span class="drop-caret">â¾</span></button>
+      <button class="nav-tab drop-trigger" id="nav-personal" onclick="toggleDrop('drop-personal',event)">Personal <span class="drop-caret">▾</span></button>
       <div class="drop-menu" id="drop-personal">
         <button class="drop-item" onclick="navDrop('log','nav-personal')">Daily Log</button>
         <button class="drop-item" onclick="navDrop('labs','nav-personal')">Labs</button>
@@ -549,25 +549,25 @@
     </div>
 
     <div class="nav-dropdown">
-      <button class="nav-tab drop-trigger" id="nav-tools" onclick="toggleDrop('drop-tools',event)">Tools <span class="drop-caret">â¾</span></button>
+      <button class="nav-tab drop-trigger" id="nav-tools" onclick="toggleDrop('drop-tools',event)">Tools <span class="drop-caret">▾</span></button>
       <div class="drop-menu" id="drop-tools">
         <button class="drop-item" onclick="navDrop('printlist','nav-tools')">Print List</button>
         <button class="drop-item" onclick="navDrop('aicontext','nav-tools')">AI Context</button>
         <div class="drop-divider"></div>
-        <button class="drop-item" onclick="navDrop('databrowser','nav-tools')" style="color:var(--accent);font-weight:600">ð Data Browser</button>
+        <button class="drop-item" onclick="navDrop('databrowser','nav-tools')" style="color:var(--accent);font-weight:600">📊 Data Browser</button>
         <div class="drop-divider"></div>
-        <button class="drop-item" onclick="navDrop('pdfqa','nav-tools')" style="color:var(--accent);font-weight:600">ð Data Accuracy Check</button>
-        <button class="drop-item" onclick="navDrop('injaudit','nav-tools')" style="color:var(--accent);font-weight:600">ð Injection Log Audit</button>
-        <button class="drop-item" onclick="window.location.href='/health-protocol/audit.html'" style="color:var(--accent);font-weight:600">ð¬ Audit Tool (PDF+Claude+AT)</button>
+        <button class="drop-item" onclick="navDrop('pdfqa','nav-tools')" style="color:var(--accent);font-weight:600">📄 Data Accuracy Check</button>
+        <button class="drop-item" onclick="navDrop('injaudit','nav-tools')" style="color:var(--accent);font-weight:600">📋 Injection Log Audit</button>
+        <button class="drop-item" onclick="window.location.href='/health-protocol/audit.html'" style="color:var(--accent);font-weight:600">🔬 Audit Tool (PDF+Claude+AT)</button>
         <div class="drop-divider"></div>
-        <button class="drop-item" onclick="openWeeklyPrint()" style="color:var(--accent);font-weight:600">ð¨ Weekly Workout Print</button>
-        <button class="drop-item" onclick="printTracker()" style="color:var(--accent);font-weight:600">ð¨ Peptide Tracker Print</button>
+        <button class="drop-item" onclick="openWeeklyPrint()" style="color:var(--accent);font-weight:600">🖨 Weekly Workout Print</button>
+        <button class="drop-item" onclick="printTracker()" style="color:var(--accent);font-weight:600">🖨 Peptide Tracker Print</button>
       </div>
     </div>
   </div>
   <div class="nav-right">
     <div class="status-dot" id="statusDot"></div>
-    <button class="sync-btn" onclick="loadAll()">â» Sync</button>
+    <button class="sync-btn" onclick="loadAll()">↻ Sync</button>
     <button class="hamburger" onclick="toggleMobileMenu()" aria-label="Menu">
       <span></span><span></span><span></span>
     </button>
@@ -578,7 +578,7 @@
 <div class="mobile-menu" id="mobileMenu">
   <div class="mobile-menu-header">
     <div class="mobile-menu-logo">Health Protocol</div>
-    <button class="mobile-close" onclick="toggleMobileMenu()">â</button>
+    <button class="mobile-close" onclick="toggleMobileMenu()">✕</button>
   </div>
 
   <div class="mobile-section">
@@ -634,39 +634,39 @@
       <button class="print-btn" onclick="window.print()">Print</button>
     </div>
     <div id="backup-reminder" style="display:none;background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:12px;color:#92400e;font-family:'DM Sans',sans-serif;display:flex;align-items:center;justify-content:space-between">
-      <span>ð¦ <strong>Monthly backup due</strong> â Export your Airtable data to keep a local copy.</span>
-      <a href="https://airtable.com" target="_blank" style="color:#92400e;font-weight:600;text-decoration:underline;margin-left:12px">Open Airtable â</a>
+      <span>📦 <strong>Monthly backup due</strong> — Export your Airtable data to keep a local copy.</span>
+      <a href="https://airtable.com" target="_blank" style="color:#92400e;font-weight:600;text-decoration:underline;margin-left:12px">Open Airtable ↗</a>
       <button onclick="snoozeBackup()" style="margin-left:12px;padding:3px 10px;border:1px solid #d97706;border-radius:5px;background:transparent;color:#92400e;cursor:pointer;font-size:11px">Dismiss (1 month)</button>
     </div>
     <div class="stats-grid">
-      <div class="stat-card"><div class="stat-label">Active Peptides</div><div class="stat-value green" id="stat-active-peptides">â</div></div>
-      <div class="stat-card"><div class="stat-label">Active Supplements</div><div class="stat-value green" id="stat-active-supps">â</div></div>
-      <div class="stat-card"><div class="stat-label">On Order</div><div class="stat-value blue" id="stat-onorder">â</div></div>
-      <div class="stat-card"><div class="stat-label">Paused</div><div class="stat-value amber" id="stat-paused">â</div></div>
+      <div class="stat-card"><div class="stat-label">Active Peptides</div><div class="stat-value green" id="stat-active-peptides">—</div></div>
+      <div class="stat-card"><div class="stat-label">Active Supplements</div><div class="stat-value green" id="stat-active-supps">—</div></div>
+      <div class="stat-card"><div class="stat-label">On Order</div><div class="stat-value blue" id="stat-onorder">—</div></div>
+      <div class="stat-card"><div class="stat-label">Paused</div><div class="stat-value amber" id="stat-paused">—</div></div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;align-items:start">
       <div style="display:flex;flex-direction:column;gap:16px">
         <div class="dash-card">
-          <h3>â Morning Peptides</h3>
+          <h3>☀ Morning Peptides</h3>
           <div id="dash-pep-am"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
         </div>
         <div class="dash-card">
-          <h3>ð Night Peptides</h3>
+          <h3>🌙 Night Peptides</h3>
           <div id="dash-pep-pm"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
         </div>
       </div>
       <div style="display:flex;flex-direction:column;gap:16px">
         <div class="dash-card">
-          <h3>â Morning Supplements</h3>
+          <h3>☀ Morning Supplements</h3>
           <div id="dash-supps-am"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
         </div>
         <div class="dash-card">
-          <h3>ð½ Dinner Supplements</h3>
+          <h3>🍽 Dinner Supplements</h3>
           <div id="dash-supps-din"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
         </div>
       </div>
       <div class="dash-card">
-        <h3>ð Night Supplements</h3>
+        <h3>🌙 Night Supplements</h3>
         <div id="dash-supps-pm"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
       </div>
     </div>
@@ -699,10 +699,10 @@
       </div>
     </div>
     <div class="warning-bar">
-      <span>â  Kangen water: Stop 30 min BEFORE Â· Resume 60 min AFTER</span>
-      <span>â  Anastrozole: Day AFTER TRT injection only (Tues/Fri)</span>
-      <span>â  Seed DS-01: Take FIRST, 30 min before food</span>
-      <span>â  LDN: No opioids within 4â6 hrs</span>
+      <span>⚠ Kangen water: Stop 30 min BEFORE · Resume 60 min AFTER</span>
+      <span>⚠ Anastrozole: Day AFTER TRT injection only (Tues/Fri)</span>
+      <span>⚠ Seed DS-01: Take FIRST, 30 min before food</span>
+      <span>⚠ LDN: No opioids within 4–6 hrs</span>
     </div>
     <div class="filter-bar">
       <div class="filter-chip" onclick="filterSupps('all', this)">All</div>
@@ -725,8 +725,8 @@
       <button class="filter-btn" onclick="filterVendors('Primary',this)">Primary</button>
       <button class="filter-btn" onclick="filterVendors('Secondary',this)">Secondary</button>
       <button class="filter-btn" onclick="filterVendors('Evaluating',this)">Evaluating</button>
-      <button class="filter-btn" id="vendor-az-btn" onclick="setVendorNameSort(1)" style="margin-left:8px">AâZ</button>
-      <button class="filter-btn" id="vendor-za-btn" onclick="setVendorNameSort(-1)">ZâA</button>
+      <button class="filter-btn" id="vendor-az-btn" onclick="setVendorNameSort(1)" style="margin-left:8px">A→Z</button>
+      <button class="filter-btn" id="vendor-za-btn" onclick="setVendorNameSort(-1)">Z→A</button>
       <button class="filter-btn" onclick="showAddVendorModal()" style="margin-left:auto;background:var(--accent);color:#fff;border-color:var(--accent)">+ Add Vendor</button>
     </div>
     <div id="vendors-content"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
@@ -737,19 +737,19 @@
       <span style="font-size:13px;font-weight:500;color:var(--text)">Peptide Pricing</span>
       <button class="filter-btn active" onclick="filterPricing('all',this)">All</button>
       <button class="filter-btn" onclick="filterPricing('active',this)">Active Only</button>
-      <button class="filter-btn" onclick="refreshPricing()">â» Refresh</button>
+      <button class="filter-btn" onclick="refreshPricing()">↻ Refresh</button>
       <select id="pricing-med-filter" onchange="filterPricingByMed(this.value)" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface)">
         <option value="">All Meds</option>
       </select>
       <select id="ai-vendor-select" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface)">
         <option value="">Select vendor...</option>
       </select>
-      <button class="filter-btn" onclick="showBulkEdit()" style="background:#6366f1;color:#fff;border-color:#6366f1">âï¸ Bulk Edit</button>
+      <button class="filter-btn" onclick="showBulkEdit()" style="background:#6366f1;color:#fff;border-color:#6366f1">✏️ Bulk Edit</button>
       <button class="filter-btn" onclick="showAddPricingModal()" style="margin-left:auto;background:var(--accent);color:#fff;border-color:var(--accent)">+ Add Row</button>
     </div>
     <div id="ai-update-status" style="display:none;margin-bottom:12px;padding:10px 14px;background:#f0f4ff;border:1px solid #c7d2fe;border-radius:8px;font-size:13px;color:#3730a3"></div>
     <div style="margin-bottom:12px;padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--muted)">
-      ð¡ Select a vendor and click <strong>âï¸ Bulk Edit</strong> to update all their prices at once. Missing pricing rows are created automatically from the vendor's Peptides Carried list.
+      💡 Select a vendor and click <strong>✏️ Bulk Edit</strong> to update all their prices at once. Missing pricing rows are created automatically from the vendor's Peptides Carried list.
     </div>
     <div id="pricing-content"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
   </div>
@@ -760,7 +760,7 @@
       <button class="filter-btn active" onclick="showWorkoutPanel('log', this)">Log Workout</button>
       <button class="filter-btn" onclick="showWorkoutPanel('history', this)">History</button>
       <button class="filter-btn" onclick="showWorkoutPanel('progress', this)">Progress</button>
-      <button onclick="openWeeklyPrint()" style="margin-left:auto;padding:5px 14px;background:var(--accent);color:#000;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:0.3px">ð¨ Weekly Print</button>
+      <button onclick="openWeeklyPrint()" style="margin-left:auto;padding:5px 14px;background:var(--accent);color:#000;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:0.3px">🖨 Weekly Print</button>
     </div>
 
     <!-- LOG PANEL -->
@@ -770,10 +770,10 @@
           <label style="font-size:11px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:0.6px;display:block;margin-bottom:4px">Day</label>
           <select id="workout-day-select" onchange="loadWorkoutDay(this.value)" style="padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface);min-width:220px">
             <option value="">Select day...</option>
-            <option value="Monday - Push">Monday â Push</option>
-            <option value="Tuesday - Pull">Tuesday â Pull</option>
-            <option value="Wednesday - Legs / Core">Wednesday â Legs / Core</option>
-            <option value="Thursday - Arms / Chest">Thursday â Arms / Chest</option>
+            <option value="Monday - Push">Monday — Push</option>
+            <option value="Tuesday - Pull">Tuesday — Pull</option>
+            <option value="Wednesday - Legs / Core">Wednesday — Legs / Core</option>
+            <option value="Thursday - Arms / Chest">Thursday — Arms / Chest</option>
           </select>
         </div>
         <div>
@@ -854,15 +854,15 @@
   <div id="view-log" class="view">
     <div class="section-header"><h2>Daily Log</h2></div>
     <div class="log-form">
-      <h3>Log Today â <span id="log-date"></span></h3>
+      <h3>Log Today — <span id="log-date"></span></h3>
       <div class="form-grid">
         <div class="form-field"><label>Weight (lbs)</label><input type="number" id="log-weight" placeholder="0.0" step="0.1"></div>
         <div class="form-field"><label>Deep Sleep (min)</label><input type="number" id="log-deep" placeholder="0"></div>
         <div class="form-field"><label>Total Sleep (hrs)</label><input type="number" id="log-sleep" placeholder="0.0" step="0.1"></div>
         <div class="form-field"><label>HRV</label><input type="number" id="log-hrv" placeholder="0"></div>
         <div class="form-field"><label>Wakeups</label><input type="number" id="log-wakeups" placeholder="0"></div>
-        <div class="form-field"><label>Energy (1â10)</label><input type="number" id="log-energy" placeholder="0" min="1" max="10"></div>
-        <div class="form-field"><label>Cortisol Feel (1â10)</label><input type="number" id="log-cortisol" placeholder="0" min="1" max="10"></div>
+        <div class="form-field"><label>Energy (1–10)</label><input type="number" id="log-energy" placeholder="0" min="1" max="10"></div>
+        <div class="form-field"><label>Cortisol Feel (1–10)</label><input type="number" id="log-cortisol" placeholder="0" min="1" max="10"></div>
         <div class="form-field"><label>Mood</label>
           <select id="log-mood">
             <option value="">Select...</option>
@@ -896,7 +896,7 @@
   <!-- PRINT LIST -->
   <div id="view-printlist" class="view">
     <div class="section-header">
-      <h2>Active Protocol â Print List</h2>
+      <h2>Active Protocol — Print List</h2>
       <button class="print-btn" onclick="printProtocolList()">Print</button>
     </div>
     <div id="printlist-content"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
@@ -906,7 +906,7 @@
     <div class="section-header">
       <h2>Goals</h2>
       <div style="display:flex;gap:8px;align-items:center">
-        <button class="btn-secondary" onclick="loadGoals(true)">â» Refresh</button>
+        <button class="btn-secondary" onclick="loadGoals(true)">↻ Refresh</button>
         <button class="print-btn" onclick="showAddGoalModal()">+ Add Goal</button>
       </div>
     </div>
@@ -920,7 +920,7 @@
         <h2>Profile &amp; Health Context</h2>
         <div style="font-size:11px;color:var(--muted);margin-top:2px">Click any field to edit</div>
       </div>
-      <button class="btn-secondary" onclick="loadProfileView(true)">â» Refresh</button>
+      <button class="btn-secondary" onclick="loadProfileView(true)">↻ Refresh</button>
     </div>
     <div id="profile-filter-bar" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px"></div>
     <div id="profile-content"><div class="loading">Loading...</div></div>
@@ -929,7 +929,7 @@
   <div id="view-aicontext" class="view">
     <div class="section-header">
       <h2>AI Context</h2>
-      <button id="copyAIBtn" onclick="copyForAI()" style="background:var(--accent);color:#000;border:none;padding:8px 18px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;font-family:'DM Sans',sans-serif">ð Copy for AI</button>
+      <button id="copyAIBtn" onclick="copyForAI()" style="background:var(--accent);color:#000;border:none;padding:8px 18px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;font-family:'DM Sans',sans-serif">📋 Copy for AI</button>
     </div>
     <div id="aicontext-content"><div class="loading">Loading...</div></div>
   </div>
@@ -940,7 +940,7 @@
       <h2>Data Browser</h2>
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
         <select id="db-collection" onchange="dbLoad()" style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface)">
-          <option value="">â select collection â</option>
+          <option value="">— select collection —</option>
           <optgroup label="Airtable">
             <option value="supplements">Supplements</option>
             <option value="peptides">Peptides</option>
@@ -956,9 +956,9 @@
             <option value="profile">Profile</option>
           </optgroup>
         </select>
-        <input id="db-search" type="text" placeholder="Search any fieldâ¦" oninput="dbRender()" style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface);width:200px">
+        <input id="db-search" type="text" placeholder="Search any field…" oninput="dbRender()" style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface);width:200px">
         <span id="db-count" style="font-size:12px;color:var(--muted);white-space:nowrap"></span>
-        <button onclick="dbExportCSV()" style="padding:6px 14px;background:var(--accent);color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">â CSV</button>
+        <button onclick="dbExportCSV()" style="padding:6px 14px;background:var(--accent);color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">↓ CSV</button>
       </div>
     </div>
     <div id="db-status" style="font-size:12px;color:var(--muted);padding:4px 0 8px;display:none"></div>
@@ -1014,8 +1014,8 @@
         <option value="2026">2026</option>
         <option value="2025">2025</option>
       </select>
-      <button class="filter-btn" onclick="clearPurchaseFilters()">â Clear</button>
-      <button class="filter-btn" onclick="exportPurchasesCSV()" style="background:var(--surface2)">â¬ CSV</button>
+      <button class="filter-btn" onclick="clearPurchaseFilters()">✕ Clear</button>
+      <button class="filter-btn" onclick="exportPurchasesCSV()" style="background:var(--surface2)">⬇ CSV</button>
       <button class="filter-btn" onclick="showAddPurchaseModal()" style="margin-left:auto;background:var(--accent);color:#fff;border-color:var(--accent)">+ Log Purchase</button>
     </div>
     <div id="purchases-content"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
@@ -1039,8 +1039,8 @@
     <div class="filter-bar" id="labs-priority-bar" style="padding:6px 16px;border-bottom:1px solid var(--border);gap:6px">
       <span style="font-size:11px;color:var(--muted);font-weight:600;letter-spacing:0.5px;text-transform:uppercase">Priority</span>
       <button class="filter-btn" id="labs-pri-all" onclick="setLabsPriority('',this)">All</button>
-      <button class="filter-btn" id="labs-pri-aiwatch" onclick="setLabsPriority('AIWatch',this)">ð¤ AI Watch</button>
-      <button class="filter-btn active" id="labs-pri-pinned" onclick="setLabsPriority('Pinned',this)">â­ Pinned</button>
+      <button class="filter-btn" id="labs-pri-aiwatch" onclick="setLabsPriority('AIWatch',this)">🤖 AI Watch</button>
+      <button class="filter-btn active" id="labs-pri-pinned" onclick="setLabsPriority('Pinned',this)">⭐ Pinned</button>
       <input id="labs-search" type="text" placeholder="Search marker..." oninput="renderLabsTrend()" style="margin-left:8px;padding:4px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface);width:160px">
     </div>
     <div id="labs-flag-bar" style="display:none;padding:8px 16px;background:var(--red-bg);border-bottom:1px solid #fecaca;font-size:12px;color:var(--red);font-weight:500"></div>
@@ -1194,8 +1194,8 @@
               <label style="font-size:11px;color:var(--d);display:flex;align-items:center;gap:6px">
                 Model:
                 <select id="verifyModel" style="padding:4px 8px;font-size:11px;border:1px solid var(--b);border-radius:4px;background:var(--s2);color:var(--t)">
-                  <option value="claude-haiku-4-5-20251001" selected>Haiku 4.5 â fast</option>
-                  <option value="claude-sonnet-4-6">Sonnet 4.6 â accurate</option>
+                  <option value="claude-haiku-4-5-20251001" selected>Haiku 4.5 — fast</option>
+                  <option value="claude-sonnet-4-6">Sonnet 4.6 — accurate</option>
                 </select>
               </label>
             </div>
@@ -1377,8 +1377,8 @@
               <label style="font-size:11px;color:var(--d);display:flex;align-items:center;gap:6px">
                 Model:
                 <select id="verifyModel" style="padding:4px 8px;font-size:11px;border:1px solid var(--b);border-radius:4px;background:var(--s2);color:var(--t)">
-                  <option value="claude-haiku-4-5-20251001" selected>Haiku 4.5 â fast</option>
-                  <option value="claude-sonnet-4-6">Sonnet 4.6 â accurate</option>
+                  <option value="claude-haiku-4-5-20251001" selected>Haiku 4.5 — fast</option>
+                  <option value="claude-sonnet-4-6">Sonnet 4.6 — accurate</option>
                 </select>
               </label>
             </div>
@@ -1446,7 +1446,7 @@
     <div id="bulk-save-status" style="display:none;font-size:12px;color:var(--muted);margin-bottom:8px"></div>
     <div class="modal-actions">
       <button class="modal-btn" onclick="hideBulkEdit()">Close</button>
-      <button class="modal-btn primary" id="bulk-save-btn" onclick="saveBulkPricing()">ð¾ Save All</button>
+      <button class="modal-btn primary" id="bulk-save-btn" onclick="saveBulkPricing()">💾 Save All</button>
     </div>
   </div>
 </div>
@@ -1472,7 +1472,7 @@
 <!-- ADD VENDOR MODAL -->
 <div class="modal-overlay" id="add-vendor-modal" onclick="if(event.target===this)hideAddVendorModal()" style="display:none">
   <div class="modal-box">
-    <div class="modal-header"><h3>Add Vendor</h3><button class="modal-close" onclick="hideAddVendorModal()">â</button></div>
+    <div class="modal-header"><h3>Add Vendor</h3><button class="modal-close" onclick="hideAddVendorModal()">✕</button></div>
     <div class="modal-field"><label>Vendor Name</label><input type="text" id="av-name" placeholder="e.g. Peptide Sciences"></div>
     <div class="modal-field"><label>Website</label><input type="text" id="av-website" placeholder="peptidesciences.com"></div>
     <div class="modal-field"><label>Tier</label>
@@ -1486,7 +1486,7 @@
 </div>
 
 <script>
-// ââ BOOT ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── BOOT ──────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   const h = new Date().getHours();
   document.getElementById('greeting').textContent = h < 12 ? 'morning' : h < 17 ? 'afternoon' : 'evening';
@@ -1495,7 +1495,7 @@ document.addEventListener('DOMContentLoaded', () => {
   loadAll();
 });
 
-// ââ AIRTABLE CONFIG âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── AIRTABLE CONFIG ───────────────────────────────────────────────────────────
 const TOKEN = 'pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
 const BASE = 'appmHDG4TGT1xy6R6';
 const TABLES = { peptides: 'tblMs6YRdP4wkndUp', supplements: 'tblSnkc0Gu2BzGACP', dailyLog: 'tblaYuZjl4Pu4nKxS', pricing: 'tblnW21TLSqgVerwQ', vendors: 'tblI0nfBBuHXjp3KT', suppVendors: 'tblxI3G63a7WvK0Ya', purchases: 'tblWmflohL6d6HC9p', bloodwork: 'tbl3200yJid6fXaOp', protocolChanges: 'tblolVx7YwO5cJhsE', goals: 'tblRuaROlyG93Bz4Y', profile: 'tblPBJkYqlnzrBK3B', suppChanges: 'tblcwqEVCMfSwNSMu', sessions: 'tblk9tTYIcIY4tWjF', sets: 'tblKDqjy5RzqaJvjr' };
@@ -1532,7 +1532,7 @@ function renderPrintList() {
 
   // Morning Peptides
   if (amPep.length) {
-    html += `<div class="table-wrap"><div class="timing-header">â Morning Peptides</div>
+    html += `<div class="table-wrap"><div class="timing-header">☀ Morning Peptides</div>
       <table class="data-table"><thead><tr><th>Compound</th><th>Dose</th><th>Frequency</th></tr></thead><tbody>
       ${amPep.map(r => `<tr>
         <td><div class="compound-name">${getField(r,'Compound')}</div></td>
@@ -1543,7 +1543,7 @@ function renderPrintList() {
 
   // Night Peptides
   if (pmPep.length) {
-    html += `<div class="table-wrap"><div class="timing-header">ð Night Peptides</div>
+    html += `<div class="table-wrap"><div class="timing-header">🌙 Night Peptides</div>
       <table class="data-table"><thead><tr><th>Compound</th><th>Dose</th><th>Frequency</th></tr></thead><tbody>
       ${pmPep.map(r => `<tr>
         <td><div class="compound-name">${getField(r,'Compound')}</div></td>
@@ -1555,7 +1555,7 @@ function renderPrintList() {
 
   // Supplements by timing
   ['Morning','Dinner','Night'].forEach(t => {
-    const icon = t === 'Morning' ? 'â' : t === 'Dinner' ? 'ð½' : 'ð';
+    const icon = t === 'Morning' ? '☀' : t === 'Dinner' ? '🍽' : '🌙';
     const group = activeSupp.filter(r => getField(r,'SuppTiming') === t);
     if (!group.length) return;
     html += `<div class="table-wrap"><div class="timing-header">${icon} ${t} Supplements</div>
@@ -1588,7 +1588,7 @@ async function loadAll() {
     } catch(e) {
     document.getElementById('statusDot').className = 'status-dot';
     console.error('[loadAll] FAILED:', e);
-    const errMsg = `<div style="padding:24px;color:var(--red,#e53e3e);font-size:13px">â  Failed to load data â ${e.message || e}.<br><br><button onclick="loadAll()" style="margin-top:8px;padding:6px 14px;border-radius:6px;border:none;background:var(--accent);color:#fff;cursor:pointer;font-size:13px">â» Retry</button></div>`;
+    const errMsg = `<div style="padding:24px;color:var(--red,#e53e3e);font-size:13px">⚠ Failed to load data — ${e.message || e}.<br><br><button onclick="loadAll()" style="margin-top:8px;padding:6px 14px;border-radius:6px;border:none;background:var(--accent);color:#fff;cursor:pointer;font-size:13px">↻ Retry</button></div>`;
     const pc = document.getElementById('peptides-content');
     if (pc) pc.innerHTML = errMsg;
   }
@@ -1647,12 +1647,12 @@ function renderDashboard() {
   const pmPep = activePep.filter(r => getField(r,'Timing').toLowerCase().includes('night'));
   document.getElementById('dash-pep-am').innerHTML = amPep.map(r => `
     <div class="quick-item">
-      <div><div class="compound-name">${getField(r,'Compound')}</div><div class="compound-sub">${getField(r,'Dose')} Â· ${getField(r,'Frequency')}</div></div>
+      <div><div class="compound-name">${getField(r,'Compound')}</div><div class="compound-sub">${getField(r,'Dose')} · ${getField(r,'Frequency')}</div></div>
       ${badge('Active')}
     </div>`).join('') || '<p style="color:var(--muted);font-size:12px;padding:4px 0">None</p>';
   document.getElementById('dash-pep-pm').innerHTML = pmPep.map(r => `
     <div class="quick-item">
-      <div><div class="compound-name">${getField(r,'Compound')}</div><div class="compound-sub">${getField(r,'Dose')} Â· ${getField(r,'Frequency')}</div></div>
+      <div><div class="compound-name">${getField(r,'Compound')}</div><div class="compound-sub">${getField(r,'Dose')} · ${getField(r,'Frequency')}</div></div>
       ${badge('Active')}
     </div>`).join('') || '<p style="color:var(--muted);font-size:12px;padding:4px 0">None</p>';
 
@@ -1676,8 +1676,8 @@ function sortPep(col) {
   renderPeptides(currentPepFilter || 'all');
 }
 function pepSortIcon(col) {
-  if (pepSort.col !== col) return ' <span style="color:#d1d5db">â</span>';
-  return pepSort.dir === 1 ? ' <span style="color:var(--accent)">â</span>' : ' <span style="color:var(--accent)">â</span>';
+  if (pepSort.col !== col) return ' <span style="color:#d1d5db">⇅</span>';
+  return pepSort.dir === 1 ? ' <span style="color:var(--accent)">↑</span>' : ' <span style="color:var(--accent)">↓</span>';
 }
 function renderPeptides(filter) {
   currentPepFilter = filter;
@@ -1709,9 +1709,9 @@ function renderPeptides(filter) {
       <td style="font-size:12px;color:var(--muted)">${getField(r,'Frequency')}</td>
 
       <td style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)">${getField(r,'Vial Size')}</td>
-      <td style="font-size:11px;color:var(--muted)">${getField(r,'Suggested Dose') || 'â'}</td>
-      <td style="font-size:11px;color:var(--muted)">${getField(r,'Cycle Type') || 'â'}</td>
-      <td style="font-family:'DM Mono',monospace;font-size:12px;text-align:center">${getField(r,'Vials on Hand') !== '' ? `<span style="color:${getField(r,'Vials on Hand') <= 1 ? 'var(--red)' : getField(r,'Vials on Hand') <= 3 ? 'var(--amber)' : 'var(--green)'};font-weight:600">${getField(r,'Vials on Hand')}</span>` : 'â'}</td>
+      <td style="font-size:11px;color:var(--muted)">${getField(r,'Suggested Dose') || '—'}</td>
+      <td style="font-size:11px;color:var(--muted)">${getField(r,'Cycle Type') || '—'}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:12px;text-align:center">${getField(r,'Vials on Hand') !== '' ? `<span style="color:${getField(r,'Vials on Hand') <= 1 ? 'var(--red)' : getField(r,'Vials on Hand') <= 3 ? 'var(--amber)' : 'var(--green)'};font-weight:600">${getField(r,'Vials on Hand')}</span>` : '—'}</td>
       <td>${badge(getField(r,'Status'))}</td>
       <td style="font-size:12px;color:var(--muted);white-space:nowrap">${fmtDate(getField(r,'StartDate'))}</td>
       <td style="font-size:12px;color:var(--muted);white-space:nowrap">${fmtDate(getField(r,'EndDate'))}</td>
@@ -1722,9 +1722,9 @@ function renderPeptides(filter) {
   const pmPeps = records.filter(r => { const t = getField(r,'Timing'); return t && t.toLowerCase().includes('night'); });
   const otherPeps = records.filter(r => !getField(r,'Timing'));
   let html = '';
-  if (amPeps.length) html += `<div class="table-wrap"><div class="timing-header">â Morning</div>${pepTableHTML(amPeps)}</div>`;
-  if (pmPeps.length) html += `<div class="table-wrap"><div class="timing-header">ð Night</div>${pepTableHTML(pmPeps)}</div>`;
-  if (otherPeps.length) html += `<div class="table-wrap"><div class="timing-header">â Other</div>${pepTableHTML(otherPeps)}</div>`;
+  if (amPeps.length) html += `<div class="table-wrap"><div class="timing-header">☀ Morning</div>${pepTableHTML(amPeps)}</div>`;
+  if (pmPeps.length) html += `<div class="table-wrap"><div class="timing-header">🌙 Night</div>${pepTableHTML(pmPeps)}</div>`;
+  if (otherPeps.length) html += `<div class="table-wrap"><div class="timing-header">○ Other</div>${pepTableHTML(otherPeps)}</div>`;
   if (!html) html = `<div style="padding:24px;color:var(--muted);font-size:13px">No peptides found for filter: <strong>${filter}</strong>.</div>`;
   document.getElementById('peptides-content').innerHTML = html;
 }
@@ -1736,8 +1736,8 @@ function sortSupp(col) {
   renderSupplements(currentSuppFilter || 'all');
 }
 function suppSortIcon(col) {
-  if (suppSort.col !== col) return ' <span style="color:#d1d5db">â</span>';
-  return suppSort.dir === 1 ? ' <span style="color:var(--accent)">â</span>' : ' <span style="color:var(--accent)">â</span>';
+  if (suppSort.col !== col) return ' <span style="color:#d1d5db">⇅</span>';
+  return suppSort.dir === 1 ? ' <span style="color:var(--accent)">↑</span>' : ' <span style="color:var(--accent)">↓</span>';
 }
 function renderSupplements(filter) {
   currentSuppFilter = filter;
@@ -1755,7 +1755,7 @@ function renderSupplements(filter) {
   timings.forEach(t => {
     const group = records.filter(r => getField(r,'SuppTiming') === t);
     if (!group.length) return;
-    const icon = t === 'Morning' ? 'â' : t === 'Dinner' ? 'ð½' : 'ð';
+    const icon = t === 'Morning' ? '☀' : t === 'Dinner' ? '🍽' : '🌙';
     html += `<div class="table-wrap">
       <div class="timing-header">${icon} ${t}</div>
       <table class="data-table"><thead><tr>
@@ -1772,7 +1772,7 @@ function renderSupplements(filter) {
         <td style="font-size:12px;color:var(--muted)">${getField(r,'SuppPurpose')}</td>
         <td style="font-size:12px;color:var(--muted)">${getField(r,'Brand')}</td>
         <td>${badge(getField(r,'SuppStatus'))}</td>
-        <td style="font-size:12px;color:var(--muted)">${getField(r,'SuppSource')||'â'}</td>
+        <td style="font-size:12px;color:var(--muted)">${getField(r,'SuppSource')||'—'}</td>
         <td style="font-size:12px;color:var(--muted);white-space:nowrap">${fmtDate(getField(r,'SuppStartDate'))}</td>
         <td style="font-size:12px;color:var(--muted);white-space:nowrap">${fmtDate(getField(r,'SuppEndDate'))}</td>
       </tr>`).join('')}
@@ -1782,7 +1782,7 @@ function renderSupplements(filter) {
   const other = records.filter(r => !['Morning','Dinner','Night'].includes(getField(r,'SuppTiming')));
   if (other.length) {
     html += `<div class="table-wrap">
-      <div class="timing-header">â Other / TBD</div>
+      <div class="timing-header">○ Other / TBD</div>
       <table class="data-table"><thead><tr>
         <th style="cursor:pointer" onclick="sortSupp('Supplement')">Supplement${suppSortIcon('Supplement')}</th>
         <th style="cursor:pointer" onclick="sortSupp('Dose')">Dose${suppSortIcon('Dose')}</th>
@@ -1797,7 +1797,7 @@ function renderSupplements(filter) {
         <td style="font-size:12px;color:var(--muted)">${getField(r,'SuppPurpose')}</td>
         <td style="font-size:12px;color:var(--muted)">${getField(r,'Brand')}</td>
         <td>${badge(getField(r,'SuppStatus'))}</td>
-        <td style="font-size:12px;color:var(--muted)">${getField(r,'SuppSource')||'â'}</td>
+        <td style="font-size:12px;color:var(--muted)">${getField(r,'SuppSource')||'—'}</td>
         <td style="font-size:12px;color:var(--muted);white-space:nowrap">${fmtDate(getField(r,'SuppStartDate'))}</td>
         <td style="font-size:12px;color:var(--muted);white-space:nowrap">${fmtDate(getField(r,'SuppEndDate'))}</td>
       </tr>`).join('')}
@@ -1928,12 +1928,12 @@ function renderTracker(weekNum) {
   const monday = getTrackerMonday();
   const sunday = new Date(monday); sunday.setDate(monday.getDate() + 6);
   const fmt = d => d.toLocaleDateString('en-US', {month:'short', day:'numeric'});
-  const weekLabel = `${fmt(monday)} â ${fmt(sunday)}, ${monday.getFullYear()}`;
+  const weekLabel = `${fmt(monday)} – ${fmt(sunday)}, ${monday.getFullYear()}`;
   const mondayISO = monday.toISOString().split('T')[0];
 
   function dayCell(compound, dayIdx, bg) {
     const active = TRACKER_SCHEDULE[compound];
-    // In historical mode, don't gray out days â injection log is the ground truth
+    // In historical mode, don't gray out days — injection log is the ground truth
     const isActive = trackerHistoricalData || !active || active.includes(dayIdx);
     const dayDate = new Date(monday); dayDate.setDate(monday.getDate() + dayIdx);
     const dateStr = dayDate.toISOString().split('T')[0];
@@ -1958,13 +1958,13 @@ function renderTracker(weekNum) {
   let html = `
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
     <div style="display:flex;align-items:center;gap:8px">
-      <button onclick="shiftTrackerWeek(-1)" style="padding:4px 10px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:var(--surface);font-size:13px">â¹ Prev</button>
+      <button onclick="shiftTrackerWeek(-1)" style="padding:4px 10px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:var(--surface);font-size:13px">‹ Prev</button>
       <span style="font-family:'DM Mono',monospace;font-size:13px;font-weight:600">${weekLabel}</span>
-      <button onclick="shiftTrackerWeek(1)" style="padding:4px 10px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:var(--surface);font-size:13px">Next âº</button>
+      <button onclick="shiftTrackerWeek(1)" style="padding:4px 10px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:var(--surface);font-size:13px">Next ›</button>
     </div>
     <div style="display:flex;gap:8px">
-      <button onclick="saveTrackerWeek('${mondayISO}')" style="padding:5px 14px;background:var(--accent);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px">ð¾ Save Week</button>
-      <button onclick="printTracker()" style="padding:5px 14px;background:var(--surface);border:1px solid var(--border);border-radius:6px;cursor:pointer;font-size:13px">ð¨ Print</button>
+      <button onclick="saveTrackerWeek('${mondayISO}')" style="padding:5px 14px;background:var(--accent);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px">💾 Save Week</button>
+      <button onclick="printTracker()" style="padding:5px 14px;background:var(--surface);border:1px solid var(--border);border-radius:6px;cursor:pointer;font-size:13px">🖨 Print</button>
     </div>
   </div>
   <div style="border:3px solid #000;border-radius:8px;overflow-x:auto"><table style="border-collapse:collapse;width:100%;font-size:13px;min-width:820px">
@@ -1976,13 +1976,13 @@ function renderTracker(weekNum) {
   </tr></thead><tbody>`;
 
   if (morning.length) {
-    html += `<tr><td colspan="11" style="background:#E8A838;color:#fff;font-weight:bold;padding:5px 10px;font-size:13px">â Morning</td></tr>`;
+    html += `<tr><td colspan="11" style="background:#E8A838;color:#fff;font-weight:bold;padding:5px 10px;font-size:13px">☀ Morning</td></tr>`;
     morning.forEach(r => {
       const name = getField(r,'Compound');
       html += `<tr>
         <td style="padding:5px 10px;border:1px solid #000;background:${MORN_BG}">
           <div style="font-weight:700;font-size:13px;line-height:1.3;color:var(--text)">${name}</div>
-          <div style="font-size:10px;color:var(--muted);margin-top:1px">${[getField(r,'Dose'), getField(r,'Frequency')].filter(Boolean).join(' Â· ')}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:1px">${[getField(r,'Dose'), getField(r,'Frequency')].filter(Boolean).join(' · ')}</div>
         </td>
         ${days.map((_,i) => dayCell(name, i, MORN_BG)).join('')}
         ${vialBtns(name)}
@@ -1996,13 +1996,13 @@ function renderTracker(weekNum) {
 
   if (night.length) {
     html += `<tr><td colspan="11" style="height:36px;background:var(--surface2);border-top:1px solid #ccc"></td></tr>`;
-    html += `<tr><td colspan="11" style="background:#4A6FA5;color:#fff;font-weight:bold;padding:5px 10px;font-size:13px">ð Night</td></tr>`;
+    html += `<tr><td colspan="11" style="background:#4A6FA5;color:#fff;font-weight:bold;padding:5px 10px;font-size:13px">🌙 Night</td></tr>`;
     night.forEach(r => {
       const name = getField(r,'Compound');
       html += `<tr>
         <td style="padding:5px 10px;border:1px solid #000;background:${NIGHT_BG}">
           <div style="font-weight:700;font-size:13px;line-height:1.3;color:var(--text)">${name}</div>
-          <div style="font-size:10px;color:var(--muted);margin-top:1px">${[getField(r,'Dose'), getField(r,'Frequency')].filter(Boolean).join(' Â· ')}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:1px">${[getField(r,'Dose'), getField(r,'Frequency')].filter(Boolean).join(' · ')}</div>
         </td>
         ${days.map((_,i) => dayCell(name, i, NIGHT_BG)).join('')}
         ${vialBtns(name)}
@@ -2057,13 +2057,13 @@ async function loadTrackerWeekData(mondayISO) {
       'N':  ['#e5e7eb','#6b7280','#6b7280'],
       'Abd':['#f3e8ff','#9333ea','#7e22ce'],
       'X':  ['#fce7f3','#db2777','#be185d'],
-      'â':  ['#dcfce7','#16a34a','#15803d']
+      '✓':  ['#dcfce7','#16a34a','#15803d']
     };
     const CYCLE = ['L','R','S','N'];
     function applyState(box, site) {
       box.dataset.s = site;
       box.textContent = site;
-      const c = COLORS[site] || COLORS['â'];
+      const c = COLORS[site] || COLORS['✓'];
       box.style.background = c[0]; box.style.borderColor = c[1]; box.style.color = c[2];
     }
     const mon = new Date(mondayISO + 'T12:00:00');
@@ -2129,7 +2129,7 @@ async function loadTrackerWeekData(mondayISO) {
       const f = r.fields;
       const rawCompound = Array.isArray(f['Compound']) ? f['Compound'][0] : (f['Compound'] || f['Name']);
       const date = f['Date'];
-      const site = f['Site'] || 'â';
+      const site = f['Site'] || '✓';
       if (!rawCompound || !date) return;
       const resolved = resolveCompound(rawCompound);
       const box = allBoxes.find(b => norm(b.dataset.compound) === resolved && b.dataset.date === date);
@@ -2204,7 +2204,7 @@ async function saveTrackerWeek(mondayISO) {
   noteInputs.forEach(n => {
     if (n.value.trim()) entries.push(`NOTE|${n.dataset.compound}:${n.value.trim()}`);
   });
-  if (!entries.length) { alert('Nothing to save â mark some injections first.'); return; }
+  if (!entries.length) { alert('Nothing to save — mark some injections first.'); return; }
   try {
     await fetch(`https://api.airtable.com/v0/${BASE}/${TABLES.dailyLog}`, {
       method: 'POST',
@@ -2215,7 +2215,7 @@ async function saveTrackerWeek(mondayISO) {
         [DL.pepTaken]: true
       }})
     });
-    alert('Week saved â');
+    alert('Week saved ✓');
   } catch(e) { alert('Save failed: ' + e.message); }
 }
 
@@ -2308,11 +2308,11 @@ async function showBulkEdit() {
   if (!vendor) { alert('Select a vendor first'); return; }
 
   // Show modal with loading state immediately
-  document.getElementById('bulk-modal-title').textContent = `Bulk Edit â ${vendor}`;
+  document.getElementById('bulk-modal-title').textContent = `Bulk Edit — ${vendor}`;
   document.getElementById('bulk-modal-body').innerHTML = '<div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div>';
   document.getElementById('bulk-save-status').style.display = 'none';
   document.getElementById('bulk-save-btn').disabled = false;
-  document.getElementById('bulk-save-btn').textContent = 'ð¾ Save All';
+  document.getElementById('bulk-save-btn').textContent = '💾 Save All';
   document.getElementById('bulk-pricing-modal').style.display = 'flex';
 
   const vendorRecord = vendorsData.find(r => (r.fields||{})['Vendor'] === vendor);
@@ -2373,7 +2373,7 @@ async function showBulkEdit() {
     const f = r.fields || {};
     const rowUrl = f['fldSwpah2L7TCe8pc'] || f['URL'] || vendorWebsite || '';
     html += `<tr style="border-bottom:1px solid var(--border)" data-id="${r.id}">
-      <td style="padding:7px 8px;font-weight:500">${f['Peptide'] || 'â'}</td>
+      <td style="padding:7px 8px;font-weight:500">${f['Peptide'] || '—'}</td>
       <td style="padding:4px 8px">
         <input type="number" step="1" min="0" value="${f['Vial Size'] || ''}" placeholder="mg"
           class="bulk-vial" data-id="${r.id}"
@@ -2384,7 +2384,7 @@ async function showBulkEdit() {
           class="bulk-price" data-id="${r.id}"
           style="width:80px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:13px;font-family:'DM Mono',monospace;background:var(--surface)">
       </td>
-      ${rowUrl ? `<td style="padding:4px 4px"><a href="${rowUrl}" target="_blank" style="font-size:11px;color:var(--accent);text-decoration:none">â</a></td>` : (vendorWebsite ? '<td></td>' : '')}
+      ${rowUrl ? `<td style="padding:4px 4px"><a href="${rowUrl}" target="_blank" style="font-size:11px;color:var(--accent);text-decoration:none">↗</a></td>` : (vendorWebsite ? '<td></td>' : '')}
     </tr>`;
   });
 
@@ -2393,7 +2393,7 @@ async function showBulkEdit() {
   document.getElementById('bulk-modal-body').innerHTML = html;
   document.getElementById('bulk-save-status').style.display = 'none';
   document.getElementById('bulk-save-btn').disabled = false;
-  document.getElementById('bulk-save-btn').textContent = 'ð¾ Save All';
+  document.getElementById('bulk-save-btn').textContent = '💾 Save All';
   document.getElementById('bulk-pricing-modal').style.display = 'flex';
 
   setTimeout(() => {
@@ -2419,7 +2419,7 @@ async function saveBulkPricing() {
   const btn = document.getElementById('bulk-save-btn');
   const statusEl = document.getElementById('bulk-save-status');
   btn.disabled = true;
-  btn.textContent = 'â³ Saving...';
+  btn.textContent = '⏳ Saving...';
   statusEl.style.display = 'block';
   statusEl.textContent = '';
 
@@ -2454,7 +2454,7 @@ async function saveBulkPricing() {
     } catch(e) { errors++; }
   }
 
-  btn.textContent = 'â Done';
+  btn.textContent = '✅ Done';
   statusEl.textContent = `Saved ${saved} rows${skipped ? `, ${skipped} skipped (no data)` : ''}${errors ? `, ${errors} errors` : ''}.`;
   renderPricing();
 }
@@ -2470,7 +2470,7 @@ function renderPricing() {
     data.peptides.filter(r => getField(r,'Status') === 'Active').forEach(r => activePeptides.add(getField(r,'Compound')));
   }
 
-  // Group by peptide â store record ID
+  // Group by peptide — store record ID
   const groups = {};
   pricingData.forEach(r => {
     const f = r.fields || {};
@@ -2509,7 +2509,7 @@ function renderPricing() {
       <div class="pricing-group-header">
         ${peptide}
         ${bestIdx >= 0 ? `<span class="best-badge">Best: ${priced[bestIdx]['Vendor']} @ $${bestPpm.toFixed(2)}/mg</span>` : ''}
-        ${bestIdx >= 0 && (priced[bestIdx]['fldSwpah2L7TCe8pc'] || priced[bestIdx]['URL']) ? `<button class="price-check-btn" onclick="window.open('${priced[bestIdx]['fldSwpah2L7TCe8pc'] || priced[bestIdx]['URL']}','_blank')">Check Price â</button>` : ''}
+        ${bestIdx >= 0 && (priced[bestIdx]['fldSwpah2L7TCe8pc'] || priced[bestIdx]['URL']) ? `<button class="price-check-btn" onclick="window.open('${priced[bestIdx]['fldSwpah2L7TCe8pc'] || priced[bestIdx]['URL']}','_blank')">Check Price ↗</button>` : ''}
       </div>
       <div class="table-wrap" style="border-radius:0 0 8px 8px;margin:0">
         <table class="data-table">
@@ -2519,10 +2519,10 @@ function renderPricing() {
               const ppm = r['Price'] && r['Vial Size'] ? (r['Price'] / r['Vial Size']).toFixed(2) : null;
               const isBest = priced[bestIdx] && priced[bestIdx]['_id'] === r['_id'];
               return `<tr class="${isBest ? 'pricing-row-best' : ''}">
-                <td style="font-weight:${isBest ? '600' : '400'}">${r['Vendor'] || 'â'}</td>
-                <td style="font-family:'DM Mono',monospace;font-size:12px" id="vdisplay-${r['_id']}">${r['Vial Size'] ? r['Vial Size'] + 'mg' : 'â'}</td>
-                <td style="font-family:'DM Mono',monospace;font-size:12px" id="pdisplay-${r['_id']}">${r['Price'] ? '$' + r['Price'].toFixed(2) : '<span class=\"no-price\">â</span>'}</td>
-                <td style="font-family:'DM Mono',monospace;font-size:12px;color:${isBest ? 'var(--green)' : 'var(--text)'}" id="ppm-${r['_id']}">${ppm ? '$' + ppm : 'â'}</td>
+                <td style="font-weight:${isBest ? '600' : '400'}">${r['Vendor'] || '—'}</td>
+                <td style="font-family:'DM Mono',monospace;font-size:12px" id="vdisplay-${r['_id']}">${r['Vial Size'] ? r['Vial Size'] + 'mg' : '—'}</td>
+                <td style="font-family:'DM Mono',monospace;font-size:12px" id="pdisplay-${r['_id']}">${r['Price'] ? '$' + r['Price'].toFixed(2) : '<span class=\"no-price\">—</span>'}</td>
+                <td style="font-family:'DM Mono',monospace;font-size:12px;color:${isBest ? 'var(--green)' : 'var(--text)'}" id="ppm-${r['_id']}">${ppm ? '$' + ppm : '—'}</td>
                 <td><div style="display:flex;gap:4px;align-items:center">
                   <input type="number" step="0.01" min="0" placeholder="${r['Price'] ? r['Price'].toFixed(2) : 'price'}"
                     style="width:65px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;font-family:'DM Mono',monospace"
@@ -2532,7 +2532,7 @@ function renderPricing() {
                     id="vialinput-${r['_id']}">
                   <button class="price-check-btn" onclick="updatePrice('${r['_id']}')">Save</button>
                 </div></td>
-                <td>${r['fldSwpah2L7TCe8pc'] || r['URL'] ? `<button class="price-check-btn" onclick="window.open('${r['fldSwpah2L7TCe8pc'] || r['URL']}','_blank')">â</button>` : ''}</td>
+                <td>${r['fldSwpah2L7TCe8pc'] || r['URL'] ? `<button class="price-check-btn" onclick="window.open('${r['fldSwpah2L7TCe8pc'] || r['URL']}','_blank')">↗</button>` : ''}</td>
               </tr>`;
             }).join('')}
           </tbody>
@@ -2659,12 +2659,12 @@ function renderVendors() {
             : (r['Peptides Carried'] ? String(r['Peptides Carried']).split(',').map(s=>s.trim()) : [])).sort((a,b) => a.localeCompare(b));
           const rowId = 'vendor-expand-' + (r.id || r['Vendor'] || Math.random());
           return `<tr style="cursor:pointer" onclick="toggleVendorExpand('${rowId}')">
-            <td style="font-weight:500">${r['Vendor'] || 'â'}</td>
-            <td><span style="font-size:11px;padding:2px 7px;border-radius:10px;background:${r['Tier']==='Primary'?'var(--accent-light)':r['Tier']==='Evaluating'?'#fef9c3':'var(--surface2)'};color:${r['Tier']==='Primary'?'var(--accent)':r['Tier']==='Evaluating'?'#854d0e':'var(--muted)'}">${r['Tier']||'â'}</span></td>
-            <td onclick="event.stopPropagation()">${r['Website'] ? `<a href="https://${r['Website']}" target="_blank" style="color:var(--accent);font-size:12px">${r['Website']}</a>` : 'â'}</td>
-            <td><span style="font-size:11px;color:${r['Status']==='Active'?'var(--green)':'var(--muted)'}">${r['Status']||'â'}</span></td>
-            <td style="font-size:12px;color:var(--muted)">${peptides.length ? `${peptides.slice(0,3).join(', ')}${peptides.length > 3 ? ` <span style="color:var(--accent);font-size:11px">+${peptides.length-3} more â¼</span>` : ''}` : 'â'}</td>
-            <td style="font-size:12px;color:var(--muted)">${r['Notes']||'â'}</td>
+            <td style="font-weight:500">${r['Vendor'] || '—'}</td>
+            <td><span style="font-size:11px;padding:2px 7px;border-radius:10px;background:${r['Tier']==='Primary'?'var(--accent-light)':r['Tier']==='Evaluating'?'#fef9c3':'var(--surface2)'};color:${r['Tier']==='Primary'?'var(--accent)':r['Tier']==='Evaluating'?'#854d0e':'var(--muted)'}">${r['Tier']||'—'}</span></td>
+            <td onclick="event.stopPropagation()">${r['Website'] ? `<a href="https://${r['Website']}" target="_blank" style="color:var(--accent);font-size:12px">${r['Website']}</a>` : '—'}</td>
+            <td><span style="font-size:11px;color:${r['Status']==='Active'?'var(--green)':'var(--muted)'}">${r['Status']||'—'}</span></td>
+            <td style="font-size:12px;color:var(--muted)">${peptides.length ? `${peptides.slice(0,3).join(', ')}${peptides.length > 3 ? ` <span style="color:var(--accent);font-size:11px">+${peptides.length-3} more ▼</span>` : ''}` : '—'}</td>
+            <td style="font-size:12px;color:var(--muted)">${r['Notes']||'—'}</td>
           </tr>
           <tr id="${rowId}" style="display:none;background:var(--surface2)">
             <td colspan="6" style="padding:12px 16px">
@@ -2739,8 +2739,8 @@ function sortVendors(col) {
 }
 
 function vendorSortIcon(col) {
-  if (vendorSortCol !== col) return '<span style="color:#ccc"> â</span>';
-  return vendorSortDir === 1 ? ' â' : ' â';
+  if (vendorSortCol !== col) return '<span style="color:#ccc"> ↕</span>';
+  return vendorSortDir === 1 ? ' ↑' : ' ↓';
 }
 
 // ===== WORKOUT DATA =====
@@ -2867,16 +2867,16 @@ async function loadWorkoutDay(day) {
 
   exercises.forEach((ex, i) => {
     const varHtml = ex.variations.length > 1
-      ? `<select class="set-input" style="width:120px" id="var-${i}"><option value="">â</option>${ex.variations.map(v=>`<option>${v}</option>`).join('')}</select>`
-      : `<span class="variation-label">${ex.variations[0] || (ex.note || 'â')}</span>`;
+      ? `<select class="set-input" style="width:120px" id="var-${i}"><option value="">—</option>${ex.variations.map(v=>`<option>${v}</option>`).join('')}</select>`
+      : `<span class="variation-label">${ex.variations[0] || (ex.note || '—')}</span>`;
     
     let setCols = '';
     for (let s = 1; s <= 3; s++) {
       const key = ex.name + '|' + s;
       const prev = workoutPrevData[key];
-      const prevHint = prev ? `<span class="prev-weight">prev: ${prev.weight || 'â'}lbs</span>` : '';
-      setCols += `<td style="text-align:center"><input type="number" class="set-input" id="reps-${i}-${s}" placeholder="${prev?.reps || 'â'}" min="0"></td>
-                  <td style="text-align:center"><input type="number" class="set-input" id="wt-${i}-${s}" placeholder="${prev?.weight || 'â'}" min="0" step="2.5">${prevHint}</td>`;
+      const prevHint = prev ? `<span class="prev-weight">prev: ${prev.weight || '—'}lbs</span>` : '';
+      setCols += `<td style="text-align:center"><input type="number" class="set-input" id="reps-${i}-${s}" placeholder="${prev?.reps || '—'}" min="0"></td>
+                  <td style="text-align:center"><input type="number" class="set-input" id="wt-${i}-${s}" placeholder="${prev?.weight || '—'}" min="0" step="2.5">${prevHint}</td>`;
     }
 
     html += `<tr>
@@ -2953,7 +2953,7 @@ async function saveWorkout() {
     }
 
     status.style.display = 'block';
-    status.textContent = `â Workout saved â ${setRecords.length} sets logged`;
+    status.textContent = `✅ Workout saved — ${setRecords.length} sets logged`;
     btn.textContent = 'Saved!';
     setTimeout(() => { btn.disabled = false; btn.textContent = 'Save Workout'; }, 2000);
 
@@ -2998,11 +2998,11 @@ async function loadWorkoutHistory() {
     el.innerHTML = `<div class="table-wrap"><table class="data-table">
       <thead><tr><th>Date</th><th>Day</th><th>Duration</th><th>Sleep</th><th>Deep Sleep</th><th>Notes</th></tr></thead>
       <tbody>${records.map(r => `<tr>
-        <td style="font-family:'DM Mono',monospace;font-size:12px">${r['Date'] || 'â'}</td>
-        <td style="font-weight:500">${r['Day'] || 'â'}</td>
-        <td style="font-family:'DM Mono',monospace;font-size:12px">${r['Duration (min)'] ? r['Duration (min)'] + 'min' : 'â'}</td>
-        <td style="font-family:'DM Mono',monospace;font-size:12px">${r['Sleep (hrs)'] ? r['Sleep (hrs)'] + 'h' : 'â'}</td>
-        <td style="font-family:'DM Mono',monospace;font-size:12px">${r['Deep Sleep (min)'] ? r['Deep Sleep (min)'] + 'min' : 'â'}</td>
+        <td style="font-family:'DM Mono',monospace;font-size:12px">${r['Date'] || '—'}</td>
+        <td style="font-weight:500">${r['Day'] || '—'}</td>
+        <td style="font-family:'DM Mono',monospace;font-size:12px">${r['Duration (min)'] ? r['Duration (min)'] + 'min' : '—'}</td>
+        <td style="font-family:'DM Mono',monospace;font-size:12px">${r['Sleep (hrs)'] ? r['Sleep (hrs)'] + 'h' : '—'}</td>
+        <td style="font-family:'DM Mono',monospace;font-size:12px">${r['Deep Sleep (min)'] ? r['Deep Sleep (min)'] + 'min' : '—'}</td>
         <td style="font-size:12px;color:var(--muted)">${r['Notes'] || ''}</td>
       </tr>`).join('')}</tbody>
     </table></div>`;
@@ -3030,11 +3030,11 @@ async function loadExerciseProgress(exercise) {
     el.innerHTML = `<div class="table-wrap"><table class="data-table">
       <thead><tr><th>Date</th><th>Set</th><th>Reps</th><th>Weight</th><th>Variation</th></tr></thead>
       <tbody>${records.map(r => `<tr>
-        <td style="font-family:'DM Mono',monospace;font-size:12px">${r['Date'] || 'â'}</td>
-        <td style="text-align:center">${r['Set#'] || 'â'}</td>
-        <td style="text-align:center;font-family:'DM Mono',monospace">${r['Reps'] || 'â'}</td>
-        <td style="text-align:center;font-family:'DM Mono',monospace;font-weight:500">${r['Weight'] ? r['Weight'] + 'lbs' : 'â'}</td>
-        <td style="font-size:12px;color:var(--muted)">${r['Variation'] || 'â'}</td>
+        <td style="font-family:'DM Mono',monospace;font-size:12px">${r['Date'] || '—'}</td>
+        <td style="text-align:center">${r['Set#'] || '—'}</td>
+        <td style="text-align:center;font-family:'DM Mono',monospace">${r['Reps'] || '—'}</td>
+        <td style="text-align:center;font-family:'DM Mono',monospace;font-weight:500">${r['Weight'] ? r['Weight'] + 'lbs' : '—'}</td>
+        <td style="font-size:12px;color:var(--muted)">${r['Variation'] || '—'}</td>
       </tr>`).join('')}</tbody>
     </table></div>`;
   } catch(e) { el.innerHTML = '<p style="color:var(--red)">Failed to load progress: ' + e.message + '</p>'; }
@@ -3174,7 +3174,7 @@ function showAuditWeek(mon, weekData, DAYS) {
   function cell(entries) {
     if (!entries || !entries.length) return '<td style="border:1px solid #ccc;min-width:52px"></td>';
     const s = entries[0].site;
-    if (!s) return '<td style="border:1px solid #ccc;min-width:52px;text-align:center;padding:6px 2px;background:#f3f4f6;font-size:11px;color:#9ca3af">â¢</td>';
+    if (!s) return '<td style="border:1px solid #ccc;min-width:52px;text-align:center;padding:6px 2px;background:#f3f4f6;font-size:11px;color:#9ca3af">•</td>';
     return '<td style="border:1px solid #ccc;min-width:52px;text-align:center;padding:6px 2px;background:' + (CC[s]||'#dcfce7') + ';font-size:13px;font-weight:700;color:' + (TC[s]||'#15803d') + '">' + s + '</td>';
   }
   let html = '<table style="border-collapse:collapse;font-size:13px;width:100%"><thead><tr>';
@@ -3225,12 +3225,12 @@ async function saveLog() {
       headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ records: [{ fields }] })
     });
-    status.textContent = 'â Saved to Airtable';
+    status.textContent = '✓ Saved to Airtable';
     status.style.color = '#16a34a';
     document.querySelectorAll('.form-field input, .form-field select').forEach(i => i.value = '');
     setTimeout(() => status.textContent = '', 3000);
   } catch(e) {
-    status.textContent = 'â Error saving';
+    status.textContent = '✗ Error saving';
     status.style.color = '#dc2626';
   }
   btn.disabled = false;
@@ -3244,7 +3244,7 @@ async function loadPurchases() {
   const el = document.getElementById('purchases-content');
   if (!el) return;
   if (TABLES.purchases === 'PURCHASES_TABLE_ID') {
-    el.innerHTML = '<div style="padding:20px;background:var(--amber-bg);border:1px solid #fcd34d;border-radius:8px;font-size:13px;color:var(--amber)">â ï¸ Purchases table not yet set up in Airtable. Create a table named <strong>Purchases</strong> with fields: Order ID, Vendor, Compound, Date, Qty, Price Paid, Total, Notes â then tell Claude the table ID to add it here.</div>';
+    el.innerHTML = '<div style="padding:20px;background:var(--amber-bg);border:1px solid #fcd34d;border-radius:8px;font-size:13px;color:var(--amber)">⚠️ Purchases table not yet set up in Airtable. Create a table named <strong>Purchases</strong> with fields: Order ID, Vendor, Compound, Date, Qty, Price Paid, Total, Notes — then tell Claude the table ID to add it here.</div>';
     return;
   }
   el.innerHTML = '<div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div>';
@@ -3343,14 +3343,14 @@ function renderPurchases() {
       const f = r.fields;
       const total = f['Total'] || ((f['Price Paid'] || 0) * (f['Qty'] || 1));
       return `<tr>
-        <td style="font-family:'DM Mono',monospace;font-size:12px">${f['Date'] || 'â'}</td>
-        <td style="font-weight:500">${f['Vendor'] || 'â'}</td>
-        <td>${f['Compound'] || 'â'}</td>
-        <td style="font-family:'DM Mono',monospace;font-size:12px;text-align:center">${f['Qty'] || 'â'}</td>
-        <td style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)">${f['Vial Size'] || 'â'}</td>
-        <td style="font-family:'DM Mono',monospace;font-size:12px">${f['Price Paid'] ? '$' + f['Price Paid'].toFixed(2) : 'â'}</td>
-        <td style="font-family:'DM Mono',monospace;font-size:12px;font-weight:500;color:var(--accent)">${total ? '$' + total.toFixed(2) : 'â'}</td>
-        <td style="font-size:11px;color:var(--muted)">${f['Order ID'] || 'â'}</td>
+        <td style="font-family:'DM Mono',monospace;font-size:12px">${f['Date'] || '—'}</td>
+        <td style="font-weight:500">${f['Vendor'] || '—'}</td>
+        <td>${f['Compound'] || '—'}</td>
+        <td style="font-family:'DM Mono',monospace;font-size:12px;text-align:center">${f['Qty'] || '—'}</td>
+        <td style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)">${f['Vial Size'] || '—'}</td>
+        <td style="font-family:'DM Mono',monospace;font-size:12px">${f['Price Paid'] ? '$' + f['Price Paid'].toFixed(2) : '—'}</td>
+        <td style="font-family:'DM Mono',monospace;font-size:12px;font-weight:500;color:var(--accent)">${total ? '$' + total.toFixed(2) : '—'}</td>
+        <td style="font-size:11px;color:var(--muted)">${f['Order ID'] || '—'}</td>
         <td style="font-size:12px;color:var(--muted)">${f['Notes'] || ''}</td>
       </tr>`;
     }).join('')}
@@ -3410,7 +3410,7 @@ const LAB_WATCHLIST_GROUPS = [
   { label: 'Blood / Immune', markers: ['Hematocrit','WBC','Neutrophils Absolute'] },
 ];
 
-// Known assay upper limits â display as ">value" when hit
+// Known assay upper limits — display as ">value" when hit
 const ASSAY_MAX = { 'Testosterone': 1500 };
 
 const LAB_MARKERS = [
@@ -3511,7 +3511,7 @@ function renderLabsFlagBar() {
   const out = filtered.filter(r=>r.Date===latest && r.Status==='Out of Range');
   if (!out.length) { bar.style.display='none'; return; }
   bar.style.display = 'block';
-  bar.innerHTML = `â ï¸ <strong>${latest}:</strong> ${out.length} out of range â ${out.map(r=>r.Biomarker).join(', ')}`;
+  bar.innerHTML = `⚠️ <strong>${latest}:</strong> ${out.length} out of range — ${out.map(r=>r.Biomarker).join(', ')}`;
 }
 
 function renderLabsTrend() {
@@ -3533,17 +3533,17 @@ function renderLabsTrend() {
   const HIGH_MARKERS = new Set(['Testosterone','Estradiol','PSA','Hematocrit','BUN','eGFR','Alkaline Phosphatase','AST','ALT']);
 
   const AI_WATCH = {
-    'Creatinine':        'Deca â kidney stress, tracks alongside BUN/eGFR',
-    'Calcium':           'New elevation in last draw â unexplained, monitor closely',
-    'Prolactin':         'Deca raises prolactin â gyno and libido risk',
-    'WBC':               'Elevated multiple draws â immune response, monitor trend',
-    'Neutrophils Absolute': 'Consistently HIGH â immune/inflammatory signal',
-    'Hemoglobin':        'TRT â secondary polycythemia indicator with Hematocrit',
-    'LDL':               'Anavar tanks HDL and raises LDL â lipid risk',
-    'HDL':               'Anavar significantly reduces HDL â cardiovascular risk',
-    'Triglycerides':     'Lipid panel context â Anavar + high protein diet',
+    'Creatinine':        'Deca — kidney stress, tracks alongside BUN/eGFR',
+    'Calcium':           'New elevation in last draw — unexplained, monitor closely',
+    'Prolactin':         'Deca raises prolactin — gyno and libido risk',
+    'WBC':               'Elevated multiple draws — immune response, monitor trend',
+    'Neutrophils Absolute': 'Consistently HIGH — immune/inflammatory signal',
+    'Hemoglobin':        'TRT — secondary polycythemia indicator with Hematocrit',
+    'LDL':               'Anavar tanks HDL and raises LDL — lipid risk',
+    'HDL':               'Anavar significantly reduces HDL — cardiovascular risk',
+    'Triglycerides':     'Lipid panel context — Anavar + high protein diet',
     'Glucose':           'Retatrutide + Tesamorelin both affect insulin sensitivity',
-    'IGF-1':             'Tesamorelin marker â confirm GH axis is responding',
+    'IGF-1':             'Tesamorelin marker — confirm GH axis is responding',
     'Vitamin D':         'Deficiency blunts testosterone response and recovery',
   };
   const AI_WATCH_SET = new Set(Object.keys(AI_WATCH));
@@ -3571,9 +3571,9 @@ function renderLabsTrend() {
   const getTrend = b => {
     const recs = lookup[b]; if (!recs) return '';
     const dv = dates.filter(d=>recs[d]?.Value!=null);
-    if (dv.length < 2) return '<span style="color:var(--muted)">â</span>';
+    if (dv.length < 2) return '<span style="color:var(--muted)">→</span>';
     const diff = recs[dv[dv.length-1]].Value - recs[dv[dv.length-2]].Value;
-    return diff > 0 ? '<span style="color:var(--red)">â</span>' : diff < 0 ? '<span style="color:var(--green)">â</span>' : '<span style="color:var(--muted)">â</span>';
+    return diff > 0 ? '<span style="color:var(--red)">↑</span>' : diff < 0 ? '<span style="color:var(--green)">↓</span>' : '<span style="color:var(--muted)">→</span>';
   };
   const getLatest = b => {
     const recs = lookup[b]; if (!recs) return null;
@@ -3591,7 +3591,7 @@ function renderLabsTrend() {
     inGroup.forEach(b => {
       const rec = getLatest(b);
       const isOut = rec?.Status === 'Out of Range';
-      const displayVal = rec ? ((ASSAY_MAX[b] && rec.Value >= ASSAY_MAX[b]) ? `>${rec.Value}` : rec.Value) : 'â';
+      const displayVal = rec ? ((ASSAY_MAX[b] && rec.Value >= ASSAY_MAX[b]) ? `>${rec.Value}` : rec.Value) : '—';
       const units = rec?.Units || Object.values(lookup[b]||{}).find(Boolean)?.Units || '';
       cardsHtml += `<tr style="border-top:1px solid var(--border)">
         <td style="padding:6px 10px;font-size:12px;font-weight:500;white-space:nowrap">${BIOMARKER_SHORT[b]||b}</td>
@@ -3617,22 +3617,22 @@ function renderLabsTrend() {
     let trend = '';
     if (datesWithVal.length >= 2) {
       const diff = recs[datesWithVal[datesWithVal.length-1]].Value - recs[datesWithVal[datesWithVal.length-2]].Value;
-      trend = diff > 0 ? '<span style="color:var(--red)">â</span>' : diff < 0 ? '<span style="color:var(--green)">â</span>' : '<span style="color:var(--muted)">â</span>';
+      trend = diff > 0 ? '<span style="color:var(--red)">↑</span>' : diff < 0 ? '<span style="color:var(--green)">↓</span>' : '<span style="color:var(--muted)">→</span>';
     }
     const cells = dates.map(d => {
       const r = recs[d];
-      if (!r) return `<td style="text-align:center;color:var(--border)">â</td>`;
+      if (!r) return `<td style="text-align:center;color:var(--border)">—</td>`;
       const out = r.Status === 'Out of Range';
-      const displayVal = (ASSAY_MAX[b] && r.Value >= ASSAY_MAX[b]) ? `>${r.Value}` : (r.Value ?? 'â');
+      const displayVal = (ASSAY_MAX[b] && r.Value >= ASSAY_MAX[b]) ? `>${r.Value}` : (r.Value ?? '—');
       return `<td style="text-align:center;font-family:'DM Mono',monospace;font-size:12px;${out?'background:rgba(239,68,68,0.07)':''}">
         <span style="${out?'color:var(--red);font-weight:700':''}">${displayVal}</span>
       </td>`;
     }).join('');
-    const why = AI_WATCH[b] || (HIGH_MARKERS.has(b) ? 'Critical marker â monitored every draw' : '');
+    const why = AI_WATCH[b] || (HIGH_MARKERS.has(b) ? 'Critical marker — monitored every draw' : '');
     const isCritical = HIGH_MARKERS.has(b);
     const isPinned = pinnedMarkers.has(b);
-    const critBadge = isCritical ? `<span style="font-size:10px;margin-left:4px" title="Critical">ð´</span>` : '';
-    const pinIcon = `<span onclick="event.stopPropagation();togglePin('${b.replace(/'/g,"\'")}')" style="cursor:pointer;opacity:${isPinned?'1':'0.25'};font-size:11px;margin-left:4px" title="${isPinned?'Unpin':'Pin'}">â­</span>`;
+    const critBadge = isCritical ? `<span style="font-size:10px;margin-left:4px" title="Critical">🔴</span>` : '';
+    const pinIcon = `<span onclick="event.stopPropagation();togglePin('${b.replace(/'/g,"\'")}')" style="cursor:pointer;opacity:${isPinned?'1':'0.25'};font-size:11px;margin-left:4px" title="${isPinned?'Unpin':'Pin'}">⭐</span>`;
     const whyTip = why ? `<span style="font-size:10px;color:var(--accent);margin-left:5px;cursor:help;font-weight:600" title="${why}">?</span>` : '';
     return `<tr>
       <td style="font-size:12px;white-space:nowrap;max-width:140px;overflow:hidden;text-overflow:ellipsis">${BIOMARKER_SHORT[b]||b}${critBadge}${whyTip}${pinIcon}</td>
@@ -3678,7 +3678,7 @@ function renderLabsDraw() {
 
   const out = records.filter(r=>r.Status==='Out of Range');
 
-  let html = out.length ? `<div style="padding:8px 16px;background:var(--red-bg);border-bottom:1px solid #fecaca;font-size:12px;color:var(--red);font-weight:500">â ï¸ ${out.length} out of range: ${out.map(r=>r.Biomarker).join(', ')}</div>` : '';
+  let html = out.length ? `<div style="padding:8px 16px;background:var(--red-bg);border-bottom:1px solid #fecaca;font-size:12px;color:var(--red);font-weight:500">⚠️ ${out.length} out of range: ${out.map(r=>r.Biomarker).join(', ')}</div>` : '';
 
   Object.keys(byType).sort().forEach(type => {
     html += `<div class="table-wrap" style="margin-bottom:16px">
@@ -3687,10 +3687,10 @@ function renderLabsDraw() {
       ${byType[type].map(r => {
         const isOut = r.Status === 'Out of Range';
         return `<tr>
-          <td style="font-weight:500">${r.Biomarker||'â'}</td>
-          <td style="font-family:'DM Mono',monospace;font-weight:600;${isOut?'color:var(--red)':''}">${r.Value??'â'}</td>
-          <td style="font-size:12px;color:var(--muted)">${r.Units||'â'}</td>
-          <td>${isOut?`<span style="color:var(--red);font-size:12px;font-weight:600">â  Out of Range</span>`:`<span style="color:var(--green);font-size:12px">â In Range</span>`}</td>
+          <td style="font-weight:500">${r.Biomarker||'—'}</td>
+          <td style="font-family:'DM Mono',monospace;font-weight:600;${isOut?'color:var(--red)':''}">${r.Value??'—'}</td>
+          <td style="font-size:12px;color:var(--muted)">${r.Units||'—'}</td>
+          <td>${isOut?`<span style="color:var(--red);font-size:12px;font-weight:600">⚠ Out of Range</span>`:`<span style="color:var(--green);font-size:12px">✓ In Range</span>`}</td>
         </tr>`;
       }).join('')}
       </tbody></table></div>`;
@@ -3787,13 +3787,13 @@ function renderChanges() {
     <thead><tr><th>Date</th><th>Type</th><th>Compound</th><th>Description</th><th>Reason</th><th>Impacted</th><th>Notes</th></tr></thead><tbody>
     ${filtered.map(r => {
       const f = r.fields || {};
-      const type = f['Change Type'] || 'â';
+      const type = f['Change Type'] || '—';
       const color = CHANGE_COLORS[type] || 'var(--muted)';
       return `<tr>
-        <td style="font-family:'DM Mono',monospace;font-size:12px;white-space:nowrap">${f['Change Date'] || 'â'}</td>
+        <td style="font-family:'DM Mono',monospace;font-size:12px;white-space:nowrap">${f['Change Date'] || '—'}</td>
         <td><span style="color:${color};font-weight:600;font-size:12px">${type}</span></td>
-        <td style="font-weight:500">${f['Compound'] || 'â'}</td>
-        <td style="font-size:12px">${f['Description of Change'] || 'â'}</td>
+        <td style="font-weight:500">${f['Compound'] || '—'}</td>
+        <td style="font-size:12px">${f['Description of Change'] || '—'}</td>
         <td style="font-size:12px;color:var(--muted)">${f['Reason for Change'] || ''}</td>
         <td style="font-size:12px;color:var(--muted)">${f['Impacted Peptides'] || ''}</td>
         <td style="font-size:12px;color:var(--muted)">${f['Notes'] || ''}</td>
@@ -3808,7 +3808,7 @@ function showAddChangeModal() {
   document.getElementById('ac-date').value = new Date().toISOString().split('T')[0];
   // Populate compound select from all non-Deferred/TBD peptides
   const sel = document.getElementById('ac-compound');
-  sel.innerHTML = '<option value="">â Select â</option>';
+  sel.innerHTML = '<option value="">— Select —</option>';
   const names = (data.peptides || [])
     .filter(r => !['Deferred','TBD'].includes((r.fields||{})['Status']))
     .map(r => (r.fields||{})['Compound'] || '')
@@ -3863,7 +3863,7 @@ async function saveAddChange() {
 
 
 function printTracker() {
-  // Uses current data.peptides â hit â» Sync first if doses were recently changed
+  // Uses current data.peptides — hit ↻ Sync first if doses were recently changed
   const activePeps = data.peptides.filter(r => getField(r,'Status') === 'Active');
   const pepMap = {};
   activePeps.forEach(r => { pepMap[getField(r,'Compound')] = r; });
@@ -3932,16 +3932,16 @@ function printTracker() {
       ${DAYS.map(d=>`<th style="border:1px solid #000;padding:2px 1px;text-align:center;font-size:7.5pt">${d}</th>`).join('')}
       <th style="border:1px solid #000;padding:2px 4px;text-align:left;font-size:7.5pt">Notes</th>
     </tr>
-    <tr><td colspan="9" style="background-color:${MORN_HDR}!important;color:#fff!important;font-weight:bold;padding:2px 5px;font-size:7.5pt">â Morning</td></tr>
+    <tr><td colspan="9" style="background-color:${MORN_HDR}!important;color:#fff!important;font-weight:bold;padding:2px 5px;font-size:7.5pt">☀ Morning</td></tr>
     ${rows(MORNING_ORDER, MORN_BG)}
     <tr><td colspan="9" style="height:4px;background-color:#ddd!important;border:1px solid #000"></td></tr>
-    <tr><td colspan="9" style="background-color:${WEEK_BLUE}!important;color:#fff!important;font-weight:bold;padding:2px 5px;font-size:7.5pt">ð Night</td></tr>
+    <tr><td colspan="9" style="background-color:${WEEK_BLUE}!important;color:#fff!important;font-weight:bold;padding:2px 5px;font-size:7.5pt">🌙 Night</td></tr>
     ${rows(NIGHT_ORDER, NIGHT_BG)}
 
     </tbody></table>`;
   }
 
-  // Auto-size: letter portrait @0.4in margins â 883px usable height
+  // Auto-size: letter portrait @0.4in margins ≈ 883px usable height
   // Per page: 2 week tables. Per table overhead: week-hdr(24) + col-hdr(20) + morn-hdr(18) +
   //   divider(6) + night-hdr(18) + margin-top(10) = 96px. Total fixed: 192px.
   // Available for data rows = (883 - 192) / (2 * totalRows)
@@ -4007,7 +4007,7 @@ function printProtocolList() {
       <td style="border:1px solid #ddd;padding:4px 8px;font-weight:600">${getField(r,'Supplement')}</td>
       <td style="border:1px solid #ddd;padding:4px 8px;font-family:monospace">${getField(r,'SuppDose')}</td>
       <td style="border:1px solid #ddd;padding:4px 8px;color:#666">${getField(r,'Brand')}</td>
-      <td style="border:1px solid #ddd;padding:4px 8px;color:#666">${getField(r,'SuppSource')||'â'}</td>
+      <td style="border:1px solid #ddd;padding:4px 8px;color:#666">${getField(r,'SuppSource')||'—'}</td>
     </tr>`).join('')}
     </tbody></table>`;
   }
@@ -4030,15 +4030,15 @@ function printProtocolList() {
   <div class="page-break">
     <div class="page-title">Active Peptide Protocol</div>
     <div class="page-sub">Generated ${dateStr}</div>
-    ${pepTable('â Morning', amPep)}
-    ${pepTable('ð Night', pmPep)}
+    ${pepTable('☀ Morning', amPep)}
+    ${pepTable('🌙 Night', pmPep)}
   </div>
   <div>
     <div class="page-title">Active Supplement Protocol</div>
     <div class="page-sub">Generated ${dateStr}</div>
-    ${suppTable('â Morning', mornSupp)}
-    ${suppTable('ð½ Dinner', dinSupp)}
-    ${suppTable('ð Night', nightSupp)}
+    ${suppTable('☀ Morning', mornSupp)}
+    ${suppTable('🍽 Dinner', dinSupp)}
+    ${suppTable('🌙 Night', nightSupp)}
   </div>
   </body></html>`;
 
@@ -4070,7 +4070,7 @@ function snoozeBackup() {
   document.getElementById('backup-reminder').style.display = 'none';
 }
 
-// ââ PRINT SHEET ââââââââââââââââââââââââââââââââââââââââââ
+// ── PRINT SHEET ──────────────────────────────────────────
 function renderPrintSheet() {
   const dateVal = document.getElementById('print-week-date') ? document.getElementById('print-week-date').value : '';
   const monday = dateVal ? new Date(dateVal + 'T00:00:00') : new Date();
@@ -4078,7 +4078,7 @@ function renderPrintSheet() {
   if (document.getElementById('print-sheet-preview')) document.getElementById('print-sheet-preview').innerHTML = html;
 }
 
-// ââ WEEKLY PRINT MODAL ââââââââââââââââââââââââââââââââââ
+// ── WEEKLY PRINT MODAL ──────────────────────────────────
 function openWeeklyPrint() {
   const modal = document.getElementById('weekly-print-modal');
   modal.style.display = 'block';
@@ -4100,7 +4100,7 @@ function renderModalPrintSheet() {
   if (inlinePreview) inlinePreview.innerHTML = html;
 }
 
-// ââ DATA BROWSER ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── DATA BROWSER ──────────────────────────────────────────────────────────────
 let _dbAllRows = [];
 let _dbColumns = [];
 
@@ -4111,9 +4111,9 @@ async function dbLoad() {
   const countEl = document.getElementById('db-count');
   if (!sel) return;
 
-  content.innerHTML = '<div style="padding:24px;color:var(--muted);font-size:13px">Loading all recordsâ¦</div>';
+  content.innerHTML = '<div style="padding:24px;color:var(--muted);font-size:13px">Loading all records…</div>';
   status.style.display = 'block';
-  status.textContent = 'Fetchingâ¦';
+  status.textContent = 'Fetching…';
   countEl.textContent = '';
   _dbAllRows = [];
   _dbColumns = [];
@@ -4137,7 +4137,7 @@ async function dbLoadAirtable(tableKey) {
   let page = 0;
   do {
     page++;
-    status.textContent = 'Fetching page ' + page + 'â¦ (' + _dbAllRows.length + ' records so far)';
+    status.textContent = 'Fetching page ' + page + '… (' + _dbAllRows.length + ' records so far)';
     let url = 'https://api.airtable.com/v0/' + BASE + '/' + tableId + '?pageSize=100';
     if (offset) url += '&offset=' + offset;
     const res = await fetch(url, { headers: { Authorization: 'Bearer ' + TOKEN } });
@@ -4344,7 +4344,7 @@ function buildWeeklyPrintHTML(monday) {
     if (!e.target.closest('.nav-dropdown')) closeAllDrops();
   });
 
-  // ââ WORKOUT SUGGESTIONS ââ
+  // ── WORKOUT SUGGESTIONS ──
   let _wsDay = 'Push';
   let _wsLoaded = false;
 
@@ -4361,7 +4361,7 @@ function buildWeeklyPrintHTML(monday) {
     if (_wsLoaded && !force) return;
     const el = document.getElementById('ws-content');
     if (!el) return;
-    el.innerHTML = '<div class="loading-msg">Loading ' + _wsDay + ' suggestionsâ¦</div>';
+    el.innerHTML = '<div class="loading-msg">Loading ' + _wsDay + ' suggestions…</div>';
 
     // Rep targets by canonical exercise name
     const REP_TARGETS = {
@@ -4485,18 +4485,18 @@ function buildWeeklyPrintHTML(monday) {
         // Skip rows with no valid weight data
         if (lastTop === 0 && lastAvg === 0) return null;
 
-        let trend = 'â';
+        let trend = '—';
         if (prevAvg !== null) {
-          trend = lastAvg > prevAvg + 0.4 ? 'â' : lastAvg < prevAvg - 0.4 ? 'â' : 'â';
+          trend = lastAvg > prevAvg + 0.4 ? '↑' : lastAvg < prevAvg - 0.4 ? '↓' : '→';
         }
 
         let suggestedWeight, note;
         if (lastAvg >= target.max) {
           suggestedWeight = lastTop + weightIncrement(g.exercise, g.variation);
-          note = 'Hit top of range â up weight';
+          note = 'Hit top of range — up weight';
         } else if (lastAvg >= target.min) {
           suggestedWeight = lastTop;
-          note = 'In range â hold weight, push reps';
+          note = 'In range — hold weight, push reps';
         } else {
           suggestedWeight = lastTop;
           note = 'Build to ' + target.min + '+ reps first';
@@ -4511,26 +4511,26 @@ function buildWeeklyPrintHTML(monday) {
       const [lastDate, prevDate] = dates;
       let html = '<div style="margin-bottom:10px;font-size:11px;color:var(--muted);font-family:\'DM Mono\',monospace">'
         + 'Last: <b>' + lastDate + '</b>'
-        + (prevDate ? ' &nbsp;Â·&nbsp; Prev: ' + prevDate : '') + ' &nbsp;Â·&nbsp; ' + rows.length + ' exercises</div>'
+        + (prevDate ? ' &nbsp;·&nbsp; Prev: ' + prevDate : '') + ' &nbsp;·&nbsp; ' + rows.length + ' exercises</div>'
         + '<div class="table-wrap"><table class="data-table"><thead><tr>'
         + '<th>Exercise</th>'
         + '<th style="text-align:right">Prev</th>'
         + '<th style="text-align:right">Last</th>'
         + '<th style="text-align:center">Trend</th>'
-        + '<th style="color:var(--accent);text-align:right">â Weight</th>'
-        + '<th style="color:var(--accent);text-align:center">â Reps</th>'
+        + '<th style="color:var(--accent);text-align:right">→ Weight</th>'
+        + '<th style="color:var(--accent);text-align:center">→ Reps</th>'
         + '<th>Note</th></tr></thead><tbody>';
 
       rows.forEach(r => {
         const up = r.suggestedWeight > r.lastTop;
         const wColor = up ? 'var(--green)' : 'var(--amber)';
-        const wArrow = up ? 'â' : 'â';
-        const tColor = r.trend==='â' ? 'var(--green)' : r.trend==='â' ? 'var(--red)' : 'var(--muted)';
+        const wArrow = up ? '↑' : '→';
+        const tColor = r.trend==='↑' ? 'var(--green)' : r.trend==='↓' ? 'var(--red)' : 'var(--muted)';
         const varLine = r.variation ? '<br><span style="font-size:10px;font-weight:400;color:var(--muted)">' + r.variation + '</span>' : '';
         const prevCell = r.prevTop !== null
           ? r.prevTop + 'lbs<br><small style="color:var(--muted)">' + r.prevAvg + ' avg</small>'
             + '<br><small style="color:var(--muted);font-size:10px">' + (r.prevDate||'') + '</small>'
-          : 'â';
+          : '—';
         const lastCell = '<b>' + r.lastTop + 'lbs</b><br><small>' + r.lastAvg + ' avg</small>'
           + '<br><small style="color:var(--muted);font-size:10px">' + r.lastDate + '</small>';
 
@@ -4540,13 +4540,13 @@ function buildWeeklyPrintHTML(monday) {
           + '<td style="text-align:right;font-size:12px;font-family:\'DM Mono\',monospace">' + lastCell + '</td>'
           + '<td style="text-align:center;font-size:15px;color:' + tColor + '">' + r.trend + '</td>'
           + '<td style="text-align:right;font-family:\'DM Mono\',monospace;font-weight:600;color:' + wColor + '">' + wArrow + ' ' + r.suggestedWeight + '</td>'
-          + '<td style="text-align:center;font-family:\'DM Mono\',monospace;font-size:12px;color:var(--accent)">' + r.target.min + 'â' + r.target.max + '</td>'
+          + '<td style="text-align:center;font-family:\'DM Mono\',monospace;font-size:12px;color:var(--accent)">' + r.target.min + '–' + r.target.max + '</td>'
           + '<td style="font-size:11px;color:var(--muted)">' + r.note + '</td>'
           + '</tr>';
       });
 
       html += '</tbody></table></div><div style="margin-top:10px;text-align:right">'
-        + '<button class="btn-secondary" onclick="loadWorkoutSuggestions(true)">â» Refresh</button></div>';
+        + '<button class="btn-secondary" onclick="loadWorkoutSuggestions(true)">↻ Refresh</button></div>';
       el.innerHTML = html;
       _wsLoaded = true;
 
@@ -4554,7 +4554,7 @@ function buildWeeklyPrintHTML(monday) {
   }
 
 
-  // ââ GOALS VIEW ââ
+  // ── GOALS VIEW ──
   let goalsLoaded = false;
   let _goalRecs = [];
   let _goalsActiveCat = 'All';
@@ -4567,10 +4567,10 @@ function buildWeeklyPrintHTML(monday) {
   };
 
   const priMeta = p => ({
-    High:   {color:'var(--red)',   bg:'var(--red-bg)',   dot:'ð´'},
-    Medium: {color:'var(--amber)', bg:'var(--amber-bg)', dot:'ð¡'},
-    Low:    {color:'var(--green)', bg:'var(--green-bg)', dot:'ð¢'}
-  }[p] || {color:'var(--muted)', bg:'var(--surface2)', dot:'âª'});
+    High:   {color:'var(--red)',   bg:'var(--red-bg)',   dot:'🔴'},
+    Medium: {color:'var(--amber)', bg:'var(--amber-bg)', dot:'🟡'},
+    Low:    {color:'var(--green)', bg:'var(--green-bg)', dot:'🟢'}
+  }[p] || {color:'var(--muted)', bg:'var(--surface2)', dot:'⚪'});
 
   async function loadGoals(force) {
     if (goalsLoaded && !force) return;
@@ -4626,8 +4626,8 @@ function buildWeeklyPrintHTML(monday) {
             <div style="flex:1;font-weight:500;font-size:13px;line-height:1.4">${f['Goal']||''}</div>
             ${pri?`<span style="font-size:10px;font-weight:600;color:${m.color};background:${m.bg};padding:2px 8px;border-radius:10px;white-space:nowrap;flex-shrink:0">${m.dot} ${pri}</span>`:''}
           </div>
-          ${f['TargetMetric']?`<div style="font-size:11px;color:var(--muted);margin-bottom:4px;display:flex;gap:4px;align-items:center"><span style="color:var(--accent)">â</span> ${f['TargetMetric']}</div>`:''}
-          ${f['CurrentStatus']?`<div style="font-size:11px;color:var(--muted);margin-bottom:4px;font-family:'DM Mono',monospace">ð ${f['CurrentStatus']}</div>`:''}
+          ${f['TargetMetric']?`<div style="font-size:11px;color:var(--muted);margin-bottom:4px;display:flex;gap:4px;align-items:center"><span style="color:var(--accent)">→</span> ${f['TargetMetric']}</div>`:''}
+          ${f['CurrentStatus']?`<div style="font-size:11px;color:var(--muted);margin-bottom:4px;font-family:'DM Mono',monospace">📍 ${f['CurrentStatus']}</div>`:''}
           ${f['Notes']?`<div style="font-size:11px;color:var(--muted);margin-top:4px;line-height:1.5;border-top:1px solid var(--border);padding-top:6px">${f['Notes']}</div>`:''}
           ${updated?`<div style="font-size:10px;color:var(--muted);margin-top:6px;text-align:right;font-family:'DM Mono',monospace">${updated}</div>`:''}
         </div>`;
@@ -4689,7 +4689,7 @@ function buildWeeklyPrintHTML(monday) {
     };
     if (!fields[GOAL_FIELDS.goal]) { alert('Goal is required.'); return; }
     const btn = document.getElementById('gm-save-btn');
-    btn.textContent = 'Savingâ¦'; btn.disabled = true;
+    btn.textContent = 'Saving…'; btn.disabled = true;
     try {
       const method = id ? 'PATCH' : 'POST';
       const url = id
@@ -4716,7 +4716,7 @@ function buildWeeklyPrintHTML(monday) {
     } catch(e) { alert('Error: ' + e.message); }
   }
 
-  // ââ PROFILE VIEW ââ
+  // ── PROFILE VIEW ──
   let profileLoaded = false;
   let _profileRecs = [];
 
@@ -4773,9 +4773,9 @@ function buildWeeklyPrintHTML(monday) {
           onclick="editProfileField('${rec.id}')">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
             <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-family:'DM Mono',monospace">${f['Label']||''}</div>
-            <span class="edit-hint" style="font-size:10px;color:var(--accent);opacity:0;transition:opacity .15s;flex-shrink:0;margin-left:6px">â edit</span>
+            <span class="edit-hint" style="font-size:10px;color:var(--accent);opacity:0;transition:opacity .15s;flex-shrink:0;margin-left:6px">✏ edit</span>
           </div>
-          <div style="font-size:12px;line-height:1.6;color:var(--text)">${val||'<span style="color:var(--muted);font-style:italic">â</span>'}</div>
+          <div style="font-size:12px;line-height:1.6;color:var(--text)">${val||'<span style="color:var(--muted);font-style:italic">—</span>'}</div>
           ${updated?`<div style="font-size:10px;color:var(--muted);margin-top:6px;font-family:'DM Mono',monospace">${updated}</div>`:''}
         </div>`;
       });
@@ -4810,7 +4810,7 @@ function buildWeeklyPrintHTML(monday) {
       [PROFILE_FIELDS.updated]: new Date().toISOString().split('T')[0]
     };
     const btn = document.getElementById('pm-save-btn');
-    btn.textContent = 'Savingâ¦'; btn.disabled = true;
+    btn.textContent = 'Saving…'; btn.disabled = true;
     try {
       const res = await fetch(`https://api.airtable.com/v0/${BASE}/${TABLES.profile}/${id}`, {
         method:'PATCH',
@@ -4827,7 +4827,7 @@ function buildWeeklyPrintHTML(monday) {
     finally { btn.textContent = 'Save'; btn.disabled = false; }
   }
 
-  // ââ AI CONTEXT VIEW ââ
+  // ── AI CONTEXT VIEW ──
   let aiContextLoaded = false;
   async function loadAIContext(force) {
     if (aiContextLoaded && !force) return;
@@ -4849,14 +4849,14 @@ function buildWeeklyPrintHTML(monday) {
       const pmSupp = allSupp.filter(r=>(getField(r,'SuppStatus')||'').toLowerCase()==='active'&&((getField(r,'SuppTiming')||'').toLowerCase().includes('night')||(getField(r,'SuppTiming')||'').toLowerCase().includes('evening')||(getField(r,'SuppTiming')||'').toLowerCase()==='pm'));
       let html = `<div style="padding:16px">
         <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:16px;font-size:12px;color:var(--muted)">
-          Data loaded ${now} Â· ${activePeps.length} active peptides Â· ${amSupp.length+dinSupp.length+pmSupp.length} active supplements Â· ${window._aiGoalRecs.length} goals
+          Data loaded ${now} · ${activePeps.length} active peptides · ${amSupp.length+dinSupp.length+pmSupp.length} active supplements · ${window._aiGoalRecs.length} goals
         </div>`;
       const sections = [
         {title:'Active Peptides', items: activePeps.map(r=>`${getField(r,'Compound')} | ${getField(r,'Dose')} | ${getField(r,'Frequency')}`)},
         {title:'Morning Supplements', items: amSupp.map(r=>`${getField(r,'Supplement')} | ${getField(r,'SuppDose')}`)},
         ...(dinSupp.length?[{title:'Dinner Supplements', items: dinSupp.map(r=>`${getField(r,'Supplement')} | ${getField(r,'SuppDose')}`)}]:[]),
         {title:'Night Supplements', items: pmSupp.map(r=>`${getField(r,'Supplement')} | ${getField(r,'SuppDose')}`)},
-        {title:'Goals', items: window._aiGoalRecs.map(r=>`[${r.fields['Priority']}] ${r.fields['Goal']} (${r.fields['Category']||''})${r.fields['TargetMetric']?' â '+r.fields['TargetMetric']:''}`)},
+        {title:'Goals', items: window._aiGoalRecs.map(r=>`[${r.fields['Priority']}] ${r.fields['Goal']} (${r.fields['Category']||''})${r.fields['TargetMetric']?' → '+r.fields['TargetMetric']:''}`)},
       ];
       sections.forEach(s => {
         html += `<div style="margin-bottom:14px"><div style="font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:8px">${s.title} (${s.items.length})</div>`;
@@ -4868,10 +4868,10 @@ function buildWeeklyPrintHTML(monday) {
     } catch(e) { el.innerHTML = `<div style="color:var(--red);padding:16px">Error: ${e.message}</div>`; }
   }
 
-  // ââ COPY FOR AI ââ
+  // ── COPY FOR AI ──
   async function copyForAI() {
     const btn = document.getElementById('copyAIBtn');
-    btn.textContent = 'Loadingâ¦'; btn.disabled = true;
+    btn.textContent = 'Loading…'; btn.disabled = true;
     // Ensure profile + goals are loaded
     if (!window._aiProfileRecs || !window._aiProfileRecs.length) {
       const [pR,gR] = await Promise.all([
@@ -4881,7 +4881,7 @@ function buildWeeklyPrintHTML(monday) {
       window._aiProfileRecs = pR.records||[];
       window._aiGoalRecs = gR.records||[];
     }
-    btn.textContent = 'ð Copy for AI'; btn.disabled = false;
+    btn.textContent = '📋 Copy for AI'; btn.disabled = false;
     const now = new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
     const activePeps = (data.peptides||[]).filter(r=>getField(r,'Status')==='Active');
     const allSupp = data.supplements||[];
@@ -4893,12 +4893,12 @@ function buildWeeklyPrintHTML(monday) {
     const profSecs = {};
     profRecs.forEach(r=>{const s=r.fields['Section']||'Other';if(!profSecs[s])profSecs[s]=[];profSecs[s].push(`  ${r.fields['Label']}: ${r.fields['Value']||''}`)});
     const WORKOUTS=[
-      {day:'Monday â Push',ex:['Bench Press','Incline Press','Decline Press','Incline Fly','High Cable Fly','Lateral Raises','Seated Shoulder Press','Tricep Pushdowns','Overhead Tricep Ext','Cable Cross Overs','Wrist Twist']},
-      {day:'Tuesday â Pull',ex:['Lat Pulldown','Bent Over Rows','Cable Rows','Face Pulls','Rear Delt Raises','Bicep Curls-Preacher','Hammer Curls','Cable Shrugs','Cable Curls','Barbell Shrugs']},
-      {day:'Wednesday â Legs/Core',ex:['Leg Press','Leg Extensions','Leg Curls','Hip Thrust','Nordic Curl','Reverse Hyper','DB Calf Raises','Smith Mach Calf Raises','Back Extension','Forward Back Stretch']},
-      {day:'Thursday â Arms/Chest',ex:['Cable Press','Low Cable Fly','Incline Curls','Overhead Tricep Press','Curls (Standing)','Tricep Ext Down','Tricep Ext Up','Forearm Raise - Cable']}
+      {day:'Monday — Push',ex:['Bench Press','Incline Press','Decline Press','Incline Fly','High Cable Fly','Lateral Raises','Seated Shoulder Press','Tricep Pushdowns','Overhead Tricep Ext','Cable Cross Overs','Wrist Twist']},
+      {day:'Tuesday — Pull',ex:['Lat Pulldown','Bent Over Rows','Cable Rows','Face Pulls','Rear Delt Raises','Bicep Curls-Preacher','Hammer Curls','Cable Shrugs','Cable Curls','Barbell Shrugs']},
+      {day:'Wednesday — Legs/Core',ex:['Leg Press','Leg Extensions','Leg Curls','Hip Thrust','Nordic Curl','Reverse Hyper','DB Calf Raises','Smith Mach Calf Raises','Back Extension','Forward Back Stretch']},
+      {day:'Thursday — Arms/Chest',ex:['Cable Press','Low Cable Fly','Incline Curls','Overhead Tricep Press','Curls (Standing)','Tricep Ext Down','Tricep Ext Up','Forearm Raise - Cable']}
     ];
-    let txt = `=== MB HEALTH PROTOCOL â AI CONTEXT ===\nGenerated: ${now}\n---\n\n## PERSONAL PROFILE\n`;
+    let txt = `=== MB HEALTH PROTOCOL — AI CONTEXT ===\nGenerated: ${now}\n---\n\n## PERSONAL PROFILE\n`;
     Object.entries(profSecs).forEach(([s,lines])=>{txt+=`\n### ${s}\n${lines.join('\n')}\n`});
     txt += `\n---\n## ACTIVE PEPTIDES (${activePeps.length})\n`;
     txt += activePeps.map(r=>`  - ${getField(r,'Compound')} | ${getField(r,'Dose')} | ${getField(r,'Frequency')}`).join('\n');
@@ -4913,12 +4913,12 @@ function buildWeeklyPrintHTML(monday) {
     txt += WORKOUTS.map(d=>`  ${d.day}:\n${d.ex.map(e=>'    - '+e).join('\n')}`).join('\n\n');
     txt += `\n\n---\nEND OF CONTEXT\n`;
     navigator.clipboard.writeText(txt).then(()=>{
-      btn.textContent='â Copied!';btn.style.background='var(--green)';
-      setTimeout(()=>{btn.innerHTML='ð Copy for AI';btn.style.background='var(--accent)';},2500);
+      btn.textContent='✓ Copied!';btn.style.background='var(--green)';
+      setTimeout(()=>{btn.innerHTML='📋 Copy for AI';btn.style.background='var(--accent)';},2500);
     });
   }
 
-  // ââ SUPPLEMENT CHANGES ââ
+  // ── SUPPLEMENT CHANGES ──
   const SC_FIELDS = {
     date: 'fldIJ6m9KcDlGwxhv', type: 'fldvOvOSkqiewnuX9',
     supplement: 'fldMtxK7c0jnu1gdb', description: 'fld4jRTrO7apwO0XQ',
@@ -4958,13 +4958,13 @@ function buildWeeklyPrintHTML(monday) {
       <thead><tr><th>Date</th><th>Type</th><th>Supplement</th><th>Description</th><th>Reason</th><th>Notes</th></tr></thead>
       <tbody>${filtered.map(r => {
         const f = r.fields || {};
-        const type = f['Change Type'] || 'â';
+        const type = f['Change Type'] || '—';
         const color = CHANGE_COLORS[type] || 'var(--muted)';
         return `<tr>
-          <td style="font-family:'DM Mono',monospace;font-size:12px;white-space:nowrap">${f['Change Date'] || 'â'}</td>
+          <td style="font-family:'DM Mono',monospace;font-size:12px;white-space:nowrap">${f['Change Date'] || '—'}</td>
           <td><span style="color:${color};font-weight:600;font-size:12px">${type}</span></td>
-          <td style="font-weight:500">${f['Supplement'] || 'â'}</td>
-          <td style="font-size:12px">${f['Description of Change'] || 'â'}</td>
+          <td style="font-weight:500">${f['Supplement'] || '—'}</td>
+          <td style="font-size:12px">${f['Description of Change'] || '—'}</td>
           <td style="font-size:12px;color:var(--muted)">${f['Reason for Change'] || ''}</td>
           <td style="font-size:12px;color:var(--muted)">${f['Notes'] || ''}</td>
         </tr>`;
@@ -4974,7 +4974,7 @@ function buildWeeklyPrintHTML(monday) {
   function showAddSuppChangeModal() {
     document.getElementById('asc-date').value = new Date().toISOString().split('T')[0];
     const sel = document.getElementById('asc-supplement');
-    sel.innerHTML = '<option value="">â Select â</option>';
+    sel.innerHTML = '<option value="">— Select —</option>';
     const names = (data.supplements || [])
       .filter(r => (getField(r,'SuppStatus')||'').toLowerCase() === 'active')
       .map(r => getField(r,'Supplement') || '')
@@ -5026,16 +5026,16 @@ function showToast(msg) {
 }
 
 function fmtDate(d) {
-  if (!d) return 'â';
+  if (!d) return '—';
   const [y,m,day] = d.split('-');
   const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   return months[parseInt(m)-1] + ' ' + parseInt(day) + ', ' + y;
 }
 
 function firstSource(src) {
-  if (!src) return 'â';
-  if (Array.isArray(src)) return src[0] || 'â';
-  return String(src).split(',')[0].trim() || 'â';
+  if (!src) return '—';
+  if (Array.isArray(src)) return src[0] || '—';
+  return String(src).split(',')[0].trim() || '—';
 }
 
 // ===== SUPPLEMENT VENDORS =====
@@ -5078,16 +5078,16 @@ function renderSuppVendors() {
       </tr></thead><tbody>
       ${vendorMap[vendor].sort((a,b)=>a.name.localeCompare(b.name)).map(s => `<tr>
         <td><div class="compound-name">${s.name}</div></td>
-        <td style="font-size:13px;font-weight:500;white-space:nowrap">${s.dose||'â'}</td>
-        <td style="font-size:12px;color:var(--muted)">${s.timing||'â'}</td>
-        <td style="font-size:12px;color:var(--muted)">${s.brand||'â'}</td>
+        <td style="font-size:13px;font-weight:500;white-space:nowrap">${s.dose||'—'}</td>
+        <td style="font-size:12px;color:var(--muted)">${s.timing||'—'}</td>
+        <td style="font-size:12px;color:var(--muted)">${s.brand||'—'}</td>
         <td>${badge(s.status)}</td>
       </tr>`).join('')}
       </tbody></table>
     </div>`).join('');
 }
 
-// ââ PDF QA & VERIFICATION âââââââââââââââââââââââââââââââââââââââââââââ
+// ── PDF QA & VERIFICATION ─────────────────────────────────────────────
 var _pdfqaInited = false;
 function initPdfQA() {
   if (_pdfqaInited) return;
@@ -5103,7 +5103,7 @@ function initPdfQA() {
   initAuth();
 }
 
-// ââ CONFIG âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── CONFIG ───────────────────────────────────────────────────────────
 var GCI = "478191426516-94rflpalsl5ev56ptck62k5imes6jk8l.apps.googleusercontent.com";
 var GSC = "https://www.googleapis.com/auth/drive.readonly";
 var FOLDER_MIME = "application/vnd.google-apps.folder";
@@ -5155,7 +5155,7 @@ function renderExtracted(records) {
   if (existing) existing.remove();
   if (!records.length) return;
   var keys = Object.keys(records[0]).filter(function(k){return k[0]!=="\_";}).slice(0,8);
-  var html = "<div class='sec' id='extractedPanel' style='margin-top:10px'><div class='sech'><span class='sect sectg'>Extracted â Page "+(curPage+1)+"</span><span class='secc'>"+records.length+"</span></div><div style='overflow-x:auto'><table class='tbl'><thead><tr>"+keys.map(function(k){return"<th>"+k+"</th>";}).join("")+"</tr></thead><tbody>";
+  var html = "<div class='sec' id='extractedPanel' style='margin-top:10px'><div class='sech'><span class='sect sectg'>Extracted — Page "+(curPage+1)+"</span><span class='secc'>"+records.length+"</span></div><div style='overflow-x:auto'><table class='tbl'><thead><tr>"+keys.map(function(k){return"<th>"+k+"</th>";}).join("")+"</tr></thead><tbody>";
   records.forEach(function(r){html+="<tr>"+keys.map(function(k){return"<td>"+esc(r[k]!=null?r[k]:"\u2014")+"</td>";}).join("")+"</tr>";});
   html+="</tbody></table></div></div>";
   document.getElementById("atScroll").insertAdjacentHTML("beforeend", html);
@@ -5163,12 +5163,12 @@ function renderExtracted(records) {
 // Set pdf.js worker
 
 
-// ââ STATE âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── STATE ─────────────────────────────────────────────────────────────
 var gTok = null, gCli = null;
 var curFile = null, pdfType = "workout";
 var pages = []; // {url, filename, text}
 var curPage = 0;
-var pageStatus = {}; // page index â 'ok'|'flagged'|null
+var pageStatus = {}; // page index → 'ok'|'flagged'|null
 var atTables = [], atCache = {};
 var pdfDocRef = null; // keep pdf.js doc ref for text extraction
 var pickerType = null, pickerPending = [], folderStack = [], folderCache = {}, curFolderItems = [];
@@ -5182,7 +5182,7 @@ var cfg = {
   }
 };
 
-// ââ UTILS âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── UTILS ─────────────────────────────────────────────────────────────
 function toast(msg, cls, ms) {
   var c = document.getElementById("toasts"), el = document.createElement("div");
   el.className = "toast " + (cls || "ti"); el.textContent = msg;
@@ -5205,7 +5205,7 @@ function showTab(name) {
   if (name === "verify") { /* no init needed */ }
 }
 
-// ââ CONFIG PERSISTENCE ââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── CONFIG PERSISTENCE ────────────────────────────────────────────────
 function loadCfg() {
   try {
     var s = localStorage.getItem("mb_pdfqa4");
@@ -5217,7 +5217,7 @@ function loadTok() { var t = localStorage.getItem("mb_pdfqat"), e = parseInt(loc
 function saveTok(t, exp) { localStorage.setItem("mb_pdfqat", t); localStorage.setItem("mb_pdfqae", Date.now() + (exp - 60) * 1000); }
 function clearTok() { localStorage.removeItem("mb_pdfqat"); localStorage.removeItem("mb_pdfqae"); }
 
-// ââ AUTH ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── AUTH ──────────────────────────────────────────────────────────────
 function initAuth() {
   // Check for token returned from Google redirect
   var hash = window.location.hash;
@@ -5237,7 +5237,7 @@ function initAuth() {
   setDot("d", "", "DRIVE");
 }
 function signIn() {
-  // Same-window redirect â no popup
+  // Same-window redirect — no popup
   var redirect = window.location.href.split("#")[0].split("?")[0];
   window.location.href = "https://accounts.google.com/o/oauth2/v2/auth" +
     "?client_id=" + encodeURIComponent(GCI) +
@@ -5251,7 +5251,7 @@ function signOut() {
   toast("Signed out", "ti");
 }
 
-// ââ SIDEBAR FILE LIST âââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── SIDEBAR FILE LIST ─────────────────────────────────────────────────
 async function loadMappedFiles() {
   if (!gTok) { signIn(); return; }
   var allMapped = [];
@@ -5281,7 +5281,7 @@ function renderSidebarFiles(files) {
   document.getElementById("fileList").innerHTML = html || "<div class='empty'><div class='et'>No files</div></div>";
 }
 
-// ââ SELECT FILE & LOAD ZIP ââââââââââââââââââââââââââââââââââââââââââââ
+// ── SELECT FILE & LOAD ZIP ────────────────────────────────────────────
 async function selFile(id, name, type) {
   document.querySelectorAll(".fi").forEach(function(e) { e.classList.remove("active"); });
   var fi = document.getElementById("fi_" + id); if (fi) fi.classList.add("active");
@@ -5303,7 +5303,7 @@ async function selFile(id, name, type) {
     document.getElementById("dateFilter").closest(".date-row").style.display = "none";
     document.getElementById("atRefreshBtn").style.display = "none";
     document.getElementById("injAuditNav").style.display = "none";
-    document.getElementById("atContent").innerHTML = "<div class='empty' style='padding:20px 10px'><div class='et' style='font-size:11px'>Use â¡ Verify tab to run verification</div><div class='es'>Or <a href='#' onclick=\"loadInjAuditPanel();return false\" style=\"color:var(--bl)\">load audit grid</a> for manual review.</div></div>";
+    document.getElementById("atContent").innerHTML = "<div class='empty' style='padding:20px 10px'><div class='et' style='font-size:11px'>Use ⚡ Verify tab to run verification</div><div class='es'>Or <a href='#' onclick=\"loadInjAuditPanel();return false\" style=\"color:var(--bl)\">load audit grid</a> for manual review.</div></div>";
   } else {
     document.getElementById("dateFilter").closest(".date-row").style.display = "flex";
     document.getElementById("atRefreshBtn").style.display = "";
@@ -5368,7 +5368,7 @@ async function selFile(id, name, type) {
     }
 
     if (loaded) {
-      document.getElementById("pdfMeta").textContent = pages.length + " pages Â· " + type;
+      document.getElementById("pdfMeta").textContent = pages.length + " pages · " + type;
       renderThumbs(); goToPage(0); updateStatusBar();
       toast("Loaded " + pages.length + " pages", "tg");
     } else {
@@ -5384,7 +5384,7 @@ async function selFile(id, name, type) {
   }
 }
 
-// ââ IMAGE VIEWER ââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── IMAGE VIEWER ──────────────────────────────────────────────────────
 function renderThumbs() {
   var strip = document.getElementById("thumbStrip");
   strip.innerHTML = "";
@@ -5447,7 +5447,7 @@ function sendToClaude() {
   a.href = pages[curPage].url;
   a.download = "page_" + (curPage+1) + "_" + (curFile ? curFile.name.replace(".pdf","") : "doc") + ".jpg";
   a.click();
-  toast("Downloaded â upload this image to Claude chat", "ti", 5000);
+  toast("Downloaded — upload this image to Claude chat", "ti", 5000);
 }
 function navPage(dir) { goToPage(curPage + dir); }
 function markPage(status) {
@@ -5463,11 +5463,11 @@ function updateStatusBar() {
   var cur = pageStatus[curPage];
   document.getElementById("pgStatusText").textContent = cur ? cur.toUpperCase() : "unreviewed";
   document.getElementById("pgStatusText").style.color = cur === "ok" ? "var(--g)" : cur === "flagged" ? "var(--r)" : "var(--dd)";
-  document.getElementById("okCount").textContent = ok ? "â " + ok + " verified" : "";
-  document.getElementById("flagCount").textContent = flagged ? "â " + flagged + " flagged" : "";
+  document.getElementById("okCount").textContent = ok ? "✓ " + ok + " verified" : "";
+  document.getElementById("flagCount").textContent = flagged ? "⚑ " + flagged + " flagged" : "";
 }
 
-// ââ AIRTABLE PANEL ââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── AIRTABLE PANEL ────────────────────────────────────────────────────
 async function refreshAtData() {
   var date = document.getElementById("dateFilter").value;
   if (!date) { document.getElementById("atContent").innerHTML = "<div class='empty' style='padding:30px 10px'><div class='et' style='font-size:11px'>Enter a date above</div></div>"; return; }
@@ -5510,11 +5510,11 @@ function renderInjectionPanel(recs, startDate, endDate) {
   recs.forEach(function(r) {
     var f = r.fields || {};
     html += "<tr>";
-    html += "<td>" + esc(f["fldhYEtLEGA4VxvvO"]||"â") + "</td>";
-    html += "<td style='font-weight:500'>" + esc((f["fldwVFyizH4mBANBa"]||{}).name||"â") + "</td>";
-    html += "<td>" + esc(f["fld8d8mtRapfaIyqL"]||"â") + "</td>";
-    html += "<td>" + esc((f["fldHDlJY8FpAvK018"]||{}).name||"â") + "</td>";
-    html += "<td>" + esc((f["fldIdzew4Jd0qO4Uc"]||{}).name||"â") + "</td>";
+    html += "<td>" + esc(f["fldhYEtLEGA4VxvvO"]||"—") + "</td>";
+    html += "<td style='font-weight:500'>" + esc((f["fldwVFyizH4mBANBa"]||{}).name||"—") + "</td>";
+    html += "<td>" + esc(f["fld8d8mtRapfaIyqL"]||"—") + "</td>";
+    html += "<td>" + esc((f["fldHDlJY8FpAvK018"]||{}).name||"—") + "</td>";
+    html += "<td>" + esc((f["fldIdzew4Jd0qO4Uc"]||{}).name||"—") + "</td>";
     html += "<td style='font-size:10px;color:var(--d)'>" + esc(f["Notes"]||"") + "</td>";
     html += "</tr>";
   });
@@ -5538,13 +5538,13 @@ function renderAtPanel(recs, date, tid) {
   var cols = Object.keys(recs[0].fields).filter(function(k) { return !["id", "createdTime"].includes(k); }).slice(0, 8);
   html += "<table class='tbl'><thead><tr>" + cols.map(function(c) { return "<th>" + esc(c) + "</th>"; }).join("") + "</tr></thead><tbody>";
   recs.forEach(function(r) {
-    html += "<tr>" + cols.map(function(c) { return "<td>" + esc(r.fields[c] != null ? r.fields[c] : "â") + "</td>"; }).join("") + "</tr>";
+    html += "<tr>" + cols.map(function(c) { return "<td>" + esc(r.fields[c] != null ? r.fields[c] : "—") + "</td>"; }).join("") + "</tr>";
   });
   html += "</tbody></table></div></div>";
   document.getElementById("atContent").innerHTML = html;
 }
 
-// ââ AIRTABLE LOAD TABLES ââââââââââââââââââââââââââââââââââââââââââââââ
+// ── AIRTABLE LOAD TABLES ──────────────────────────────────────────────
 async function loadAtTables() {
   try {
     var r = await fetch("https://api.airtable.com/v0/meta/bases/" + BASE + "/tables", { headers: { Authorization: "Bearer " + TOKEN } });
@@ -5555,7 +5555,7 @@ async function loadAtTables() {
   } catch(e) { setDot("a", "err", "AT ERR"); }
 }
 
-// ââ EXPORT TAB ââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── EXPORT TAB ────────────────────────────────────────────────────────
 function renderExport() {
   if (!pages.length) { document.getElementById("exportSummary").innerHTML = "<div class='empty'><div class='et'>No file loaded</div></div>"; return; }
   var ok = 0, flagged = 0, unrev = 0;
@@ -5576,7 +5576,7 @@ function renderExport() {
   document.getElementById("exportSummary").innerHTML = html;
 }
 
-// ââ SETTINGS ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── SETTINGS ──────────────────────────────────────────────────────────
 function renderSettings() {
   var types = ["workout", "injection", "supplement", "lab"];
   document.getElementById("typeSections").innerHTML = types.map(function(type) {
@@ -5605,7 +5605,7 @@ function saveSettings() {
 }
 function resetAll() { if (!confirm("Reset all settings?")) return; localStorage.removeItem("mb_pdfqa4"); location.reload(); }
 
-// ââ FOLDER BROWSER ââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── FOLDER BROWSER ────────────────────────────────────────────────────
 async function fetchFolderContents(folderId) {
   if (folderCache[folderId]) return folderCache[folderId];
   var qId = folderId === "root" ? "'root' in parents" : "'" + folderId + "' in parents";
@@ -5617,7 +5617,7 @@ async function fetchFolderContents(folderId) {
 function openPicker(type) {
   if (!gTok) { toast("Sign in first", "tr"); return; }
   pickerType = type; pickerPending = []; folderStack = [];
-  document.getElementById("pickerTitle").textContent = "Add Files â " + type;
+  document.getElementById("pickerTitle").textContent = "Add Files — " + type;
   document.getElementById("pickerSearch").value = "";
   document.getElementById("pickerModal").classList.add("open");
   navigateToFolder("root", "My Drive");
@@ -5677,9 +5677,9 @@ function confirmPicker() {
 }
 // pickerModal listener attached in initPdfQA()
 
-// pdfqa init â called from navDrop
+// pdfqa init — called from navDrop
 
-// ââ VERIFY TAB v4 ââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── VERIFY TAB v4 ────────────────────────────────────────────────────
 var CANONICAL_COMPOUNDS = [
   "Testosterone","Deca (Nandrolone)","NAD+","LipoMinoMix","Tesamorelin",
   "Tirzepatide","Anavar (Oxandrolone)","Winstrol (Stanozolol)","BPC-157",
@@ -5699,7 +5699,7 @@ function vStatus(msg, cls) {
   el.style.color = cls === "err" ? "var(--r)" : cls === "ok" ? "var(--g)" : "var(--d)";
 }
 
-// ââ CLAUDE CALL âââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── CLAUDE CALL ───────────────────────────────────────────────────────
 async function callClaudePages(pageIndices, prompt) {
   var imgBlocks = [];
   pageIndices.forEach(function(i) {
@@ -5718,7 +5718,7 @@ async function callClaudePages(pageIndices, prompt) {
   return raw.replace(/```json\n?|```\n?/g, "").trim();
 }
 
-// ââ AIRTABLE FETCH ââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── AIRTABLE FETCH ────────────────────────────────────────────────────
 async function loadActivePeptides() {
   document.getElementById("atContent").innerHTML = "<div style='padding:16px;color:var(--dd);font-size:11px;text-align:center'>Loading peptides...</div>";
   try {
@@ -5737,7 +5737,7 @@ async function loadActivePeptides() {
     recs.forEach(function(rec) {
       var f = rec.fields || {};
       var name = f["fldeH5uyKXDFPZbHK"] || "?";
-      var dose = f["fldN7WOCx7ETJwmrB"] || "â";
+      var dose = f["fldN7WOCx7ETJwmrB"] || "—";
       var tod = (f["fld9J0U5iSDzyaaun"]||{}).name || "";
       var freq = (f["fldyExNQXycfMjd1S"]||{}).name || "";
       if (tod !== curTOD) {
@@ -5796,7 +5796,7 @@ async function loadInjAuditPanel() {
     });
     injAuditData = weeks;
     var sortedWeeks = Object.keys(weeks).sort();
-    statusEl.textContent = records.length + " Â· " + sortedWeeks.length + " wks";
+    statusEl.textContent = records.length + " · " + sortedWeeks.length + " wks";
     renderInjAuditNav(weeks, navEl, contentEl);
   } catch(e) {
     statusEl.textContent = "Error: " + e.message;
@@ -5840,7 +5840,7 @@ function showInjWeek(mon, weekData, DAYS, contentEl) {
   function cell(entries) {
     if (!entries||!entries.length) return "<td style='border:1px solid #ccc;min-width:48px'></td>";
     var s = entries[0].site;
-    if (!s) return "<td style='border:1px solid #ccc;min-width:48px;text-align:center;background:#f9fafb;font-size:11px;color:#ccc'>Â·</td>";
+    if (!s) return "<td style='border:1px solid #ccc;min-width:48px;text-align:center;background:#f9fafb;font-size:11px;color:#ccc'>·</td>";
     return "<td style='border:1px solid #ccc;min-width:48px;text-align:center;padding:5px 2px;background:"+(CC[s]||"#dcfce7")+";font-size:13px;font-weight:700;color:"+(TC[s]||"#15803d")+"'>"+s+"</td>";
   }
   var html = "<table style='border-collapse:collapse;font-size:12px;width:100%'><thead><tr>";
@@ -5893,8 +5893,8 @@ async function fetchAtInjections(startDate, endDate) {
   });
 }
 
-// ââ INJECTION VERIFY âââââââââââââââââââââââââââââââââââââââââââââââââ
-var INJ_PROMPT = "You are reading a handwritten peptide injection tracking log. Each page has multiple weekly grids.\n\nEach week grid:\n- Header: \'Week X - Monday Date: M/DD\' (gives Monday date)\n- Columns: Mon, Tue, Wed, Thurs, Fri, Sat, Sun\n- Rows: compound name + dose (e.g. \'Tesamorelin - 15 units\')\n- Sections: Morning and Night\n- Cell values: L (left), R (right), S (skipped), blank (not taken)\n\nFor EVERY non-blank cell extract:\n- date: YYYY-MM-DD. Mon=Monday date, Tue=+1 day, Wed=+2, Thurs=+3, Fri=+4, Sat=+5, Sun=+6. This log covers July 2025 through May 2026. Valid dates: 2025-07-XX through 2026-05-XX ONLY. In 2025 valid months are 7,8,9,10,11,12. In 2026 valid months are 1,2,3,4,5. Any other month means you misread the handwriting â look again carefully.\n- compound: map row label to CLOSEST name from this list ONLY: CANONICAL_PLACEHOLDER\n- dose: from row label. If annotated with newer dose, use annotation.\n- side: L, R, S, or X\n- time_of_day: Morning or Night\n- notes: any handwritten notes for that row/week (new vial, dose change, start date, etc.)\n\nSkip blank cells. Return ONLY valid JSON array. No markdown.";
+// ── INJECTION VERIFY ─────────────────────────────────────────────────
+var INJ_PROMPT = "You are reading a handwritten peptide injection tracking log. Each page has multiple weekly grids.\n\nEach week grid:\n- Header: \'Week X - Monday Date: M/DD\' (gives Monday date)\n- Columns: Mon, Tue, Wed, Thurs, Fri, Sat, Sun\n- Rows: compound name + dose (e.g. \'Tesamorelin - 15 units\')\n- Sections: Morning and Night\n- Cell values: L (left), R (right), S (skipped), blank (not taken)\n\nFor EVERY non-blank cell extract:\n- date: YYYY-MM-DD. Mon=Monday date, Tue=+1 day, Wed=+2, Thurs=+3, Fri=+4, Sat=+5, Sun=+6. This log covers July 2025 through May 2026. Valid dates: 2025-07-XX through 2026-05-XX ONLY. In 2025 valid months are 7,8,9,10,11,12. In 2026 valid months are 1,2,3,4,5. Any other month means you misread the handwriting — look again carefully.\n- compound: map row label to CLOSEST name from this list ONLY: CANONICAL_PLACEHOLDER\n- dose: from row label. If annotated with newer dose, use annotation.\n- side: L, R, S, or X\n- time_of_day: Morning or Night\n- notes: any handwritten notes for that row/week (new vial, dose change, start date, etc.)\n\nSkip blank cells. Return ONLY valid JSON array. No markdown.";
 
 async function runInjectionVerification(pageIndices) {
   var batches = [];
@@ -5902,7 +5902,7 @@ async function runInjectionVerification(pageIndices) {
   var prompt = INJ_PROMPT.replace("CANONICAL_PLACEHOLDER", CANONICAL_COMPOUNDS.join(", "));
   var totalBatches = batches.length;
   var completedBatches = 0;
-  vStatus("â³ 0 / " + totalBatches + " batches complete...");
+  vStatus("⏳ 0 / " + totalBatches + " batches complete...");
 
   async function runBatch(batch, bi) {
     try {
@@ -5928,7 +5928,7 @@ async function runInjectionVerification(pageIndices) {
     }));
     batchResults = batchResults.concat(groupResults);
     completedBatches += groupResults.length;
-    vStatus("â³ " + completedBatches + " / " + totalBatches + " batches complete...");
+    vStatus("⏳ " + completedBatches + " / " + totalBatches + " batches complete...");
     // Small pause between groups
     if (g + 5 < batches.length) await new Promise(function(r){ setTimeout(r, 500); });
   }
@@ -5937,29 +5937,29 @@ async function runInjectionVerification(pageIndices) {
   var batchSummary = batchResults.map(function(r) {
     if (r.err) return "B"+(r.batch+1)+":ERR";
     return "B"+(r.batch+1)+":"+(r.entries.length||"0");
-  }).join(" Â· ");
+  }).join(" · ");
 
   var allEntries = [];
   batchResults.forEach(function(r) { allEntries = allEntries.concat(r.entries); });
   var errors = batchResults.filter(function(r){ return r.err || r.entries.length === 0; });
 
-  if (!allEntries.length) { vStatus("No entries found â check Worker connection", "err"); return; }
+  if (!allEntries.length) { vStatus("No entries found — check Worker connection", "err"); return; }
 
   var dates = allEntries.map(function(e){ return e.date; }).filter(Boolean).sort();
   var startDate = dates[0], endDate = dates[dates.length-1];
-  var errNote = errors.length ? " Â· " + errors.length + " batch(es) empty/failed" : "";
-  vStatus("Done â " + allEntries.length + " entries Â· " + startDate + " to " + endDate + errNote, errors.length ? "warn" : "ok");
+  var errNote = errors.length ? " · " + errors.length + " batch(es) empty/failed" : "";
+  vStatus("Done — " + allEntries.length + " entries · " + startDate + " to " + endDate + errNote, errors.length ? "warn" : "ok");
   renderExtractedForClaude(allEntries, startDate, endDate, batchSummary);
 }
 
-// ââ WORKOUT VERIFY (stub) âââââââââââââââââââââââââââââââââââââââââââââ
+// ── WORKOUT VERIFY (stub) ─────────────────────────────────────────────
 async function runWorkoutVerification(pageIndices) {
   vStatus("Workout verification coming soon", "err");
 }
 
-// ââ DIFF ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── DIFF ──────────────────────────────────────────────────────────────
 function diffInjections(pdfEntries, atRecords) {
-  // Build AT lookup: date+compound â record
+  // Build AT lookup: date+compound → record
   var atMap = {};
   atRecords.forEach(function(r) {
     var key = r.date + "|" + r.compound.toLowerCase().trim();
@@ -6005,7 +6005,7 @@ function diffInjections(pdfEntries, atRecords) {
   return rows;
 }
 
-// ââ RENDER ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── RENDER ────────────────────────────────────────────────────────────
 function renderVerifyResults(rows, startDate, endDate) {
   _lastDiffRows = rows;
   _lastDiffStart = startDate;
@@ -6022,7 +6022,7 @@ function renderVerifyResults(rows, startDate, endDate) {
     return _diffSort === 'asc' ? d : -d;
   });
   var html = "<div style='display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px'>";
-  html += "<span style='font-size:10px;color:var(--dd);font-family:var(--mono)'>Run: "+runDate+" Â· "+startDate+" â "+endDate+"</span>";
+  html += "<span style='font-size:10px;color:var(--dd);font-family:var(--mono)'>Run: "+runDate+" · "+startDate+" → "+endDate+"</span>";
   html += "<div style='display:flex;gap:6px;flex-wrap:wrap'>";
   html += "<button class='btn bg-btn' style='font-size:10px;padding:4px 10px' onclick='toggleDiffSort()'>&#8597; " + (_diffSort==='asc'?'Oldest first':'Newest first') + "</button>";
   html += "<button class='btn bg-btn' style='font-size:10px;padding:4px 10px' onclick='backToExtracted()'>&#8592; Back</button>";
@@ -6045,14 +6045,14 @@ function renderVerifyResults(rows, startDate, endDate) {
     html += "<tr id='vrow-"+idx+"' style='" + bg + "'>";
     html += td(r.date);
     html += "<td style='padding:6px 10px;font-weight:600'>" + esc(r.compound) + "</td>";
-    html += tdMono(p.side||"â"); html += tdMono(p.dose||"â"); html += tdMono(p.tod||"â");
-    html += tdMono(a.side||"â"); html += tdMono(a.dose||"â"); html += tdMono(a.tod||"â");
+    html += tdMono(p.side||"—"); html += tdMono(p.dose||"—"); html += tdMono(p.tod||"—");
+    html += tdMono(a.side||"—"); html += tdMono(a.dose||"—"); html += tdMono(a.tod||"—");
     html += "<td style='padding:6px 10px;font-size:10px;color:var(--d);max-width:160px'>" + esc((p.notes||a.notes||"")) + "</td>";
     var ic = r.status==="ok"?"color:var(--g)":r.status==="missing"?"color:var(--r)":r.status==="extra"?"color:var(--bl)":"color:var(--y)";
-    html += "<td style='padding:6px 10px;font-size:10px;"+ic+"'>" + esc(r.issues.join("; ")||"â") + "</td>";
+    html += "<td style='padding:6px 10px;font-size:10px;"+ic+"'>" + esc(r.issues.join("; ")||"✓") + "</td>";
     var act = "";
     if (r.status === "missing") act = "<button class='btn bp' style='font-size:9px;padding:3px 8px' onclick='addToAT("+idx+")'>+ Add</button>";
-    if (r.status === "extra" && a.id) act = "<button class='btn br' style='font-size:9px;padding:3px 8px' onclick='deleteFromAT(\""+a.id+"\","+idx+")'>â Delete</button>";
+    if (r.status === "extra" && a.id) act = "<button class='btn br' style='font-size:9px;padding:3px 8px' onclick='deleteFromAT(\""+a.id+"\","+idx+")'>✕ Delete</button>";
     if (r.status === "wrong" && a.id) act = "<button class='btn by' style='font-size:9px;padding:3px 8px' onclick='fixRecord(\""+a.id+"\","+idx+")'>Fix</button>";
     html += "<td style='padding:6px 8px'>" + act + "</td>";
     html += "</tr>";
@@ -6082,7 +6082,7 @@ async function addToAT(idx) {
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     toast('Added: ' + r.compound + ' ' + r.date, 'tg');
     var row = document.getElementById('vrow-' + idx);
-    if (row) { row.style.background = 'var(--gd)'; row.querySelector('td:last-child').textContent = 'â'; }
+    if (row) { row.style.background = 'var(--gd)'; row.querySelector('td:last-child').textContent = '✓'; }
     verifyRowData[idx].status = 'ok';
   } catch(e) { toast('Add failed: ' + e.message, 'tr'); if (btn) { btn.disabled = false; btn.textContent = '+ Add'; } }
 }
@@ -6099,7 +6099,7 @@ async function deleteFromAT(recId, idx) {
     var row = document.getElementById('vrow-' + idx);
     if (row) row.style.opacity = '0.35';
     verifyRowData[idx].status = 'deleted';
-  } catch(e) { toast('Delete failed: ' + e.message, 'tr'); if (btn) { btn.disabled = false; btn.textContent = 'â Delete'; } }
+  } catch(e) { toast('Delete failed: ' + e.message, 'tr'); if (btn) { btn.disabled = false; btn.textContent = '✕ Delete'; } }
 }
 
 async function addAllMissing() {
@@ -6127,7 +6127,7 @@ async function addAllMissing() {
       vStatus('Added ' + added + '/' + missing.length + '...');
     } catch(e) { failed += batches[b].length; }
   }
-  vStatus('Done â ' + added + ' added' + (failed?' Â· ' + failed + ' failed':''), failed ? 'warn' : 'ok');
+  vStatus('Done — ' + added + ' added' + (failed?' · ' + failed + ' failed':''), failed ? 'warn' : 'ok');
   toast(added + ' records added to AT', 'tg', 4000);
   // Re-run compare to refresh
   setTimeout(function(){ compareWithAT(); }, 1000);
@@ -6152,7 +6152,7 @@ async function deleteAllExtra() {
       vStatus('Deleted ' + deleted + '/' + extra.length + '...');
     } catch(e) { failed += batches[b].length; }
   }
-  vStatus('Done â ' + deleted + ' deleted' + (failed?' Â· ' + failed + ' failed':''), failed ? 'warn' : 'ok');
+  vStatus('Done — ' + deleted + ' deleted' + (failed?' · ' + failed + ' failed':''), failed ? 'warn' : 'ok');
   toast(deleted + ' records deleted from AT', 'tg', 4000);
   setTimeout(function(){ compareWithAT(); }, 1000);
 }
@@ -6160,8 +6160,8 @@ async function deleteAllExtra() {
 function stat(n,label,color) {
   return "<div style=\'text-align:center\'><div style=\'font-size:22px;font-weight:700;color:"+color+";font-family:var(--mono)\'>"+n+"</div><div style=\'font-size:10px;color:var(--d)\'>"+label+"</div></div>";
 }
-function td(v) { return "<td style=\'padding:6px 10px;font-family:var(--mono);font-size:10px\'>" + esc(v||"â") + "</td>"; }
-function tdMono(v) { return "<td style=\'padding:6px 10px;font-family:var(--mono)\'>" + esc(v||"â") + "</td>"; }
+function td(v) { return "<td style=\'padding:6px 10px;font-family:var(--mono);font-size:10px\'>" + esc(v||"—") + "</td>"; }
+function tdMono(v) { return "<td style=\'padding:6px 10px;font-family:var(--mono)\'>" + esc(v||"—") + "</td>"; }
 
 function flagMissing(idx) {
   var r = verifyRowData[idx];
@@ -6203,7 +6203,7 @@ function renderExtractedForClaude(entries, startDate, endDate, batchSummary) {
   function buildTable(sorted) {
     var html = "";
     html += "<div style='display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px'>";
-    html += "<span style='font-size:11px;color:var(--dd);font-family:var(--mono)'>Extracted: " + entries.length + " entries Â· " + startDate + " â " + endDate + "</span>";
+    html += "<span style='font-size:11px;color:var(--dd);font-family:var(--mono)'>Extracted: " + entries.length + " entries · " + startDate + " → " + endDate + "</span>";
     if (batchSummary) html += "<span style='font-size:9px;color:var(--dd);font-family:var(--mono)'>" + esc(batchSummary) + "</span>";
     html += "<div style='display:flex;gap:6px'>";
     html += "<button class='btn bg-btn' style='font-size:10px;padding:4px 10px' onclick='toggleVerifySort()'>&#8597; " + (_verifySort==='asc'?'Oldest first':'Newest first') + "</button>";
@@ -6216,11 +6216,11 @@ function renderExtractedForClaude(entries, startDate, endDate, batchSummary) {
     });
     html += "</tr></thead><tbody>";
     sorted.forEach(function(e) {
-      html += "<tr><td style='padding:5px 10px;font-family:var(--mono);font-size:10px'>" + esc(e.date||"â") + "</td>";
-      html += "<td style='padding:5px 10px;font-weight:500'>" + esc(e.compound||"â") + "</td>";
-      html += "<td style='padding:5px 10px;font-family:var(--mono)'>" + esc(e.dose||"â") + "</td>";
-      html += "<td style='padding:5px 10px;font-family:var(--mono)'>" + esc(e.side||"â") + "</td>";
-      html += "<td style='padding:5px 10px;font-family:var(--mono)'>" + esc(e.time_of_day||"â") + "</td>";
+      html += "<tr><td style='padding:5px 10px;font-family:var(--mono);font-size:10px'>" + esc(e.date||"—") + "</td>";
+      html += "<td style='padding:5px 10px;font-weight:500'>" + esc(e.compound||"—") + "</td>";
+      html += "<td style='padding:5px 10px;font-family:var(--mono)'>" + esc(e.dose||"—") + "</td>";
+      html += "<td style='padding:5px 10px;font-family:var(--mono)'>" + esc(e.side||"—") + "</td>";
+      html += "<td style='padding:5px 10px;font-family:var(--mono)'>" + esc(e.time_of_day||"—") + "</td>";
       html += "<td style='padding:5px 10px;font-size:10px;color:var(--d)'>" + esc(e.notes||"") + "</td></tr>";
     });
     html += "</tbody></table></div>";
@@ -6254,7 +6254,7 @@ async function compareWithAT() {
   if (!_verifyExtracted.length) { toast("Run Verify first", "tr"); return; }
   var dates = _verifyExtracted.map(function(e){return e.date;}).filter(Boolean).sort();
   var startDate = dates[0], endDate = dates[dates.length-1];
-  vStatus("Fetching Airtable records " + startDate + " â " + endDate + "...");
+  vStatus("Fetching Airtable records " + startDate + " → " + endDate + "...");
   try {
     var atRecords = await fetchAtInjections(startDate, endDate);
     vStatus("AT: " + atRecords.length + " records fetched. Running diff...");
@@ -6264,7 +6264,7 @@ async function compareWithAT() {
     var miss = rows.filter(function(r){return r.status==="missing";}).length;
     var wrong = rows.filter(function(r){return r.status==="wrong";}).length;
     var extra = rows.filter(function(r){return r.status==="extra";}).length;
-    vStatus("Diff complete â â" + ok + " match Â· " + miss + " missing Â· " + wrong + " wrong Â· " + extra + " extra", miss+wrong ? "warn" : "ok");
+    vStatus("Diff complete — ✓" + ok + " match · " + miss + " missing · " + wrong + " wrong · " + extra + " extra", miss+wrong ? "warn" : "ok");
   } catch(e) {
     vStatus("AT fetch failed: " + e.message, "err");
   }
@@ -6285,10 +6285,10 @@ function copyForClaude() {
     txt += e.date + " | " + (e.compound||"?") + " | dose=" + (e.dose||"?") + " | side=" + (e.side||"?") + " | tod=" + (e.time_of_day||"?") + (e.notes?" | notes="+e.notes:"") + "\n";
   });
   if (typeof sendPrompt === "function") sendPrompt(txt);
-  else navigator.clipboard.writeText(txt).then(function(){ toast("Copied â paste to Claude", "tg", 4000); });
+  else navigator.clipboard.writeText(txt).then(function(){ toast("Copied — paste to Claude", "tg", 4000); });
 }
 
-// ââ MAIN RUN ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// ── MAIN RUN ──────────────────────────────────────────────────────────
 async function runVerification() {
   var btn = document.getElementById("runVerifyBtn");
   var resEl = document.getElementById("verifyResults");
@@ -6300,7 +6300,7 @@ async function runVerification() {
     var startIdx = (pageVal === "all") ? 0 : Math.max(0, pages.length - (parseInt(pageVal)||4));
     var pageIndices = [];
     for (var i = startIdx; i < pages.length; i++) pageIndices.push(i);
-    vStatus("Starting verification â " + pageIndices.length + " pages Â· type: " + pdfType);
+    vStatus("Starting verification — " + pageIndices.length + " pages · type: " + pdfType);
     if (pdfType === "injection") await runInjectionVerification(pageIndices);
     else if (pdfType === "workout") await runWorkoutVerification(pageIndices);
     else vStatus("Select a PDF type (injection/workout) from Settings", "err");
@@ -6308,7 +6308,7 @@ async function runVerification() {
     vStatus("Error: " + e.message, "err");
     console.error(e);
   }
-  btn.disabled = false; btn.textContent = "â¡ Run Verify";
+  btn.disabled = false; btn.textContent = "⚡ Run Verify";
 }
 
 
@@ -6455,7 +6455,7 @@ function drawLine(canvasId, labels, data1, label1, color1, data2, label2, color2
       </div>
       <div class="modal-field" style="flex:1"><label>Lab Type</label>
         <select id="al-labtype">
-          <option value="">â select â</option>
+          <option value="">— select —</option>
           <option>CBC</option><option>Hormones</option><option>Kidney</option>
           <option>Liver</option><option>Lipids</option><option>Metabolic</option>
           <option>Thyroid</option><option>Other</option>
@@ -6475,7 +6475,7 @@ function drawLine(canvasId, labels, data1, label1, color1, data2, label2, color2
   <div class="modal-box">
     <div class="modal-title">Log Protocol Change</div>
     <div style="display:flex;gap:8px">
-      <div class="modal-field" style="flex:2"><label>Compound</label><select id="ac-compound"><option value="">â Select â</option></select></div>
+      <div class="modal-field" style="flex:2"><label>Compound</label><select id="ac-compound"><option value="">— Select —</option></select></div>
       <div class="modal-field" style="flex:1"><label>Date</label><input type="date" id="ac-date"></div>
     </div>
     <div class="modal-field"><label>Change Type</label>
@@ -6490,7 +6490,7 @@ function drawLine(canvasId, labels, data1, label1, color1, data2, label2, color2
     </div>
     <div class="modal-field"><label>Description</label><input type="text" id="ac-description" placeholder="e.g. Increased dose from 8mg to 12mg weekly"></div>
     <div class="modal-field"><label>Reason</label><input type="text" id="ac-reason" placeholder="e.g. Tolerating well, seeking further weight loss"></div>
-    <div class="modal-field"><label>Impacted Peptides</label><input type="text" id="ac-impacted" placeholder="Optional â other compounds affected"></div>
+    <div class="modal-field"><label>Impacted Peptides</label><input type="text" id="ac-impacted" placeholder="Optional — other compounds affected"></div>
     <div class="modal-field"><label>Notes</label><input type="text" id="ac-notes" placeholder="Optional..."></div>
     <div class="modal-actions">
       <button class="modal-btn" onclick="hideAddChangeModal()">Cancel</button>
@@ -6503,7 +6503,7 @@ function drawLine(canvasId, labels, data1, label1, color1, data2, label2, color2
 <!-- PROFILE EDIT MODAL -->
 <div class="modal-overlay" id="profile-modal" onclick="if(event.target===this)hideProfileModal()" style="display:none">
   <div class="modal-box" style="width:460px">
-    <div class="modal-header"><h3 id="pm-label-display">Edit Field</h3><button class="modal-close" onclick="hideProfileModal()">â</button></div>
+    <div class="modal-header"><h3 id="pm-label-display">Edit Field</h3><button class="modal-close" onclick="hideProfileModal()">✕</button></div>
     <div class="modal-body">
       <input type="hidden" id="pm-id">
       <div class="form-row">
@@ -6533,14 +6533,14 @@ function drawLine(canvasId, labels, data1, label1, color1, data2, label2, color2
 <!-- GOALS MODAL -->
 <div class="modal-overlay" id="goal-modal" onclick="if(event.target===this)hideGoalModal()" style="display:none">
   <div class="modal-box" style="width:480px">
-    <div class="modal-header"><h3 id="goal-modal-title">Add Goal</h3><button class="modal-close" onclick="hideGoalModal()">â</button></div>
+    <div class="modal-header"><h3 id="goal-modal-title">Add Goal</h3><button class="modal-close" onclick="hideGoalModal()">✕</button></div>
     <div class="modal-body">
       <input type="hidden" id="gm-id">
       <div class="form-row"><label>Goal</label><input type="text" id="gm-goal" placeholder="Describe the goal"></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
         <div class="form-row"><label>Category</label>
           <select id="gm-category" style="padding:7px 10px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);font-size:13px;width:100%">
-            <option value="">â Select â</option>
+            <option value="">— Select —</option>
             <option>Body Composition</option><option>Performance</option><option>Health</option>
             <option>Bloodwork</option><option>Nutrition</option><option>Recovery</option>
             <option>Hormones</option><option>Sleep</option><option>Strength</option><option>Other</option>
@@ -6548,7 +6548,7 @@ function drawLine(canvasId, labels, data1, label1, color1, data2, label2, color2
         </div>
         <div class="form-row"><label>Priority</label>
           <select id="gm-priority" style="padding:7px 10px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);font-size:13px;width:100%">
-            <option value="">â Select â</option>
+            <option value="">— Select —</option>
             <option>High</option><option>Medium</option><option>Low</option>
           </select>
         </div>
@@ -6592,12 +6592,12 @@ function drawLine(canvasId, labels, data1, label1, color1, data2, label2, color2
       <p class="section-sub">Weight, body composition, HRV and recovery trends from DailyLog</p>
     </div>
     <div id="bodycomp-content" style="padding:16px">
-      <div style="text-align:center;color:var(--muted);padding:40px">Loading...</div>
+      <div style="text-align:center;color:var(--muted);padding:40px">No body composition data logged yet. Add weight and body fat entries to DailyLog to see trends here.</div>
     </div>
   </div>
 
 </body>
 </html>
-<!-- cache bust Mon May 26 2026 â oauth fix -->
+<!-- cache bust Mon May 26 2026 — oauth fix -->
 
 
