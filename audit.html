@@ -439,12 +439,20 @@ async function loadWeekGrid(date){
     const dose=f[LOG.dose]||'';if(dose)data[key].days[day].doses.push(dose);
   });
 
-  // Apply saved order — supports both key format (cmp||timing) and legacy compound-only
-  const allKeys=keyOrder;
+  // Seed grid with ALL saved-order compounds so paused ones (BPC-157, TB-500) always appear
   const saved=getRowOrder();
+  saved.forEach(s=>{
+    if(!data[s]){
+      const parts=s.split('||');
+      const cmp=parts[0],timing=parts.slice(1).join('||');
+      if(CMPS.includes(cmp)){data[s]={cmp,timing,days:{}};keyOrder.push(s);}
+    }
+  });
+
+  // Apply saved order
+  const allKeys=keyOrder;
   const orderedKeys=[];
   saved.forEach(s=>{
-    // Try exact key match first, then compound-prefix fallback for legacy saved orders
     if(allKeys.includes(s)){if(!orderedKeys.includes(s))orderedKeys.push(s);}
     else{allKeys.filter(k=>k.startsWith(s+'||')).forEach(k=>{if(!orderedKeys.includes(k))orderedKeys.push(k);});}
   });
