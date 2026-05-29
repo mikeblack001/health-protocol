@@ -79,17 +79,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 #pp{width:520px;flex-shrink:0;display:flex;flex-direction:column;background:#fff;border-left:1px solid #e5e7eb}
 #pp-hdr{display:flex;align-items:center;gap:6px;padding:6px 10px;background:#f8fafc;border-bottom:1px solid #e5e7eb;flex-shrink:0}
 #pp-hdr b{font-size:11px;font-weight:800;color:#374151}
-#pp-id{flex:1;padding:3px 6px;border:1px solid #d1d5db;border-radius:4px;font-size:10px;font-family:monospace}
 #pp-load{padding:3px 10px;background:#2563eb;color:#fff;border:none;border-radius:4px;font-size:10px;cursor:pointer;font-weight:700}
-#pp-zoom{display:flex;align-items:center;gap:4px;font-size:10px;color:#6b7280}
-#pp-zoom button{padding:1px 6px;border:1px solid #d1d5db;border-radius:3px;background:#fff;cursor:pointer;font-size:11px}
-#pp-pg{font-size:10px;color:#6b7280;display:flex;align-items:center;gap:4px}
-#pp-pg button{padding:1px 6px;border:1px solid #d1d5db;border-radius:3px;background:#fff;cursor:pointer}
-#pp-msg{font-size:10px;color:#6b7280;padding:2px 4px}
-#pp-canvas-wrap{flex:1;overflow:auto;background:#e5e7eb;display:flex;justify-content:center;padding:8px}
-#pp-canvas{display:block;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+#pp-msg{font-size:10px;color:#ef4444;padding:2px 6px}
+#pp-frame{flex:1;border:none;width:100%;background:#e5e7eb}
 </style>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 </head>
 <body>
 
@@ -150,21 +143,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <option value="1u7wc9rGFZD_n7e0L2hbwnEhRciVwxykvwcp5MVNeYIaYn0dDE">2026 Workouts</option>
         <option value="custom">Custom ID…</option>
       </select>
-      <input id="pp-id" placeholder="Drive ID" style="display:none;width:130px">
+      <input id="pp-id" placeholder="Drive File ID" style="display:none;padding:3px 6px;border:1px solid #374151;border-radius:4px;font-size:10px;background:#2d3748;color:#fff;width:160px">
       <button id="pp-load" onclick="loadPDF()">Load</button>
-      <div id="pp-zoom">
-        <button onclick="zoomPDF(-25)">−</button>
-        <span id="pp-zoom-val">150%</span>
-        <button onclick="zoomPDF(25)">+</button>
-      </div>
-      <div id="pp-pg">
-        <button onclick="changePage(-1)">◄</button>
-        <span id="pp-pg-label">—</span>
-        <button onclick="changePage(1)">►</button>
-      </div>
+      <span id="pp-msg"></span>
     </div>
-    <div id="pp-msg"></div>
-    <div id="pp-canvas-wrap"><canvas id="pp-canvas"></canvas></div>
+    <iframe id="pp-frame" src="about:blank" allowfullscreen></iframe>
   </div>
 </div>
 
@@ -198,7 +181,7 @@ const LS={get:k=>localStorage.getItem(k),set:(k,v)=>localStorage.setItem(k,v)};
 const VERIFIED_KEY='wa_verified_dates';
 
 let allDates=[],curDate=null,sessRecs={},curSets=[],curSessRec=null;
-let pdfDoc=null,pdfPage=1,pdfZoom=150;
+
 
 function setSt(m){document.getElementById('st').innerHTML=m;}
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
@@ -587,52 +570,18 @@ function pdfSelChange(){
   }
 }
 
-pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-
 function pmsg(m){document.getElementById('pp-msg').textContent=m;}
 
-async function loadPDF(){
+function loadPDF(){
   const sel=document.getElementById('pp-sel');
   const customInput=document.getElementById('pp-id');
   const id=(sel.value&&sel.value!=='custom')?sel.value:customInput.value.trim();
   if(!id){pmsg('Select a PDF');return;}
   LS.set('wa_pdf_sel',sel.value);
   if(sel.value==='custom')LS.set('wa_pdf_custom',customInput.value.trim());
-  pmsg('Loading…');
-  try{
-    const url='https://drive.google.com/uc?export=download&id='+id;
-    pdfDoc=await pdfjsLib.getDocument(url).promise;
-    pdfPage=parseInt(LS.get('wa_pdf_pg_'+id)||'1');
-    if(pdfPage>pdfDoc.numPages)pdfPage=1;
-    pmsg('');
-    renderPDFPage();
-  }catch(e){pmsg('Error: '+e.message);}
-}
-
-async function renderPDFPage(){
-  if(!pdfDoc)return;
-  const sel=document.getElementById('pp-sel');
-  const curId=(sel.value&&sel.value!=='custom')?sel.value:document.getElementById('pp-id').value.trim();
-  const page=await pdfDoc.getPage(pdfPage);
-  const scale=pdfZoom/100;
-  const vp=page.getViewport({scale});
-  const canvas=document.getElementById('pp-canvas');
-  canvas.width=vp.width;canvas.height=vp.height;
-  await page.render({canvasContext:canvas.getContext('2d'),viewport:vp}).promise;
-  document.getElementById('pp-pg-label').textContent=pdfPage+'/'+pdfDoc.numPages;
-  document.getElementById('pp-zoom-val').textContent=pdfZoom+'%';
-  LS.set('wa_pdf_pg_'+curId,pdfPage);
-}
-
-function changePage(dir){
-  if(!pdfDoc)return;
-  const np=pdfPage+dir;
-  if(np>=1&&np<=pdfDoc.numPages){pdfPage=np;renderPDFPage();}
-}
-
-function zoomPDF(delta){
-  pdfZoom=Math.max(50,Math.min(300,pdfZoom+delta));
-  renderPDFPage();
+  pmsg('');
+  const url='https://drive.google.com/file/d/'+id+'/preview';
+  document.getElementById('pp-frame').src=url;
 }
 
 window.onload=()=>{
