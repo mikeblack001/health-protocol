@@ -842,7 +842,7 @@ async function saveField(id,field,value){
   try{
     const res=await atFetch(LOG.tbl+'/'+id+'?returnFieldsByFieldId=true',{method:'PATCH',body:JSON.stringify({fields})});
     const i=logRecs.findIndex(r=>r.id===id);
-    if(i>=0){logRecs[i]=res;refreshCard(res);}
+    if(i>=0){logRecs[i]={...logRecs[i],fields:{...logRecs[i].fields,...res.fields}};refreshCard(logRecs[i]);}
     flashSaved(id);
     updateGridCell(id);
   }catch(e){setSt('Save error: '+e.message);}
