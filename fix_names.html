@@ -5,8 +5,7 @@
 body{font-family:-apple-system,sans-serif;padding:20px;background:#f0f2f5;color:#1a1a2e}
 button{padding:10px 24px;background:#2563eb;color:#fff;border:none;border-radius:6px;font-size:14px;font-weight:700;cursor:pointer;margin-right:8px;margin-bottom:8px}
 button:disabled{background:#9ca3af}
-button.green{background:#16a34a}
-button.red{background:#dc2626}
+.green{background:#16a34a}.red{background:#dc2626}
 table{width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden;margin-top:12px;font-size:12px}
 th{background:#1e2433;color:#fff;padding:6px 10px;text-align:left}
 td{padding:5px 10px;border-bottom:1px solid #e2e5ea}
@@ -14,75 +13,97 @@ td{padding:5px 10px;border-bottom:1px solid #e2e5ea}
 </style>
 </head>
 <body>
-<h2 style="margin:0 0 4px">Injection Log — Data Cleanup</h2>
-<p style="color:#6b7280;font-size:13px;margin:0 0 12px">Scan first, review, then apply.</p>
-
-<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px">
-  <button onclick="scanDose()">Scan Dose Issues</button>
-  <button id="fix-dose-btn" class="green" onclick="fixDose()" disabled>Apply Dose Fix</button>
-</div>
-
+<h2 style="margin:0 0 4px">Injection Log — Dose Cleanup</h2>
+<p style="color:#6b7280;font-size:13px;margin:0 0 12px">Scans dose field. Numbers get 'u' appended. Blanks are looked up from Peptides table dose.</p>
+<button onclick="scan()">1. Scan / Preview</button>
+<button id="fix-btn" class="green" onclick="applyFix()" disabled>2. Apply Fix</button>
 <div id="log">Ready.</div>
 <div id="preview"></div>
-
 <script>
 const TOKEN='pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
 const BASE='appmHDG4TGT1xy6R6';
 const TBL='tblBvEaLkGGipnOFc';
+const PEPTIDES_TBL='tblMs6YRdP4wkndUp';
 let toFix=[];
 
 function log(m){const el=document.getElementById('log');el.textContent+='\n'+m;el.scrollTop=el.scrollHeight;}
-function clearLog(){document.getElementById('log').textContent='Scanning...';}
 
-async function scanDose(){
-  toFix=[];
-  clearLog();
-  document.getElementById('fix-dose-btn').disabled=true;
-  document.getElementById('preview').innerHTML='';
-
-  let offset=null,scanned=0;
+async function fetchAll(tbl,fields){
+  let records=[],offset=null;
   do{
-    const url=`https://api.airtable.com/v0/${BASE}/${TBL}?fields[]=Dose&fields[]=Compound&pageSize=100`+(offset?`&offset=${offset}`:'');
+    const f=fields.map(f=>`fields[]=${encodeURIComponent(f)}`).join('&');
+    const url=`https://api.airtable.com/v0/${BASE}/${tbl}?${f}&pageSize=100`+(offset?`&offset=${offset}`:'');
     const r=await fetch(url,{headers:{Authorization:`Bearer ${TOKEN}`}});
     const d=await r.json();
-    if(!d.records){log('Error: '+JSON.stringify(d));return;}
-    for(const rec of d.records){
-      const dose=(rec.fields['Dose']||'').toString().trim();
-      const cmp=rec.fields['Compound']||'';
-      // Needs fix: blank, or is a pure number without 'u', or has wrong unit
-      const needsFix = !dose || /^\d+(\.\d+)?$/.test(dose);
-      if(needsFix) toFix.push({id:rec.id, dose, cmp, newDose: dose ? dose.replace(/u$/i,'')+'u' : ''});
-    }
-    scanned+=d.records.length;
+    if(!d.records)throw new Error(JSON.stringify(d.error));
+    records=records.concat(d.records);
     offset=d.offset;
   }while(offset);
-
-  log(`Scanned ${scanned} records. Found ${toFix.length} with dose issues.`);
-  if(!toFix.length){log('Nothing to fix.');return;}
-
-  // Summary of unique dose values
-  const doseCounts={};
-  toFix.forEach(r=>{doseCounts[r.dose||'(blank)']=(doseCounts[r.dose||'(blank)']||0)+1;});
-  log('Unique dose values found:\n'+Object.entries(doseCounts).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`  "${k}" × ${v}`).join('\n'));
-
-  let html=`<table><thead><tr><th>#</th><th>Record ID</th><th>Compound</th><th>Current Dose</th><th>→ Will be set to</th></tr></thead><tbody>`;
-  toFix.slice(0,200).forEach((r,i)=>{
-    html+=`<tr><td>${i+1}</td><td style="font-family:monospace;font-size:11px">${r.id}</td><td>${r.cmp}</td><td style="color:#dc2626">${r.dose||'(blank)'}</td><td style="color:#16a34a;font-weight:600">${r.newDose||'⚠ blank — needs manual entry'}</td></tr>`;
-  });
-  if(toFix.length>200)html+=`<tr><td colspan="5" style="color:#6b7280;text-align:center">...and ${toFix.length-200} more</td></tr>`;
-  html+='</tbody></table>';
-  document.getElementById('preview').innerHTML=html;
-
-  const fixable=toFix.filter(r=>r.newDose);
-  log(`\n${fixable.length} can be auto-fixed (add 'u'). ${toFix.length-fixable.length} are blank (need manual entry).`);
-  if(fixable.length) document.getElementById('fix-dose-btn').disabled=false;
+  return records;
 }
 
-async function fixDose(){
-  document.getElementById('fix-dose-btn').disabled=true;
+async function scan(){
+  toFix=[];
+  document.getElementById('preview').innerHTML='';
+  document.getElementById('fix-btn').disabled=true;
+  document.getElementById('log').textContent='Scanning...';
+
+  // Load peptide doses for lookup
+  log('Loading Peptides table for dose lookup...');
+  let peptideDoses={};
+  try{
+    const peps=await fetchAll(PEPTIDES_TBL,['Name','Dose']);
+    peps.forEach(r=>{
+      const name=(r.fields['Name']||'').trim();
+      const dose=(r.fields['Dose']||'').toString().trim();
+      if(name&&dose) peptideDoses[name.toLowerCase()]=dose;
+    });
+    log(`Loaded ${Object.keys(peptideDoses).length} peptide doses.`);
+  }catch(e){log('Warning: could not load Peptides: '+e.message);}
+
+  // Scan injection log
+  log('Scanning injection log...');
+  const recs=await fetchAll(TBL,['Dose','Compound']);
+  let scanned=recs.length,blanks=0,noUnit=0;
+
+  for(const rec of recs){
+    const dose=(rec.fields['Dose']||'').toString().trim();
+    const cmp=(rec.fields['Compound']||'').trim();
+    const isBlank=!dose;
+    const isNoUnit=/^\d+(\.\d+)?$/.test(dose);
+    if(!isBlank&&!isNoUnit) continue;
+
+    let newDose='';
+    if(isNoUnit){
+      newDose=dose+'u';
+      noUnit++;
+    } else {
+      // Look up from peptides
+      const match=peptideDoses[cmp.toLowerCase()];
+      if(match) newDose=match;
+      blanks++;
+    }
+    toFix.push({id:rec.id,cmp,dose,newDose,source:isNoUnit?'add u':'peptides lookup'});
+  }
+
+  log(`Scanned ${scanned}. ${noUnit} missing 'u', ${blanks} blank.\n${toFix.filter(r=>r.newDose).length} can be auto-fixed, ${toFix.filter(r=>!r.newDose).length} still unknown after lookup.`);
+
+  let html=`<table><thead><tr><th>#</th><th>Compound</th><th>Current Dose</th><th>→ New Dose</th><th>Source</th></tr></thead><tbody>`;
+  toFix.slice(0,300).forEach((r,i)=>{
+    const color=r.newDose?'#16a34a':'#f59e0b';
+    html+=`<tr><td>${i+1}</td><td>${r.cmp}</td><td style="color:#dc2626">${r.dose||'(blank)'}</td><td style="color:${color};font-weight:600">${r.newDose||'⚠ unknown'}</td><td style="color:#9ca3af">${r.source}</td></tr>`;
+  });
+  if(toFix.length>300)html+=`<tr><td colspan="5" style="text-align:center;color:#6b7280">...and ${toFix.length-300} more</td></tr>`;
+  html+='</tbody></table>';
+  document.getElementById('preview').innerHTML=html;
+  if(toFix.filter(r=>r.newDose).length) document.getElementById('fix-btn').disabled=false;
+}
+
+async function applyFix(){
+  document.getElementById('fix-btn').disabled=true;
   const fixable=toFix.filter(r=>r.newDose);
   let fixed=0,errors=0;
-  log(`Fixing ${fixable.length} records (adding 'u' suffix)...`);
+  log(`Fixing ${fixable.length} records...`);
   for(let i=0;i<fixable.length;i+=10){
     const batch=fixable.slice(i,i+10);
     const records=batch.map(r=>({id:r.id,fields:{Dose:r.newDose}}));
@@ -93,7 +114,7 @@ async function fixDose(){
         body:JSON.stringify({records,typecast:true})
       });
       const d=await r.json();
-      if(d.records){fixed+=d.records.length;}
+      if(d.records)fixed+=d.records.length;
       else{errors++;log('Error: '+JSON.stringify(d.error));}
     }catch(e){errors++;log('Error: '+e.message);}
     await new Promise(res=>setTimeout(res,120));
