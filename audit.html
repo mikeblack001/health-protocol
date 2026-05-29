@@ -867,6 +867,8 @@ async function saveField(id,field,value){
     if(i>=0){logRecs[i]={...logRecs[i],fields:{...logRecs[i].fields,...res.fields}};refreshCard(logRecs[i]);}
     flashSaved(id);
     updateGridCell(id);
+    const allV2=logRecs.length>0&&logRecs.every(r=>r.fields[LOG.verified]===true);
+    updateVerifyBtn(allV2);
   }catch(e){setSt('Save error: '+e.message);}
 }
 
@@ -1015,6 +1017,8 @@ async function quickAdd(){
     setSt('✓ Added');
     updateGridCell(res.id);
     loadWeekGrid(curDate);
+    const allV=logRecs.length>0&&logRecs.every(r=>r.fields[LOG.verified]===true);
+    updateVerifyBtn(allV);
   }catch(e){setSt('Error: '+e.message);}
 }
 
