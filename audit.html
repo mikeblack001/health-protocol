@@ -591,7 +591,6 @@ async function gridCellClick(date,cmp,timing=''){
     found.scrollIntoView({behavior:'smooth',block:'center'});
     found.style.outline='3px solid #2563eb';
     window._highlightedCard={cmp,timing};
-    setTimeout(()=>{window._highlightedCard=null;document.querySelectorAll('.card').forEach(c=>c.style.outline='');},8000);
   } else {
     // Compound not in records — open add modal, pre-fill from most recent record
     cmDate=date;cmCmp=cmp;
