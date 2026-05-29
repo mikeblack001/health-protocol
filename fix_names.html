@@ -1,21 +1,27 @@
 <!DOCTYPE html>
 <html>
-<head><meta charset="UTF-8"><title>Fix Injection Log Names</title>
+<head><meta charset="UTF-8"><title>Fix Injection Log</title>
 <style>
 body{font-family:-apple-system,sans-serif;padding:20px;background:#f0f2f5;color:#1a1a2e}
-button{padding:10px 24px;background:#2563eb;color:#fff;border:none;border-radius:6px;font-size:14px;font-weight:700;cursor:pointer;margin-right:8px}
+button{padding:10px 24px;background:#2563eb;color:#fff;border:none;border-radius:6px;font-size:14px;font-weight:700;cursor:pointer;margin-right:8px;margin-bottom:8px}
 button:disabled{background:#9ca3af}
+button.green{background:#16a34a}
+button.red{background:#dc2626}
 table{width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden;margin-top:12px;font-size:12px}
 th{background:#1e2433;color:#fff;padding:6px 10px;text-align:left}
 td{padding:5px 10px;border-bottom:1px solid #e2e5ea}
-#log{background:#fff;border-radius:8px;padding:12px;font-size:12px;font-family:monospace;margin-top:12px;max-height:200px;overflow-y:auto;white-space:pre-wrap}
+#log{background:#fff;border-radius:8px;padding:12px;font-size:12px;font-family:monospace;margin-top:12px;max-height:180px;overflow-y:auto;white-space:pre-wrap}
 </style>
 </head>
 <body>
-<h2 style="margin:0 0 4px">Fix Name = Compound</h2>
-<p style="color:#6b7280;font-size:13px;margin:0 0 12px">Step 1: Scan to see field names and preview mismatches. Step 2: Apply fix.</p>
-<button onclick="scan()">1. Scan / Preview</button>
-<button id="fix-btn" onclick="fix()" disabled style="background:#16a34a">2. Apply Fix</button>
+<h2 style="margin:0 0 4px">Injection Log — Data Cleanup</h2>
+<p style="color:#6b7280;font-size:13px;margin:0 0 12px">Scan first, review, then apply.</p>
+
+<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px">
+  <button onclick="scanDose()">Scan Dose Issues</button>
+  <button id="fix-dose-btn" class="green" onclick="fixDose()" disabled>Apply Dose Fix</button>
+</div>
+
 <div id="log">Ready.</div>
 <div id="preview"></div>
 
@@ -24,65 +30,62 @@ const TOKEN='pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3
 const BASE='appmHDG4TGT1xy6R6';
 const TBL='tblBvEaLkGGipnOFc';
 let toFix=[];
-let nameField=null,cmpField=null;
 
 function log(m){const el=document.getElementById('log');el.textContent+='\n'+m;el.scrollTop=el.scrollHeight;}
+function clearLog(){document.getElementById('log').textContent='Scanning...';}
 
-async function scan(){
-  toFix=[];nameField=null;cmpField=null;
+async function scanDose(){
+  toFix=[];
+  clearLog();
+  document.getElementById('fix-dose-btn').disabled=true;
   document.getElementById('preview').innerHTML='';
-  document.getElementById('log').textContent='Scanning...';
-  document.getElementById('fix-btn').disabled=true;
-
-  // First pull ONE record with all fields to discover field names
-  const probe=await fetch(`https://api.airtable.com/v0/${BASE}/${TBL}?pageSize=1`,{headers:{Authorization:`Bearer ${TOKEN}`}});
-  const pd=await probe.json();
-  if(!pd.records||!pd.records.length){log('No records found.');return;}
-  const sampleFields=pd.records[0].fields;
-  log('Fields found on first record: '+JSON.stringify(Object.keys(sampleFields)));
-
-  // Find name and compound fields
-  const keys=Object.keys(sampleFields);
-  nameField=keys.find(k=>k.toLowerCase()==='name')||keys.find(k=>k.toLowerCase().includes('name'));
-  cmpField=keys.find(k=>k.toLowerCase()==='compound')||keys.find(k=>k.toLowerCase().includes('compound'));
-  log(`Name field: "${nameField}" | Compound field: "${cmpField}"`);
-  if(!nameField||!cmpField){log('Could not identify fields. Check field names above.');return;}
 
   let offset=null,scanned=0;
   do{
-    const url=`https://api.airtable.com/v0/${BASE}/${TBL}?fields[]=${encodeURIComponent(nameField)}&fields[]=${encodeURIComponent(cmpField)}&pageSize=100`+(offset?`&offset=${offset}`:'');
+    const url=`https://api.airtable.com/v0/${BASE}/${TBL}?fields[]=Dose&fields[]=Compound&pageSize=100`+(offset?`&offset=${offset}`:'');
     const r=await fetch(url,{headers:{Authorization:`Bearer ${TOKEN}`}});
     const d=await r.json();
     if(!d.records){log('Error: '+JSON.stringify(d));return;}
     for(const rec of d.records){
-      const name=(rec.fields[nameField]||'').trim();
-      const cmp=(rec.fields[cmpField]||'').trim();
-      if(cmp&&name!==cmp) toFix.push({id:rec.id,name,cmp});
+      const dose=(rec.fields['Dose']||'').toString().trim();
+      const cmp=rec.fields['Compound']||'';
+      // Needs fix: blank, or is a pure number without 'u', or has wrong unit
+      const needsFix = !dose || /^\d+(\.\d+)?$/.test(dose);
+      if(needsFix) toFix.push({id:rec.id, dose, cmp, newDose: dose ? dose.replace(/u$/i,'')+'u' : ''});
     }
     scanned+=d.records.length;
     offset=d.offset;
   }while(offset);
 
-  log(`Scanned ${scanned} records. Found ${toFix.length} where Name ≠ Compound.`);
+  log(`Scanned ${scanned} records. Found ${toFix.length} with dose issues.`);
   if(!toFix.length){log('Nothing to fix.');return;}
 
-  let html=`<table><thead><tr><th>#</th><th>Record ID</th><th>Current Name</th><th>→ Will be set to</th></tr></thead><tbody>`;
+  // Summary of unique dose values
+  const doseCounts={};
+  toFix.forEach(r=>{doseCounts[r.dose||'(blank)']=(doseCounts[r.dose||'(blank)']||0)+1;});
+  log('Unique dose values found:\n'+Object.entries(doseCounts).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`  "${k}" × ${v}`).join('\n'));
+
+  let html=`<table><thead><tr><th>#</th><th>Record ID</th><th>Compound</th><th>Current Dose</th><th>→ Will be set to</th></tr></thead><tbody>`;
   toFix.slice(0,200).forEach((r,i)=>{
-    html+=`<tr><td>${i+1}</td><td style="font-family:monospace;font-size:11px">${r.id}</td><td style="color:#dc2626">${r.name||'(blank)'}</td><td style="color:#16a34a;font-weight:600">${r.cmp}</td></tr>`;
+    html+=`<tr><td>${i+1}</td><td style="font-family:monospace;font-size:11px">${r.id}</td><td>${r.cmp}</td><td style="color:#dc2626">${r.dose||'(blank)'}</td><td style="color:#16a34a;font-weight:600">${r.newDose||'⚠ blank — needs manual entry'}</td></tr>`;
   });
-  if(toFix.length>200)html+=`<tr><td colspan="4" style="color:#6b7280;text-align:center">...and ${toFix.length-200} more</td></tr>`;
+  if(toFix.length>200)html+=`<tr><td colspan="5" style="color:#6b7280;text-align:center">...and ${toFix.length-200} more</td></tr>`;
   html+='</tbody></table>';
   document.getElementById('preview').innerHTML=html;
-  document.getElementById('fix-btn').disabled=false;
+
+  const fixable=toFix.filter(r=>r.newDose);
+  log(`\n${fixable.length} can be auto-fixed (add 'u'). ${toFix.length-fixable.length} are blank (need manual entry).`);
+  if(fixable.length) document.getElementById('fix-dose-btn').disabled=false;
 }
 
-async function fix(){
-  document.getElementById('fix-btn').disabled=true;
+async function fixDose(){
+  document.getElementById('fix-dose-btn').disabled=true;
+  const fixable=toFix.filter(r=>r.newDose);
   let fixed=0,errors=0;
-  log(`Applying fix to ${toFix.length} records...`);
-  for(let i=0;i<toFix.length;i+=10){
-    const batch=toFix.slice(i,i+10);
-    const records=batch.map(r=>({id:r.id,fields:{[nameField]:r.cmp}}));
+  log(`Fixing ${fixable.length} records (adding 'u' suffix)...`);
+  for(let i=0;i<fixable.length;i+=10){
+    const batch=fixable.slice(i,i+10);
+    const records=batch.map(r=>({id:r.id,fields:{Dose:r.newDose}}));
     try{
       const r=await fetch(`https://api.airtable.com/v0/${BASE}/${TBL}`,{
         method:'PATCH',
