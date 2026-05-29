@@ -587,10 +587,11 @@ async function gridCellClick(date,cmp,timing=''){
     return sel&&sel.value===cmp;
   });
   if(found){
-    // Clear any previous highlight
     document.querySelectorAll('.card').forEach(card=>card.style.outline='');
     found.scrollIntoView({behavior:'smooth',block:'center'});
     found.style.outline='3px solid #2563eb';
+    window._highlightedCard={cmp,timing};
+    setTimeout(()=>{window._highlightedCard=null;},3000);
   } else {
     // Compound not in records — open add modal, pre-fill from most recent record
     cmDate=date;cmCmp=cmp;
@@ -822,6 +823,15 @@ function renderRecordsOrdered(order){
     return (aFallback===-1?999:aFallback)-(bFallback===-1?999:bFallback);
   });
   document.getElementById('records').innerHTML=sorted.map(r=>cardHTML(r)).join('');
+  if(window._highlightedCard){
+    const {cmp,timing}=window._highlightedCard;
+    const cards=[...document.querySelectorAll('.card')];
+    const card=cards.find(c=>{
+      const s=c.querySelector('select.fe-compound'),t=c.querySelector('select.fe-timing');
+      return s&&s.value===cmp&&(!timing||(t&&t.value===timing));
+    });
+    if(card){card.style.outline='3px solid #2563eb';card.scrollIntoView({behavior:'smooth',block:'center'});}
+  }
 }
 function renderRecords(){
   const el=document.getElementById('records');
