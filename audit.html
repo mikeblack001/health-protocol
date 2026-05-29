@@ -171,7 +171,7 @@ select.fe{cursor:pointer}
       <button onclick="navD(-1)">◀ Prev</button>
       <select id="d-sel" onchange="selDate()"><option value="">— Select Date —</option></select>
       <select id="w-sel" onchange="selWeek()" title="Jump to week"><option value="">— Week —</option></select>
-      <input id="w-date" type="date" title="Jump to any date" style="padding:5px 6px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;color:#374151;cursor:pointer" onchange="jumpToDate(this.value)">
+      <input id="w-date" type="date" title="Jump to any date" style="padding:5px 6px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;color:#374151;cursor:pointer" onchange="if(this.value&&this.value.length===10)jumpToDate(this.value)">
       <button onclick="navD(1)">Next ▶</button>
       <span id="d-cnt"></span>
       <div id="dnav-r">
@@ -402,9 +402,16 @@ function toggleWGrid(){
 }
 
 function getWkDates(dateStr){
-  const d=new Date(dateStr+'T12:00:00'),dow=d.getDay();
-  const mon=new Date(d);mon.setDate(d.getDate()-((dow+6)%7));
-  return Array.from({length:7},(_,i)=>{const dd=new Date(mon);dd.setDate(mon.getDate()+i);return dd.toISOString().slice(0,10);});
+  // Parse date parts directly to avoid timezone issues
+  const [yr,mo,dy]=dateStr.split('-').map(Number);
+  const d=new Date(yr,mo-1,dy);
+  const dow=d.getDay(); // 0=Sun,1=Mon...6=Sat
+  const diff=(dow+6)%7; // days back to Monday
+  const mon=new Date(yr,mo-1,dy-diff);
+  return Array.from({length:7},(_,i)=>{
+    const dd=new Date(mon.getFullYear(),mon.getMonth(),mon.getDate()+i);
+    return dd.getFullYear()+'-'+String(dd.getMonth()+1).padStart(2,'0')+'-'+String(dd.getDate()).padStart(2,'0');
+  });
 }
 function getRowOrder(){try{return JSON.parse(LS.get('row_order')||'[]');}catch(e){return [];}}
 function saveRowOrder(arr){LS.set('row_order',JSON.stringify(arr));}
