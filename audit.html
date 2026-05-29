@@ -875,6 +875,7 @@ async function saveField(id,field,value){
     updateGridCell(id);
     const allV2=logRecs.length>0&&logRecs.every(r=>r.fields[LOG.verified]===true);
     updateVerifyBtn(allV2);
+    loadWeekGrid(curDate);
   }catch(e){setSt('Save error: '+e.message);}
 }
 
