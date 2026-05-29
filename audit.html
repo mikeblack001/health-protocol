@@ -171,7 +171,7 @@ select.fe{cursor:pointer}
       <button onclick="navD(-1)">◀ Prev</button>
       <select id="d-sel" onchange="selDate()"><option value="">— Select Date —</option></select>
       <select id="w-sel" onchange="selWeek()" title="Jump to week"><option value="">— Week —</option></select>
-      <input id="w-date" type="text" placeholder="MM/DD/YYYY" title="Jump to any date" style="padding:5px 6px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;color:#374151;width:110px" onkeydown="if(event.key==='Enter')jumpToDate(this.value)">
+      <input id="w-date" type="text" placeholder="MM/DD/YYYY" title="Jump to any date" style="padding:5px 6px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;color:#374151;width:110px" oninput="autoSlash(this)" onkeydown="if(event.key==='Enter')jumpToDate(this.value)">
       <button onclick="navD(1)">Next ▶</button>
       <span id="d-cnt"></span>
       <div id="dnav-r">
@@ -700,6 +700,12 @@ function buildWeekSel(){
   });
 }
 
+function autoSlash(el){
+  let v=el.value.replace(/\D/g,'').slice(0,8);
+  if(v.length>4)v=v.slice(0,2)+'/'+v.slice(2,4)+'/'+v.slice(4);
+  else if(v.length>2)v=v.slice(0,2)+'/'+v.slice(2);
+  el.value=v;
+}
 function jumpToDate(date){
   if(!date)return;
   let iso=date.trim();
