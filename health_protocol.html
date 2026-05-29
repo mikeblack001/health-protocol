@@ -3428,12 +3428,8 @@ async function loadChanges() {
 }
 
 async function loadInjLog() {
-  const AT_BASE = 'appmHDG4TGT1xy6R6';
-  const AT_TOKEN = 'pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
   const TABLE = 'tblBvEaLkGGipnOFc';
-  // Field IDs
   const F = {
-    name:     'fldt9vYT8Tm37Gf3k',
     date:     'fldhYEtLEGA4VxvvO',
     compound: 'fldwVFyizH4mBANBa',
     site:     'fldHDlJY8FpAvK018',
@@ -3448,18 +3444,15 @@ async function loadInjLog() {
   summEl.innerHTML = loadHtml;
   fullEl.innerHTML = loadHtml;
 
-  // Fetch all records sorted by date desc
+  // Fetch all records sorted by date desc using global BASE/TOKEN
   let records = [], offset = null;
   try {
     do {
-      const url = new URL(`https://api.airtable.com/v0/${AT_BASE}/${TABLE}`);
-      url.searchParams.set('sort[0][field]', F.date);
-      url.searchParams.set('sort[0][direction]', 'desc');
-      url.searchParams.set('pageSize', '100');
-      if (offset) url.searchParams.set('offset', offset);
-      const r = await fetch(url, { headers: { Authorization: 'Bearer ' + AT_TOKEN } });
+      let url = `https://api.airtable.com/v0/${BASE}/${TABLE}?sort[0][field]=${F.date}&sort[0][direction]=desc&pageSize=100`;
+      if (offset) url += '&offset=' + encodeURIComponent(offset);
+      const r = await fetch(url, { headers: { Authorization: `Bearer ${TOKEN}` } });
       const d = await r.json();
-      if (d.error) throw new Error(d.error.message || JSON.stringify(d.error));
+      if (!r.ok) throw new Error(d.error?.message || `HTTP ${r.status}`);
       records = records.concat(d.records || []);
       offset = d.offset || null;
     } while (offset);
