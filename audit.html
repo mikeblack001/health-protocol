@@ -440,13 +440,14 @@ async function loadWeekGrid(date){
     const dose=f[LOG.dose]||'';if(dose)data[key].days[day].doses.push(dose);
   });
 
-  // Apply saved order (stored by compound name only — keep backward compat by matching prefix)
+  // Apply saved order — supports both key format (cmp||timing) and legacy compound-only
   const allKeys=keyOrder;
   const saved=getRowOrder();
-  // Build ordered list: saved compound order first, new keys appended
   const orderedKeys=[];
-  saved.forEach(savedCmp=>{
-    allKeys.filter(k=>k.startsWith(savedCmp+'||')).forEach(k=>{if(!orderedKeys.includes(k))orderedKeys.push(k);});
+  saved.forEach(s=>{
+    // Try exact key match first, then compound-prefix fallback for legacy saved orders
+    if(allKeys.includes(s)){if(!orderedKeys.includes(s))orderedKeys.push(s);}
+    else{allKeys.filter(k=>k.startsWith(s+'||')).forEach(k=>{if(!orderedKeys.includes(k))orderedKeys.push(k);});}
   });
   allKeys.forEach(k=>{if(!orderedKeys.includes(k))orderedKeys.push(k);});
 
@@ -464,7 +465,7 @@ async function loadWeekGrid(date){
     const badge=timing?`<span style="font-size:9px;font-weight:600;color:#9ca3af;margin-left:4px">${timing.slice(0,3).toUpperCase()}</span>`:'';
     const firstDose=Object.values(dayMap).flatMap(d=>d.doses||[]).find(d=>d)||'';
     const doseBadge=firstDose?`<span style="font-size:9px;font-weight:600;color:#2563eb;margin-left:4px">${esc(firstDose)}</span>`:'';
-    h+=`<tr draggable="true" data-cmp="${esc(cmp)}"><td><span class="drag-handle">⠿</span>${esc(cmp)}${doseBadge}${badge}</td>`;
+    h+=`<tr draggable="true" data-cmp="${esc(cmp)}" data-key="${esc(key)}"><td><span class="drag-handle">⠿</span>${esc(cmp)}${doseBadge}${badge}</td>`;
     days.forEach(d=>{
       const cell=dayMap[d];
       const onclick=`onclick="gridCellClick('${d}','${esc(cmp)}')"`;
@@ -502,7 +503,7 @@ function initGridDrag(){
     row.addEventListener('dragend',()=>{
       src&&src.classList.remove('wg-dragging');
       tbody.querySelectorAll('.wg-drop-above').forEach(r=>r.classList.remove('wg-drop-above'));
-      const order=[...tbody.querySelectorAll('tr[data-cmp]')].map(r=>r.dataset.cmp);
+      const order=[...tbody.querySelectorAll('tr[data-key]')].map(r=>r.dataset.key);
       saveRowOrder(order);src=null;
       // Re-render records in same compound order
       renderRecordsOrdered(order);
