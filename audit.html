@@ -426,22 +426,29 @@ async function loadWeekGrid(date){
     }while(off);
   }catch(e){wg.innerHTML=`<tr><td style="color:#dc2626;padding:8px">Grid error: ${e.message}</td></tr>`;ws.textContent='';return;}
 
-  // Build compound lookup
-  const data={};
+  // Build compound+timing lookup — each unique compound+timing gets its own row
+  const data={};  // key = "CJC-1295 No DAC||Night"
+  const keyOrder=[];
   recs.forEach(r=>{
     const f=r.fields,cmp=f[LOG.compound]||'',day=(f[LOG.date]||'').slice(0,10),site=f[LOG.site]||'',timing=f[LOG.timing]||'';
     if(!cmp||!day)return;
-    if(!data[cmp])data[cmp]={timing,days:{}};
-    if(!data[cmp].days[day])data[cmp].days[day]={sites:[],doses:[],n:0};
-    data[cmp].days[day].n++;
-    if(site)data[cmp].days[day].sites.push(site);
-    const dose=f[LOG.dose]||'';if(dose)data[cmp].days[day].doses.push(dose);
+    const key=cmp+'||'+timing;
+    if(!data[key]){data[key]={cmp,timing,days:{}};keyOrder.push(key);}
+    if(!data[key].days[day])data[key].days[day]={sites:[],doses:[],n:0};
+    data[key].days[day].n++;
+    if(site)data[key].days[day].sites.push(site);
+    const dose=f[LOG.dose]||'';if(dose)data[key].days[day].doses.push(dose);
   });
 
-  // Apply saved order, append new compounds at bottom
-  const allC=Object.keys(data);
+  // Apply saved order (stored by compound name only — keep backward compat by matching prefix)
+  const allKeys=keyOrder;
   const saved=getRowOrder();
-  const ordered=[...saved.filter(c=>allC.includes(c)),...allC.filter(c=>!saved.includes(c))];
+  // Build ordered list: saved compound order first, new keys appended
+  const orderedKeys=[];
+  saved.forEach(savedCmp=>{
+    allKeys.filter(k=>k.startsWith(savedCmp+'||')).forEach(k=>{if(!orderedKeys.includes(k))orderedKeys.push(k);});
+  });
+  allKeys.forEach(k=>{if(!orderedKeys.includes(k))orderedKeys.push(k);});
 
   // Build table
   const DN=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
@@ -452,10 +459,9 @@ async function loadWeekGrid(date){
   });
   h+=`</tr></thead><tbody>`;
 
-  ordered.forEach(cmp=>{
-    const dayMap=data[cmp].days,timing=data[cmp].timing;
+  orderedKeys.forEach(key=>{
+    const {cmp,timing,days:dayMap}=data[key];
     const badge=timing?`<span style="font-size:9px;font-weight:600;color:#9ca3af;margin-left:4px">${timing.slice(0,3).toUpperCase()}</span>`:'';
-    // Find first dose for this compound across the week
     const firstDose=Object.values(dayMap).flatMap(d=>d.doses||[]).find(d=>d)||'';
     const doseBadge=firstDose?`<span style="font-size:9px;font-weight:600;color:#2563eb;margin-left:4px">${esc(firstDose)}</span>`:'';
     h+=`<tr draggable="true" data-cmp="${esc(cmp)}"><td><span class="drag-handle">⠿</span>${esc(cmp)}${doseBadge}${badge}</td>`;
