@@ -181,6 +181,13 @@
   .form-row input, .form-row textarea { padding:8px 10px; border:1px solid var(--border); border-radius:6px; font-size:13px; font-family:'DM Sans',sans-serif; background:var(--surface); color:var(--text); width:100%; box-sizing:border-box; }
   .form-row textarea { resize:vertical; }
 
+
+  /* DAILY LOG DASH */
+  .stat-card { background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:2px; }
+  .stat-label { font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted); }
+  .stat-val { font-size:22px;font-weight:800;color:var(--text);line-height:1.1; }
+  .stat-sub { font-size:10px;color:var(--muted); }
+
   /* PRICING */
   .pricing-group { margin-bottom: 20px; }
   .pricing-group-header { font-size: 13px; font-weight: 600; color: var(--text); padding: 10px 14px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px 8px 0 0; display: flex; align-items: center; gap: 10px; }
@@ -255,7 +262,7 @@
   border-collapse: collapse;
   font-family: Arial, sans-serif;
   font-size: 11px;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
   table-layout: fixed;
 }
 .pday-hdr {
@@ -269,19 +276,20 @@
 }
 .pmeta td, .pmeta-cell {
   background: #ebf2ff;
-  padding: 6px 8px;
+  padding: 0 8px;
   font-size: 10px;
-  border: 1px solid #bfdbfe;
+  border: 1.5px solid #6b9fd4;
   vertical-align: middle;
-  height: 32px;
+  height: 36px;
 }
 .pmeta-val { font-weight: 600; }
-.psleep-line {
+.pwrite {
   display: inline-block;
-  border-bottom: 1.5px solid #1a56db;
-  width: 80px;
-  margin-left: 4px;
-  vertical-align: bottom;
+  min-width: 64px;
+  height: 18px;
+  border-bottom: 2px solid #333;
+  margin: 0 3px;
+  vertical-align: middle;
 }
 .pcol-hdr th {
   background: #dbeafe;
@@ -291,11 +299,11 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.3px;
-  border: 1px solid #93c5fd;
+  border: 1.5px solid #6b9fd4;
   text-align: center;
 }
 .pcol-hdr th.pex-name, .pcol-hdr th.pex-var { text-align: left; }
-.pex td { border: 1px solid #888; padding: 6px 5px; vertical-align: middle; height: 32px; }
+.pex td { border: 1.5px solid #888; padding: 6px 5px; vertical-align: middle; height: 32px; }
 .pex-name { font-weight: 600; font-size: 11px; word-break: break-word; }
 .pex-var  { font-size: 9px; color: #444; word-break: break-word; }
 .pset     { text-align: center; color: #999; font-size: 9px; background: #fafafa; }
@@ -340,6 +348,7 @@
 
   @page { size: letter portrait; margin: 0.4in 0.4in 0.4in 0.4in; }
 }
+
 /* ── PDF QA VIEW ──────────────────────────────────────────────────── */
 #view-pdfqa.active {
   position: fixed; top: 56px; left: 0; right: 0; bottom: 0;
@@ -493,7 +502,6 @@
 .pdfqa-root ::-webkit-scrollbar{width:5px;height:5px}.pdfqa-root ::-webkit-scrollbar-track{background:var(--s2)}.pdfqa-root ::-webkit-scrollbar-thumb{background:var(--b2);border-radius:3px}
 /* EXPORT TAB */
 .pdfqa-root .tc-scroll{overflow-y:auto;padding:20px;flex:1}
-
 
 </style>
 </head>
@@ -863,24 +871,55 @@
       <h2>Injection Log</h2>
       <p class="section-sub">All injections from Airtable — sorted newest first</p>
     </div>
+
+    <!-- SUMMARY TABLE -->
     <div style="margin-bottom:24px">
       <h3 style="font-size:14px;font-family:'DM Sans',sans-serif;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">Current Protocol — Latest per Compound</h3>
       <div id="injlog-summary"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
     </div>
+
+    <!-- FULL LOG -->
     <h3 style="font-size:14px;font-family:'DM Sans',sans-serif;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">Full Log</h3>
     <div id="injlog-full"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
   </div>
 
   <!-- DAILY LOG -->
   <div id="view-log" class="view">
-    <div class="section-header"><h2>Daily Log</h2></div>
-    <div class="log-form">
-      <h3>Log Today — <span id="log-date"></span></h3>
+    <div class="section-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+      <div><h2>Daily Log</h2><p class="section-sub">Health metrics — history, averages, and manual entry</p></div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="action-btn" onclick="syncHealthToLog()" id="sync-health-btn" style="background:#2563eb;color:#fff;border:none;padding:7px 14px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer">⟳ Sync from Apple Health</button>
+        <span id="sync-status" style="font-size:11px;color:var(--muted)"></span>
+      </div>
+    </div>
+
+    <!-- DASH STATS -->
+    <div id="log-dash" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;padding:14px 16px 0">
+      <div class="stat-card" id="dash-weight"><div class="stat-label">Avg Weight</div><div class="stat-val">—</div><div class="stat-sub">lbs · 30d</div></div>
+      <div class="stat-card" id="dash-sleep"><div class="stat-label">Avg Sleep</div><div class="stat-val">—</div><div class="stat-sub">hrs · 30d</div></div>
+      <div class="stat-card" id="dash-deep"><div class="stat-label">Avg Deep</div><div class="stat-val">—</div><div class="stat-sub">min · 30d</div></div>
+      <div class="stat-card" id="dash-hrv"><div class="stat-label">Avg HRV</div><div class="stat-val">—</div><div class="stat-sub">ms · 30d</div></div>
+      <div class="stat-card" id="dash-rhr"><div class="stat-label">Avg Resting HR</div><div class="stat-val">—</div><div class="stat-sub">bpm · 30d</div></div>
+      <div class="stat-card" id="dash-steps"><div class="stat-label">Avg Steps</div><div class="stat-val">—</div><div class="stat-sub">· 30d</div></div>
+    </div>
+
+    <!-- ADD / EDIT FORM -->
+    <div class="log-form" style="margin:14px 16px;border:1px solid var(--border);border-radius:10px;padding:14px;background:var(--surface)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <h3 style="font-size:13px;font-weight:700">Log Entry — <span id="log-date"></span></h3>
+        <div style="display:flex;gap:6px">
+          <input type="date" id="log-entry-date" style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--surface)">
+          <button class="save-btn" onclick="saveLog()" style="padding:6px 14px;font-size:12px">Save</button>
+          <span class="save-status" id="log-save-status"></span>
+        </div>
+      </div>
       <div class="form-grid">
         <div class="form-field"><label>Weight (lbs)</label><input type="number" id="log-weight" placeholder="0.0" step="0.1"></div>
-        <div class="form-field"><label>Deep Sleep (min)</label><input type="number" id="log-deep" placeholder="0"></div>
         <div class="form-field"><label>Total Sleep (hrs)</label><input type="number" id="log-sleep" placeholder="0.0" step="0.1"></div>
-        <div class="form-field"><label>HRV</label><input type="number" id="log-hrv" placeholder="0"></div>
+        <div class="form-field"><label>Deep Sleep (min)</label><input type="number" id="log-deep" placeholder="0"></div>
+        <div class="form-field"><label>HRV (ms)</label><input type="number" id="log-hrv" placeholder="0"></div>
+        <div class="form-field"><label>Resting HR</label><input type="number" id="log-rhr" placeholder="0"></div>
+        <div class="form-field"><label>Steps</label><input type="number" id="log-steps" placeholder="0"></div>
         <div class="form-field"><label>Wakeups</label><input type="number" id="log-wakeups" placeholder="0"></div>
         <div class="form-field"><label>Energy (1–10)</label><input type="number" id="log-energy" placeholder="0" min="1" max="10"></div>
         <div class="form-field"><label>Cortisol Feel (1–10)</label><input type="number" id="log-cortisol" placeholder="0" min="1" max="10"></div>
@@ -890,11 +929,26 @@
             <option value="Good">Good</option>
             <option value="OK">OK</option>
             <option value="Poor">Poor</option>
+            <option value="Unknown">Unknown</option>
           </select>
         </div>
       </div>
-      <button class="save-btn" onclick="saveLog()">Save to Airtable</button>
-      <span class="save-status" id="log-save-status"></span>
+    </div>
+
+    <!-- HISTORY TABLE -->
+    <div style="padding:0 16px 16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <b style="font-size:12px;font-weight:800;color:var(--text)">History</b>
+        <div style="display:flex;gap:6px">
+          <button class="filter-btn active" onclick="setLogRange(30,this)">30d</button>
+          <button class="filter-btn" onclick="setLogRange(90,this)">90d</button>
+          <button class="filter-btn" onclick="setLogRange(365,this)">1yr</button>
+          <button class="filter-btn" onclick="setLogRange(0,this)">All</button>
+        </div>
+      </div>
+      <div id="log-history" style="overflow-x:auto">
+        <div style="text-align:center;color:var(--muted);padding:30px;font-size:12px">Loading…</div>
+      </div>
     </div>
   </div>
   <!-- WORKOUT SUGGESTIONS -->
@@ -1096,362 +1150,6 @@
     <div id="injaudit-content" style="padding:16px;overflow-x:auto;width:100%"></div>
   </div>
 
-  <div id="view-pdfqa" class="view">
-  <div class="pdfqa-root">
-    <div class="hdr" style="padding:8px 20px;flex-shrink:0">
-      <span class="logo">MB</span><span style="color:var(--b2)">&#8212;</span>
-      <span class="htitle">PDF QA &amp; VERIFICATION</span>
-      <div class="hright">
-        <div class="dot" id="dDot"></div><span class="dlbl" id="dLbl">DRIVE</span>
-        <span style="color:var(--dd)">&#183;</span>
-        <div class="dot" id="aDot"></div><span class="dlbl" id="aLbl">AIRTABLE</span>
-      </div>
-    </div>
-    <div class="body">
-      <div class="sb">
-        <div class="sbh"><span class="sbht">Library</span><button class="btn bg-btn" style="padding:3px 8px;font-size:9px" onclick="loadMappedFiles()">&#8635;</button></div>
-        <div class="sbb" id="fileList">
-          <div class="abox" style="padding:24px">
-            <div class="atitle">Connect Drive</div>
-            <div class="asub">Sign in to load your PDF library.</div>
-            <button class="btn bp" onclick="signIn()">Sign in with Google</button>
-          </div>
-        </div>
-      </div>
-      <div class="panel">
-        <div class="tabs">
-          <div class="tab active" id="tab-review" onclick="showTab('review')">Review</div>
-          <div class="tab" id="tab-export" onclick="showTab('export')">Export</div>
-          <div class="tab" id="tab-verify" onclick="showTab('verify')">&#9889; Verify</div>
-          <div class="tab" id="tab-settings" onclick="showTab('settings')">&#9881; Settings</div>
-        </div>
-        <!-- REVIEW TAB -->
-        <div class="tc active" id="tc-review">
-          <div class="empty" id="revEmpty" style="flex:1">
-            <div class="ei">&#128196;</div>
-            <div class="et">Select a file from the library</div>
-            <div class="es">Choose a workout, injection, or lab PDF to begin.</div>
-          </div>
-          <div id="revUI" style="display:none;flex:1;flex-direction:column;overflow:hidden" class="tc active">
-            <div style="padding:8px 14px;border-bottom:1px solid var(--b);display:flex;align-items:center;gap:10px;flex-shrink:0;background:var(--s)">
-              <div style="flex:1"><span style="font-size:12px;font-weight:600" id="pdfName">&#8212;</span><span style="font-size:10px;color:var(--dd);font-family:var(--mono);margin-left:10px" id="pdfMeta"></span></div>
-              <div id="pgStatusBadges" style="display:flex;gap:5px"></div>
-            </div>
-            <div class="rev-wrap">
-              <div class="img-panel">
-                <div class="img-toolbar">
-                  <div class="img-nav">
-                    <button class="navbtn" id="prevBtn" onclick="navPage(-1)" disabled>&#8592;</button>
-                    <span class="pg-label" id="pgLabel">&#8212; / &#8212;</span>
-                    <button class="navbtn" id="nextBtn" onclick="navPage(1)" disabled>&#8594;</button>
-                  </div>
-                  <div style="margin-left:8px;display:flex;gap:6px">
-                    <button class="navbtn" onclick="markPage('ok')" title="Mark Verified">&#10003;</button>
-                    <button class="navbtn" onclick="markPage('flagged')" title="Flag">&#9873;</button>
-                    <button class="navbtn" id="extractBtn" onclick="extractCurrentPage()" style="background:#00a855;color:#fff;border-color:#00a855">&#8659; Extract</button>
-                    <button class="navbtn" onclick="sendToClaude()" style="background:#2255cc;color:#fff;border-color:#2255cc">&#8595; Download</button>
-                  </div>
-                  <div class="img-meta" id="imgMeta"></div>
-                </div>
-                <div class="img-scroll" id="imgScroll">
-                  <div class="img-empty" id="imgEmpty"><span style="font-size:28px">&#128247;</span><span>Loading...</span></div>
-                  <img id="mainImg" style="display:none" alt="Page"/>
-                </div>
-                <div class="thumb-strip" id="thumbStrip"></div>
-              </div>
-              <div class="at-panel">
-                <div class="at-toolbar">
-                  <span class="at-toolbar-title">Airtable &#8212; <span id="atTableLabel" style="color:var(--bl)">Sets</span></span>
-                  <span id="atStatusLabel" style="font-size:10px;color:var(--dd);font-family:var(--mono)"></span>
-                  <button class="btn bg-btn" style="padding:3px 9px;font-size:10px" onclick="refreshAtData()" id="atRefreshBtn">&#8635; Load</button>
-                </div>
-                <div id="injAuditNav" style="display:none;flex-wrap:wrap;gap:3px;padding:8px 12px;border-bottom:1px solid var(--b);flex-shrink:0;overflow-y:auto;max-height:100px"></div>
-                <div class="at-scroll" id="atScroll">
-                  <div class="date-row">
-                    <input type="date" class="date-inp" id="dateFilter" onchange="refreshAtData()" placeholder="YYYY-MM-DD"/>
-                    <span style="font-size:10px;color:var(--dd);font-family:var(--mono)">filter date</span>
-                  </div>
-                  <div id="atContent"><div class="empty" style="padding:30px 10px"><div class="et" style="font-size:11px">Set a date to load records</div></div></div>
-                </div>
-                <div class="pg-status-bar">
-                  <span style="font-family:var(--mono);font-size:10px;color:var(--d)">Page status:</span>
-                  <span id="pgStatusText" style="font-family:var(--mono);font-size:10px;color:var(--dd)">&#8212;</span>
-                  <div style="margin-left:auto;display:flex;gap:6px">
-                    <span id="okCount" style="font-size:10px;font-family:var(--mono);color:var(--g)"></span>
-                    <span id="flagCount" style="font-size:10px;font-family:var(--mono);color:var(--r)"></span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <!-- EXPORT TAB -->
-        <div class="tc" id="tc-export">
-          <div class="tc-scroll">
-            <p style="font-size:12px;color:var(--d);line-height:1.6;margin-bottom:16px">Mark pages verified (&#10003;) or flagged (&#9873;) in the Review tab.</p>
-            <div id="exportSummary"><div class="empty"><div class="et">No file loaded</div></div></div>
-          </div>
-        </div>
-        <!-- VERIFY TAB -->
-        <div class="tc" id="tc-verify">
-          <div class="tc-scroll">
-            <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
-              <div style="flex:1">
-                <div style="font-size:13px;font-weight:600;margin-bottom:3px">Protocol Verification</div>
-                <div style="font-size:11px;color:var(--d)">Extracts every injection entry from the PDF and compares against the Airtable Injection Log.</div>
-              </div>
-              <button class="btn bp" id="runVerifyBtn" onclick="runVerification()" style="white-space:nowrap;padding:8px 18px">&#9889; Run Verify</button>
-            </div>
-            <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
-              <label style="font-size:11px;color:var(--d);display:flex;align-items:center;gap:6px">
-                Pages:
-                <select id="verifyPages" style="padding:4px 8px;font-size:11px;border:1px solid var(--b);border-radius:4px;background:var(--s2);color:var(--t)">
-                  <option value="4">Last 4</option>
-                  <option value="6">Last 6</option>
-                  <option value="10">Last 10</option>
-                  <option value="all" selected>All</option>
-                </select>
-              </label>
-              <label style="font-size:11px;color:var(--d);display:flex;align-items:center;gap:6px">
-                Model:
-                <select id="verifyModel" style="padding:4px 8px;font-size:11px;border:1px solid var(--b);border-radius:4px;background:var(--s2);color:var(--t)">
-                  <option value="claude-haiku-4-5-20251001" selected>Haiku 4.5 — fast</option>
-                  <option value="claude-sonnet-4-6">Sonnet 4.6 — accurate</option>
-                </select>
-              </label>
-            </div>
-            <div id="verifyStatus" style="font-size:11px;color:var(--d);font-family:var(--mono);margin-bottom:12px;min-height:18px"></div>
-            <div id="verifyResults"></div>
-          </div>
-        </div>
-        <!-- SETTINGS TAB -->
-        <div class="tc" id="tc-settings">
-          <div class="tc-scroll">
-            <p style="font-size:12px;color:var(--d);margin-bottom:16px;line-height:1.6">Assign Drive files to each type. Use <strong>+ Add Files</strong> to browse your Drive.</p>
-            <div id="typeSections"></div>
-            <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--b)">
-              <div style="font-size:12px;font-weight:600;margin-bottom:10px">Airtable Table Mapping</div>
-              <table style="width:100%;border-collapse:collapse;background:var(--s);border:1px solid var(--b);border-radius:6px;overflow:hidden">
-                <thead><tr>
-                  <th style="font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--d);text-align:left;padding:8px 12px;border-bottom:1px solid var(--b);background:var(--s2);font-family:var(--mono)">Type</th>
-                  <th style="font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--d);text-align:left;padding:8px 12px;border-bottom:1px solid var(--b);background:var(--s2);font-family:var(--mono)">Airtable Table</th>
-                </tr></thead>
-                <tbody id="atMapBody"></tbody>
-              </table>
-            </div>
-            <div style="display:flex;gap:8px;margin-top:16px">
-              <button class="btn bp" onclick="saveSettings()">&#10003; Save Settings</button>
-              <button class="btn bg-btn" onclick="signOut()">Sign Out</button>
-              <button class="btn br" onclick="resetAll()">Reset All</button>
-            </div>
-            <div style="margin-top:8px;font-size:11px;color:var(--g);font-family:var(--mono)" id="saveStatus"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="modal-bg" id="pickerModal">
-      <div class="modal">
-        <div class="mhdr">
-          <div class="mhdr-top"><div class="mhdr-title" id="pickerTitle">Add Files</div><button class="btn bg-btn" style="padding:4px 9px;font-size:11px" onclick="closePickerModal()">&#x2715;</button></div>
-          <div class="breadcrumb" id="breadcrumb"></div>
-        </div>
-        <div class="msearch"><input type="text" id="pickerSearch" placeholder="Search..." oninput="filterItems()"></div>
-        <div class="mlist" id="pickerList"></div>
-        <div class="mftr">
-          <span class="mftr-count" id="pickerSelCount">0 selected</span>
-          <button class="btn bg-btn" onclick="closePickerModal()">Cancel</button>
-          <button class="btn bp" onclick="confirmPicker()">Add Selected</button>
-        </div>
-      </div>
-    </div>
-    <div class="toasts" id="toasts"></div>
-  </div>
-  </div>
-
-
-  <div id="view-pdfqa" class="view">
-  <div class="pdfqa-root">
-    <div class="hdr" style="padding:8px 20px;flex-shrink:0">
-      <span class="logo">MB</span><span style="color:var(--b2)">&#8212;</span>
-      <span class="htitle">PDF QA &amp; VERIFICATION</span>
-      <div class="hright">
-        <div class="dot" id="dDot"></div><span class="dlbl" id="dLbl">DRIVE</span>
-        <span style="color:var(--dd)">&#183;</span>
-        <div class="dot" id="aDot"></div><span class="dlbl" id="aLbl">AIRTABLE</span>
-      </div>
-    </div>
-    <div class="body">
-      <div class="sb">
-        <div class="sbh">
-          <span class="sbht">Library</span>
-          <button class="btn bg-btn" style="padding:3px 8px;font-size:9px" onclick="loadMappedFiles()">&#8635;</button>
-        </div>
-        <div class="sbb" id="fileList">
-          <div class="abox" style="padding:24px">
-            <div class="atitle">Connect Drive</div>
-            <div class="asub">Sign in to load your PDF library.</div>
-            <button class="btn bp" onclick="signIn()">Sign in with Google</button>
-          </div>
-        </div>
-      </div>
-      <div class="panel">
-        <div class="tabs">
-          <div class="tab active" id="tab-review" onclick="showTab('review')">Review</div>
-          <div class="tab" id="tab-export" onclick="showTab('export')">Export</div>
-          <div class="tab" id="tab-verify" onclick="showTab('verify')">&#9889; Verify</div>
-          <div class="tab" id="tab-settings" onclick="showTab('settings')">&#9881; Settings</div>
-        </div>
-        <div class="tc active" id="tc-review">
-          <div class="empty" id="revEmpty" style="flex:1">
-            <div class="ei">&#128196;</div>
-            <div class="et">Select a file from the library</div>
-            <div class="es">Choose a workout, injection, or lab PDF from the sidebar to begin review.</div>
-          </div>
-          <div id="revUI" style="display:none;flex:1;flex-direction:column;overflow:hidden" class="tc active">
-            <div style="padding:8px 14px;border-bottom:1px solid var(--b);display:flex;align-items:center;gap:10px;flex-shrink:0;background:var(--s)">
-              <div style="flex:1">
-                <span style="font-size:12px;font-weight:600" id="pdfName">&#8212;</span>
-                <span style="font-size:10px;color:var(--dd);font-family:var(--mono);margin-left:10px" id="pdfMeta"></span>
-              </div>
-              <div id="pgStatusBadges" style="display:flex;gap:5px"></div>
-            </div>
-            <div class="rev-wrap">
-              <div class="img-panel">
-                <div class="img-toolbar">
-                  <div class="img-nav">
-                    <button class="navbtn" id="prevBtn" onclick="navPage(-1)" disabled>&#8592;</button>
-                    <span class="pg-label" id="pgLabel">&#8212; / &#8212;</span>
-                    <button class="navbtn" id="nextBtn" onclick="navPage(1)" disabled>&#8594;</button>
-                  </div>
-                  <div style="margin-left:8px;display:flex;gap:6px">
-                    <button class="navbtn" onclick="markPage('ok')" id="markOkBtn" title="Mark Verified">&#10003;</button>
-                    <button class="navbtn" onclick="markPage('flagged')" id="markFlagBtn" title="Flag Issue">&#9873;</button>
-                    <button class="navbtn" id="extractBtn" onclick="extractCurrentPage()" style="background:#00a855;color:#fff;border-color:#00a855">&#8659; Extract Page</button>
-                    <button class="navbtn" onclick="sendToClaude()" style="background:#2255cc;color:#fff;border-color:#2255cc">&#8595; Download</button>
-                  </div>
-                  <div class="img-meta" id="imgMeta"></div>
-                </div>
-                <div class="img-scroll" id="imgScroll">
-                  <div class="img-empty" id="imgEmpty">
-                    <span style="font-size:28px">&#128247;</span>
-                    <span>Loading pages...</span>
-                  </div>
-                  <img id="mainImg" style="display:none" alt="Page"/>
-                </div>
-                <div class="thumb-strip" id="thumbStrip"></div>
-              </div>
-              <div class="at-panel">
-                <div class="at-toolbar">
-                  <span class="at-toolbar-title">Airtable &#8212; <span id="atTableLabel" style="color:var(--bl)">Sets</span></span>
-                  <span id="atStatusLabel" style="font-size:10px;color:var(--dd);font-family:var(--mono)"></span>
-                  <button class="btn bg-btn" style="padding:3px 9px;font-size:10px" onclick="refreshAtData()" id="atRefreshBtn">&#8635; Load</button>
-                </div>
-                <div id="injAuditNav" style="display:none;flex-wrap:wrap;gap:3px;padding:8px 12px;border-bottom:1px solid var(--b);flex-shrink:0;overflow-y:auto;max-height:100px"></div>
-                <div class="at-scroll" id="atScroll">
-                  <div class="date-row">
-                    <input type="date" class="date-inp" id="dateFilter" onchange="refreshAtData()" placeholder="YYYY-MM-DD"/>
-                    <span style="font-size:10px;color:var(--dd);font-family:var(--mono)">filter date</span>
-                  </div>
-                  <div id="atContent">
-                    <div class="empty" style="padding:30px 10px">
-                      <div class="et" style="font-size:11px">Set a date to load Airtable records</div>
-                    </div>
-                  </div>
-                </div>
-                <div class="pg-status-bar">
-                  <span style="font-family:var(--mono);font-size:10px;color:var(--d)">Page status:</span>
-                  <span id="pgStatusText" style="font-family:var(--mono);font-size:10px;color:var(--dd)">&#8212;</span>
-                  <div style="margin-left:auto;display:flex;gap:6px">
-                    <span id="okCount" style="font-size:10px;font-family:var(--mono);color:var(--g)"></span>
-                    <span id="flagCount" style="font-size:10px;font-family:var(--mono);color:var(--r)"></span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="tc" id="tc-export">
-          <div class="tc-scroll">
-            <p style="font-size:12px;color:var(--d);line-height:1.6;margin-bottom:16px">Mark pages verified (&#10003;) or flagged (&#9873;) in the Review tab.</p>
-            <div id="exportSummary"><div class="empty"><div class="et">No file loaded</div></div></div>
-          </div>
-        </div>
-        <div class="tc" id="tc-verify">
-          <div class="tc-scroll">
-            <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
-              <div style="flex:1">
-                <div style="font-size:13px;font-weight:600;margin-bottom:3px">Protocol Verification</div>
-                <div style="font-size:11px;color:var(--d)">Verifies every injection entry in the PDF against the Airtable Injection Log.</div>
-              </div>
-              <button class="btn bp" id="runVerifyBtn" onclick="runVerification()" style="white-space:nowrap;padding:8px 18px">&#9889; Run Verify</button>
-            </div>
-            <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
-              <label style="font-size:11px;color:var(--d);display:flex;align-items:center;gap:6px">
-                <select id="verifyPages" style="padding:4px 8px;font-size:11px;border:1px solid var(--b);border-radius:4px;background:var(--s2);color:var(--t)">
-                  <option value="4">Last 4 pages</option>
-                  <option value="6">Last 6 pages</option>
-                  <option value="10">Last 10 pages</option>
-                  <option value="all" selected>All pages</option>
-                </select>
-                to analyze
-              </label>
-              <label style="font-size:11px;color:var(--d);display:flex;align-items:center;gap:6px">
-                Model:
-                <select id="verifyModel" style="padding:4px 8px;font-size:11px;border:1px solid var(--b);border-radius:4px;background:var(--s2);color:var(--t)">
-                  <option value="claude-haiku-4-5-20251001" selected>Haiku 4.5 — fast</option>
-                  <option value="claude-sonnet-4-6">Sonnet 4.6 — accurate</option>
-                </select>
-              </label>
-            </div>
-            <div id="verifyStatus" style="font-size:11px;color:var(--d);font-family:var(--mono);margin-bottom:12px;min-height:18px"></div>
-            <div id="verifyResults"></div>
-          </div>
-        </div>
-        <div class="tc" id="tc-settings">
-          <div class="tc-scroll">
-            <p style="font-size:12px;color:var(--d);margin-bottom:16px;line-height:1.6">Assign Drive files (ZIP or PDF) to each type. Use <strong>+ Add Files</strong> to browse your Drive.</p>
-            <div id="typeSections"></div>
-            <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--b)">
-              <div style="font-size:12px;font-weight:600;margin-bottom:10px">Airtable Table Mapping</div>
-              <table style="width:100%;border-collapse:collapse;background:var(--s);border:1px solid var(--b);border-radius:6px;overflow:hidden">
-                <thead><tr>
-                  <th style="font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--d);text-align:left;padding:8px 12px;border-bottom:1px solid var(--b);background:var(--s2);font-family:var(--mono)">Type</th>
-                  <th style="font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--d);text-align:left;padding:8px 12px;border-bottom:1px solid var(--b);background:var(--s2);font-family:var(--mono)">Airtable Table</th>
-                </tr></thead>
-                <tbody id="atMapBody"></tbody>
-              </table>
-            </div>
-            <div style="display:flex;gap:8px;margin-top:16px">
-              <button class="btn bp" onclick="saveSettings()">&#10003; Save Settings</button>
-              <button class="btn bg-btn" onclick="signOut()">Sign Out</button>
-              <button class="btn br" onclick="resetAll()">Reset All</button>
-            </div>
-            <div style="margin-top:8px;font-size:11px;color:var(--g);font-family:var(--mono)" id="saveStatus"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="modal-bg" id="pickerModal">
-      <div class="modal">
-        <div class="mhdr">
-          <div class="mhdr-top">
-            <div class="mhdr-title" id="pickerTitle">Add Files</div>
-            <button class="btn bg-btn" style="padding:4px 9px;font-size:11px" onclick="closePickerModal()">&#x2715;</button>
-          </div>
-          <div class="breadcrumb" id="breadcrumb"></div>
-        </div>
-        <div class="msearch"><input type="text" id="pickerSearch" placeholder="Search..." oninput="filterItems()"></div>
-        <div class="mlist" id="pickerList"></div>
-        <div class="mftr">
-          <span class="mftr-count" id="pickerSelCount">0 selected</span>
-          <button class="btn bg-btn" onclick="closePickerModal()">Cancel</button>
-          <button class="btn bp" onclick="confirmPicker()">Add Selected</button>
-        </div>
-      </div>
-    </div>
-    <div class="toasts" id="toasts"></div>
-  </div>
-  </div>
 
 
 
@@ -1917,11 +1615,14 @@ function renderTracker(weekNum) {
   const activePeps = data.peptides.filter(r => getField(r,'Status') === 'Active');
   const pepMap = {};
   activePeps.forEach(r => { pepMap[getField(r,'Compound')] = r; });
+  // Case-insensitive lookup for historical mode — use ALL peptides so paused compounds resolve correctly
   const pepMapCI = {};
   data.peptides.forEach(r => { pepMapCI[getField(r,'Compound').toLowerCase()] = r; });
 
   let morning, night;
   if (trackerHistoricalData) {
+    // Historical mode: compound list comes from injection log
+    // Sort by known order (TRACKER_*_ORDER), unknowns appended at end
     const mornOrder = TRACKER_MORNING_ORDER.map(n => n.toLowerCase());
     const nightOrder = TRACKER_NIGHT_ORDER.map(n => n.toLowerCase());
     const sortByOrder = (names, order) => [
@@ -1934,6 +1635,7 @@ function renderTracker(weekNum) {
     morning = histMorn.map(n => pepMap[n] || pepMapCI[n] || { fields: { Compound: n, Dose: '', Status: 'Historical', Timing: 'Morning' }});
     night   = histNight.map(n => pepMap[n] || pepMapCI[n] || { fields: { Compound: n, Dose: '', Status: 'Historical', Timing: 'Night' }});
   } else {
+    // Current/future: known order first, then any unlisted Active peps
     const knownM = new Set(TRACKER_MORNING_ORDER), knownN = new Set(TRACKER_NIGHT_ORDER);
     morning = [
       ...TRACKER_MORNING_ORDER.map(n => pepMap[n]).filter(Boolean),
@@ -2037,23 +1739,6 @@ function renderTracker(weekNum) {
 
   html += `</tbody></table></div>`;
   document.getElementById('tracker-content').innerHTML = html;
-
-  // metrics removed
-  if (false) {
-    const hdr = `<tr><td style="padding:5px 10px;border:1px solid #ccc;background:#e5e5e5;font-size:11px;font-weight:600;min-width:200px">Metric</td>${days.map(d=>`<td style="text-align:center;padding:5px 4px;border:1px solid #ccc;background:#e5e5e5;width:44px;font-size:11px;font-weight:600">${d}</td>`).join('')}<td style="border:1px solid #ccc;background:#e5e5e5"></td><td style="border:1px solid #ccc;background:#e5e5e5"></td></tr>`;
-    let rows = hdr;
-    metricsDef.forEach(f => {
-      rows += `<tr><td style="padding:5px 10px;border:1px solid #ccc;font-weight:600;font-size:12px;font-style:italic">${f.label}</td>`;
-      days.forEach((_,i) => {
-        const d2 = new Date(monday); d2.setDate(monday.getDate() + i);
-        rows += `<td style="border:1px solid #ccc;width:44px;text-align:center;padding:2px"><input type="number" step="${f.step}" placeholder="${f.placeholder}" data-sleepkey="${f.key}" data-date="${d2.toISOString().split('T')[0]}" style="width:40px;border:none;background:transparent;font-size:11px;font-family:'DM Mono',monospace;text-align:center;outline:none;color:var(--text)"></td>`;
-      });
-      rows += `<td style="border:1px solid #ccc"></td><td style="border:1px solid #ccc"></td></tr>`;
-    });
-    mTable.innerHTML = rows;
-    document.getElementById('tracker-metrics').style.display = 'block';
-    document.getElementById('tracker-legend').style.display = 'flex';
-  }
 }
 
 async function shiftTrackerWeek(dir) {
@@ -2099,6 +1784,7 @@ async function loadTrackerWeekData(mondayISO) {
     const records = json.records || [];
     const allBoxes = Array.from(document.querySelectorAll('.check-box[data-compound]'));
     const norm = s => (s||'').toLowerCase().trim().replace(/\s+/g,' ');
+    // Alias map: injection log name → tracker name (both normalized)
     const ALIAS = {
       // Testosterone
       'trt': 'testosterone',
@@ -2180,6 +1866,7 @@ async function loadTrackerWeekData(mondayISO) {
           const noteInput = document.querySelector(`input[data-type="notes"][data-compound="${compound}"]`);
           if (noteInput) noteInput.value = val;
         } else if (entry.includes('|') && entry.includes(':')) {
+          // Format: "YYYY-MM-DD|compoundName:STATE" — restore saved tracker states (S, N, L, R, etc.)
           const pipeIdx = entry.indexOf('|');
           const colonIdx = entry.lastIndexOf(':');
           if (pipeIdx === -1 || colonIdx === -1 || colonIdx < pipeIdx) return;
@@ -2188,7 +1875,7 @@ async function loadTrackerWeekData(mondayISO) {
           const state = entry.slice(colonIdx + 1).trim();
           if (!state || state === '0') return;
           const box = allBoxes.find(b => norm(b.dataset.compound) === norm(compound) && b.dataset.date === date);
-          if (box && !box.dataset.s) applyState(box, state);
+          if (box && !box.dataset.s) applyState(box, state); // injection log takes precedence
         }
       });
     }
@@ -3217,47 +2904,196 @@ function showAuditWeek(mon, weekData, DAYS) {
   el.innerHTML = html;
 }
 async function saveLog() {
-  const btn = document.querySelector('.save-btn');
   const status = document.getElementById('log-save-status');
-  btn.disabled = true;
-  status.textContent = 'Saving...';
+  const dateVal = document.getElementById('log-entry-date').value || new Date().toISOString().split('T')[0];
+
+  const fields = { 'fldSk3hNQJTDKOyfT': dateVal };
+  const weight  = document.getElementById('log-weight').value;
+  const sleep   = document.getElementById('log-sleep').value;
+  const deep    = document.getElementById('log-deep').value;
+  const hrv     = document.getElementById('log-hrv').value;
+  const rhr     = document.getElementById('log-rhr').value;
+  const steps   = document.getElementById('log-steps').value;
+  const wakeups = document.getElementById('log-wakeups').value;
+  const energy  = document.getElementById('log-energy').value;
+  const cortisol= document.getElementById('log-cortisol').value;
+  const mood    = document.getElementById('log-mood').value;
+
+  if (weight)   fields['fldKTZ5ML0fnZV3oz'] = parseFloat(weight);
+  if (sleep)    fields['fldy1hM7kymJKN52E']  = parseFloat(sleep);
+  if (deep)     fields['fld5PGt9ZdFgBzMAM']  = parseInt(deep);
+  if (hrv)      fields['fld8cAib9mOsXEwpp']  = parseFloat(hrv);
+  if (rhr)      fields['fld91KrnmMbcG3F6R']  = parseFloat(rhr);
+  if (steps)    fields['flddMcByGIUBzlz3y']  = parseInt(steps);
+  if (wakeups)  fields['fldjFJ8FystoDkLVX']  = parseInt(wakeups);
+  if (energy)   fields['fldKMKVcqr1ggcB9g']  = parseInt(energy);
+  if (cortisol) fields['fldbHBrMOFLmn6Adj']  = parseInt(cortisol);
+  if (mood)     fields['fldNYLNazQBOxYQJL']  = mood;
+
+  status.textContent = 'Saving…';
   status.style.color = 'var(--muted)';
 
-  const fields = { 'fldSk3hNQJTDKOyfT': new Date().toISOString().split('T')[0] };
-  const weight = document.getElementById('log-weight').value;
-  const deep = document.getElementById('log-deep').value;
-  const sleep = document.getElementById('log-sleep').value;
-  const hrv = document.getElementById('log-hrv').value;
-  const wakeups = document.getElementById('log-wakeups').value;
-  const energy = document.getElementById('log-energy').value;
-  const cortisol = document.getElementById('log-cortisol').value;
-  const mood = document.getElementById('log-mood').value;
-
-  if (weight) fields['fldKTZ5ML0fnZV3oz'] = parseFloat(weight);
-  if (deep) fields['fld5PGt9ZdFgBzMAM'] = parseInt(deep);
-  if (sleep) fields['fldy1hM7kymJKN52E'] = parseFloat(sleep);
-  if (hrv) fields['fldwOxpL9uyMj5Q2a'] = parseInt(hrv);
-  if (wakeups) fields['fldjFJ8FystoDkLVX'] = parseInt(wakeups);
-  if (energy) fields['fldKMKVcqr1ggcB9g'] = parseInt(energy);
-  if (cortisol) fields['fldbHBrMOFLmn6Adj'] = parseInt(cortisol);
-  if (mood) fields['fldLJKxP7XNEnT293'] = mood;
-
-  try {
-    await fetch(`https://api.airtable.com/v0/${BASE}/${TABLES.dailyLog}`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ records: [{ fields }] })
-    });
-    status.textContent = '✓ Saved to Airtable';
-    status.style.color = '#16a34a';
-    document.querySelectorAll('.form-field input, .form-field select').forEach(i => i.value = '');
-    setTimeout(() => status.textContent = '', 3000);
-  } catch(e) {
-    status.textContent = '✗ Error saving';
-    status.style.color = '#dc2626';
-  }
-  btn.disabled = false;
+  fetch(`https://api.airtable.com/v0/${BASE}/${TABLES.dailyLog}`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ records: [{ fields }], typecast: true })
+  }).then(r => r.json()).then(d => {
+    if (d.records) {
+      status.textContent = '✓ Saved';
+      status.style.color = '#16a34a';
+      document.querySelectorAll('#view-log .form-field input, #view-log .form-field select').forEach(i => i.value = '');
+      loadLog();
+    } else {
+      status.textContent = '✗ ' + JSON.stringify(d.error);
+      status.style.color = '#dc2626';
+    }
+  }).catch(e => { status.textContent = '✗ Error'; status.style.color = '#dc2626'; });
+  setTimeout(() => { if(status) status.textContent = ''; }, 4000);
 }
+
+let logAllRecords = [];
+let logDays = 30;
+
+async function loadLog() {
+  const hist = document.getElementById('log-history');
+  if (!hist) return;
+  hist.innerHTML = '<div style="text-align:center;color:var(--muted);padding:30px;font-size:12px">Loading…</div>';
+  try {
+    let records = [], offset = null;
+    const flds = ['fldSk3hNQJTDKOyfT','fldKTZ5ML0fnZV3oz','fldy1hM7kymJKN52E','fld5PGt9ZdFgBzMAM',
+                  'fld8cAib9mOsXEwpp','fld91KrnmMbcG3F6R','flddMcByGIUBzlz3y','fldNYLNazQBOxYQJL',
+                  'fldjFJ8FystoDkLVX','fldKMKVcqr1ggcB9g','fldbHBrMOFLmn6Adj','fldIt4TweBKT7LiAV'];
+    const fStr = flds.map(f => 'fields%5B%5D='+f).join('&');
+    do {
+      const url = `https://api.airtable.com/v0/${BASE}/${TABLES.dailyLog}?returnFieldsByFieldId=true&${fStr}&sort%5B0%5D%5Bfield%5D=fldSk3hNQJTDKOyfT&sort%5B0%5D%5Bdirection%5D=desc&pageSize=100${offset?'&offset='+offset:''}`;
+      const d = await fetch(url, { headers: { Authorization: `Bearer ${TOKEN}` } }).then(r=>r.json());
+      records = records.concat(d.records||[]); offset = d.offset;
+    } while(offset);
+    logAllRecords = records;
+    renderLogDash(records);
+    renderLogHistory(records, logDays);
+  } catch(e) {
+    hist.innerHTML = '<div style="color:#dc2626;padding:16px">Error loading log: '+e.message+'</div>';
+  }
+}
+
+function setLogRange(days, btn) {
+  logDays = days;
+  document.querySelectorAll('#view-log .filter-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderLogHistory(logAllRecords, days);
+}
+
+function renderLogDash(records) {
+  const cutoff = new Date(); cutoff.setDate(cutoff.getDate()-30);
+  const r30 = records.filter(r => new Date(r.fields['fldSk3hNQJTDKOyfT']) >= cutoff);
+  const avg = (key, dec=1) => {
+    const vals = r30.map(r=>r.fields[key]).filter(v=>v!=null&&!isNaN(v));
+    return vals.length ? (vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(dec) : '—';
+  };
+  const set = (id, val, sub) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.querySelector('.stat-val').textContent = val;
+    if (sub) el.querySelector('.stat-sub').textContent = sub;
+  };
+  set('dash-weight', avg('fldKTZ5ML0fnZV3oz'), 'lbs · 30d');
+  set('dash-sleep',  avg('fldy1hM7kymJKN52E'), 'hrs · 30d');
+  set('dash-deep',   avg('fld5PGt9ZdFgBzMAM',0), 'min · 30d');
+  set('dash-hrv',    avg('fld8cAib9mOsXEwpp',0), 'ms · 30d');
+  set('dash-rhr',    avg('fld91KrnmMbcG3F6R',0), 'bpm · 30d');
+  const stepVals = r30.map(r=>r.fields['flddMcByGIUBzlz3y']).filter(v=>v!=null&&!isNaN(v));
+  const avgSteps = stepVals.length ? Math.round(stepVals.reduce((a,b)=>a+b,0)/stepVals.length).toLocaleString() : '—';
+  set('dash-steps', avgSteps, '· 30d');
+}
+
+function renderLogHistory(records, days) {
+  const hist = document.getElementById('log-history');
+  let rows = records;
+  if (days > 0) {
+    const cutoff = new Date(); cutoff.setDate(cutoff.getDate()-days);
+    rows = records.filter(r => new Date(r.fields['fldSk3hNQJTDKOyfT']) >= cutoff);
+  }
+  if (!rows.length) { hist.innerHTML = '<div style="text-align:center;color:var(--muted);padding:30px;font-size:12px">No records in range</div>'; return; }
+  const f = (r, key, dec) => { const v = r.fields[key]; return v!=null ? (dec!=null?parseFloat(v).toFixed(dec):v) : ''; };
+  const mood = r => { const v = r.fields['fldNYLNazQBOxYQJL']; return v?.name || v || ''; };
+  let t = `<table style="width:100%;border-collapse:collapse;font-size:11px">
+    <thead><tr style="background:var(--surface2);color:var(--muted);font-size:10px;font-weight:700;text-transform:uppercase">
+      <th style="padding:6px 8px;text-align:left;white-space:nowrap">Date</th>
+      <th style="padding:6px 8px;text-align:right">Weight</th>
+      <th style="padding:6px 8px;text-align:right">Sleep</th>
+      <th style="padding:6px 8px;text-align:right">Deep</th>
+      <th style="padding:6px 8px;text-align:right">HRV</th>
+      <th style="padding:6px 8px;text-align:right">RHR</th>
+      <th style="padding:6px 8px;text-align:right">Steps</th>
+      <th style="padding:6px 8px;text-align:right">Energy</th>
+      <th style="padding:6px 8px;text-align:right">Cortisol</th>
+      <th style="padding:6px 8px;text-align:left">Mood</th>
+    </tr></thead><tbody>`;
+  rows.forEach((r,i) => {
+    const bg = i%2===0 ? '' : 'background:var(--surface2)';
+    const steps = r.fields['flddMcByGIUBzlz3y'];
+    t += `<tr style="${bg};cursor:pointer" onclick="editLogRow('${r.id}',this)">
+      <td style="padding:5px 8px;font-weight:700;white-space:nowrap">${r.fields['fldSk3hNQJTDKOyfT']||''}</td>
+      <td style="padding:5px 8px;text-align:right">${f(r,'fldKTZ5ML0fnZV3oz',1)}</td>
+      <td style="padding:5px 8px;text-align:right">${f(r,'fldy1hM7kymJKN52E',1)}</td>
+      <td style="padding:5px 8px;text-align:right">${f(r,'fld5PGt9ZdFgBzMAM',0)}</td>
+      <td style="padding:5px 8px;text-align:right">${f(r,'fld8cAib9mOsXEwpp',0)}</td>
+      <td style="padding:5px 8px;text-align:right">${f(r,'fld91KrnmMbcG3F6R',0)}</td>
+      <td style="padding:5px 8px;text-align:right">${steps!=null?parseInt(steps).toLocaleString():''}</td>
+      <td style="padding:5px 8px;text-align:right">${f(r,'fldKMKVcqr1ggcB9g',0)}</td>
+      <td style="padding:5px 8px;text-align:right">${f(r,'fldbHBrMOFLmn6Adj',0)}</td>
+      <td style="padding:5px 8px">${mood(r)}</td>
+    </tr>`;
+  });
+  t += '</tbody></table>';
+  hist.innerHTML = t;
+}
+
+function editLogRow(recId, tr) {
+  const rec = logAllRecords.find(r => r.id === recId);
+  if (!rec) return;
+  const f = rec.fields;
+  document.getElementById('log-entry-date').value = f['fldSk3hNQJTDKOyfT'] || '';
+  document.getElementById('log-weight').value  = f['fldKTZ5ML0fnZV3oz'] || '';
+  document.getElementById('log-sleep').value   = f['fldy1hM7kymJKN52E'] || '';
+  document.getElementById('log-deep').value    = f['fld5PGt9ZdFgBzMAM'] || '';
+  document.getElementById('log-hrv').value     = f['fld8cAib9mOsXEwpp'] || '';
+  document.getElementById('log-rhr').value     = f['fld91KrnmMbcG3F6R'] || '';
+  document.getElementById('log-steps').value   = f['flddMcByGIUBzlz3y'] || '';
+  document.getElementById('log-wakeups').value = f['fldjFJ8FystoDkLVX'] || '';
+  document.getElementById('log-energy').value  = f['fldKMKVcqr1ggcB9g'] || '';
+  document.getElementById('log-cortisol').value= f['fldbHBrMOFLmn6Adj'] || '';
+  const mv = f['fldNYLNazQBOxYQJL']; 
+  document.getElementById('log-mood').value = (mv?.name || mv || '');
+  document.getElementById('log-entry-date').scrollIntoView({behavior:'smooth',block:'center'});
+  // Highlight row
+  document.querySelectorAll('#log-history tr').forEach(r=>r.style.outline='');
+  tr.style.outline='2px solid #2563eb';
+}
+
+async function syncHealthToLog() {
+  const btn = document.getElementById('sync-health-btn');
+  const st = document.getElementById('sync-status');
+  btn.disabled = true; btn.textContent = '⟳ Syncing…';
+  st.textContent = '';
+
+  // Build shortcut URL — calls iOS Shortcut named "MB Health Sync"
+  // The shortcut reads Apple Health and posts to this page via URL scheme
+  // For now: open the shortcut URL so user can run it
+  const shortcutName = 'MB Health Sync';
+  const url = `shortcuts://run-shortcut?name=${encodeURIComponent(shortcutName)}`;
+
+  st.textContent = 'Opening Shortcut on device…';
+  window.location.href = url;
+
+  setTimeout(() => {
+    btn.disabled = false; btn.textContent = '⟳ Sync from Apple Health';
+    st.textContent = 'Run the shortcut on your iPhone, then reload.';
+    setTimeout(() => { st.textContent = ''; }, 5000);
+  }, 2000);
+}
+
 
 
 // ===== PURCHASES =====
@@ -3662,7 +3498,7 @@ function renderLabsTrend() {
       <td style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace">${units}</td>
       ${cells}
       <td style="text-align:center;font-size:13px">${trend}</td>
-    </tr>`
+    </tr>`;
   };
 
   const sectionHeader = label => `<tr><td colspan="${dates.length+3}" style="background:var(--surface2);color:var(--muted);font-size:10px;font-weight:700;letter-spacing:0.8px;padding:5px 12px;text-transform:uppercase;border-top:1px solid var(--border)">${label}</td></tr>`;
@@ -3789,6 +3625,7 @@ async function loadChanges() {
     renderChanges();
   } catch(e) { el.innerHTML = `<p style="color:var(--red);padding:16px">Error: ${e.message}</p>`; }
 }
+
 async function loadInjLog() {
   const TABLE = 'tblBvEaLkGGipnOFc';
   const F = {
@@ -3886,64 +3723,6 @@ async function loadInjLog() {
   fullHtml += '</tbody></table>';
   fullEl.innerHTML = fullHtml;
 }
-
-function renderChanges() {
-  const el = document.getElementById('changes-content');
-  const typeFilter = document.getElementById('changes-type-filter')?.value || '';
-  const compoundFilter = (document.getElementById('changes-compound-filter')?.value || '').toLowerCase();
-
-  let filtered = changesData.filter(r => {
-    const f = r.fields || {};
-    const type = f['Change Type'] || '';
-    const compound = (f['Compound'] || '').toLowerCase();
-    if (typeFilter && type !== typeFilter) return false;
-    if (compoundFilter && !compound.includes(compoundFilter)) return false;
-    return true;
-  });
-
-  if (!filtered.length) { el.innerHTML = '<p style="color:var(--muted);padding:16px">No changes logged yet.</p>'; return; }
-
-  let html = `<div class="table-wrap"><table class="data-table">
-    <thead><tr><th>Date</th><th>Type</th><th>Compound</th><th>Description</th><th>Reason</th><th>Impacted</th><th>Notes</th></tr></thead><tbody>
-    ${filtered.map(r => {
-      const f = r.fields || {};
-      const type = f['Change Type'] || '—';
-      const color = CHANGE_COLORS[type] || 'var(--muted)';
-      return `<tr>
-        <td style="font-family:'DM Mono',monospace;font-size:12px;white-space:nowrap">${f['Change Date'] || '—'}</td>
-        <td><span style="color:${color};font-weight:600;font-size:12px">${type}</span></td>
-        <td style="font-weight:500">${f['Compound'] || '—'}</td>
-        <td style="font-size:12px">${f['Description of Change'] || '—'}</td>
-        <td style="font-size:12px;color:var(--muted)">${f['Reason for Change'] || ''}</td>
-        <td style="font-size:12px;color:var(--muted)">${f['Impacted Peptides'] || ''}</td>
-        <td style="font-size:12px;color:var(--muted)">${f['Notes'] || ''}</td>
-      </tr>`;
-    }).join('')}
-    </tbody></table></div>`;
-
-  el.innerHTML = html;
-}
-
-function showAddChangeModal() {
-  document.getElementById('ac-date').value = new Date().toISOString().split('T')[0];
-  // Populate compound select from all non-Deferred/TBD peptides
-  const sel = document.getElementById('ac-compound');
-  sel.innerHTML = '<option value="">— Select —</option>';
-  const names = (data.peptides || [])
-    .filter(r => !['Deferred','TBD'].includes((r.fields||{})['Status']))
-    .map(r => (r.fields||{})['Compound'] || '')
-    .filter(Boolean)
-    .sort();
-  names.forEach(n => { const o = document.createElement('option'); o.value = n; o.textContent = n; sel.appendChild(o); });
-  sel.value = '';
-  document.getElementById('ac-description').value = '';
-  document.getElementById('ac-reason').value = '';
-  document.getElementById('ac-impacted').value = '';
-  document.getElementById('ac-notes').value = '';
-  document.getElementById('add-change-modal').style.display = 'flex';
-}
-function hideAddChangeModal() { document.getElementById('add-change-modal').style.display = 'none'; }
-
 
 function renderChanges() {
   const el = document.getElementById('changes-content');
@@ -4539,6 +4318,7 @@ function buildWeeklyPrintHTML(monday) {
   return `<div class="print-page">${makeDayTable(days[0])}${makeDayTable(days[1])}</div>` +
          `<div class="print-page">${makeDayTable(days[2])}${makeDayTable(days[3])}</div>`;
 }
+
   function toggleDrop(id, e) {
     if (e) e.stopPropagation();
     const menu = document.getElementById(id);
@@ -4550,6 +4330,7 @@ function buildWeeklyPrintHTML(monday) {
     document.querySelectorAll('.nav-dropdown').forEach(d => d.classList.remove('open'));
   }
   function navDrop(viewId, triggerId) {
+    if (viewId === 'log') { setTimeout(loadLog, 50); }
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
     const view = document.getElementById('view-' + viewId);
@@ -4562,7 +4343,6 @@ function buildWeeklyPrintHTML(monday) {
     if (viewId === 'labs') loadLabs();
     if (viewId === 'changes') loadChanges();
     if (viewId === 'injaudit') loadInjAudit();
-    if (viewId === 'injlog') loadInjLog();
     if (viewId === 'workouts') document.getElementById('workout-date').value = new Date().toISOString().split('T')[0];
     if (viewId === 'goals') loadGoals();
     if (viewId === 'profile') loadProfileView();
@@ -5322,6 +5102,7 @@ function renderSuppVendors() {
       </tbody></table>
     </div>`).join('');
 }
+
 
 // ── PDF QA & VERIFICATION ─────────────────────────────────────────────
 var _pdfqaInited = false;
@@ -6834,6 +6615,6 @@ function drawLine(canvasId, labels, data1, label1, color1, data2, label2, color2
 
 </body>
 </html>
-<!-- cache bust Mon May 26 2026 — oauth fix -->
+<!-- cache bust Mon May 26 2026 — revert inj logger -->
 
 
