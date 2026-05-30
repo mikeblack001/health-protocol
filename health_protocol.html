@@ -533,6 +533,7 @@
       <button class="nav-tab drop-trigger" id="nav-supp" onclick="toggleDrop('drop-supp',event)">Supplements <span class="drop-caret">▾</span></button>
       <div class="drop-menu" id="drop-supp">
         <button class="drop-item" onclick="navDrop('supplements','nav-supp')">Supplements</button>
+        <button class="drop-item" onclick="navDrop('suppdash','nav-supp')">Dashboard</button>
         <button class="drop-item" onclick="navDrop('suppchanges','nav-supp')">Supplement Changes</button>
         <button class="drop-item" onclick="navDrop('suppvendors','nav-supp')">Supplement Vendors</button>
       </div>
@@ -609,6 +610,7 @@
   <div class="mobile-section">
     <div class="mobile-section-label">Supplements</div>
     <button class="mobile-item" onclick="mobileNav('supplements')">Supplements</button>
+    <button class="mobile-item" onclick="mobileNav('suppdash')">Supp Dashboard</button>
     <button class="mobile-item" onclick="mobileNav('suppchanges')">Supplement Changes</button>
     <button class="mobile-item" onclick="mobileNav('suppvendors')">Supplement Vendors</button>
   </div>
@@ -1048,6 +1050,58 @@
     </div>
   </div>
 
+
+  <!-- SUPPLEMENT DASHBOARD -->
+  <div id="view-suppdash" class="view">
+    <div class="section-header">
+      <h2>Supplement Dashboard</h2>
+    </div>
+    <!-- Sub-tab bar -->
+    <div style="display:flex;gap:4px;margin-bottom:16px;border-bottom:2px solid var(--border);padding-bottom:0">
+      <button class="suppdash-tab active" onclick="showSuppDashTab('protocol',this)" style="padding:8px 16px;border:none;background:none;cursor:pointer;font-size:13px;font-weight:600;color:var(--accent);border-bottom:2px solid var(--accent);margin-bottom:-2px;font-family:'DM Sans',sans-serif">☀ Protocol</button>
+      <button class="suppdash-tab" onclick="showSuppDashTab('all',this)" style="padding:8px 16px;border:none;background:none;cursor:pointer;font-size:13px;font-weight:500;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-2px;font-family:'DM Sans',sans-serif">All Supplements</button>
+      <button class="suppdash-tab" onclick="showSuppDashTab('spend',this)" style="padding:8px 16px;border:none;background:none;cursor:pointer;font-size:13px;font-weight:500;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-2px;font-family:'DM Sans',sans-serif">💰 Spend</button>
+      <button class="suppdash-tab" onclick="showSuppDashTab('review',this)" style="padding:8px 16px;border:none;background:none;cursor:pointer;font-size:13px;font-weight:500;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-2px;font-family:'DM Sans',sans-serif">🔍 Review</button>
+    </div>
+
+    <!-- PROTOCOL PANEL -->
+    <div id="suppdash-protocol" class="suppdash-panel">
+      <div class="warning-bar">
+        <span>⚠ Kangen water: Stop 30 min BEFORE · Resume 60 min AFTER</span>
+        <span>⚠ Anastrozole: Day AFTER TRT injection only (Tues/Fri)</span>
+        <span>⚠ Seed DS-01: Take FIRST, 30 min before food</span>
+        <span>⚠ LDN: No opioids within 4–6 hrs</span>
+      </div>
+      <div id="suppdash-protocol-content"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
+    </div>
+
+    <!-- ALL SUPPLEMENTS PANEL -->
+    <div id="suppdash-all" class="suppdash-panel" style="display:none">
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap">
+        <input type="text" id="suppdash-search" oninput="renderSuppDashAll()" placeholder="Search..." style="padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface);width:200px">
+        <div style="display:flex;gap:4px;flex-wrap:wrap">
+          <button class="filter-btn active" onclick="setSuppDashFilter('',this)">All</button>
+          <button class="filter-btn" onclick="setSuppDashFilter('Active',this)">Active</button>
+          <button class="filter-btn" onclick="setSuppDashFilter('Paused',this)">Paused</button>
+          <button class="filter-btn" onclick="setSuppDashFilter('Inactive',this)">Inactive</button>
+          <button class="filter-btn" onclick="setSuppDashFilter('TBD',this)">TBD</button>
+        </div>
+      </div>
+      <div id="suppdash-all-content"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
+    </div>
+
+    <!-- SPEND PANEL -->
+    <div id="suppdash-spend" class="suppdash-panel" style="display:none">
+      <div id="suppdash-spend-content"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
+    </div>
+
+    <!-- REVIEW PANEL -->
+    <div id="suppdash-review" class="suppdash-panel" style="display:none">
+      <p style="font-size:12px;color:var(--muted);margin-bottom:12px">Supplements not currently Active — evaluate for protocol inclusion, continuation, or removal.</p>
+      <div id="suppdash-review-content"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
+    </div>
+  </div>
+
   <div id="view-suppchanges" class="view">
     <div class="filter-bar">
       <span style="font-size:13px;font-weight:500;color:var(--text)">Supplement Changes</span>
@@ -1223,7 +1277,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // ── AIRTABLE CONFIG ───────────────────────────────────────────────────────────
 const TOKEN = 'pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
 const BASE = 'appmHDG4TGT1xy6R6';
-const TABLES = { peptides: 'tblMs6YRdP4wkndUp', supplements: 'tblSnkc0Gu2BzGACP', dailyLog: 'tblaYuZjl4Pu4nKxS', pricing: 'tblnW21TLSqgVerwQ', vendors: 'tblI0nfBBuHXjp3KT', suppVendors: 'tblxI3G63a7WvK0Ya', purchases: 'tblWmflohL6d6HC9p', bloodwork: 'tbl3200yJid6fXaOp', protocolChanges: 'tblolVx7YwO5cJhsE', goals: 'tblRuaROlyG93Bz4Y', profile: 'tblPBJkYqlnzrBK3B', suppChanges: 'tblcwqEVCMfSwNSMu', sessions: 'tblk9tTYIcIY4tWjF', sets: 'tblKDqjy5RzqaJvjr' };
+const TABLES = { peptides: 'tblMs6YRdP4wkndUp', supplements: 'tblSnkc0Gu2BzGACP', amazonPurchases: 'tblGs2dflGhvPs94p', dailyLog: 'tblaYuZjl4Pu4nKxS', pricing: 'tblnW21TLSqgVerwQ', vendors: 'tblI0nfBBuHXjp3KT', suppVendors: 'tblxI3G63a7WvK0Ya', purchases: 'tblWmflohL6d6HC9p', bloodwork: 'tbl3200yJid6fXaOp', protocolChanges: 'tblolVx7YwO5cJhsE', goals: 'tblRuaROlyG93Bz4Y', profile: 'tblPBJkYqlnzrBK3B', suppChanges: 'tblcwqEVCMfSwNSMu', sessions: 'tblk9tTYIcIY4tWjF', sets: 'tblKDqjy5RzqaJvjr' };
 
 let data = { peptides: [], supplements: [] };
 let currentPepFilter = 'Active';
@@ -1530,6 +1584,235 @@ function renderSupplements(filter) {
   }
 
   document.getElementById('supps-content').innerHTML = html || '<p style="color:var(--muted);padding:20px;font-family:DM Mono,monospace">No records found.</p>';
+}
+
+
+// ===== SUPPLEMENT DASHBOARD =====
+let suppDashLoaded = false;
+let suppDashAmazon = [];
+let suppDashFilter = '';
+
+async function loadSuppDash() {
+  if (suppDashLoaded) return;
+  // Supplements already in data.supplements — just need amazon purchases
+  await loadAmazonPurchases();
+  suppDashLoaded = true;
+  renderSuppDashProtocol();
+  renderSuppDashAll();
+  renderSuppDashSpend();
+  renderSuppDashReview();
+}
+
+async function loadAmazonPurchases() {
+  try {
+    const records = await fetchTable(TABLES.amazonPurchases);
+    suppDashAmazon = records;
+  } catch(e) {
+    console.error('loadAmazonPurchases error:', e);
+    suppDashAmazon = [];
+  }
+}
+
+function showSuppDashTab(tab, btn) {
+  document.querySelectorAll('.suppdash-panel').forEach(p => p.style.display = 'none');
+  document.getElementById('suppdash-' + tab).style.display = 'block';
+  document.querySelectorAll('.suppdash-tab').forEach(b => {
+    b.style.color = 'var(--muted)';
+    b.style.borderBottomColor = 'transparent';
+    b.style.fontWeight = '500';
+  });
+  btn.style.color = 'var(--accent)';
+  btn.style.borderBottomColor = 'var(--accent)';
+  btn.style.fontWeight = '600';
+  // lazy render on first visit
+  if (tab === 'spend' && suppDashAmazon.length === 0 && !suppDashLoaded) loadSuppDash();
+}
+
+function setSuppDashFilter(val, btn) {
+  suppDashFilter = val;
+  document.querySelectorAll('#suppdash-all .filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderSuppDashAll();
+}
+
+function renderSuppDashProtocol() {
+  const active = (data.supplements || []).filter(r => getField(r,'SuppStatus') === 'Active');
+  const timings = [
+    {key:'Morning', icon:'☀️', bg:'#FFFBEB'},
+    {key:'Dinner', icon:'🍽️', bg:'#F0FDF4'},
+    {key:'Night', icon:'🌙', bg:'#EFF6FF'}
+  ];
+  let html = '<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start">';
+  timings.forEach(({key, icon, bg}) => {
+    const group = active.filter(r => getField(r,'SuppTiming') === key)
+      .sort((a,b) => (getField(a,'Supplement')||'').localeCompare(getField(b,'Supplement')||''));
+    if (!group.length) return;
+    html += `<div style="flex:1;min-width:220px;background:${bg};border:1px solid var(--border);border-radius:10px;padding:14px">
+      <div style="font-size:14px;font-weight:700;margin-bottom:10px;color:var(--text)">${icon} ${key}</div>`;
+    group.forEach(r => {
+      const name = getField(r,'Supplement') || '';
+      const dose = getField(r,'SuppDose') || '';
+      const brand = getField(r,'Brand') || '';
+      html += `<div style="padding:6px 0;border-bottom:1px solid rgba(0,0,0,0.06)">
+        <div style="font-size:13px;font-weight:600;color:var(--text)">${name}</div>
+        <div style="font-size:11px;color:var(--muted)">${dose}${brand ? ' · '+brand : ''}</div>
+      </div>`;
+    });
+    html += `</div>`;
+  });
+  // Other timing
+  const other = active.filter(r => !['Morning','Dinner','Night'].includes(getField(r,'SuppTiming')));
+  if (other.length) {
+    html += `<div style="flex:1;min-width:220px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px">
+      <div style="font-size:14px;font-weight:700;margin-bottom:10px;color:var(--text)">○ Other / TBD</div>`;
+    other.forEach(r => {
+      const name = getField(r,'Supplement') || '';
+      const dose = getField(r,'SuppDose') || '';
+      const timing = getField(r,'SuppTiming') || 'No timing';
+      html += `<div style="padding:6px 0;border-bottom:1px solid rgba(0,0,0,0.06)">
+        <div style="font-size:13px;font-weight:600;color:var(--text)">${name}</div>
+        <div style="font-size:11px;color:var(--muted)">${dose}${timing ? ' · '+timing : ''}</div>
+      </div>`;
+    });
+    html += '</div>';
+  }
+  html += '</div>';
+  const el = document.getElementById('suppdash-protocol-content');
+  if (el) el.innerHTML = html;
+}
+
+function renderSuppDashAll() {
+  const search = (document.getElementById('suppdash-search')?.value || '').toLowerCase();
+  let records = data.supplements || [];
+  if (suppDashFilter) records = records.filter(r => (getField(r,'SuppStatus')||'') === suppDashFilter);
+  if (search) records = records.filter(r =>
+    (getField(r,'Supplement')||'').toLowerCase().includes(search) ||
+    (getField(r,'Brand')||'').toLowerCase().includes(search) ||
+    (getField(r,'SuppPurpose')||'').toLowerCase().includes(search)
+  );
+  records = [...records].sort((a,b) => (getField(a,'Supplement')||'').localeCompare(getField(b,'Supplement')||''));
+  let html = `<div class="table-wrap"><table class="data-table"><thead><tr>
+    <th>Supplement</th><th>Dose</th><th>Timing</th><th>Status</th><th>Brand</th><th>Purpose</th>
+  </tr></thead><tbody>`;
+  records.forEach(r => {
+    html += `<tr>
+      <td><div class="compound-name">${getField(r,'Supplement')||'—'}</div><div class="compound-sub">${getField(r,'Product')||''}</div></td>
+      <td style="font-size:13px;white-space:nowrap">${getField(r,'SuppDose')||'—'}</td>
+      <td style="font-size:12px;color:var(--muted)">${getField(r,'SuppTiming')||'—'}</td>
+      <td>${badge(getField(r,'SuppStatus'))}</td>
+      <td style="font-size:12px;color:var(--muted)">${getField(r,'Brand')||'—'}</td>
+      <td style="font-size:12px;color:var(--muted);max-width:200px">${getField(r,'SuppPurpose')||'—'}</td>
+    </tr>`;
+  });
+  html += '</tbody></table></div>';
+  if (!records.length) html = '<p style="color:var(--muted);padding:20px;font-size:13px">No records match.</p>';
+  const el = document.getElementById('suppdash-all-content');
+  if (el) el.innerHTML = html;
+}
+
+function renderSuppDashSpend() {
+  if (!suppDashAmazon.length) {
+    const el = document.getElementById('suppdash-spend-content');
+    if (el) el.innerHTML = '<p style="color:var(--muted);padding:20px;font-size:13px">No Amazon purchase data loaded.</p>';
+    return;
+  }
+  // Aggregate by product
+  const byProduct = {};
+  const byCategory = {};
+  suppDashAmazon.forEach(r => {
+    const product = r.fields['fldJOtSh8sOp5oA5H'] || r.fields['Product'] || 'Unknown';
+    const price = parseFloat(r.fields['fld97fyFy71RYop3U'] || r.fields['Price Paid'] || 0);
+    const qty = parseFloat(r.fields['fldmcUtXRJS6C70qS'] || r.fields['Quantity'] || 1);
+    const cat = r.fields['fldN8cFHOtADhw8cI'] || r.fields['Category'] || 'Other';
+    const total = price * qty;
+    if (!byProduct[product]) byProduct[product] = {total:0, orders:0, category:cat};
+    byProduct[product].total += total;
+    byProduct[product].orders += 1;
+    if (!byCategory[cat]) byCategory[cat] = 0;
+    byCategory[cat] += total;
+  });
+  // Sort products by total spend descending, top 40
+  const topProducts = Object.entries(byProduct)
+    .sort((a,b) => b[1].total - a[1].total)
+    .slice(0,40);
+  const sortedCats = Object.entries(byCategory).sort((a,b) => b[1]-a[1]);
+  const grandTotal = Object.values(byCategory).reduce((s,v) => s+v, 0);
+
+  let html = '<div style="display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start">';
+
+  // Top products table
+  html += `<div style="flex:2;min-width:300px">
+    <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px">Top 40 Products by Spend</div>
+    <div class="table-wrap"><table class="data-table"><thead><tr>
+      <th>#</th><th>Product</th><th>Category</th><th style="text-align:right">Total</th><th style="text-align:right">Orders</th>
+    </tr></thead><tbody>`;
+  topProducts.forEach(([name, d], i) => {
+    html += `<tr>
+      <td style="font-size:11px;color:var(--muted);width:28px">${i+1}</td>
+      <td style="font-size:12px;font-weight:500">${name}</td>
+      <td style="font-size:11px;color:var(--muted)">${d.category}</td>
+      <td style="font-size:13px;font-weight:600;text-align:right;white-space:nowrap">$${d.total.toFixed(2)}</td>
+      <td style="font-size:12px;color:var(--muted);text-align:right">${d.orders}</td>
+    </tr>`;
+  });
+  html += '</tbody></table></div></div>';
+
+  // Category totals
+  html += `<div style="flex:1;min-width:200px">
+    <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px">Spend by Category</div>
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;overflow:hidden">`;
+  sortedCats.forEach(([cat, total]) => {
+    const pct = grandTotal > 0 ? (total/grandTotal*100).toFixed(1) : 0;
+    html += `<div style="padding:8px 12px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div style="font-size:12px;font-weight:500;color:var(--text)">${cat}</div>
+        <div style="font-size:10px;color:var(--muted)">${pct}%</div>
+      </div>
+      <div style="font-size:13px;font-weight:700;color:var(--accent)">$${total.toFixed(2)}</div>
+    </div>`;
+  });
+  html += `<div style="padding:10px 12px;background:var(--surface);display:flex;justify-content:space-between">
+    <div style="font-size:12px;font-weight:700;color:var(--text)">Grand Total</div>
+    <div style="font-size:14px;font-weight:800;color:var(--text)">$${grandTotal.toFixed(2)}</div>
+  </div></div></div>`;
+
+  html += '</div>';
+  const el = document.getElementById('suppdash-spend-content');
+  if (el) el.innerHTML = html;
+}
+
+function renderSuppDashReview() {
+  const review = (data.supplements || []).filter(r => {
+    const status = getField(r,'SuppStatus') || '';
+    return ['Paused','Inactive','TBD'].includes(status);
+  }).sort((a,b) => {
+    const sa = getField(a,'SuppStatus') || '', sb = getField(b,'SuppStatus') || '';
+    if (sa !== sb) return sa.localeCompare(sb);
+    return (getField(a,'Supplement')||'').localeCompare(getField(b,'Supplement')||'');
+  });
+
+  if (!review.length) {
+    const el = document.getElementById('suppdash-review-content');
+    if (el) el.innerHTML = '<p style="color:var(--muted);font-size:13px">No paused/inactive/TBD supplements.</p>';
+    return;
+  }
+  let html = `<div class="table-wrap"><table class="data-table"><thead><tr>
+    <th>Supplement</th><th>Status</th><th>Dose</th><th>Timing</th><th>Purpose</th><th>Notes</th>
+  </tr></thead><tbody>`;
+  review.forEach(r => {
+    const notes = getField(r,'SuppNotes') || getField(r,'Notes') || '';
+    html += `<tr>
+      <td><div class="compound-name">${getField(r,'Supplement')||'—'}</div><div class="compound-sub">${getField(r,'Brand')||''}</div></td>
+      <td>${badge(getField(r,'SuppStatus'))}</td>
+      <td style="font-size:12px;white-space:nowrap">${getField(r,'SuppDose')||'—'}</td>
+      <td style="font-size:12px;color:var(--muted)">${getField(r,'SuppTiming')||'—'}</td>
+      <td style="font-size:12px;color:var(--muted);max-width:180px">${getField(r,'SuppPurpose')||'—'}</td>
+      <td style="font-size:11px;color:var(--muted);max-width:180px">${notes}</td>
+    </tr>`;
+  });
+  html += '</tbody></table></div>';
+  const el = document.getElementById('suppdash-review-content');
+  if (el) el.innerHTML = html;
 }
 
 // ===== PEPTIDE TRACKER =====
@@ -2774,6 +3057,7 @@ function mobileNav(viewId) {
   if (viewId === 'aicontext') loadAIContext();
   if (viewId === 'suppchanges') loadSuppChanges();
     if (viewId === 'suppvendors') loadSuppVendors();
+    if (viewId === 'suppdash') loadSuppDash();
   if (viewId === 'suppvendors') loadSuppVendors();
   if (viewId === 'workout-suggestions') loadWorkoutSuggestions();
   if (viewId === 'workouts') document.getElementById('workout-date').value = new Date().toISOString().split('T')[0];
@@ -4375,6 +4659,7 @@ function buildWeeklyPrintHTML(monday) {
     if (viewId === 'printlist') renderPrintList();
     if (viewId === 'suppchanges') loadSuppChanges();
     if (viewId === 'suppvendors') loadSuppVendors();
+    if (viewId === 'suppdash') loadSuppDash();
   if (viewId === 'suppvendors') loadSuppVendors();
     if (viewId === 'workout-suggestions') loadWorkoutSuggestions();
     if (viewId === 'pdfqa') initPdfQA();
