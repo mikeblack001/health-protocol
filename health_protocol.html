@@ -181,6 +181,13 @@
   .form-row input, .form-row textarea { padding:8px 10px; border:1px solid var(--border); border-radius:6px; font-size:13px; font-family:'DM Sans',sans-serif; background:var(--surface); color:var(--text); width:100%; box-sizing:border-box; }
   .form-row textarea { resize:vertical; }
 
+
+  /* DAILY LOG DASH */
+  .stat-card { background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:2px; }
+  .stat-label { font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted); }
+  .stat-val { font-size:22px;font-weight:800;color:var(--text);line-height:1.1; }
+  .stat-sub { font-size:10px;color:var(--muted); }
+
   /* PRICING */
   .pricing-group { margin-bottom: 20px; }
   .pricing-group-header { font-size: 13px; font-weight: 600; color: var(--text); padding: 10px 14px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px 8px 0 0; display: flex; align-items: center; gap: 10px; }
@@ -878,14 +885,41 @@
 
   <!-- DAILY LOG -->
   <div id="view-log" class="view">
-    <div class="section-header"><h2>Daily Log</h2></div>
-    <div class="log-form">
-      <h3>Log Today — <span id="log-date"></span></h3>
+    <div class="section-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+      <div><h2>Daily Log</h2><p class="section-sub">Health metrics — history, averages, and manual entry</p></div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="action-btn" onclick="syncHealthToLog()" id="sync-health-btn" style="background:#2563eb;color:#fff;border:none;padding:7px 14px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer">⟳ Sync from Apple Health</button>
+        <span id="sync-status" style="font-size:11px;color:var(--muted)"></span>
+      </div>
+    </div>
+
+    <!-- DASH STATS -->
+    <div id="log-dash" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;padding:14px 16px 0">
+      <div class="stat-card" id="dash-weight"><div class="stat-label">Avg Weight</div><div class="stat-val">—</div><div class="stat-sub">lbs · 30d</div></div>
+      <div class="stat-card" id="dash-sleep"><div class="stat-label">Avg Sleep</div><div class="stat-val">—</div><div class="stat-sub">hrs · 30d</div></div>
+      <div class="stat-card" id="dash-deep"><div class="stat-label">Avg Deep</div><div class="stat-val">—</div><div class="stat-sub">min · 30d</div></div>
+      <div class="stat-card" id="dash-hrv"><div class="stat-label">Avg HRV</div><div class="stat-val">—</div><div class="stat-sub">ms · 30d</div></div>
+      <div class="stat-card" id="dash-rhr"><div class="stat-label">Avg Resting HR</div><div class="stat-val">—</div><div class="stat-sub">bpm · 30d</div></div>
+      <div class="stat-card" id="dash-steps"><div class="stat-label">Avg Steps</div><div class="stat-val">—</div><div class="stat-sub">· 30d</div></div>
+    </div>
+
+    <!-- ADD / EDIT FORM -->
+    <div class="log-form" style="margin:14px 16px;border:1px solid var(--border);border-radius:10px;padding:14px;background:var(--surface)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <h3 style="font-size:13px;font-weight:700">Log Entry — <span id="log-date"></span></h3>
+        <div style="display:flex;gap:6px">
+          <input type="date" id="log-entry-date" style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--surface)">
+          <button class="save-btn" onclick="saveLog()" style="padding:6px 14px;font-size:12px">Save</button>
+          <span class="save-status" id="log-save-status"></span>
+        </div>
+      </div>
       <div class="form-grid">
         <div class="form-field"><label>Weight (lbs)</label><input type="number" id="log-weight" placeholder="0.0" step="0.1"></div>
-        <div class="form-field"><label>Deep Sleep (min)</label><input type="number" id="log-deep" placeholder="0"></div>
         <div class="form-field"><label>Total Sleep (hrs)</label><input type="number" id="log-sleep" placeholder="0.0" step="0.1"></div>
-        <div class="form-field"><label>HRV</label><input type="number" id="log-hrv" placeholder="0"></div>
+        <div class="form-field"><label>Deep Sleep (min)</label><input type="number" id="log-deep" placeholder="0"></div>
+        <div class="form-field"><label>HRV (ms)</label><input type="number" id="log-hrv" placeholder="0"></div>
+        <div class="form-field"><label>Resting HR</label><input type="number" id="log-rhr" placeholder="0"></div>
+        <div class="form-field"><label>Steps</label><input type="number" id="log-steps" placeholder="0"></div>
         <div class="form-field"><label>Wakeups</label><input type="number" id="log-wakeups" placeholder="0"></div>
         <div class="form-field"><label>Energy (1–10)</label><input type="number" id="log-energy" placeholder="0" min="1" max="10"></div>
         <div class="form-field"><label>Cortisol Feel (1–10)</label><input type="number" id="log-cortisol" placeholder="0" min="1" max="10"></div>
@@ -895,11 +929,26 @@
             <option value="Good">Good</option>
             <option value="OK">OK</option>
             <option value="Poor">Poor</option>
+            <option value="Unknown">Unknown</option>
           </select>
         </div>
       </div>
-      <button class="save-btn" onclick="saveLog()">Save to Airtable</button>
-      <span class="save-status" id="log-save-status"></span>
+    </div>
+
+    <!-- HISTORY TABLE -->
+    <div style="padding:0 16px 16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <b style="font-size:12px;font-weight:800;color:var(--text)">History</b>
+        <div style="display:flex;gap:6px">
+          <button class="filter-btn active" onclick="setLogRange(30,this)">30d</button>
+          <button class="filter-btn" onclick="setLogRange(90,this)">90d</button>
+          <button class="filter-btn" onclick="setLogRange(365,this)">1yr</button>
+          <button class="filter-btn" onclick="setLogRange(0,this)">All</button>
+        </div>
+      </div>
+      <div id="log-history" style="overflow-x:auto">
+        <div style="text-align:center;color:var(--muted);padding:30px;font-size:12px">Loading…</div>
+      </div>
     </div>
   </div>
   <!-- WORKOUT SUGGESTIONS -->
@@ -2855,47 +2904,196 @@ function showAuditWeek(mon, weekData, DAYS) {
   el.innerHTML = html;
 }
 async function saveLog() {
-  const btn = document.querySelector('.save-btn');
   const status = document.getElementById('log-save-status');
-  btn.disabled = true;
-  status.textContent = 'Saving...';
+  const dateVal = document.getElementById('log-entry-date').value || new Date().toISOString().split('T')[0];
+
+  const fields = { 'fldSk3hNQJTDKOyfT': dateVal };
+  const weight  = document.getElementById('log-weight').value;
+  const sleep   = document.getElementById('log-sleep').value;
+  const deep    = document.getElementById('log-deep').value;
+  const hrv     = document.getElementById('log-hrv').value;
+  const rhr     = document.getElementById('log-rhr').value;
+  const steps   = document.getElementById('log-steps').value;
+  const wakeups = document.getElementById('log-wakeups').value;
+  const energy  = document.getElementById('log-energy').value;
+  const cortisol= document.getElementById('log-cortisol').value;
+  const mood    = document.getElementById('log-mood').value;
+
+  if (weight)   fields['fldKTZ5ML0fnZV3oz'] = parseFloat(weight);
+  if (sleep)    fields['fldy1hM7kymJKN52E']  = parseFloat(sleep);
+  if (deep)     fields['fld5PGt9ZdFgBzMAM']  = parseInt(deep);
+  if (hrv)      fields['fld8cAib9mOsXEwpp']  = parseFloat(hrv);
+  if (rhr)      fields['fld91KrnmMbcG3F6R']  = parseFloat(rhr);
+  if (steps)    fields['flddMcByGIUBzlz3y']  = parseInt(steps);
+  if (wakeups)  fields['fldjFJ8FystoDkLVX']  = parseInt(wakeups);
+  if (energy)   fields['fldKMKVcqr1ggcB9g']  = parseInt(energy);
+  if (cortisol) fields['fldbHBrMOFLmn6Adj']  = parseInt(cortisol);
+  if (mood)     fields['fldNYLNazQBOxYQJL']  = mood;
+
+  status.textContent = 'Saving…';
   status.style.color = 'var(--muted)';
 
-  const fields = { 'fldSk3hNQJTDKOyfT': new Date().toISOString().split('T')[0] };
-  const weight = document.getElementById('log-weight').value;
-  const deep = document.getElementById('log-deep').value;
-  const sleep = document.getElementById('log-sleep').value;
-  const hrv = document.getElementById('log-hrv').value;
-  const wakeups = document.getElementById('log-wakeups').value;
-  const energy = document.getElementById('log-energy').value;
-  const cortisol = document.getElementById('log-cortisol').value;
-  const mood = document.getElementById('log-mood').value;
-
-  if (weight) fields['fldKTZ5ML0fnZV3oz'] = parseFloat(weight);
-  if (deep) fields['fld5PGt9ZdFgBzMAM'] = parseInt(deep);
-  if (sleep) fields['fldy1hM7kymJKN52E'] = parseFloat(sleep);
-  if (hrv) fields['fldwOxpL9uyMj5Q2a'] = parseInt(hrv);
-  if (wakeups) fields['fldjFJ8FystoDkLVX'] = parseInt(wakeups);
-  if (energy) fields['fldKMKVcqr1ggcB9g'] = parseInt(energy);
-  if (cortisol) fields['fldbHBrMOFLmn6Adj'] = parseInt(cortisol);
-  if (mood) fields['fldLJKxP7XNEnT293'] = mood;
-
-  try {
-    await fetch(`https://api.airtable.com/v0/${BASE}/${TABLES.dailyLog}`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ records: [{ fields }] })
-    });
-    status.textContent = '✓ Saved to Airtable';
-    status.style.color = '#16a34a';
-    document.querySelectorAll('.form-field input, .form-field select').forEach(i => i.value = '');
-    setTimeout(() => status.textContent = '', 3000);
-  } catch(e) {
-    status.textContent = '✗ Error saving';
-    status.style.color = '#dc2626';
-  }
-  btn.disabled = false;
+  fetch(`https://api.airtable.com/v0/${BASE}/${TABLES.dailyLog}`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ records: [{ fields }], typecast: true })
+  }).then(r => r.json()).then(d => {
+    if (d.records) {
+      status.textContent = '✓ Saved';
+      status.style.color = '#16a34a';
+      document.querySelectorAll('#view-log .form-field input, #view-log .form-field select').forEach(i => i.value = '');
+      loadLog();
+    } else {
+      status.textContent = '✗ ' + JSON.stringify(d.error);
+      status.style.color = '#dc2626';
+    }
+  }).catch(e => { status.textContent = '✗ Error'; status.style.color = '#dc2626'; });
+  setTimeout(() => { if(status) status.textContent = ''; }, 4000);
 }
+
+let logAllRecords = [];
+let logDays = 30;
+
+async function loadLog() {
+  const hist = document.getElementById('log-history');
+  if (!hist) return;
+  hist.innerHTML = '<div style="text-align:center;color:var(--muted);padding:30px;font-size:12px">Loading…</div>';
+  try {
+    let records = [], offset = null;
+    const flds = ['fldSk3hNQJTDKOyfT','fldKTZ5ML0fnZV3oz','fldy1hM7kymJKN52E','fld5PGt9ZdFgBzMAM',
+                  'fld8cAib9mOsXEwpp','fld91KrnmMbcG3F6R','flddMcByGIUBzlz3y','fldNYLNazQBOxYQJL',
+                  'fldjFJ8FystoDkLVX','fldKMKVcqr1ggcB9g','fldbHBrMOFLmn6Adj','fldIt4TweBKT7LiAV'];
+    const fStr = flds.map(f => 'fields%5B%5D='+f).join('&');
+    do {
+      const url = `https://api.airtable.com/v0/${BASE}/${TABLES.dailyLog}?returnFieldsByFieldId=true&${fStr}&sort%5B0%5D%5Bfield%5D=fldSk3hNQJTDKOyfT&sort%5B0%5D%5Bdirection%5D=desc&pageSize=100${offset?'&offset='+offset:''}`;
+      const d = await fetch(url, { headers: { Authorization: `Bearer ${TOKEN}` } }).then(r=>r.json());
+      records = records.concat(d.records||[]); offset = d.offset;
+    } while(offset);
+    logAllRecords = records;
+    renderLogDash(records);
+    renderLogHistory(records, logDays);
+  } catch(e) {
+    hist.innerHTML = '<div style="color:#dc2626;padding:16px">Error loading log: '+e.message+'</div>';
+  }
+}
+
+function setLogRange(days, btn) {
+  logDays = days;
+  document.querySelectorAll('#view-log .filter-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderLogHistory(logAllRecords, days);
+}
+
+function renderLogDash(records) {
+  const cutoff = new Date(); cutoff.setDate(cutoff.getDate()-30);
+  const r30 = records.filter(r => new Date(r.fields['fldSk3hNQJTDKOyfT']) >= cutoff);
+  const avg = (key, dec=1) => {
+    const vals = r30.map(r=>r.fields[key]).filter(v=>v!=null&&!isNaN(v));
+    return vals.length ? (vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(dec) : '—';
+  };
+  const set = (id, val, sub) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.querySelector('.stat-val').textContent = val;
+    if (sub) el.querySelector('.stat-sub').textContent = sub;
+  };
+  set('dash-weight', avg('fldKTZ5ML0fnZV3oz'), 'lbs · 30d');
+  set('dash-sleep',  avg('fldy1hM7kymJKN52E'), 'hrs · 30d');
+  set('dash-deep',   avg('fld5PGt9ZdFgBzMAM',0), 'min · 30d');
+  set('dash-hrv',    avg('fld8cAib9mOsXEwpp',0), 'ms · 30d');
+  set('dash-rhr',    avg('fld91KrnmMbcG3F6R',0), 'bpm · 30d');
+  const stepVals = r30.map(r=>r.fields['flddMcByGIUBzlz3y']).filter(v=>v!=null&&!isNaN(v));
+  const avgSteps = stepVals.length ? Math.round(stepVals.reduce((a,b)=>a+b,0)/stepVals.length).toLocaleString() : '—';
+  set('dash-steps', avgSteps, '· 30d');
+}
+
+function renderLogHistory(records, days) {
+  const hist = document.getElementById('log-history');
+  let rows = records;
+  if (days > 0) {
+    const cutoff = new Date(); cutoff.setDate(cutoff.getDate()-days);
+    rows = records.filter(r => new Date(r.fields['fldSk3hNQJTDKOyfT']) >= cutoff);
+  }
+  if (!rows.length) { hist.innerHTML = '<div style="text-align:center;color:var(--muted);padding:30px;font-size:12px">No records in range</div>'; return; }
+  const f = (r, key, dec) => { const v = r.fields[key]; return v!=null ? (dec!=null?parseFloat(v).toFixed(dec):v) : ''; };
+  const mood = r => { const v = r.fields['fldNYLNazQBOxYQJL']; return v?.name || v || ''; };
+  let t = `<table style="width:100%;border-collapse:collapse;font-size:11px">
+    <thead><tr style="background:var(--surface2);color:var(--muted);font-size:10px;font-weight:700;text-transform:uppercase">
+      <th style="padding:6px 8px;text-align:left;white-space:nowrap">Date</th>
+      <th style="padding:6px 8px;text-align:right">Weight</th>
+      <th style="padding:6px 8px;text-align:right">Sleep</th>
+      <th style="padding:6px 8px;text-align:right">Deep</th>
+      <th style="padding:6px 8px;text-align:right">HRV</th>
+      <th style="padding:6px 8px;text-align:right">RHR</th>
+      <th style="padding:6px 8px;text-align:right">Steps</th>
+      <th style="padding:6px 8px;text-align:right">Energy</th>
+      <th style="padding:6px 8px;text-align:right">Cortisol</th>
+      <th style="padding:6px 8px;text-align:left">Mood</th>
+    </tr></thead><tbody>`;
+  rows.forEach((r,i) => {
+    const bg = i%2===0 ? '' : 'background:var(--surface2)';
+    const steps = r.fields['flddMcByGIUBzlz3y'];
+    t += `<tr style="${bg};cursor:pointer" onclick="editLogRow('${r.id}',this)">
+      <td style="padding:5px 8px;font-weight:700;white-space:nowrap">${r.fields['fldSk3hNQJTDKOyfT']||''}</td>
+      <td style="padding:5px 8px;text-align:right">${f(r,'fldKTZ5ML0fnZV3oz',1)}</td>
+      <td style="padding:5px 8px;text-align:right">${f(r,'fldy1hM7kymJKN52E',1)}</td>
+      <td style="padding:5px 8px;text-align:right">${f(r,'fld5PGt9ZdFgBzMAM',0)}</td>
+      <td style="padding:5px 8px;text-align:right">${f(r,'fld8cAib9mOsXEwpp',0)}</td>
+      <td style="padding:5px 8px;text-align:right">${f(r,'fld91KrnmMbcG3F6R',0)}</td>
+      <td style="padding:5px 8px;text-align:right">${steps!=null?parseInt(steps).toLocaleString():''}</td>
+      <td style="padding:5px 8px;text-align:right">${f(r,'fldKMKVcqr1ggcB9g',0)}</td>
+      <td style="padding:5px 8px;text-align:right">${f(r,'fldbHBrMOFLmn6Adj',0)}</td>
+      <td style="padding:5px 8px">${mood(r)}</td>
+    </tr>`;
+  });
+  t += '</tbody></table>';
+  hist.innerHTML = t;
+}
+
+function editLogRow(recId, tr) {
+  const rec = logAllRecords.find(r => r.id === recId);
+  if (!rec) return;
+  const f = rec.fields;
+  document.getElementById('log-entry-date').value = f['fldSk3hNQJTDKOyfT'] || '';
+  document.getElementById('log-weight').value  = f['fldKTZ5ML0fnZV3oz'] || '';
+  document.getElementById('log-sleep').value   = f['fldy1hM7kymJKN52E'] || '';
+  document.getElementById('log-deep').value    = f['fld5PGt9ZdFgBzMAM'] || '';
+  document.getElementById('log-hrv').value     = f['fld8cAib9mOsXEwpp'] || '';
+  document.getElementById('log-rhr').value     = f['fld91KrnmMbcG3F6R'] || '';
+  document.getElementById('log-steps').value   = f['flddMcByGIUBzlz3y'] || '';
+  document.getElementById('log-wakeups').value = f['fldjFJ8FystoDkLVX'] || '';
+  document.getElementById('log-energy').value  = f['fldKMKVcqr1ggcB9g'] || '';
+  document.getElementById('log-cortisol').value= f['fldbHBrMOFLmn6Adj'] || '';
+  const mv = f['fldNYLNazQBOxYQJL']; 
+  document.getElementById('log-mood').value = (mv?.name || mv || '');
+  document.getElementById('log-entry-date').scrollIntoView({behavior:'smooth',block:'center'});
+  // Highlight row
+  document.querySelectorAll('#log-history tr').forEach(r=>r.style.outline='');
+  tr.style.outline='2px solid #2563eb';
+}
+
+async function syncHealthToLog() {
+  const btn = document.getElementById('sync-health-btn');
+  const st = document.getElementById('sync-status');
+  btn.disabled = true; btn.textContent = '⟳ Syncing…';
+  st.textContent = '';
+
+  // Build shortcut URL — calls iOS Shortcut named "MB Health Sync"
+  // The shortcut reads Apple Health and posts to this page via URL scheme
+  // For now: open the shortcut URL so user can run it
+  const shortcutName = 'MB Health Sync';
+  const url = `shortcuts://run-shortcut?name=${encodeURIComponent(shortcutName)}`;
+
+  st.textContent = 'Opening Shortcut on device…';
+  window.location.href = url;
+
+  setTimeout(() => {
+    btn.disabled = false; btn.textContent = '⟳ Sync from Apple Health';
+    st.textContent = 'Run the shortcut on your iPhone, then reload.';
+    setTimeout(() => { st.textContent = ''; }, 5000);
+  }, 2000);
+}
+
 
 
 // ===== PURCHASES =====
@@ -4132,6 +4330,7 @@ function buildWeeklyPrintHTML(monday) {
     document.querySelectorAll('.nav-dropdown').forEach(d => d.classList.remove('open'));
   }
   function navDrop(viewId, triggerId) {
+    if (viewId === 'log') { setTimeout(loadLog, 50); }
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
     const view = document.getElementById('view-' + viewId);
