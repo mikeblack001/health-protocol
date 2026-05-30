@@ -2,60 +2,60 @@
 <style>body{font-family:monospace;font-size:12px;padding:20px;background:#f9f9f9}
 table{border-collapse:collapse;width:100%}th,td{border:1px solid #ccc;padding:4px 8px;text-align:left}
 th{background:#eee}.has-data{background:#d1fae5}.no-data{background:#fee2e2}
-pre{background:#fff;border:1px solid #ccc;padding:8px;overflow:auto;max-height:100px}
+pre{background:#fff;border:1px solid #ccc;padding:8px;overflow:auto;max-height:120px;font-size:11px}
 </style></head><body>
-<h2>DailyLog Field Audit</h2>
+<h2>DailyLog Field Audit — confirmed fields only</h2>
 <div id="status">Loading...</div>
 <pre id="debug"></pre>
-<table><thead><tr><th>Field Name</th><th>Field ID</th><th>Records with data</th><th>Sample value</th><th>Verdict</th></tr></thead>
+<table><thead><tr><th>Field Name</th><th>Field ID</th><th>Records with data</th><th>Most recent value</th></tr></thead>
 <tbody id="body"></tbody></table>
 <script>
 const TOKEN = 'pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
 const BASE  = 'appmHDG4TGT1xy6R6';
 const TABLE = 'tblaYuZjl4Pu4nKxS';
 
-// fldw0xpL9uyMj5Q2a removed — belongs to a different table
+// Only fields confirmed to exist in tblaYuZjl4Pu4nKxS (from app code + screenshot 3 + new creates)
 const FIELDS = [
-  { name: 'Sleep Hours (dupe?)',    id: 'fldTFNzs600zBg7AW' },
-  { name: 'Total Sleep (hrs)',      id: 'fldy1hM7kymJKN52E' },
-  { name: 'HRV (ms)',               id: 'fldIt4TweBKT7LiAV' },
-  { name: 'Body Fat %',             id: 'fld8cAib9mOsXEwpp' },
-  { name: 'BF% - Withings',         id: 'fldeSz2uJmGBy1Yjh' },
-  { name: 'BF% - RENPHO',           id: 'fld1PsarYirRK4K59' },
-  { name: 'Steps',                  id: 'flddMcByGIUBzlz3y' },
-  { name: 'Water (oz)',             id: 'fldDvpkWlQK2Kw5wB' },
-  { name: 'Active Calories',        id: 'fld012Y04LIB08dkB' },
-  { name: 'Weight (lbs)',           id: 'fldKTZ5ML0fnZV3oz' },
-  { name: 'Weight - Withings',      id: 'fldRFVwEkmRL0JXXL' },
-  { name: 'Weight - RENPHO',        id: 'fldt9TvK2gL1YWGn8' },
-  { name: 'Resting HR',             id: 'fldXDw3aTnOLHk6lh' },
-  { name: 'Lean Mass (lbs)',        id: 'fld91KrnmMbcG3F6R' },
-  { name: 'Muscle Mass - Withings', id: 'fldzfmDvM4371WNgK' },
-  { name: 'Bone Mass - Withings',   id: 'fldszPor9WOCnjR8R' },
-  { name: 'Hydration - Withings',   id: 'fld1xEfKEMX9aGquL' },
-  { name: 'Fat Mass - Withings',    id: 'fldjтAUj0lNslzmcT' },
+  { name: 'Date',               id: 'fldSk3hNQJTDKOyfT' },
+  { name: 'Weight (lbs)',       id: 'fldKTZ5ML0fnZV3oz' },
+  { name: 'Total Sleep (hrs)',  id: 'fldy1hM7kymJKN52E' },
+  { name: 'Deep Sleep (min)',   id: 'fld5PGt9ZdFgBzMAM' },
+  { name: 'HRV (ms)',           id: 'fldIt4TweBKT7LiAV' },
+  { name: 'Resting HR',         id: 'fldXDw3aTnOLHk6lh' },
+  { name: 'Steps',              id: 'flddMcByGIUBzlz3y' },
+  { name: 'Body Fat %',         id: 'fld8cAib9mOsXEwpp' },
+  { name: 'Lean Mass (lbs)',    id: 'fld91KrnmMbcG3F6R' },
+  { name: 'Energy (1-10)',      id: 'fldKMKVcqr1ggcB9g' },
+  { name: 'Cortisol Feel',      id: 'fldbHBrMOFLmn6Adj' },
+  { name: 'Wakeups',            id: 'fldjFJ8FystoDkLVX' },
+  { name: 'Notes',              id: 'fldAj7KhZciME5aOt' },
+  { name: 'Water (oz) [NEW]',   id: 'fldDvpkWlQK2Kw5wB' },
+  { name: 'Active Cal [NEW]',   id: 'fld012Y04LIB08dkB' },
+  { name: 'Sleep Hours (dupe?)',id: 'fldTFNzs600zBg7AW' },
 ];
 
 async function run() {
   const fStr = FIELDS.map(f => `fields[]=${f.id}`).join('&');
-  let records = [], offset = null;
+  let records = [], offset = null, err = null;
   do {
     const url = `https://api.airtable.com/v0/${BASE}/${TABLE}?returnFieldsByFieldId=true&${fStr}&pageSize=100&sort[0][field]=fldSk3hNQJTDKOyfT&sort[0][direction]=desc${offset?'&offset='+offset:''}`;
     const d = await fetch(url, { headers: { Authorization: `Bearer ${TOKEN}` } }).then(r=>r.json());
-    if (d.error) { document.getElementById('debug').textContent = 'Error: '+JSON.stringify(d.error); break; }
+    if (d.error) { err = d.error; break; }
     records = records.concat(d.records||[]);
     offset = d.offset;
   } while(offset);
 
+  if (err) { document.getElementById('debug').textContent = JSON.stringify(err); }
   document.getElementById('status').textContent = `${records.length} records loaded`;
+
   const tbody = document.getElementById('body');
   for (const f of FIELDS) {
     const vals = records.map(r => r.fields[f.id]).filter(v => v != null && v !== '');
     const count = vals.length;
-    const sample = count > 0 ? String(vals[0]).substring(0,30) : '—';
+    const sample = count > 0 ? String(vals[0]).substring(0,40) : '—';
     const row = document.createElement('tr');
     row.className = count > 0 ? 'has-data' : 'no-data';
-    row.innerHTML = `<td>${f.name}</td><td style="color:#2563eb">${f.id}</td><td>${count}</td><td>${sample}</td><td>${count>0?'✓ HAS DATA':'✗ empty'}</td>`;
+    row.innerHTML = `<td>${f.name}</td><td style="color:#2563eb">${f.id}</td><td><b>${count}</b></td><td>${sample}</td>`;
     tbody.appendChild(row);
   }
 }
