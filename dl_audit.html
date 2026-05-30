@@ -2,24 +2,22 @@
 <style>body{font-family:monospace;font-size:12px;padding:20px;background:#f9f9f9}
 table{border-collapse:collapse;width:100%}th,td{border:1px solid #ccc;padding:4px 8px;text-align:left}
 th{background:#eee}.has-data{background:#d1fae5}.no-data{background:#fee2e2}
-pre{background:#fff;border:1px solid #ccc;padding:8px;overflow:auto;max-height:200px}
+pre{background:#fff;border:1px solid #ccc;padding:8px;overflow:auto;max-height:100px}
 </style></head><body>
 <h2>DailyLog Field Audit</h2>
 <div id="status">Loading...</div>
 <pre id="debug"></pre>
-<table id="tbl"><thead><tr>
-<th>Field Name</th><th>Field ID</th><th>Records with data</th><th>Sample value</th><th>Verdict</th>
-</tr></thead><tbody id="body"></tbody></table>
-
+<table><thead><tr><th>Field Name</th><th>Field ID</th><th>Records with data</th><th>Sample value</th><th>Verdict</th></tr></thead>
+<tbody id="body"></tbody></table>
 <script>
 const TOKEN = 'pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
 const BASE  = 'appmHDG4TGT1xy6R6';
 const TABLE = 'tblaYuZjl4Pu4nKxS';
 
+// fldw0xpL9uyMj5Q2a removed — belongs to a different table
 const FIELDS = [
-  { name: 'Sleep Hours (old?)',     id: 'fldTFNzs600zBg7AW' },
+  { name: 'Sleep Hours (dupe?)',    id: 'fldTFNzs600zBg7AW' },
   { name: 'Total Sleep (hrs)',      id: 'fldy1hM7kymJKN52E' },
-  { name: 'HRV (old?)',             id: 'fldw0xpL9uyMj5Q2a' },
   { name: 'HRV (ms)',               id: 'fldIt4TweBKT7LiAV' },
   { name: 'Body Fat %',             id: 'fld8cAib9mOsXEwpp' },
   { name: 'BF% - Withings',         id: 'fldeSz2uJmGBy1Yjh' },
@@ -35,46 +33,31 @@ const FIELDS = [
   { name: 'Muscle Mass - Withings', id: 'fldzfmDvM4371WNgK' },
   { name: 'Bone Mass - Withings',   id: 'fldszPor9WOCnjR8R' },
   { name: 'Hydration - Withings',   id: 'fld1xEfKEMX9aGquL' },
+  { name: 'Fat Mass - Withings',    id: 'fldjтAUj0lNslzmcT' },
 ];
 
 async function run() {
-  // Step 1: simple fetch with no field filter to confirm records exist
-  const testUrl = `https://api.airtable.com/v0/${BASE}/${TABLE}?pageSize=3&sort[0][field]=fldSk3hNQJTDKOyfT&sort[0][direction]=desc`;
-  const debug = document.getElementById('debug');
-  
-  const testResp = await fetch(testUrl, { headers: { Authorization: `Bearer ${TOKEN}` } });
-  const testData = await testResp.json();
-  debug.textContent = 'Test fetch status: ' + testResp.status + '\nRecords returned: ' + (testData.records||[]).length + '\nError: ' + JSON.stringify(testData.error||null);
-  
-  if (!testData.records || testData.records.length === 0) {
-    document.getElementById('status').textContent = 'No records found — check token/table ID';
-    return;
-  }
-
-  // Step 2: fetch ALL records with field IDs
   const fStr = FIELDS.map(f => `fields[]=${f.id}`).join('&');
   let records = [], offset = null;
   do {
     const url = `https://api.airtable.com/v0/${BASE}/${TABLE}?returnFieldsByFieldId=true&${fStr}&pageSize=100&sort[0][field]=fldSk3hNQJTDKOyfT&sort[0][direction]=desc${offset?'&offset='+offset:''}`;
     const d = await fetch(url, { headers: { Authorization: `Bearer ${TOKEN}` } }).then(r=>r.json());
-    if (d.error) { debug.textContent += '\nField fetch error: ' + JSON.stringify(d.error); break; }
+    if (d.error) { document.getElementById('debug').textContent = 'Error: '+JSON.stringify(d.error); break; }
     records = records.concat(d.records||[]);
     offset = d.offset;
   } while(offset);
 
   document.getElementById('status').textContent = `${records.length} records loaded`;
   const tbody = document.getElementById('body');
-  tbody.innerHTML = '';
-
   for (const f of FIELDS) {
     const vals = records.map(r => r.fields[f.id]).filter(v => v != null && v !== '');
     const count = vals.length;
-    const sample = count > 0 ? String(vals[vals.length-1]).substring(0,30) : '—';
+    const sample = count > 0 ? String(vals[0]).substring(0,30) : '—';
     const row = document.createElement('tr');
     row.className = count > 0 ? 'has-data' : 'no-data';
-    row.innerHTML = `<td>${f.name}</td><td style="color:#2563eb">${f.id}</td><td>${count}</td><td>${sample}</td><td>${count > 0 ? '✓ HAS DATA' : '✗ empty'}</td>`;
+    row.innerHTML = `<td>${f.name}</td><td style="color:#2563eb">${f.id}</td><td>${count}</td><td>${sample}</td><td>${count>0?'✓ HAS DATA':'✗ empty'}</td>`;
     tbody.appendChild(row);
   }
 }
-run().catch(e => { document.getElementById('status').textContent = 'Error: '+e.message; });
+run().catch(e => document.getElementById('status').textContent = 'Error: '+e.message);
 </script></body></html>
