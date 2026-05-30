@@ -1,0 +1,37 @@
+<!DOCTYPE html><html><head><title>AT Schema Dump</title>
+<style>body{font-family:monospace;font-size:11px;padding:16px;background:#f9f9f9}
+h2{font-size:14px}.tbl{margin-bottom:24px;border:1px solid #ccc;border-radius:6px;overflow:hidden}
+.tbl-header{background:#1e3a5f;color:#fff;padding:6px 10px;font-weight:700;font-size:12px}
+table{border-collapse:collapse;width:100%}th{background:#eee;padding:4px 8px;text-align:left;font-size:10px}
+td{padding:3px 8px;border-bottom:1px solid #eee;font-size:11px}
+tr:hover{background:#f0f7ff}.fid{color:#2563eb;font-family:monospace}
+</style></head><body>
+<h2>Airtable Base Schema — All Tables & Fields</h2>
+<div id="status">Loading...</div>
+<div id="out"></div>
+<script>
+const TOKEN = 'pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
+const BASE  = 'appmHDG4TGT1xy6R6';
+
+async function run() {
+  const resp = await fetch(`https://api.airtable.com/v0/meta/bases/${BASE}/tables`, {
+    headers: { Authorization: `Bearer ${TOKEN}` }
+  });
+  const data = await resp.json();
+  if (!data.tables) { document.getElementById('status').textContent = 'Error: ' + JSON.stringify(data); return; }
+  
+  document.getElementById('status').textContent = `${data.tables.length} tables found`;
+  let html = '';
+  for (const t of data.tables) {
+    html += `<div class="tbl">
+      <div class="tbl-header">${t.name} &nbsp;|&nbsp; <span style="font-weight:400;opacity:0.8">${t.id}</span></div>
+      <table><thead><tr><th>Field ID</th><th>Name</th><th>Type</th></tr></thead><tbody>`;
+    for (const f of t.fields) {
+      html += `<tr><td class="fid">${f.id}</td><td>${f.name}</td><td>${f.type}</td></tr>`;
+    }
+    html += '</tbody></table></div>';
+  }
+  document.getElementById('out').innerHTML = html;
+}
+run().catch(e => document.getElementById('status').textContent = 'Error: ' + e.message);
+</script></body></html>
