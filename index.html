@@ -905,10 +905,13 @@
 
     <!-- ADD / EDIT FORM -->
     <div class="log-form" style="margin:14px 16px;border:1px solid var(--border);border-radius:10px;padding:14px;background:var(--surface)">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
         <h3 style="font-size:13px;font-weight:700">Log Entry — <span id="log-date"></span></h3>
-        <div style="display:flex;gap:6px">
-          <input type="date" id="log-entry-date" style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--surface)">
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+          <button onclick="navLogDate(-1)" style="padding:5px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--surface);color:var(--text);cursor:pointer" title="Previous day">‹</button>
+          <input type="date" id="log-entry-date" onchange="prefillLogDate(this.value)" style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--surface)">
+          <button onclick="navLogDate(1)" style="padding:5px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--surface);color:var(--text);cursor:pointer" title="Next day">›</button>
+          <button onclick="goLogToday()" style="padding:5px 10px;border:1px solid var(--border);border-radius:6px;font-size:11px;font-weight:700;background:var(--surface);color:var(--accent);cursor:pointer">Today</button>
           <button class="save-btn" onclick="saveLog()" style="padding:6px 14px;font-size:12px">Save</button>
           <span class="save-status" id="log-save-status"></span>
         </div>
@@ -2923,8 +2926,8 @@ async function saveLog() {
   if (weight)   fields['fldKTZ5ML0fnZV3oz'] = parseFloat(weight);
   if (sleep)    fields['fldy1hM7kymJKN52E']  = parseFloat(sleep);
   if (deep)     fields['fld5PGt9ZdFgBzMAM']  = parseInt(deep);
-  if (hrv)      fields['fld8cAib9mOsXEwpp']  = parseFloat(hrv);
-  if (rhr)      fields['fld91KrnmMbcG3F6R']  = parseFloat(rhr);
+  if (hrv)      fields['fldIt4TweBKT7LiAV']  = parseFloat(hrv);
+  if (rhr)      fields['fldXDw3aTnOLHk6lh']  = parseFloat(rhr);
   if (steps)    fields['flddMcByGIUBzlz3y']  = parseInt(steps);
   if (wakeups)  fields['fldjFJ8FystoDkLVX']  = parseInt(wakeups);
   if (energy)   fields['fldKMKVcqr1ggcB9g']  = parseInt(energy);
@@ -2935,9 +2938,9 @@ async function saveLog() {
   status.style.color = 'var(--muted)';
 
   fetch(`https://api.airtable.com/v0/${BASE}/${TABLES.dailyLog}`, {
-    method: 'POST',
+    method: 'PUT',
     headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ records: [{ fields }], typecast: true })
+    body: JSON.stringify({ records: [{ fields }], performUpsert: { fieldsToMergeOn: ['fldSk3hNQJTDKOyfT'] }, typecast: true })
   }).then(r => r.json()).then(d => {
     if (d.records) {
       status.textContent = '✓ Saved';
@@ -2973,6 +2976,10 @@ async function loadLog() {
     logAllRecords = records;
     renderLogDash(records);
     renderLogHistory(records, logDays);
+    // Pre-fill form with today's date and existing data
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('log-entry-date').value = today;
+    prefillLogDate(today);
   } catch(e) {
     hist.innerHTML = '<div style="color:#dc2626;padding:16px">Error loading log: '+e.message+'</div>';
   }
@@ -3001,8 +3008,8 @@ function renderLogDash(records) {
   set('dash-weight', avg('fldKTZ5ML0fnZV3oz'), 'lbs · 30d');
   set('dash-sleep',  avg('fldy1hM7kymJKN52E'), 'hrs · 30d');
   set('dash-deep',   avg('fld5PGt9ZdFgBzMAM',0), 'min · 30d');
-  set('dash-hrv',    avg('fld8cAib9mOsXEwpp',0), 'ms · 30d');
-  set('dash-rhr',    avg('fld91KrnmMbcG3F6R',0), 'bpm · 30d');
+  set('dash-hrv',    avg('fldIt4TweBKT7LiAV',0), 'ms · 30d');
+  set('dash-rhr',    avg('fldXDw3aTnOLHk6lh',0), 'bpm · 30d');
   const stepVals = r30.map(r=>r.fields['flddMcByGIUBzlz3y']).filter(v=>v!=null&&!isNaN(v));
   const avgSteps = stepVals.length ? Math.round(stepVals.reduce((a,b)=>a+b,0)/stepVals.length).toLocaleString() : '—';
   set('dash-steps', avgSteps, '· 30d');
@@ -3059,8 +3066,8 @@ function editLogRow(recId, tr) {
   document.getElementById('log-weight').value  = f['fldKTZ5ML0fnZV3oz'] || '';
   document.getElementById('log-sleep').value   = f['fldy1hM7kymJKN52E'] || '';
   document.getElementById('log-deep').value    = f['fld5PGt9ZdFgBzMAM'] || '';
-  document.getElementById('log-hrv').value     = f['fld8cAib9mOsXEwpp'] || '';
-  document.getElementById('log-rhr').value     = f['fld91KrnmMbcG3F6R'] || '';
+  document.getElementById('log-hrv').value     = f['fldIt4TweBKT7LiAV'] || '';
+  document.getElementById('log-rhr').value     = f['fldXDw3aTnOLHk6lh'] || '';
   document.getElementById('log-steps').value   = f['flddMcByGIUBzlz3y'] || '';
   document.getElementById('log-wakeups').value = f['fldjFJ8FystoDkLVX'] || '';
   document.getElementById('log-energy').value  = f['fldKMKVcqr1ggcB9g'] || '';
@@ -6538,6 +6545,50 @@ function renderBCHistory(records, days) {
   });
   t += '</tbody></table>';
   hist.innerHTML = t;
+}
+
+function navLogDate(delta) {
+  const input = document.getElementById('log-entry-date');
+  const cur = input.value || new Date().toISOString().split('T')[0];
+  const d = new Date(cur + 'T12:00:00');
+  d.setDate(d.getDate() + delta);
+  const newDate = d.toISOString().split('T')[0];
+  input.value = newDate;
+  prefillLogDate(newDate);
+}
+
+function goLogToday() {
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('log-entry-date').value = today;
+  prefillLogDate(today);
+}
+
+function prefillLogDate(dateStr) {
+  if (!dateStr || !logAllRecords.length) return;
+  const rec = logAllRecords.find(r => r.fields['fldSk3hNQJTDKOyfT'] === dateStr);
+  // Clear all fields first
+  ['log-weight','log-sleep','log-deep','log-hrv','log-rhr',
+   'log-steps','log-wakeups','log-energy','log-cortisol'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('log-mood').value = '';
+  if (!rec) return;
+  const f = rec.fields;
+  if (f['fldKTZ5ML0fnZV3oz']) document.getElementById('log-weight').value   = f['fldKTZ5ML0fnZV3oz'];
+  if (f['fldy1hM7kymJKN52E']) document.getElementById('log-sleep').value    = f['fldy1hM7kymJKN52E'];
+  if (f['fld5PGt9ZdFgBzMAM']) document.getElementById('log-deep').value     = f['fld5PGt9ZdFgBzMAM'];
+  if (f['fldIt4TweBKT7LiAV']) document.getElementById('log-hrv').value      = f['fldIt4TweBKT7LiAV'];
+  if (f['fldXDw3aTnOLHk6lh']) document.getElementById('log-rhr').value      = f['fldXDw3aTnOLHk6lh'];
+  if (f['flddMcByGIUBzlz3y']) document.getElementById('log-steps').value    = f['flddMcByGIUBzlz3y'];
+  if (f['fldjFJ8FystoDkLVX']) document.getElementById('log-wakeups').value  = f['fldjFJ8FystoDkLVX'];
+  if (f['fldKMKVcqr1ggcB9g']) document.getElementById('log-energy').value   = f['fldKMKVcqr1ggcB9g'];
+  if (f['fldbHBrMOFLmn6Adj']) document.getElementById('log-cortisol').value = f['fldbHBrMOFLmn6Adj'];
+  const mv = f['fldNYLNazQBOxYQJL'];
+  if (mv) document.getElementById('log-mood').value = mv?.name || mv || '';
+  // Highlight corresponding row in history
+  document.querySelectorAll('#log-history tr').forEach(r => r.style.outline = '');
+  const rows = document.querySelectorAll('#log-history tr[onclick]');
+  rows.forEach(row => { if (row.getAttribute('onclick')?.includes(rec.id)) row.style.outline = '2px solid #2563eb'; });
 }
 
 </script>
