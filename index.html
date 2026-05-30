@@ -2787,6 +2787,7 @@ function showView(name, e) {
   if (name === 'changes') loadChanges();
   if (name === 'injaudit') loadInjAudit();
   if (name === 'injlog') loadInjLog();
+  if (name === 'bodycomp') loadBodyComp();
   if (name === 'workouts') {
     document.getElementById('workout-date').value = new Date().toISOString().split('T')[0];
   }
@@ -6429,6 +6430,116 @@ function drawLine(canvasId, labels, data1, label1, color1, data2, label2, color2
   labels.forEach((l,i) => { if(i%step===0) ctx.fillText(l.slice(5), xScale(i), H-5); });
 }
 
+// ── BODY & VITALS ──────────────────────────────────────────────
+let bcAllRecords = [], bcDays = 30;
+
+async function loadBodyComp() {
+  const hist = document.getElementById('bc-history');
+  if (!hist) return;
+  hist.innerHTML = '<div style="text-align:center;color:var(--muted);padding:30px;font-size:12px">Loading…</div>';
+  try {
+    const flds = [
+      'fldSk3hNQJTDKOyfT',  // Date
+      'fldRFVwEkmRLOJXXL',  // Weight - Withings
+      'fldt9TvK2gL1YWGn8',  // Weight - RENPHO
+      'fldeSz2uJmGBy1Yjh',  // BF% - Withings
+      'fld1PsarYirRK4K59',  // BF% - RENPHO
+      'fldzfmDvM4371WNgK',  // Muscle Mass
+      'fldjtAUj0lNslzmcT',  // Fat Mass
+      'fldszPor9WOCnjR8R',  // Bone Mass
+      'fld1xEfKEMX9aGquL',  // Hydration
+      'fldIt4TweBKT7LiAV',  // HRV
+      'fldXDw3aTnOLHk6lh',  // RHR
+      'fld91KrnmMbcG3F6R',  // Lean Mass
+    ];
+    const fStr = flds.map(f => 'fields%5B%5D='+f).join('&');
+    let records = [], offset = null;
+    do {
+      const url = `https://api.airtable.com/v0/${BASE}/${TABLES.dailyLog}?returnFieldsByFieldId=true&${fStr}&sort%5B0%5D%5Bfield%5D=fldSk3hNQJTDKOyfT&sort%5B0%5D%5Bdirection%5D=desc&pageSize=100${offset?'&offset='+offset:''}`;
+      const d = await fetch(url, { headers: { Authorization: `Bearer ${TOKEN}` } }).then(r=>r.json());
+      records = records.concat(d.records||[]); offset = d.offset;
+    } while(offset);
+    bcAllRecords = records;
+    renderBCDash(records, bcDays);
+    renderBCHistory(records, bcDays);
+  } catch(e) {
+    hist.innerHTML = '<div style="color:#dc2626;padding:16px">Error: '+e.message+'</div>';
+  }
+}
+
+function setBCRange(days, btn) {
+  bcDays = days;
+  document.querySelectorAll('#view-bodycomp .filter-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderBCDash(bcAllRecords, days);
+  renderBCHistory(bcAllRecords, days);
+}
+
+function renderBCDash(records, days) {
+  const cutoff = new Date();
+  if (days > 0) cutoff.setDate(cutoff.getDate() - days);
+  const rows = days > 0 ? records.filter(r => new Date(r.fields['fldSk3hNQJTDKOyfT']) >= cutoff) : records;
+  const avg = (key, dec=1) => {
+    const vals = rows.map(r=>r.fields[key]).filter(v=>v!=null&&!isNaN(v));
+    return vals.length ? parseFloat((vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(dec)) : null;
+  };
+  const set = (id, val, suffix='') => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.querySelector('.stat-val').textContent = val != null ? val + suffix : '—';
+    el.querySelector('.stat-sub').textContent = (days>0?days+'d':'All') + ' · avg';
+  };
+  set('bc-wt-w',   avg('fldRFVwEkmRLOJXXL'), ' lbs');
+  set('bc-wt-r',   avg('fldt9TvK2gL1YWGn8'), ' lbs');
+  set('bc-bf-w',   avg('fldeSz2uJmGBy1Yjh'), '%');
+  set('bc-bf-r',   avg('fld1PsarYirRK4K59'), '%');
+  set('bc-muscle', avg('fldzfmDvM4371WNgK'), ' lbs');
+  set('bc-fat',    avg('fldjtAUj0lNslzmcT'), ' lbs');
+  set('bc-hrv',    avg('fldIt4TweBKT7LiAV',0));
+  set('bc-rhr',    avg('fldXDw3aTnOLHk6lh',0));
+}
+
+function renderBCHistory(records, days) {
+  const hist = document.getElementById('bc-history');
+  const cutoff = new Date();
+  if (days > 0) cutoff.setDate(cutoff.getDate() - days);
+  const rows = days > 0 ? records.filter(r => new Date(r.fields['fldSk3hNQJTDKOyfT']) >= cutoff) : records;
+  if (!rows.length) { hist.innerHTML = '<div style="text-align:center;color:var(--muted);padding:20px;font-size:12px">No data in range</div>'; return; }
+  const f = (r, key, dec) => { const v = r.fields[key]; return v!=null ? (dec!=null?parseFloat(v).toFixed(dec):v) : ''; };
+  let t = `<table style="width:100%;border-collapse:collapse;font-size:11px">
+    <thead><tr style="background:var(--surface2);color:var(--muted);font-size:10px;font-weight:700;text-transform:uppercase">
+      <th style="padding:6px 8px;text-align:left;white-space:nowrap">Date</th>
+      <th style="padding:6px 8px;text-align:right;color:#60a5fa">Wt-W</th>
+      <th style="padding:6px 8px;text-align:right;color:#34d399">Wt-R</th>
+      <th style="padding:6px 8px;text-align:right;color:#60a5fa">BF%-W</th>
+      <th style="padding:6px 8px;text-align:right;color:#34d399">BF%-R</th>
+      <th style="padding:6px 8px;text-align:right">Muscle</th>
+      <th style="padding:6px 8px;text-align:right">Fat</th>
+      <th style="padding:6px 8px;text-align:right">Bone</th>
+      <th style="padding:6px 8px;text-align:right">Hydra</th>
+      <th style="padding:6px 8px;text-align:right">HRV</th>
+      <th style="padding:6px 8px;text-align:right">RHR</th>
+    </tr></thead><tbody>`;
+  rows.forEach((r,i) => {
+    const bg = i%2===0 ? '' : 'background:var(--surface2)';
+    t += `<tr style="${bg}">
+      <td style="padding:5px 8px;font-weight:700;white-space:nowrap">${r.fields['fldSk3hNQJTDKOyfT']||''}</td>
+      <td style="padding:5px 8px;text-align:right;color:#60a5fa">${f(r,'fldRFVwEkmRLOJXXL',1)}</td>
+      <td style="padding:5px 8px;text-align:right;color:#34d399">${f(r,'fldt9TvK2gL1YWGn8',1)}</td>
+      <td style="padding:5px 8px;text-align:right;color:#60a5fa">${f(r,'fldeSz2uJmGBy1Yjh',1)}</td>
+      <td style="padding:5px 8px;text-align:right;color:#34d399">${f(r,'fld1PsarYirRK4K59',1)}</td>
+      <td style="padding:5px 8px;text-align:right">${f(r,'fldzfmDvM4371WNgK',1)}</td>
+      <td style="padding:5px 8px;text-align:right">${f(r,'fldjtAUj0lNslzmcT',1)}</td>
+      <td style="padding:5px 8px;text-align:right">${f(r,'fldszPor9WOCnjR8R',1)}</td>
+      <td style="padding:5px 8px;text-align:right">${f(r,'fld1xEfKEMX9aGquL',1)}</td>
+      <td style="padding:5px 8px;text-align:right">${f(r,'fldIt4TweBKT7LiAV',0)}</td>
+      <td style="padding:5px 8px;text-align:right">${f(r,'fldXDw3aTnOLHk6lh',0)}</td>
+    </tr>`;
+  });
+  t += '</tbody></table>';
+  hist.innerHTML = t;
+}
+
 </script>
 
 <!-- ADD PURCHASE MODAL -->
@@ -6603,13 +6714,29 @@ function drawLine(canvasId, labels, data1, label1, color1, data2, label2, color2
 </div>
 
   <!-- Body & Vitals -->
-  <div class="view" id="view-bodycomp">
-    <div class="section-header">
-      <h2>Body &amp; Vitals</h2>
-      <p class="section-sub">Weight, body composition, HRV and recovery trends from DailyLog</p>
+  <div class="view" id="view-bodycomp" class="view">
+    <div class="section-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+      <div><h2>Body &amp; Vitals</h2><p class="section-sub">Withings + RENPHO data · 2018–present</p></div>
+      <div style="display:flex;gap:6px">
+        <button class="filter-btn active" onclick="setBCRange(30,this)">30d</button>
+        <button class="filter-btn" onclick="setBCRange(90,this)">90d</button>
+        <button class="filter-btn" onclick="setBCRange(365,this)">1yr</button>
+        <button class="filter-btn" onclick="setBCRange(0,this)">All</button>
+      </div>
     </div>
-    <div id="bodycomp-content" style="padding:16px">
-      <div style="text-align:center;color:var(--muted);padding:40px">No body composition data logged yet. Add weight and body fat entries to DailyLog to see trends here.</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;padding:14px 16px 0">
+      <div class="stat-card" id="bc-wt-w"><div class="stat-label">Weight (Withings)</div><div class="stat-val" style="color:#60a5fa">—</div><div class="stat-sub">lbs · avg</div></div>
+      <div class="stat-card" id="bc-wt-r"><div class="stat-label">Weight (RENPHO)</div><div class="stat-val" style="color:#34d399">—</div><div class="stat-sub">lbs · avg</div></div>
+      <div class="stat-card" id="bc-bf-w"><div class="stat-label">BF% (Withings)</div><div class="stat-val" style="color:#60a5fa">—</div><div class="stat-sub">% · avg</div></div>
+      <div class="stat-card" id="bc-bf-r"><div class="stat-label">BF% (RENPHO)</div><div class="stat-val" style="color:#34d399">—</div><div class="stat-sub">% · avg</div></div>
+      <div class="stat-card" id="bc-muscle"><div class="stat-label">Muscle Mass</div><div class="stat-val">—</div><div class="stat-sub">lbs · avg</div></div>
+      <div class="stat-card" id="bc-fat"><div class="stat-label">Fat Mass</div><div class="stat-val">—</div><div class="stat-sub">lbs · avg</div></div>
+      <div class="stat-card" id="bc-hrv"><div class="stat-label">HRV</div><div class="stat-val">—</div><div class="stat-sub">ms · avg</div></div>
+      <div class="stat-card" id="bc-rhr"><div class="stat-label">Resting HR</div><div class="stat-val">—</div><div class="stat-sub">bpm · avg</div></div>
+    </div>
+    <div style="padding:14px 16px 16px">
+      <b style="font-size:12px;font-weight:800;color:var(--text)">History</b>
+      <div id="bc-history" style="overflow-x:auto;margin-top:10px"></div>
     </div>
   </div>
 
