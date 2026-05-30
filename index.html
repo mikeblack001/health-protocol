@@ -900,6 +900,7 @@
       <div class="stat-card" id="dash-deep"><div class="stat-label">Avg Deep</div><div class="stat-val">—</div><div class="stat-sub">min · 30d</div></div>
       <div class="stat-card" id="dash-hrv"><div class="stat-label">Avg HRV</div><div class="stat-val">—</div><div class="stat-sub">ms · 30d</div></div>
       <div class="stat-card" id="dash-rhr"><div class="stat-label">Avg Resting HR</div><div class="stat-val">—</div><div class="stat-sub">bpm · 30d</div></div>
+      <div class="stat-card" id="dash-water"><div class="stat-label">Avg Water</div><div class="stat-val">—</div><div class="stat-sub">oz · 30d</div></div>
       <div class="stat-card" id="dash-steps"><div class="stat-label">Avg Steps</div><div class="stat-val">—</div><div class="stat-sub">· 30d</div></div>
     </div>
 
@@ -923,6 +924,8 @@
         <div class="form-field"><label>HRV (ms)</label><input type="number" id="log-hrv" placeholder="0"></div>
         <div class="form-field"><label>Resting HR</label><input type="number" id="log-rhr" placeholder="0"></div>
         <div class="form-field"><label>Steps</label><input type="number" id="log-steps" placeholder="0"></div>
+        <div class="form-field"><label>Water (oz)</label><input type="number" id="log-water" placeholder="0" step="0.1"></div>
+        <div class="form-field"><label>Active Cal</label><input type="number" id="log-active-cal" placeholder="0"></div>
         <div class="form-field"><label>Wakeups</label><input type="number" id="log-wakeups" placeholder="0"></div>
         <div class="form-field"><label>Energy (1–10)</label><input type="number" id="log-energy" placeholder="0" min="1" max="10"></div>
         <div class="form-field"><label>Cortisol Feel (1–10)</label><input type="number" id="log-cortisol" placeholder="0" min="1" max="10"></div>
@@ -2918,6 +2921,8 @@ async function saveLog() {
   const hrv     = document.getElementById('log-hrv').value;
   const rhr     = document.getElementById('log-rhr').value;
   const steps   = document.getElementById('log-steps').value;
+  const water    = document.getElementById('log-water').value;
+  const activecal= document.getElementById('log-active-cal').value;
   const wakeups = document.getElementById('log-wakeups').value;
   const energy  = document.getElementById('log-energy').value;
   const cortisol= document.getElementById('log-cortisol').value;
@@ -2929,6 +2934,8 @@ async function saveLog() {
   if (hrv)      fields['fldIt4TweBKT7LiAV']  = parseFloat(hrv);
   if (rhr)      fields['fldXDw3aTnOLHk6lh']  = parseFloat(rhr);
   if (steps)    fields['flddMcByGIUBzlz3y']  = parseInt(steps);
+  if (water)     fields['fldDvpkWlQK2Kw5wB']  = parseFloat(water);
+  if (activecal) fields['fld012Y04LIB08dkB']  = parseInt(activecal);
   if (wakeups)  fields['fldjFJ8FystoDkLVX']  = parseInt(wakeups);
   if (energy)   fields['fldKMKVcqr1ggcB9g']  = parseInt(energy);
   if (cortisol) fields['fldbHBrMOFLmn6Adj']  = parseInt(cortisol);
@@ -2965,7 +2972,7 @@ async function loadLog() {
   try {
     let records = [], offset = null;
     const flds = ['fldSk3hNQJTDKOyfT','fldKTZ5ML0fnZV3oz','fldy1hM7kymJKN52E','fld5PGt9ZdFgBzMAM',
-                  'fld8cAib9mOsXEwpp','fld91KrnmMbcG3F6R','flddMcByGIUBzlz3y','fldNYLNazQBOxYQJL',
+                  'fldIt4TweBKT7LiAV','fldXDw3aTnOLHk6lh','flddMcByGIUBzlz3y','fldNYLNazQBOxYQJL',
                   'fldjFJ8FystoDkLVX','fldKMKVcqr1ggcB9g','fldbHBrMOFLmn6Adj','fldIt4TweBKT7LiAV'];
     const fStr = flds.map(f => 'fields%5B%5D='+f).join('&');
     do {
@@ -3012,6 +3019,7 @@ function renderLogDash(records) {
   set('dash-rhr',    avg('fldXDw3aTnOLHk6lh',0), 'bpm · 30d');
   const stepVals = r30.map(r=>r.fields['flddMcByGIUBzlz3y']).filter(v=>v!=null&&!isNaN(v));
   const avgSteps = stepVals.length ? Math.round(stepVals.reduce((a,b)=>a+b,0)/stepVals.length).toLocaleString() : '—';
+  set('dash-water', avg('fldDvpkWlQK2Kw5wB',1), 'oz · 30d');
   set('dash-steps', avgSteps, '· 30d');
 }
 
@@ -3034,6 +3042,8 @@ function renderLogHistory(records, days) {
       <th style="padding:6px 8px;text-align:right">HRV</th>
       <th style="padding:6px 8px;text-align:right">RHR</th>
       <th style="padding:6px 8px;text-align:right">Steps</th>
+      <th style="padding:6px 8px;text-align:right">Water</th>
+      <th style="padding:6px 8px;text-align:right">Active Cal</th>
       <th style="padding:6px 8px;text-align:right">Energy</th>
       <th style="padding:6px 8px;text-align:right">Cortisol</th>
       <th style="padding:6px 8px;text-align:left">Mood</th>
@@ -3046,9 +3056,11 @@ function renderLogHistory(records, days) {
       <td style="padding:5px 8px;text-align:right">${f(r,'fldKTZ5ML0fnZV3oz',1)}</td>
       <td style="padding:5px 8px;text-align:right">${f(r,'fldy1hM7kymJKN52E',1)}</td>
       <td style="padding:5px 8px;text-align:right">${f(r,'fld5PGt9ZdFgBzMAM',0)}</td>
-      <td style="padding:5px 8px;text-align:right">${f(r,'fld8cAib9mOsXEwpp',0)}</td>
-      <td style="padding:5px 8px;text-align:right">${f(r,'fld91KrnmMbcG3F6R',0)}</td>
+      <td style="padding:5px 8px;text-align:right">${f(r,'fldIt4TweBKT7LiAV',0)}</td>
+      <td style="padding:5px 8px;text-align:right">${f(r,'fldXDw3aTnOLHk6lh',0)}</td>
       <td style="padding:5px 8px;text-align:right">${steps!=null?parseInt(steps).toLocaleString():''}</td>
+      <td style="padding:5px 8px;text-align:right">${f(r,'fldDvpkWlQK2Kw5wB',1)}</td>
+      <td style="padding:5px 8px;text-align:right">${f(r,'fld012Y04LIB08dkB',0)}</td>
       <td style="padding:5px 8px;text-align:right">${f(r,'fldKMKVcqr1ggcB9g',0)}</td>
       <td style="padding:5px 8px;text-align:right">${f(r,'fldbHBrMOFLmn6Adj',0)}</td>
       <td style="padding:5px 8px">${mood(r)}</td>
@@ -3069,6 +3081,8 @@ function editLogRow(recId, tr) {
   document.getElementById('log-hrv').value     = f['fldIt4TweBKT7LiAV'] || '';
   document.getElementById('log-rhr').value     = f['fldXDw3aTnOLHk6lh'] || '';
   document.getElementById('log-steps').value   = f['flddMcByGIUBzlz3y'] || '';
+  document.getElementById('log-water').value    = f['fldDvpkWlQK2Kw5wB'] || '';
+  document.getElementById('log-active-cal').value = f['fld012Y04LIB08dkB'] || '';
   document.getElementById('log-wakeups').value = f['fldjFJ8FystoDkLVX'] || '';
   document.getElementById('log-energy').value  = f['fldKMKVcqr1ggcB9g'] || '';
   document.getElementById('log-cortisol').value= f['fldbHBrMOFLmn6Adj'] || '';
