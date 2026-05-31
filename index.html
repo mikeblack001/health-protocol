@@ -3376,10 +3376,33 @@ function renderTracker(weekNum) {
   }
 
   function vialBtns(name) {
-    return `<td style="border:1px solid #ccc;padding:2px 4px;white-space:nowrap">
-      <button onclick="logVialEvent('${name}','New Vial')" title="New Vial" style="font-size:10px;padding:1px 5px;border:1px solid #aaa;border-radius:3px;cursor:pointer;background:#e8f5e9;margin-right:2px">N</button>
-      <button onclick="logVialEvent('${name}','Finished Vial')" title="Finished Vial" style="font-size:10px;padding:1px 5px;border:1px solid #aaa;border-radius:3px;cursor:pointer;background:#fff3e0">F</button>
+    const pepRec = data.peptides.find(r => getField(r,'Compound') === name && getField(r,'Status') === 'Active');
+    const recId = pepRec ? pepRec.id : null;
+    const isEmptyVial = !recId && data.peptides.some(r => getField(r,'Compound') === name && getField(r,'Status') === 'Empty Vial');
+    return `<td style="border:1px solid #ccc;padding:2px 6px;white-space:nowrap;text-align:center">
+      ${recId
+        ? `<button onclick="markVialFinished('${name}','${recId}')" title="Mark vial finished" style="font-size:10px;padding:2px 7px;border:1px solid #f44336;border-radius:3px;background:#fce4ec;cursor:pointer;font-weight:600;color:#c62828">F</button>`
+        : `<span title="${isEmptyVial ? 'Empty Vial' : 'No active record'}" style="font-size:14px">🟡</span>`
+      }
     </td>`;
+  }
+
+  async function markVialFinished(compound, recId) {
+    const boxes = [...document.querySelectorAll(`.check-box[data-compound="${compound}"]`)];
+    const checkedDates = boxes.filter(b => b.dataset.s && b.dataset.s !== '0').map(b => b.dataset.date).filter(Boolean).sort();
+    const endDate = checkedDates.length ? checkedDates[checkedDates.length - 1] : new Date().toISOString().split('T')[0];
+    if (!confirm(`Mark ${compound} vial as finished on ${endDate}?`)) return;
+    try {
+      const res = await fetch(`https://api.airtable.com/v0/${BASE}/tblMs6YRdP4wkndUp/${recId}`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fields: { 'fldeCBOtYYp6BtAfh': 'Empty Vial', 'fldbS91GtXsxjZU4q': endDate }, typecast: true })
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const td = document.querySelector(`button[onclick*="markVialFinished('${compound}'"]`)?.closest('td');
+      if (td) td.innerHTML = `<span title="Empty Vial — ${endDate}" style="font-size:14px">🟡</span>`;
+      data.peptides.forEach(r => { if (r.id === recId) { r.fields['fldeCBOtYYp6BtAfh'] = 'Empty Vial'; r.fields['fldbS91GtXsxjZU4q'] = endDate; }});
+    } catch(e) { alert('Failed: ' + e.message); }
   }
 
   let html = `
