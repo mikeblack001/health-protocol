@@ -1949,7 +1949,7 @@ function renderTracker(weekNum) {
   const mondayISO = monday.toISOString().split('T')[0];
   _currentMondayISO = mondayISO;
 
-  function dayCell(compound, dayIdx, bg) {
+  function dayCell(compound, dayIdx, bg, timing) {
     // Use dynamic schedule from InjectionLog history if available, else fall back to hardcoded
     const dynSched = window._compoundSchedule && window._compoundSchedule[compound.toLowerCase()];
     const active = dynSched ? [...dynSched] : TRACKER_SCHEDULE[compound];
@@ -1958,7 +1958,7 @@ function renderTracker(weekNum) {
     const dateStr = dayDate.toISOString().split('T')[0];
     const cellBg = isActive ? bg : INACTIVE;
     return `<td style="background:${cellBg};border:1px solid #000;width:44px;text-align:center;padding:1px">
-      <div class="check-box" data-compound="${compound}" data-day="${dayIdx}" data-date="${dateStr}" data-scheduled="${isActive?'1':'0'}" onclick="
+      <div class="check-box" data-compound="${compound}" data-day="${dayIdx}" data-date="${dateStr}" data-scheduled="${isActive?'1':'0'}" data-timing="${timing||''}" onclick="
         var s=this.dataset.s||'0';
         var next=s==='L'?'R':s==='R'?'S':s==='S'?'0':'L';
         this.dataset.s=next; this.textContent=next==='0'?'':next;
@@ -2013,7 +2013,7 @@ function renderTracker(weekNum) {
           <div style="font-weight:700;font-size:13px;line-height:1.3;color:var(--text)">${name}</div>
           <div style="font-size:10px;color:var(--muted);margin-top:1px"><span class="tracker-dose-label">${getField(r,'Dose')}</span>${getField(r,'Frequency') ? ' · '+getField(r,'Frequency') : ''}</div>
         </td>
-        ${days.map((_,i) => dayCell(name, i, MORN_BG)).join('')}
+        ${days.map((_,i) => dayCell(name, i, MORN_BG, 'Morning')).join('')}
         ${vialBtns(name)}
         <td style="border:1px solid #000;background:${MORN_BG};padding:2px 4px">
           <input type="text" placeholder="Notes..." data-compound="${name}" data-type="notes"
@@ -2034,7 +2034,7 @@ function renderTracker(weekNum) {
           <div style="font-weight:700;font-size:13px;line-height:1.3;color:var(--text)">${name}</div>
           <div style="font-size:10px;color:var(--muted);margin-top:1px"><span class="tracker-dose-label">${getField(r,'Dose')}</span>${getField(r,'Frequency') ? ' · '+getField(r,'Frequency') : ''}</div>
         </td>
-        ${days.map((_,i) => dayCell(name, i, NIGHT_BG)).join('')}
+        ${days.map((_,i) => dayCell(name, i, NIGHT_BG, 'Night')).join('')}
         ${vialBtns(name)}
         <td style="border:1px solid #000;background:${NIGHT_BG};padding:2px 4px">
           <input type="text" placeholder="Notes..." data-compound="${name}" data-type="notes"
@@ -2317,7 +2317,8 @@ async function saveCheckbox(box) {
             'fldt9vYT8Tm37Gf3k': name,
             'fldhYEtLEGA4VxvvO': date,
             'fldwVFyizH4mBANBa': compound,
-            'fldHDlJY8FpAvK018': site
+            'fldHDlJY8FpAvK018': site,
+            'Timing': box.dataset.timing || ''
           }}], typecast: true })
         });
         const data = await resp.json();
