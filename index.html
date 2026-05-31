@@ -2024,6 +2024,7 @@ function renderTracker(weekNum) {
         ${vialBtns(name)}
         <td style="border:1px solid #000;background:${MORN_BG};padding:2px 4px">
           <input type="text" placeholder="Notes..." data-compound="${name}" data-type="notes"
+            onblur="saveTrackerNote(this)"
             style="width:100%;border:none;background:transparent;font-size:11px;font-family:'DM Sans',sans-serif;outline:none;color:var(--text)">
         </td>
       </tr>`;
@@ -2044,6 +2045,7 @@ function renderTracker(weekNum) {
         ${vialBtns(name)}
         <td style="border:1px solid #000;background:${NIGHT_BG};padding:2px 4px">
           <input type="text" placeholder="Notes..." data-compound="${name}" data-type="notes"
+            onblur="saveTrackerNote(this)"
             style="width:100%;border:none;background:transparent;font-size:11px;font-family:'DM Sans',sans-serif;outline:none;color:var(--text)">
         </td>
       </tr>`;
@@ -2168,7 +2170,11 @@ async function loadTrackerWeekData(mondayISO) {
       const box = allBoxes.find(b => norm(b.dataset.compound) === resolved && b.dataset.date === date);
       if (box) {
         applyState(box, site, r.id);
-        // Notes field not propagated to tracker input
+        const note = f['Notes'];
+        if (note && note.trim()) {
+          const noteInput = document.querySelector(`input[data-type="notes"][data-compound="${box.dataset.compound}"]`);
+          if (noteInput && !noteInput.value) noteInput.value = note.trim();
+        }
       }
     });
 
@@ -2191,6 +2197,31 @@ async function logVialEvent(compound, type) {
     const btns = document.querySelectorAll(`[onclick*="${compound}"]`);
     btns.forEach(b => { const orig = b.style.background; b.style.background='#c8e6c9'; setTimeout(()=>b.style.background=orig,1000); });
   } catch(e) { alert('Log failed: ' + e.message); }
+}
+
+async function saveTrackerNote(input) {
+  const compound = input.dataset.compound;
+  const val = input.value.trim();
+  if (!val) return;
+  // Find the most recent InjectionLog record for this compound in the current week
+  const mondayISO = _currentMondayISO;
+  if (!mondayISO) return;
+  const mon = new Date(mondayISO + 'T12:00:00');
+  const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+  const sunISO = sun.toISOString().split('T')[0];
+  try {
+    const formula = `AND(IS_AFTER({Date},"${new Date(mon.getTime()-86400000).toISOString().split('T')[0]}"),IS_BEFORE({Date},"${new Date(sun.getTime()+86400000).toISOString().split('T')[0]}"),{Compound}="${compound}")`;
+    const url = `https://api.airtable.com/v0/${BASE}/tblBvEaLkGGipnOFc?filterByFormula=${encodeURIComponent(formula)}&fields[]=Date&sort[0][field]=Date&sort[0][direction]=desc&pageSize=1`;
+    const j = await (await fetch(url, {headers:{Authorization:`Bearer ${TOKEN}`}})).json();
+    const rec = (j.records||[])[0];
+    if (rec) {
+      await fetch(`https://api.airtable.com/v0/${BASE}/tblBvEaLkGGipnOFc/${rec.id}`, {
+        method: 'PATCH',
+        headers: {Authorization:`Bearer ${TOKEN}`,'Content-Type':'application/json'},
+        body: JSON.stringify({fields:{'Notes': val}})
+      });
+    }
+  } catch(e) { console.error('saveTrackerNote failed:', e); }
 }
 
 let _autoSaveTimer = null;
