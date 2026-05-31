@@ -3703,7 +3703,7 @@ async function saveAddPurchase() {
 // ===== LABS =====
 let labsData = [];
 let labsView = 'trend';
-let labsPriority = 'Pinned';
+let labsPriority = 'All';
 
 const LAB_WATCHLIST = ['Estradiol','BUN','Creatinine','eGFR','Alkaline Phosphatase','PSA','Calcium','Testosterone','Neutrophils Absolute','Hematocrit','WBC'];
 
@@ -4782,6 +4782,7 @@ function buildWeeklyPrintHTML(monday) {
     if (view) view.classList.add('active');
     const trigger = document.getElementById(triggerId);
     if (trigger) trigger.classList.add('active');
+    if (viewId === 'injlog') loadInjLog();
     if (viewId === 'pricing') loadPricing();
     if (viewId === 'vendors') loadVendors();
     if (viewId === 'purchases') loadPurchases();
@@ -7187,6 +7188,7 @@ function prefillLogDate(dateStr) {
 </body>
 </html>
 <!-- cache bust Mon May 26 2026 — revert inj logger -->
+
 
 
 
