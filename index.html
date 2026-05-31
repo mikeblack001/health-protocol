@@ -2620,7 +2620,6 @@ async function loadVendors() {
       offset = json.offset;
     } while (offset);
     vendorsData = records;
-    console.log('Vendor Tiers:', vendorsData.map(r => r.fields?.['Tier']));
     renderVendors();
   } catch(e) {
     el.innerHTML = '<p style="color:var(--red);padding:16px">Failed to load vendors.</p>';
