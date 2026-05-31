@@ -3450,26 +3450,14 @@ function renderTracker(weekNum) {
 
 async function updateVialCells() {
   try {
-    // Fetch all peptide records with Compound + Status + End Date fields
-    let records = [], offset = null;
-    do {
-      let url = `https://api.airtable.com/v0/${BASE}/tblMs6YRdP4wkndUp?fields[]=Compound&fields[]=Status&fields[]=End+Date&fields[]=Dose&fields[]=Frequency&fields[]=Timing&fields[]=Notes&pageSize=100`;
-      if (offset) url += `&offset=${encodeURIComponent(offset)}`;
-      const res = await fetch(url, { headers: { Authorization: `Bearer ${TOKEN}` }});
-      const j = await res.json();
-      records = records.concat(j.records || []);
-      offset = j.offset;
-    } while (offset);
-
-    // Build map: compound → active record
-    const activeMap = {};
-    records.forEach(r => {
-      const compound = r.fields['Compound'];
-      const status = r.fields['Status'];
-      if (compound && status === 'Active') activeMap[compound] = r;
+    const res = await fetch(`https://api.airtable.com/v0/${BASE}/tblMs6YRdP4wkndUp?fields[]=Compound&fields[]=Status&fields[]=Dose&fields[]=Frequency&fields[]=Timing&fields[]=Notes&pageSize=100`, {
+      headers: { Authorization: `Bearer ${TOKEN}` }
     });
-
-    // Update each vial cell
+    const d = await res.json();
+    const activeMap = {};
+    (d.records || []).forEach(r => {
+      if (r.fields['Status'] === 'Active') activeMap[r.fields['Compound']] = r;
+    });
     document.querySelectorAll('td[data-vial-compound]').forEach(td => {
       const name = td.dataset.vialCompound;
       const rec = activeMap[name];
