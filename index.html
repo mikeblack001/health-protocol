@@ -1979,9 +1979,11 @@ function renderTracker(weekNum) {
       <button onclick="shiftTrackerWeek(-1)" style="padding:4px 10px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:var(--surface);font-size:13px">‹ Prev</button>
       <span style="font-family:'DM Mono',monospace;font-size:13px;font-weight:600">${weekLabel}</span>
       <button onclick="shiftTrackerWeek(1)" style="padding:4px 10px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:var(--surface);font-size:13px">Next ›</button>
+<button onclick="shiftJumpWeek(-1)" style="padding:4px 10px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:var(--surface);font-size:13px">‹ Prev</button>
   <select id="tracker-week-jump" onchange="jumpToWeek(this.value)" style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:'DM Mono',monospace;color:var(--text);background:var(--surface);cursor:pointer;min-width:100px">
     <option value="">Jump to week...</option>
   </select>
+  <button onclick="shiftJumpWeek(1)" style="padding:4px 10px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:var(--surface);font-size:13px">Next ›</button>
     </div>
     <div style="display:flex;gap:8px">
       <button onclick="saveTrackerWeek('${mondayISO}')" style="padding:5px 14px;background:var(--accent);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px">💾 Save Week</button>
@@ -2487,6 +2489,15 @@ async function skipDay(dateStr) {
   } catch(e) { console.error('skipDay failed:', e); }
 }
 
+function shiftJumpWeek(dir) {
+  const sel = document.getElementById('tracker-week-jump');
+  const opts = [...sel.options].filter(o => o.value);
+  if (!opts.length) return;
+  const cur = sel.value || _currentMondayISO;
+  const idx = opts.findIndex(o => o.value === cur);
+  const next = opts[Math.max(0, Math.min(opts.length - 1, idx + dir))];
+  if (next) { sel.value = next.value; jumpToWeek(next.value); }
+}
 function jumpToWeek(val) {
   if (!val) return;
   const target = new Date(val+'T12:00:00');
