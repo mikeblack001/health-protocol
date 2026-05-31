@@ -3401,7 +3401,7 @@ const activePeps = data.peptides.filter(r => getField(r,'Status') === 'Active');
   </div>
   <div style="margin-bottom:10px;display:flex;align-items:center;gap:8px">
     <span style="font-size:11px;color:var(--muted);white-space:nowrap;font-weight:500">Week Note:</span>
-    <input type="text" id="tracker-week-note" placeholder="e.g. Carolina Beach trip — all skipped" data-monday="${mondayISO}"
+    <input type="text" id="tracker-week-note" placeholder="Week note..." data-monday="${mondayISO}"
       style="flex:1;padding:5px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface);outline:none"
       onblur="saveWeekNote(this.value,'${mondayISO}')">
   </div>
