@@ -1832,6 +1832,7 @@ function renderSuppDashReview() {
 // ===== PEPTIDE TRACKER =====
 let trackerMondayOffset = 0; // weeks offset from current week
 let trackerHistoricalData = null; // Map<compoundName, Set<dateISO>> for past weeks; null = current/future
+const _histCache = {}; // cache per mondayISO
 
 const TRACKER_MORNING_ORDER = [
   'Testosterone', 'Deca (Nandrolone)', 'NAD+', 'Retatrutide',
@@ -1892,6 +1893,7 @@ function resolveInjectionCompound(raw) {
 }
 
 async function fetchHistoricalCompounds(mondayISO) {
+  if (_histCache[mondayISO]) return _histCache[mondayISO];
   try {
     const mon = new Date(mondayISO + 'T12:00:00');
     const prev = new Date(mon); prev.setDate(mon.getDate() - 1);
@@ -1911,7 +1913,9 @@ async function fetchHistoricalCompounds(mondayISO) {
       if (!map.has(name)) map.set(name, new Set());
       map.get(name).add(date);
     });
-    return map.size > 0 ? map : null;
+    const result = map.size > 0 ? map : null;
+    _histCache[mondayISO] = result;
+    return result;
   } catch(e) { console.error('fetchHistoricalCompounds failed:', e); return null; }
 }
 
@@ -2510,7 +2514,9 @@ function jumpToWeek(val) {
   const monday = getTrackerMonday();
   const mondayISO = monday.toISOString().split('T')[0];
   if (trackerMondayOffset < 0) {
-    fetchHistoricalCompounds(mondayISO).then(h=>{trackerHistoricalData=h;renderTracker();loadTrackerWeekData(mondayISO);updateVialCells();});
+    Promise.all([fetchHistoricalCompounds(mondayISO), loadTrackerWeekData(mondayISO)]).then(([h]) => {
+      trackerHistoricalData=h; renderTracker(); updateVialCells();
+    });
   } else {
     trackerHistoricalData=null;renderTracker();loadTrackerWeekData(mondayISO);updateVialCells();
   }
