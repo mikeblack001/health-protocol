@@ -3051,6 +3051,8 @@ function mobileNav(viewId) {
   if (viewId === 'changes') loadChanges();
   if (viewId === 'injaudit') loadInjAudit();
   if (viewId === 'injlog') loadInjLog();
+  if (viewId === 'log') setTimeout(loadLog, 50);
+  if (viewId === 'bodycomp') loadBodyComp();
   if (viewId === 'goals') loadGoals();
   if (viewId === 'profile') loadProfileView();
   if (viewId === 'aicontext') loadAIContext();
@@ -6639,51 +6641,7 @@ async function runVerification() {
 
 
 
-function loadBodyComp() {
-  const el = document.getElementById('bodycomp-content');
-  if (!el) return;
-  el.innerHTML = '<div style="text-align:center;color:var(--muted);padding:40px">Loading...</div>';
-  fetch('https://api.airtable.com/v0/appmHDG4TGT1xy6R6/tblaYuZjl4Pu4nKxS?sort[0][field]=Date&sort[0][direction]=asc&pageSize=100', {
-    headers: { 'Authorization': 'Bearer pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a' }
-  })
-  .then(r => r.json())
-  .then(data => {
-    const rows = (data.records || []).filter(r => r.fields['Weight (lbs)'] || r.fields['Body Fat %']);
-    if (!rows.length) { el.innerHTML = '<p style="color:var(--muted);padding:20px">No data yet.</p>'; return; }
-    const dates = rows.map(r => r.fields['Date'] || '');
-    const weights = rows.map(r => r.fields['Weight (lbs)'] || null);
-    const bf = rows.map(r => r.fields['Body Fat %'] || null);
-    const lm = rows.map(r => r.fields['Lean Mass (lbs)'] || null);
-    const hrv = rows.map(r => r.fields['HRV (ms)'] || null);
-    const rhr = rows.map(r => r.fields['Resting HR'] || null);
-    const notes = rows.map(r => r.fields['Notes'] || '');
-    const lastRow = rows[rows.length-1].fields;
-    el.innerHTML = `
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:24px">
-        <div class="stat-card"><div class="stat-label">WEIGHT</div><div class="stat-value">${lastRow['Weight (lbs)'] ? lastRow['Weight (lbs)'].toFixed(1)+' lbs' : '—'}</div></div>
-        <div class="stat-card"><div class="stat-label">BODY FAT</div><div class="stat-value">${lastRow['Body Fat %'] ? lastRow['Body Fat %'].toFixed(1)+'%' : '—'}</div></div>
-        <div class="stat-card"><div class="stat-label">LEAN MASS</div><div class="stat-value">${lastRow['Lean Mass (lbs)'] ? lastRow['Lean Mass (lbs)'].toFixed(1)+' lbs' : '—'}</div></div>
-        <div class="stat-card"><div class="stat-label">HRV</div><div class="stat-value">${lastRow['HRV (ms)'] ? lastRow['HRV (ms)'].toFixed(1)+' ms' : '—'}</div></div>
-        <div class="stat-card"><div class="stat-label">RESTING HR</div><div class="stat-value">${lastRow['Resting HR'] ? lastRow['Resting HR']+' bpm' : '—'}</div></div>
-        <div class="stat-card"><div class="stat-label">SOURCE</div><div class="stat-value" style="font-size:14px">${lastRow['Scale Source'] || '—'}</div></div>
-      </div>
-      <canvas id="chart-weight" height="80" style="margin-bottom:24px"></canvas>
-      <canvas id="chart-bf" height="80" style="margin-bottom:24px"></canvas>
-      <canvas id="chart-hrv" height="80" style="margin-bottom:24px"></canvas>
-      <h3 style="margin:16px 0 8px;font-size:14px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em">Recent Notes</h3>
-      <div style="display:flex;flex-direction:column;gap:8px">
-        ${rows.slice(-10).reverse().filter(r=>r.fields['Notes']).map(r=>`<div style="background:var(--surface2);border-radius:8px;padding:12px;font-size:13px"><span style="color:var(--muted);margin-right:8px">${r.fields['Date']}</span>${r.fields['Notes']}</div>`).join('') || '<p style="color:var(--muted)">No notes yet.</p>'}
-      </div>
-    `;
-    // Draw charts using inline SVG-style canvas approach
-    setTimeout(() => {
-      drawLine('chart-weight', dates, weights, 'Weight (lbs)', '#1a56db');
-      drawLine('chart-bf', dates, bf, 'Body Fat %', '#e3a008');
-      drawLine('chart-hrv', dates, hrv, 'HRV (ms)', '#057a55', rhr, 'Resting HR', '#e02424');
-    }, 50);
-  })
-  .catch(e => { el.innerHTML = '<p style="color:var(--red)">Error loading data: '+e.message+'</p>'; });
-}
+
 
 function drawLine(canvasId, labels, data1, label1, color1, data2, label2, color2) {
   const canvas = document.getElementById(canvasId);
@@ -7093,5 +7051,6 @@ function prefillLogDate(dateStr) {
 </body>
 </html>
 <!-- cache bust Mon May 26 2026 — revert inj logger -->
+
 
 
