@@ -2535,7 +2535,6 @@ function jumpToWeek(val) {
 var _weekDropdownPopulated = false;
 async function populateWeekDropdown() {
   if (_weekDropdownPopulated) return;
-  _weekDropdownPopulated = true;
   const sel = document.getElementById('tracker-week-jump');
   if (!sel) return;
   const currentISO = _currentMondayISO;
@@ -2586,6 +2585,7 @@ async function populateWeekDropdown() {
     });
   }
   if (currentISO) sel.value = currentISO;
+  _weekDropdownPopulated = true;
 }
 
 function filterPeptides(f, el) {
