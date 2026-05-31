@@ -3506,7 +3506,7 @@ async function markVialFinished(compound, recId) {
     if (!res.ok) throw new Error(await res.text());
     if (nextDate) {
       const td = document.querySelector(`td[data-vial-compound="${compound}"]`);
-      const newFields = { 'fldeH5uyKXDFPZbHK': compound, 'fldeCBOtYYp6BtAfh': 'Active', 'fldO3s24TR8o1qfSY': nextDate };
+      const newFields = { 'Compound': compound, 'Status': 'Active', 'Start Date': nextDate };
       if (td) {
         if (td.dataset.vialDose) newFields['Dose'] = td.dataset.vialDose;
         if (td.dataset.vialFreq) newFields['Frequency'] = td.dataset.vialFreq;
