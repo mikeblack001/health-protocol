@@ -405,8 +405,22 @@ function getWkDates(dateStr){
     return dd.getFullYear()+'-'+String(dd.getMonth()+1).padStart(2,'0')+'-'+String(dd.getDate()).padStart(2,'0');
   });
 }
-function getRowOrder(){try{return JSON.parse(LS.get('row_order')||'[]');}catch(e){return [];}}
-function saveRowOrder(arr){LS.set('row_order',JSON.stringify(arr));}
+function getWeekMon(dateStr){
+  if(!dateStr)return '';
+  const [yr,mo,dy]=dateStr.split('-').map(Number);
+  const d=new Date(yr,mo-1,dy);
+  const diff=(d.getDay()+6)%7;
+  const mon=new Date(yr,mo-1,dy-diff);
+  return mon.getFullYear()+'-'+String(mon.getMonth()+1).padStart(2,'0')+'-'+String(mon.getDate()).padStart(2,'0');
+}
+function getRowOrder(dateStr){
+  const key='row_order_'+(getWeekMon(dateStr||curDate)||'global');
+  try{return JSON.parse(LS.get(key)||'[]');}catch(e){return [];}
+}
+function saveRowOrder(arr, dateStr){
+  const key='row_order_'+(getWeekMon(dateStr||curDate)||'global');
+  LS.set(key,JSON.stringify(arr));
+}
 function siteColor(s){
   const m={'L':{bg:'#dbeafe',fg:'#1d4ed8'},'R':{bg:'#fef9c3',fg:'#92400e'},'S':{bg:'#fce7f3',fg:'#be185d'},'X':{bg:'#d1fae5',fg:'#065f46'}};
   return m[s]||{bg:'#f3f4f6',fg:'#374151'};
@@ -443,7 +457,7 @@ async function loadWeekGrid(date){
   });
 
   // Apply saved order — only use keys that exist in actual data this week
-  const saved=getRowOrder().filter(s=>keyOrder.includes(s)||keyOrder.some(k=>k.startsWith(s+'||')));
+  const saved=getRowOrder(date).filter(s=>keyOrder.includes(s)||keyOrder.some(k=>k.startsWith(s+'||')));
   const allKeys=keyOrder;
   const orderedKeys=[];
   saved.forEach(s=>{
@@ -532,9 +546,9 @@ function initGridDrag(){
       if(rows.indexOf(target)>rows.indexOf(src))tbody.insertBefore(src,target.nextSibling);
       else tbody.insertBefore(src,target);
       const visibleOrder=[...tbody.querySelectorAll('tr[data-key]')].map(r=>r.dataset.key);
-      saveRowOrder(visibleOrder);
+      saveRowOrder(visibleOrder, curDate);
       renderRecordsOrdered(visibleOrder);
-      saveRowOrderToAT(visibleOrder);
+      saveRowOrderToAT(visibleOrder, curDate);
     }
     src=null;
   });
@@ -887,7 +901,7 @@ function renderRecordsOrdered(order){
 function renderRecords(){
   const el=document.getElementById('records');
   if(!logRecs.length){el.innerHTML='<div class="empty">No records for '+curDate+'</div>';return;}
-  const order=getRowOrder();
+  const order=getRowOrder(curDate);
   if(order.length){renderRecordsOrdered(order);}
   else{
     const validRecs=logRecs.filter(r=>r.fields[LOG.compound]);
