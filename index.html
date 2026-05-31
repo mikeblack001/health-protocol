@@ -3368,7 +3368,7 @@ const activePeps = data.peptides.filter(r => getField(r,'Status') === 'Active');
     return `<td style="background:${cellBg};border:1px solid #000;width:44px;text-align:center;padding:2px">
       <div class="check-box" data-compound="${compound}" data-day="${dayIdx}" data-date="${dateStr}" data-scheduled="${isActive?'1':'0'}" onclick="
         var s=this.dataset.s||'0';
-        var next=s==='L'?'R':s==='R'?'S':s==='S'?'N':s==='N'?'0':'L';
+        var next=s==='L'?'R':s==='R'?'S':s==='S'?'X':s==='X'?'0':'L';
         this.dataset.s=next; this.textContent=next==='0'?'':next;
         var c=next==='L'?['#dbeafe','#2563eb','#1d4ed8']:next==='R'?['#fef3c7','#d97706','#92400e']:next==='S'?['#fee2e2','#dc2626','#dc2626']:next==='N'?['#e5e7eb','#6b7280','#6b7280']:['','#888',''];
         this.style.background=c[0];this.style.borderColor=c[1];this.style.color=c[2];
@@ -3390,9 +3390,12 @@ const activePeps = data.peptides.filter(r => getField(r,'Status') === 'Active');
       <button onclick="shiftTrackerWeek(-1)" style="padding:4px 10px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:var(--surface);font-size:13px">‹ Prev</button>
       <span style="font-family:'DM Mono',monospace;font-size:13px;font-weight:600">${weekLabel}</span>
       <button onclick="shiftTrackerWeek(1)" style="padding:4px 10px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:var(--surface);font-size:13px">Next ›</button>
+  <select id="tracker-week-jump" onchange="jumpToWeek(this.value)" style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:'DM Mono',monospace;color:var(--text);background:var(--surface);cursor:pointer">
+    <option value="">Jump to week...</option>
+  </select>
     </div>
     <div style="display:flex;gap:8px">
-      <button onclick="saveTrackerWeek('${mondayISO}')" style="padding:5px 14px;background:var(--accent);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px">💾 Save Week</button>
+      <span id="save-status" style="font-size:11px;font-family:'DM Mono',monospace;margin-right:4px"></span><button onclick="saveTrackerWeek('${mondayISO}')" style="padding:5px 14px;background:var(--accent);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px">💾 Save Week</button>
       <button onclick="printTracker()" style="padding:5px 14px;background:var(--surface);border:1px solid var(--border);border-radius:6px;cursor:pointer;font-size:13px">🖨 Print</button>
     </div>
   </div>
