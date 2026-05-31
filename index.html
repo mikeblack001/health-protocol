@@ -2154,6 +2154,7 @@ async function loadTrackerWeekData(mondayISO) {
     return (c||'').toLowerCase() === 'week note';
   });
   const wnel = document.getElementById('tracker-week-note');
+  if (weekNoteRec) { _weekNoteRecId[mondayISO] = weekNoteRec.id; }
   if (wnel) wnel.value = weekNoteRec ? (weekNoteRec.fields['fldmGAKBTKLMGeRGn'] || weekNoteRec.fields['Week Note'] || '') : '';
 
   records.forEach(r => {
@@ -2318,41 +2319,61 @@ async function markVialFinishedByName(compound) {
   } catch(e) { alert('Failed: '+e.message); }
 }
 
+var _weekNoteRecId = {};  // keyed by mondayISO
+var _weekNoteSaving = {};
 async function saveWeekNote(val, mondayISO) {
   if (!val || !val.trim()) return;
+  if (_weekNoteSaving[mondayISO]) return;  // prevent concurrent duplicate creates
+  _weekNoteSaving[mondayISO] = true;
   try {
-    // Find existing week note record for this Monday or create one
-    const url = `https://api.airtable.com/v0/${BASE}/tblBvEaLkGGipnOFc?filterByFormula=${encodeURIComponent('AND({Date}="'+mondayISO+'",{Compound}="Week Note")')}&fields[]=fldt9vYT8Tm37Gf3k`;
-    const j = await (await fetch(url, {headers:{Authorization:`Bearer ${TOKEN}`}})).json();
-    const existing = (j.records||[])[0];
-    if (existing) {
-      await fetch(`https://api.airtable.com/v0/${BASE}/tblBvEaLkGGipnOFc/${existing.id}`, {
+    const recId = _weekNoteRecId[mondayISO];
+    if (recId) {
+      // Already know the record — just patch it
+      await fetch(`https://api.airtable.com/v0/${BASE}/tblBvEaLkGGipnOFc/${recId}`, {
         method: 'PATCH',
         headers: {Authorization:`Bearer ${TOKEN}`,'Content-Type':'application/json'},
         body: JSON.stringify({fields:{'fldmGAKBTKLMGeRGn': val.trim()}})
       });
     } else {
-      await fetch(`https://api.airtable.com/v0/${BASE}/tblBvEaLkGGipnOFc`, {
-        method: 'POST',
-        headers: {Authorization:`Bearer ${TOKEN}`,'Content-Type':'application/json'},
-        body: JSON.stringify({records:[{fields:{
-          'fldt9vYT8Tm37Gf3k': 'Week Note '+mondayISO,
-          'fldhYEtLEGA4VxvvO': mondayISO,
-          'fldwVFyizH4mBANBa': 'Week Note',
-          'fldmGAKBTKLMGeRGn': val.trim()
-        }}], typecast:true})
-      });
+      // Find existing week note record for this Monday or create one
+      const url = `https://api.airtable.com/v0/${BASE}/tblBvEaLkGGipnOFc?filterByFormula=${encodeURIComponent('AND({Date}="'+mondayISO+'",{Compound}="Week Note")')}&fields[]=fldt9vYT8Tm37Gf3k`;
+      const j = await (await fetch(url, {headers:{Authorization:`Bearer ${TOKEN}`}})).json();
+      const existing = (j.records||[])[0];
+      if (existing) {
+        _weekNoteRecId[mondayISO] = existing.id;
+        await fetch(`https://api.airtable.com/v0/${BASE}/tblBvEaLkGGipnOFc/${existing.id}`, {
+          method: 'PATCH',
+          headers: {Authorization:`Bearer ${TOKEN}`,'Content-Type':'application/json'},
+          body: JSON.stringify({fields:{'fldmGAKBTKLMGeRGn': val.trim()}})
+        });
+      } else {
+        const resp = await fetch(`https://api.airtable.com/v0/${BASE}/tblBvEaLkGGipnOFc`, {
+          method: 'POST',
+          headers: {Authorization:`Bearer ${TOKEN}`,'Content-Type':'application/json'},
+          body: JSON.stringify({records:[{fields:{
+            'fldt9vYT8Tm37Gf3k': 'Week Note '+mondayISO,
+            'fldhYEtLEGA4VxvvO': mondayISO,
+            'fldwVFyizH4mBANBa': 'Week Note',
+            'fldmGAKBTKLMGeRGn': val.trim()
+          }}], typecast:true})
+        });
+        const created = await resp.json();
+        if (created.records?.[0]?.id) _weekNoteRecId[mondayISO] = created.records[0].id;
+      }
     }
   } catch(e) { console.error('saveWeekNote:',e); }
+  finally { _weekNoteSaving[mondayISO] = false; }
 }
 
 function skipDay(dateStr) {
+  const skipBoxes = [];
   document.querySelectorAll(`.check-box[data-date="${dateStr}"]`).forEach(box => {
     if (box.dataset.scheduled !== '1') return;
     box.dataset.s='S'; box.textContent='S';
     box.style.background='#fee2e2'; box.style.borderColor='#dc2626'; box.style.color='#dc2626';
+    skipBoxes.push(box);
   });
-  autoSave();
+  skipBoxes.forEach(box => saveCheckbox(box));
 }
 
 function jumpToWeek(val) {
