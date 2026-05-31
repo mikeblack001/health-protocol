@@ -1906,6 +1906,7 @@ async function fetchHistoricalCompounds(mondayISO) {
       const raw = Array.isArray(f['Compound']) ? f['Compound'][0] : (f['Compound'] || f['Name']);
       const date = f['Date'];
       if (!raw || !date) return;
+      if ((raw||'').toLowerCase().trim() === 'week note') return;
       const name = resolveInjectionCompound(raw);
       if (!map.has(name)) map.set(name, new Set());
       map.get(name).add(date);
