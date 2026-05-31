@@ -4128,12 +4128,12 @@ async function loadChanges() {
 async function loadInjLog() {
   const TABLE = 'tblBvEaLkGGipnOFc';
   const F = {
-    date:     'fldhYEtLEGA4VxvvO',
-    compound: 'fldwVFyizH4mBANBa',
-    site:     'fldHDlJY8FpAvK018',
-    timing:   'fldIdzew4Jd0qO4Uc',
-    dose:     'fld8d8mtRapfaIyqL',
-    notes:    'fldAbczu73mINwLmx',
+    date:     'Date',
+    compound: 'Compound',
+    site:     'Site',
+    timing:   'Timing',
+    dose:     'Dose',
+    notes:    'Notes',
   };
 
   const summEl = document.getElementById('injlog-summary');
@@ -5707,6 +5707,7 @@ function toast(msg, cls, ms) {
 }
 function setDot(w, s, l) {
   var d = document.getElementById(w + "Dot"), lb = document.getElementById(w + "Lbl");
+  if (!d || !lb) return;
   d.className = "dot" + (s === "ok" ? " ok" : s === "err" ? " err" : s === "warn" ? " warn" : "");
   lb.textContent = l;
 }
