@@ -4171,7 +4171,7 @@ async function loadInjLog() {
   const seen = new Map();
   records.forEach(rec => {
     const compound = fv(rec, F.compound);
-    if (compound && !seen.has(compound)) seen.set(compound, rec);
+    if (compound && (compound||'').toLowerCase().trim() !== 'week note' && !seen.has(compound)) seen.set(compound, rec);
   });
   const summRows = [...seen.values()].sort((a,b) => (fv(a,F.compound)||'').localeCompare(fv(b,F.compound)||''));
 
@@ -4208,6 +4208,7 @@ async function loadInjLog() {
       <th style="padding:7px 10px;font-weight:600;border-bottom:1px solid var(--border)">Notes</th>
     </tr></thead><tbody>`;
   records.forEach((rec,i) => {
+    if ((fv(rec,F.compound)||'').toLowerCase().trim() === 'week note') return;
     const bg = i % 2 === 0 ? '' : 'background:var(--surface-alt,#f9fafb)';
     const notes = fv(rec,F.notes);
     fullHtml += `<tr style="${bg}">
