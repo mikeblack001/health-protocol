@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Injection Log Verifier</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',sans-serif;background:#0f1117;color:#e0e0e0;padding:20px}
+h1{color:#4fc3f7;margin-bottom:8px;font-size:1.4rem}
+.meta{color:#888;font-size:.8rem;margin-bottom:20px}
+.controls{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;align-items:center}
+button{background:#1565c0;color:#fff;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:.85rem}
+button:hover{background:#1976d2}
+button.secondary{background:#37474f}
+button.secondary:hover{background:#455a64}
+button.danger{background:#b71c1c}
+.status{background:#1a1d2e;border:1px solid #2a2d3e;border-radius:8px;padding:12px;margin-bottom:16px;font-size:.85rem}
+.stats{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:20px}
+.stat-card{background:#1a1d2e;border:1px solid #2a2d3e;border-radius:8px;padding:12px 16px;min-width:140px}
+.stat-card .label{color:#888;font-size:.75rem;margin-bottom:4px}
+.stat-card .value{color:#4fc3f7;font-size:1.4rem;font-weight:700}
+.section-title{color:#b0bec5;font-size:.9rem;font-weight:600;margin:20px 0 10px;text-transform:uppercase;letter-spacing:.05em}
+.filter-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.filter-bar label{font-size:.8rem;color:#888}
+select,input{background:#1a1d2e;border:1px solid #37474f;color:#e0e0e0;padding:5px 8px;border-radius:4px;font-size:.8rem}
+table{width:100%;border-collapse:collapse;font-size:.78rem;margin-bottom:20px}
+th{background:#1a1d2e;color:#b0bec5;padding:7px 10px;text-align:left;border:1px solid #2a2d3e;position:sticky;top:0}
+td{padding:6px 10px;border:1px solid #1e2130;vertical-align:top}
+tr:nth-child(even){background:#121520}
+tr:hover{background:#1a2035}
+.badge{display:inline-block;padding:2px 7px;border-radius:10px;font-size:.7rem;font-weight:600}
+.badge.morning{background:#1b5e20;color:#81c784}
+.badge.night{background:#1a237e;color:#82b1ff}
+.badge.ok{background:#1b5e20;color:#a5d6a7}
+.badge.missing{background:#b71c1c;color:#ef9a9a}
+.badge.extra{background:#4a148c;color:#ce93d8}
+.discrepancy-row td{background:#1c1010}
+.missing-row{background:#1c1010!important;color:#ef9a9a}
+.tabs{display:flex;gap:0;margin-bottom:20px;border-bottom:2px solid #2a2d3e}
+.tab{padding:8px 18px;cursor:pointer;color:#888;font-size:.85rem;border-bottom:2px solid transparent;margin-bottom:-2px}
+.tab.active{color:#4fc3f7;border-bottom-color:#4fc3f7}
+.tab-content{display:none}
+.tab-content.active{display:block}
+.compound-grid{display:grid;grid-template-columns:200px repeat(auto-fill,minmax(30px,1fr));gap:0}
+.grid-header{background:#1a1d2e;color:#888;font-size:.65rem;padding:3px;text-align:center;overflow:hidden;border:1px solid #2a2d3e}
+.grid-label{background:#1a1d2e;color:#b0bec5;font-size:.72rem;padding:4px 6px;border:1px solid #2a2d3e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.grid-cell{font-size:.65rem;padding:3px;text-align:center;border:1px solid #1e2130;cursor:default}
+.grid-cell.has-inj{background:#1b3a1b;color:#81c784}
+.grid-cell.expected-miss{background:#3a1b1b;color:#ef9a9a}
+.grid-cell.not-expected{background:#111}
+.grid-cell.ok{background:#1b3a1b}
+.legend{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px;font-size:.75rem}
+.legend-item{display:flex;align-items:center;gap:5px}
+.legend-dot{width:12px;height:12px;border-radius:2px}
+pre{white-space:pre-wrap;font-size:.75rem;background:#0a0c14;border:1px solid #2a2d3e;padding:12px;border-radius:6px;max-height:400px;overflow:auto}
+.summary-box{background:#1a1d2e;border:1px solid #2a2d3e;border-radius:8px;padding:16px;margin-bottom:16px}
+.summary-box h3{color:#4fc3f7;margin-bottom:8px;font-size:.95rem}
+.issue-item{padding:6px 0;border-bottom:1px solid #2a2d3e;font-size:.8rem}
+.issue-item:last-child{border-bottom:none}
+.issue-item .date{color:#888;width:85px;display:inline-block}
+.issue-item .compound{color:#fff;width:180px;display:inline-block}
+.issue-item .detail{color:#ef9a9a}
+#loadingBar{height:3px;background:linear-gradient(90deg,#4fc3f7,#7c4dff);width:0;transition:width .3s;margin-bottom:10px}
+</style>
+</head>
+<body>
+<h1>💉 Injection Log Verifier</h1>
+<p class="meta">Mar 16, 2026 → May 21, 2026 | Airtable tblBvEaLkGGipnOFc vs PDF Source</p>
+<div id="loadingBar"></div>
+
+<div class="controls">
+  <button onclick="loadAll()">🔄 Load / Refresh Airtable Data</button>
+  <button class="secondary" onclick="showTab('grid')">📊 Coverage Grid</button>
+  <button class="secondary" onclick="showTab('discrepancies')">⚠️ Discrepancies</button>
+  <button class="secondary" onclick="showTab('raw')">📋 Raw Records</button>
+  <span id="record-count" style="color:#888;font-size:.8rem"></span>
+</div>
+
+<div id="status" class="status">Press "Load / Refresh" to fetch injection records from Airtable.</div>
+
+<div class="stats" id="stats-row" style="display:none">
+  <div class="stat-card"><div class="label">Total Injections (scope)</div><div class="value" id="s-total">—</div></div>
+  <div class="stat-card"><div class="label">Unique Dates</div><div class="value" id="s-dates">—</div></div>
+  <div class="stat-card"><div class="label">Unique Compounds</div><div class="value" id="s-compounds">—</div></div>
+  <div class="stat-card"><div class="label">Missing (PDF→AT)</div><div class="value" id="s-missing" style="color:#ef9a9a">—</div></div>
+  <div class="stat-card"><div class="label">Extra (AT not in PDF)</div><div class="value" id="s-extra" style="color:#ce93d8">—</div></div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="showTab('grid')">Coverage Grid</div>
+  <div class="tab" onclick="showTab('discrepancies')">Discrepancies</div>
+  <div class="tab" onclick="showTab('raw')">Raw Records</div>
+  <div class="tab" onclick="showTab('schema')">Schema</div>
+</div>
+
+<div class="tab-content active" id="tab-grid">
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#1b3a1b"></div>In Airtable (expected)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#3a1b1b"></div>MISSING from Airtable</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#111"></div>Not expected (PDF blank)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#2a1a3e"></div>Extra (in AT, not in PDF)</div>
+  </div>
+  <div id="grid-container"><p style="color:#555">Load data first.</p></div>
+</div>
+
+<div class="tab-content" id="tab-discrepancies">
+  <div id="discrepancy-container"><p style="color:#555">Load data first.</p></div>
+</div>
+
+<div class="tab-content" id="tab-raw">
+  <div class="filter-bar">
+    <label>Date:</label>
+    <input type="text" id="filter-date" placeholder="e.g. 2026-03" oninput="renderRaw()">
+    <label>Compound:</label>
+    <input type="text" id="filter-compound" placeholder="e.g. TRT" oninput="renderRaw()">
+    <button class="secondary" onclick="document.getElementById('filter-date').value='';document.getElementById('filter-compound').value='';renderRaw()">Clear</button>
+  </div>
+  <div id="raw-container"><p style="color:#555">Load data first.</p></div>
+</div>
+
+<div class="tab-content" id="tab-schema">
+  <div class="summary-box">
+    <h3>Discovered Field Names</h3>
+    <pre id="schema-display">—</pre>
+  </div>
+</div>
+
+<script>
+const BASE_ID = 'appmHDG4TGT1xy6R6';
+const TABLE_ID = 'tblBvEaLkGGipnOFc';
+const TOKEN = 'pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
+const SCOPE_START = '2026-03-16';
+const SCOPE_END = '2026-05-21';
+
+let allRecords = [];
+let fieldNames = {};
+
+// ─── EXPECTED DATA from PDF pages 23-27 ─────────────────────────
+// Format: [date, compound_key, time_of_day]
+// compound_key = normalized name matching Airtable
+// Only dates that should have entries (strikethroughs excluded)
+const EXPECTED = [
+// ── WEEK 1: Mar 16 ─────────────────────────
+['2026-03-16','TRT','Morning'],
+['2026-03-19','TRT','Morning'],
+['2026-03-16','Deca Nano','Morning'],
+['2026-03-19','Deca Nano','Morning'],
+['2026-03-17','NAD+','Morning'],
+['2026-03-20','NAD+','Morning'],
+['2026-03-22','NAD+','Morning'],
+['2026-03-16','Retatrutide','Morning'],
+['2026-03-16','Tesamorelin','Morning'],
+['2026-03-17','Tesamorelin','Morning'],
+['2026-03-18','Tesamorelin','Morning'],
+['2026-03-19','Tesamorelin','Morning'],
+['2026-03-20','Tesamorelin','Morning'],
+['2026-03-21','Tesamorelin','Morning'],
+['2026-03-16','GHK-Cu','Morning'],
+['2026-03-17','GHK-Cu','Morning'],
+['2026-03-18','GHK-Cu','Morning'],
+['2026-03-19','GHK-Cu','Morning'],
+['2026-03-20','GHK-Cu','Morning'],
+['2026-03-21','GHK-Cu','Morning'],
+['2026-03-22','GHK-Cu','Morning'],
+['2026-03-16','Mots-C','Morning'],
+['2026-03-17','Mots-C','Morning'],
+['2026-03-19','Mots-C','Morning'],
+['2026-03-16','SS-31','Morning'],
+['2026-03-17','SS-31','Morning'],
+['2026-03-18','SS-31','Morning'],
+['2026-03-19','SS-31','Morning'],
+['2026-03-20','SS-31','Morning'],
+['2026-03-21','SS-31','Morning'],
+['2026-03-22','SS-31','Morning'],
+['2026-03-17','CJC-1295','Night'],
+['2026-03-18','CJC-1295','Night'],
+['2026-03-21','CJC-1295','Night'],
+['2026-03-22','CJC-1295','Night'],
+['2026-03-17','Ipamorelin','Night'],
+['2026-03-18','Ipamorelin','Night'],
+['2026-03-21','Ipamorelin','Night'],
+['2026-03-22','Ipamorelin','Night'],
+// ── WEEK 2: Mar 23 ─────────────────────────
+['2026-03-23','TRT','Morning'],
+['2026-03-26','TRT','Morning'],
+['2026-03-23','Deca Nano','Morning'],
+['2026-03-24','NAD+','Morning'],
+['2026-03-27','NAD+','Morning'],
+['2026-03-29','NAD+','Morning'],
+['2026-03-26','BPC-157','Morning'],
+['2026-03-27','BPC-157','Morning'],
+['2026-03-28','BPC-157','Morning'],
+['2026-03-29','BPC-157','Morning'],
+['2026-03-28','TB-500','Morning'],
+['2026-03-23','Retatrutide','Morning'],
+['2026-03-24','Tesamorelin','Morning'],
+['2026-03-25','Tesamorelin','Morning'],
+['2026-03-26','Tesamorelin','Morning'],
+['2026-03-27','Tesamorelin','Morning'],
+['2026-03-28','Tesamorelin','Morning'],
+['2026-03-29','Tesamorelin','Morning'],
+['2026-03-23','GHK-Cu','Morning'],
+['2026-03-24','GHK-Cu','Morning'],
+['2026-03-25','GHK-Cu','Morning'],
+['2026-03-26','GHK-Cu','Morning'],
+['2026-03-27','GHK-Cu','Morning'],
+['2026-03-28','GHK-Cu','Morning'],
+['2026-03-29','GHK-Cu','Morning'],
+['2026-03-23','Mots-C','Morning'],
+['2026-03-24','Mots-C','Morning'],
+['2026-03-26','Mots-C','Morning'],
+['2026-03-23','SS-31','Morning'],
+['2026-03-24','SS-31','Morning'],
+['2026-03-26','SS-31','Morning'],
+['2026-03-27','SS-31','Morning'],
+['2026-03-29','SS-31','Morning'],
+['2026-03-23','CJC-1295','Night'],
+['2026-03-24','CJC-1295','Night'],
+['2026-03-25','CJC-1295','Night'],
+['2026-03-26','CJC-1295','Night'],
+['2026-03-29','CJC-1295','Night'],
+['2026-03-23','Ipamorelin','Night'],
+['2026-03-24','Ipamorelin','Night'],
+['2026-03-25','Ipamorelin','Night'],
+['2026-03-26','Ipamorelin','Night'],
+['2026-03-29','Ipamorelin','Night'],
+['2026-03-25','BPC-157','Night'],
+['2026-03-26','BPC-157','Night'],
+['2026-03-27','BPC-157','Night'],
+['2026-03-28','BPC-157','Night'],
+['2026-03-29','BPC-157','Night'],
+['2026-03-25','DSIP','Night'],
+['2026-03-26','DSIP','Night'],
+['2026-03-27','DSIP','Night'],
+['2026-03-28','DSIP','Night'],
+['2026-03-29','DSIP','Night'],
+['2026-03-23','KPV','Night'],
+['2026-03-24','KPV','Night'],
+['2026-03-25','KPV','Night'],
+['2026-03-26','KPV','Night'],
+['2026-03-27','KPV','Night'],
+['2026-03-28','KPV','Night'],
+['2026-03-29','KPV','Night'],
+// ── WEEK 3: Mar 30 (Carolina Beach — Mon–Thu only) ─────────────
+['2026-03-30','TRT','Morning'],
+['2026-04-02','TRT','Morning'],
+['2026-03-30','Deca Nano','Morning'],
+['2026-04-02','Deca Nano','Morning'],
+['2026-03-31','NAD+','Morning'],
+['2026-03-30','BPC-157','Morning'],
+['2026-03-31','BPC-157','Morning'],
+['2026-04-01','BPC-157','Morning'],
+['2026-04-02','BPC-157','Morning'],
+['2026-04-01','TB-500','Morning'],
+['2026-03-30','Retatrutide','Morning'],
+['2026-03-31','Tesamorelin','Morning'],
+['2026-04-01','Tesamorelin','Morning'],
+['2026-04-02','Tesamorelin','Morning'],
+['2026-03-30','GHK-Cu','Morning'],
+['2026-03-31','GHK-Cu','Morning'],
+['2026-04-01','GHK-Cu','Morning'],
+['2026-04-02','GHK-Cu','Morning'],
+['2026-03-30','Mots-C','Morning'],
+['2026-03-31','Mots-C','Morning'],
+['2026-04-02','Mots-C','Morning'],
+['2026-03-30','SS-31','Morning'],
+['2026-03-31','SS-31','Morning'],
+['2026-04-01','SS-31','Morning'],
+['2026-04-02','SS-31','Morning'],
+['2026-03-31','Semax','Morning'],
+['2026-04-01','Semax','Morning'],
+['2026-04-02','Semax','Morning'],
+['2026-03-30','CJC-1295','Night'],
+['2026-03-31','CJC-1295','Night'],
+['2026-04-01','CJC-1295','Night'],
+['2026-04-02','CJC-1295','Night'],
+['2026-03-30','Ipamorelin','Night'],
+['2026-03-31','Ipamorelin','Night'],
+['2026-04-01','Ipamorelin','Night'],
+['2026-04-02','Ipamorelin','Night'],
+['2026-03-30','BPC-157','Night'],
+['2026-03-31','BPC-157','Night'],
+['2026-04-01','BPC-157','Night'],
+['2026-04-02','BPC-157','Night'],
+['2026-03-30','Selank','Night'],
+['2026-03-31','Selank','Night'],
+['2026-04-01','Selank','Night'],
+['2026-04-02','Selank','Night'],
+['2026-04-01','DSIP','Night'],
+['2026-04-02','DSIP','Night'],
+['2026-03-30','KPV','Night'],
+['2026-03-31','KPV','Night'],
+['2026-04-01','KPV','Night'],
+['2026-04-02','KPV','Night'],
+['2026-03-30','Melanotan II','Night'],
+['2026-03-31','Melanotan II','Night'],
+['2026-04-01','Melanotan II','Night'],
+['2026-04-02','Melanotan II','Night'],
+// ── WEEK 4: Apr 6 (FLORIDA — Mon–Thu only) ──────────────────────
+['2026-04-06','TRT','Morning'],
+['2026-04-09','TRT','Morning'],
+['2026-04-06','Deca Nano','Morning'],
+['2026-04-09','Deca Nano','Morning'],
+['2026-04-07','NAD+','Morning'],
+['2026-04-06','Retatrutide','Morning'],
+['2026-04-07','Tesamorelin','Morning'],
+['2026-04-08','Tesamorelin','Morning'],
+['2026-04-09','Tesamorelin','Morning'],
+['2026-04-06','GHK-Cu','Morning'],
+['2026-04-07','GHK-Cu','Morning'],
+['2026-04-08','GHK-Cu','Morning'],
+['2026-04-09','GHK-Cu','Morning'],
+['2026-04-06','Semax','Morning'],
+['2026-04-07','Semax','Morning'],
+['2026-04-06','CJC-1295','Night'],
+['2026-04-07','CJC-1295','Night'],
+['2026-04-08','CJC-1295','Night'],
+['2026-04-06','Ipamorelin','Night'],
+['2026-04-07','Ipamorelin','Night'],
+['2026-04-08','Ipamorelin','Night'],
+['2026-04-06','Selank','Night'],
+['2026-04-07','Selank','Night'],
+['2026-04-08','Selank','Night'],
+['2026-04-08','DSIP','Night'],
+['2026-04-06','KPV','Night'],
+['2026-04-08','KPV','Night'],
+['2026-04-06','Melanotan II','Night'],
+['2026-04-07','Melanotan II','Night'],
+['2026-04-08','Melanotan II','Night'],
+// ── NEW SECTION (page 25): Apr 13 — Tirzepatide restarts ────────
+['2026-04-13','TRT','Morning'],
+['2026-04-16','TRT','Morning'],
+['2026-04-13','Deca Nano','Morning'],
+['2026-04-16','Deca Nano','Morning'],
+['2026-04-14','NAD+','Morning'],
+['2026-04-17','NAD+','Morning'],
+['2026-04-19','NAD+','Morning'],
+['2026-04-13','Retatrutide','Morning'],
+['2026-04-13','Tesamorelin','Morning'],
+['2026-04-14','Tesamorelin','Morning'],
+['2026-04-15','Tesamorelin','Morning'],
+['2026-04-16','Tesamorelin','Morning'],
+['2026-04-17','Tesamorelin','Morning'],
+['2026-04-18','Tesamorelin','Morning'],
+['2026-04-13','GHK-Cu','Morning'],
+['2026-04-14','GHK-Cu','Morning'],
+['2026-04-15','GHK-Cu','Morning'],
+['2026-04-16','GHK-Cu','Morning'],
+['2026-04-17','GHK-Cu','Morning'],
+['2026-04-18','GHK-Cu','Morning'],
+['2026-04-19','GHK-Cu','Morning'],
+['2026-04-14','Semax','Morning'],
+['2026-04-15','Semax','Morning'],
+['2026-04-17','Semax','Morning'],
+['2026-04-18','Semax','Morning'],
+['2026-04-19','Semax','Morning'],
+['2026-04-13','CJC-1295','Night'],
+['2026-04-14','CJC-1295','Night'],
+['2026-04-15','CJC-1295','Night'],
+['2026-04-16','CJC-1295','Night'],
+['2026-04-19','CJC-1295','Night'],
+['2026-04-13','Ipamorelin','Night'],
+['2026-04-14','Ipamorelin','Night'],
+['2026-04-15','Ipamorelin','Night'],
+['2026-04-16','Ipamorelin','Night'],
+['2026-04-19','Ipamorelin','Night'],
+['2026-04-13','Selank','Night'],
+['2026-04-14','Selank','Night'],
+['2026-04-15','Selank','Night'],
+['2026-04-16','Selank','Night'],
+['2026-04-19','Selank','Night'],
+['2026-04-13','DSIP','Night'],
+['2026-04-15','DSIP','Night'],
+['2026-04-19','DSIP','Night'],
+['2026-04-13','KPV','Night'],
+['2026-04-14','KPV','Night'],
+['2026-04-15','KPV','Night'],
+['2026-04-16','KPV','Night'],
+['2026-04-19','KPV','Night'],
+['2026-04-13','Melanotan II','Night'],
+['2026-04-14','Melanotan II','Night'],
+['2026-04-15','Melanotan II','Night'],
+['2026-04-16','Melanotan II','Night'],
+['2026-04-19','Melanotan II','Night'],
+// ── Apr 20 ──────────────────────────────────────────────────────
+['2026-04-20','TRT','Morning'],
+['2026-04-23','TRT','Morning'],
+['2026-04-20','Deca Nano','Morning'],
+['2026-04-23','Deca Nano','Morning'],
+['2026-04-21','NAD+','Morning'],
+['2026-04-24','NAD+','Morning'],
+['2026-04-20','Retatrutide','Morning'],
+['2026-04-20','Tesamorelin','Morning'],
+['2026-04-21','Tesamorelin','Morning'],
+['2026-04-22','Tesamorelin','Morning'],
+['2026-04-23','Tesamorelin','Morning'],
+['2026-04-24','Tesamorelin','Morning'],
+['2026-04-25','Tesamorelin','Morning'],
+['2026-04-20','GHK-Cu','Morning'],
+['2026-04-21','GHK-Cu','Morning'],
+['2026-04-22','GHK-Cu','Morning'],
+['2026-04-23','GHK-Cu','Morning'],
+['2026-04-24','GHK-Cu','Morning'],
+['2026-04-25','GHK-Cu','Morning'],
+['2026-04-21','Semax','Morning'],
+['2026-04-22','Semax','Morning'],
+['2026-04-24','Semax','Morning'],
+['2026-04-25','Semax','Morning'],
+['2026-04-20','CJC-1295','Night'],
+['2026-04-21','CJC-1295','Night'],
+['2026-04-22','CJC-1295','Night'],
+['2026-04-23','CJC-1295','Night'],
+['2026-04-20','Ipamorelin','Night'],
+['2026-04-21','Ipamorelin','Night'],
+['2026-04-22','Ipamorelin','Night'],
+['2026-04-23','Ipamorelin','Night'],
+['2026-04-20','Selank','Night'],
+['2026-04-21','Selank','Night'],
+['2026-04-22','Selank','Night'],
+['2026-04-23','Selank','Night'],
+['2026-04-20','DSIP','Night'],
+['2026-04-22','DSIP','Night'],
+['2026-04-20','KPV','Night'],
+['2026-04-22','KPV','Night'],
+['2026-04-23','KPV','Night'],
+['2026-04-20','Melanotan II','Night'],
+['2026-04-21','Melanotan II','Night'],
+['2026-04-22','Melanotan II','Night'],
+['2026-04-23','Melanotan II','Night'],
+// ── Apr 27 ──────────────────────────────────────────────────────
+['2026-04-27','TRT','Morning'],
+['2026-04-30','TRT','Morning'],
+['2026-04-27','Deca Nano','Morning'],
+['2026-04-30','Deca Nano','Morning'],
+['2026-04-28','NAD+','Morning'],
+['2026-05-01','NAD+','Morning'],
+['2026-05-03','NAD+','Morning'],
+['2026-04-27','Retatrutide','Morning'],
+['2026-04-27','Tesamorelin','Morning'],
+['2026-04-28','Tesamorelin','Morning'],
+['2026-04-29','Tesamorelin','Morning'],
+['2026-04-30','Tesamorelin','Morning'],
+['2026-05-01','Tesamorelin','Morning'],
+['2026-05-02','Tesamorelin','Morning'],
+['2026-04-27','GHK-Cu','Morning'],
+['2026-04-28','GHK-Cu','Morning'],
+['2026-04-29','GHK-Cu','Morning'],
+['2026-04-30','GHK-Cu','Morning'],
+['2026-05-01','GHK-Cu','Morning'],
+['2026-05-02','GHK-Cu','Morning'],
+['2026-05-03','GHK-Cu','Morning'],
+['2026-04-27','CJC-1295','Night'],
+['2026-04-28','CJC-1295','Night'],
+['2026-04-29','CJC-1295','Night'],
+['2026-04-30','CJC-1295','Night'],
+['2026-05-03','CJC-1295','Night'],
+['2026-04-27','Ipamorelin','Night'],
+['2026-04-28','Ipamorelin','Night'],
+['2026-04-29','Ipamorelin','Night'],
+['2026-04-30','Ipamorelin','Night'],
+['2026-05-03','Ipamorelin','Night'],
+['2026-04-27','Selank','Night'],
+['2026-04-27','DSIP','Night'],
+['2026-04-29','DSIP','Night'],
+['2026-05-02','DSIP','Night'],
+['2026-05-03','DSIP','Night'],
+['2026-04-29','KPV','Night'],
+['2026-04-30','KPV','Night'],
+['2026-05-02','KPV','Night'],
+['2026-05-03','KPV','Night'],
+['2026-04-27','Melanotan II','Night'],
+// ── May 4 ───────────────────────────────────────────────────────
+['2026-05-04','TRT','Morning'],
+['2026-05-07','TRT','Morning'],
+['2026-05-04','Deca Nano','Morning'],
+['2026-05-07','Deca Nano','Morning'],
+['2026-05-05','NAD+','Morning'],
+['2026-05-08','NAD+','Morning'],
+['2026-05-10','NAD+','Morning'],
+['2026-05-04','Retatrutide','Morning'],
+['2026-05-04','Tesamorelin','Morning'],
+['2026-05-05','Tesamorelin','Morning'],
+['2026-05-06','Tesamorelin','Morning'],
+['2026-05-07','Tesamorelin','Morning'],
+['2026-05-08','Tesamorelin','Morning'],
+['2026-05-09','Tesamorelin','Morning'],
+['2026-05-04','GHK-Cu','Morning'],
+['2026-05-05','GHK-Cu','Morning'],
+['2026-05-06','GHK-Cu','Morning'],
+['2026-05-07','GHK-Cu','Morning'],
+['2026-05-08','GHK-Cu','Morning'],
+['2026-05-09','GHK-Cu','Morning'],
+['2026-05-10','GHK-Cu','Morning'],
+['2026-05-04','CJC-1295','Night'],
+['2026-05-05','CJC-1295','Night'],
+['2026-05-06','CJC-1295','Night'],
+['2026-05-10','CJC-1295','Night'],
+['2026-05-04','Ipamorelin','Night'],
+['2026-05-05','Ipamorelin','Night'],
+['2026-05-06','Ipamorelin','Night'],
+['2026-05-10','Ipamorelin','Night'],
+['2026-05-04','DSIP','Night'],
+['2026-05-06','DSIP','Night'],
+['2026-05-10','DSIP','Night'],
+['2026-05-04','KPV','Night'],
+['2026-05-05','KPV','Night'],
+['2026-05-06','KPV','Night'],
+['2026-05-10','KPV','Night'],
+['2026-05-04','Melanotan II','Night'],
+// ── May 11 (NAD+ → 20u, CAG starts Wed) ────────────────────────
+['2026-05-11','TRT','Morning'],
+['2026-05-14','TRT','Morning'],
+['2026-05-11','Deca Nano','Morning'],
+['2026-05-14','Deca Nano','Morning'],
+['2026-05-12','NAD+','Morning'],
+['2026-05-15','NAD+','Morning'],
+['2026-05-17','NAD+','Morning'],
+['2026-05-11','Retatrutide','Morning'],
+['2026-05-11','Tesamorelin','Morning'],
+['2026-05-12','Tesamorelin','Morning'],
+['2026-05-13','Tesamorelin','Morning'],
+['2026-05-14','Tesamorelin','Morning'],
+['2026-05-15','Tesamorelin','Morning'],
+['2026-05-16','Tesamorelin','Morning'],
+['2026-05-11','GHK-Cu','Morning'],
+['2026-05-12','GHK-Cu','Morning'],
+['2026-05-13','GHK-Cu','Morning'],
+['2026-05-14','GHK-Cu','Morning'],
+['2026-05-15','GHK-Cu','Morning'],
+['2026-05-16','GHK-Cu','Morning'],
+['2026-05-17','GHK-Cu','Morning'],
+['2026-05-13','CAG','Morning'],
+['2026-05-12','Melanotan II','Morning'],
+['2026-05-11','CJC-1295','Night'],
+['2026-05-12','CJC-1295','Night'],
+['2026-05-14','CJC-1295','Night'],
+['2026-05-17','CJC-1295','Night'],
+['2026-05-11','Ipamorelin','Night'],
+['2026-05-12','Ipamorelin','Night'],
+['2026-05-14','Ipamorelin','Night'],
+['2026-05-17','Ipamorelin','Night'],
+['2026-05-11','DSIP','Night'],
+['2026-05-17','DSIP','Night'],
+['2026-05-11','KPV','Night'],
+['2026-05-12','KPV','Night'],
+['2026-05-14','KPV','Night'],
+['2026-05-17','KPV','Night'],
+// ── May 18 (Reta finishes, Tesa→20u on 5/21, Tirz restarts Thu) 
+['2026-05-18','TRT','Morning'],
+['2026-05-21','TRT','Morning'],
+['2026-05-18','Deca Nano','Morning'],
+['2026-05-21','Deca Nano','Morning'],
+['2026-05-19','NAD+','Morning'],
+['2026-05-18','Retatrutide','Morning'],
+['2026-05-18','Tesamorelin','Morning'],
+['2026-05-19','Tesamorelin','Morning'],
+['2026-05-20','Tesamorelin','Morning'],
+['2026-05-21','Tesamorelin','Morning'],
+['2026-05-18','GHK-Cu','Morning'],
+['2026-05-19','GHK-Cu','Morning'],
+['2026-05-20','GHK-Cu','Morning'],
+['2026-05-21','GHK-Cu','Morning'],
+['2026-05-20','CAG','Morning'],
+['2026-05-21','CAG','Morning'],
+['2026-05-19','Melanotan II','Morning'],
+['2026-05-21','Tirzepatide','Morning'],
+['2026-05-18','CJC-1295','Night'],
+['2026-05-19','CJC-1295','Night'],
+['2026-05-20','CJC-1295','Night'],
+['2026-05-21','CJC-1295','Night'],
+['2026-05-18','Ipamorelin','Night'],
+['2026-05-19','Ipamorelin','Night'],
+['2026-05-20','Ipamorelin','Night'],
+['2026-05-21','Ipamorelin','Night'],
+['2026-05-18','DSIP','Night'],
+['2026-05-20','DSIP','Night'],
+['2026-05-18','KPV','Night'],
+['2026-05-19','KPV','Night'],
+['2026-05-20','KPV','Night'],
+['2026-05-21','KPV','Night'],
+];
+
+// Build expected set: key = "date|compound|time"
+const expectedSet = new Set(EXPECTED.map(e => `${e[0]}|${e[1]}|${e[2]}`));
+// Also build date+compound set ignoring time for fuzzy match
+const expectedDC = new Set(EXPECTED.map(e => `${e[0]}|${e[1]}`));
+
+// All unique compounds in expected
+const allExpectedCompounds = [...new Set(EXPECTED.map(e => e[1]))].sort();
+
+function setStatus(msg, cls='') {
+  const el = document.getElementById('status');
+  el.textContent = msg;
+  el.style.borderColor = cls==='error' ? '#b71c1c' : cls==='ok' ? '#1b5e20' : '#2a2d3e';
+}
+function setBar(pct) {
+  document.getElementById('loadingBar').style.width = pct+'%';
+}
+
+async function fetchAll() {
+  let records = [], offset = null, page = 0;
+  do {
+    let url = `https://api.airtable.com/v0/${BASE_ID}/${TABLE_ID}?pageSize=100`;
+    if (offset) url += `&offset=${offset}`;
+    const res = await fetch(url, {headers:{Authorization:`Bearer ${TOKEN}`}});
+    if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`);
+    const data = await res.json();
+    records.push(...data.records);
+    offset = data.offset || null;
+    page++;
+    setStatus(`Fetching... page ${page} (${records.length} records)`);
+    setBar(Math.min(90, page*10));
+  } while(offset);
+  return records;
+}
+
+async function loadAll() {
+  setStatus('Connecting to Airtable...');
+  setBar(5);
+  try {
+    allRecords = await fetchAll();
+    setBar(100);
+    document.getElementById('record-count').textContent = `${allRecords.length} total records`;
+    
+    // Discover field names
+    if (allRecords.length > 0) {
+      fieldNames = allRecords[0].fields;
+      document.getElementById('schema-display').textContent = JSON.stringify(Object.keys(allRecords[0].fields), null, 2) + '\n\nSample record:\n' + JSON.stringify(allRecords[0].fields, null, 2);
+    }
+    
+    setStatus(`Loaded ${allRecords.length} total records. Analyzing...`, 'ok');
+    document.getElementById('stats-row').style.display = 'flex';
+    renderAll();
+    setTimeout(()=>setBar(0),2000);
+  } catch(e) {
+    setStatus('Error: ' + e.message, 'error');
+    setBar(0);
+  }
+}
+
+function getDate(rec) {
+  const f = rec.fields;
+  // Try common date field names
+  for (const k of ['Date','date','DATE','Injection Date','injection_date']) {
+    if (f[k]) return String(f[k]).substring(0,10);
+  }
+  // Try to find any date-like field
+  for (const [k,v] of Object.entries(f)) {
+    if (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}/.test(v)) return v.substring(0,10);
+  }
+  return null;
+}
+
+function getCompound(rec) {
+  const f = rec.fields;
+  for (const k of ['Compound','compound','Medication','medication','Name','name','Peptide','peptide']) {
+    if (f[k]) return String(f[k]);
+  }
+  // Return first text field
+  for (const [k,v] of Object.entries(f)) {
+    if (typeof v === 'string' && k !== 'Date' && k !== 'date') return v;
+  }
+  return '?';
+}
+
+function getTime(rec) {
+  const f = rec.fields;
+  for (const k of ['Time','time','Time of Day','time_of_day','TOD','tod','Session','session']) {
+    if (f[k]) return String(f[k]);
+  }
+  return '';
+}
+
+// Normalize compound names for matching
+function normCompound(c) {
+  if (!c) return c;
+  const s = c.trim();
+  const map = {
+    'TRT (Testosterone)': 'TRT', 'Testosterone': 'TRT',
+    'Deca (Nano)': 'Deca Nano', 'Nandrolone Decanoate': 'Deca Nano', 'Deca': 'Deca Nano',
+    'NAD+': 'NAD+', 'NAD': 'NAD+',
+    'BPC 157': 'BPC-157', 'BPC157': 'BPC-157',
+    'TB 500': 'TB-500', 'TB500': 'TB-500',
+    'CJC-1295 No DAC': 'CJC-1295', 'CJC 1295': 'CJC-1295', 'CJC1295': 'CJC-1295',
+    'Ipamorelin': 'Ipamorelin',
+    'GHK-Cu': 'GHK-Cu', 'GHK Cu': 'GHK-Cu',
+    'Mots C': 'Mots-C', 'MOTS-C': 'Mots-C',
+    'SS 31': 'SS-31', 'SS31': 'SS-31',
+    'Melanotan II': 'Melanotan II', 'Melanotan 2': 'Melanotan II', 'MT2': 'Melanotan II', 'MT-II': 'Melanotan II',
+    'Tesamorelin': 'Tesamorelin',
+    'Retatrutide': 'Retatrutide',
+    'Semax': 'Semax', 'Selank': 'Selank',
+    'DSIP': 'DSIP', 'KPV': 'KPV',
+    'Tirzepatide': 'Tirzepatide',
+    'CAG': 'CAG', 'Epithalon': 'Epitalon', 'Epitalon': 'Epitalon',
+  };
+  return map[s] || s;
+}
+
+function normTime(t) {
+  if (!t) return '';
+  const l = t.toLowerCase();
+  if (l.includes('morn') || l === 'am') return 'Morning';
+  if (l.includes('night') || l.includes('pm') || l === 'evening') return 'Night';
+  return t;
+}
+
+function renderAll() {
+  // Filter to scope
+  const scopeRecords = allRecords.filter(r => {
+    const d = getDate(r);
+    return d && d >= SCOPE_START && d <= SCOPE_END;
+  });
+  
+  // Build actual set
+  const actualSet = new Set();
+  const actualDC = new Set();
+  scopeRecords.forEach(r => {
+    const d = getDate(r);
+    const c = normCompound(getCompound(r));
+    const t = normTime(getTime(r));
+    if (d && c) {
+      actualSet.add(`${d}|${c}|${t}`);
+      actualDC.add(`${d}|${c}`);
+    }
+  });
+  
+  // Compute discrepancies
+  const missing = [...expectedSet].filter(k => !actualDC.has(k.split('|').slice(0,2).join('|')));
+  const extra = [...actualDC].filter(k => !expectedDC.has(k));
+  
+  // Stats
+  document.getElementById('s-total').textContent = scopeRecords.length;
+  document.getElementById('s-dates').textContent = new Set(scopeRecords.map(r=>getDate(r))).size;
+  document.getElementById('s-compounds').textContent = new Set(scopeRecords.map(r=>normCompound(getCompound(r)))).size;
+  document.getElementById('s-missing').textContent = missing.length;
+  document.getElementById('s-extra').textContent = extra.length;
+  
+  renderGrid(scopeRecords, actualDC, missing);
+  renderDiscrepancies(missing, extra, scopeRecords, actualDC);
+  renderRaw(scopeRecords);
+}
+
+function getAllDates() {
+  const dates = [];
+  let d = new Date(SCOPE_START);
+  const end = new Date(SCOPE_END);
+  while (d <= end) {
+    dates.push(d.toISOString().substring(0,10));
+    d.setDate(d.getDate()+1);
+  }
+  return dates;
+}
+
+function renderGrid(scopeRecords, actualDC, missingList) {
+  const dates = getAllDates();
+  const compounds = allExpectedCompounds;
+  const missingSet = new Set(missingList);
+  
+  let html = '<div style="overflow-x:auto"><div class="compound-grid" style="grid-template-columns: 170px repeat('+dates.length+', minmax(22px, 1fr))">';
+  // Header row
+  html += '<div class="grid-label" style="font-weight:700;font-size:.7rem">Compound</div>';
+  dates.forEach(d => {
+    const dt = new Date(d+'T12:00:00');
+    const day = dt.getDate();
+    const mon = dt.toLocaleString('en',{month:'short'});
+    html += `<div class="grid-header" title="${d}">${day==1||day==15?mon+' ':''}<br>${day}</div>`;
+  });
+  
+  compounds.forEach(c => {
+    html += `<div class="grid-label">${c}</div>`;
+    dates.forEach(d => {
+      const key = `${d}|${c}`;
+      const inAT = actualDC.has(key);
+      const inPDF = expectedDC.has(key);
+      let cls, title;
+      if (inAT && inPDF) { cls = 'has-inj'; title = '✓ In Airtable'; }
+      else if (!inAT && inPDF) { cls = 'expected-miss'; title = '⚠ MISSING from Airtable'; }
+      else if (inAT && !inPDF) { cls = 'has-inj' + ' extra-inj'; title = '? In AT, not in PDF'; }
+      else { cls = 'not-expected'; title = ''; }
+      const dot = inAT ? (inPDF ? '●' : '◇') : (inPDF ? '✗' : '');
+      html += `<div class="grid-cell ${cls}" title="${d} ${c}: ${title}">${dot}</div>`;
+    });
+  });
+  
+  html += '</div></div>';
+  document.getElementById('grid-container').innerHTML = html;
+}
+
+function renderDiscrepancies(missing, extra, scopeRecords, actualDC) {
+  let html = '';
+  
+  if (missing.length === 0 && extra.length === 0) {
+    html = '<div class="summary-box"><h3>✅ No Discrepancies Found</h3><p style="color:#81c784;font-size:.85rem">All expected injections are present in Airtable.</p></div>';
+  } else {
+    // Group missing by date
+    if (missing.length > 0) {
+      html += `<div class="summary-box"><h3>⚠️ Missing from Airtable (${missing.length} entries)</h3>`;
+      html += '<p style="color:#888;font-size:.75rem;margin-bottom:10px">Expected in PDF but not found in Airtable for Mar 16 – May 21:</p>';
+      const grouped = {};
+      missing.forEach(k => {
+        const [d,c,t] = k.split('|');
+        if (!grouped[d]) grouped[d] = [];
+        grouped[d].push({c,t});
+      });
+      const sortedDates = Object.keys(grouped).sort();
+      sortedDates.forEach(d => {
+        grouped[d].forEach(({c,t}) => {
+          html += `<div class="issue-item">
+            <span class="date">${d}</span>
+            <span class="compound">${c}</span>
+            <span class="detail">${t || ''} — MISSING</span>
+          </div>`;
+        });
+      });
+      html += '</div>';
+    }
+    if (extra.length > 0) {
+      html += `<div class="summary-box"><h3>◇ Extra in Airtable (${extra.length} date/compound combos)</h3>`;
+      html += '<p style="color:#888;font-size:.75rem;margin-bottom:10px">Found in Airtable but not in PDF expected data — may be legitimate:</p>';
+      extra.forEach(k => {
+        const [d,c] = k.split('|');
+        html += `<div class="issue-item"><span class="date">${d}</span><span class="compound" style="color:#ce93d8">${c}</span><span style="color:#888">In AT, not in PDF expected</span></div>`;
+      });
+      html += '</div>';
+    }
+  }
+  document.getElementById('discrepancy-container').innerHTML = html;
+}
+
+function renderRaw(recs) {
+  const records = recs || allRecords.filter(r => {
+    const d = getDate(r);
+    return d && d >= SCOPE_START && d <= SCOPE_END;
+  });
+  const fDate = document.getElementById('filter-date')?.value.trim().toLowerCase() || '';
+  const fComp = document.getElementById('filter-compound')?.value.trim().toLowerCase() || '';
+  const filtered = records.filter(r => {
+    const d = (getDate(r)||'').toLowerCase();
+    const c = (getCompound(r)||'').toLowerCase();
+    return (!fDate || d.includes(fDate)) && (!fComp || c.includes(fComp));
+  });
+  
+  if (filtered.length === 0) {
+    document.getElementById('raw-container').innerHTML = '<p style="color:#555">No records match filters.</p>';
+    return;
+  }
+  
+  // Get all field keys
+  const allKeys = [...new Set(filtered.flatMap(r => Object.keys(r.fields)))];
+  let html = `<p style="color:#888;font-size:.78rem;margin-bottom:8px">Showing ${filtered.length} records</p>`;
+  html += '<div style="overflow-x:auto"><table><thead><tr><th>Airtable ID</th>';
+  allKeys.forEach(k => html += `<th>${k}</th>`);
+  html += '</tr></thead><tbody>';
+  filtered.sort((a,b) => (getDate(a)||'') < (getDate(b)||'') ? -1 : 1).forEach(r => {
+    html += `<tr><td style="color:#555;font-size:.7rem">${r.id}</td>`;
+    allKeys.forEach(k => html += `<td>${r.fields[k]??''}</td>`);
+    html += '</tr>';
+  });
+  html += '</tbody></table></div>';
+  document.getElementById('raw-container').innerHTML = html;
+}
+
+function showTab(name) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-'+name)?.classList.add('active');
+  const idx = ['grid','discrepancies','raw','schema'].indexOf(name);
+  if (idx >= 0) document.querySelectorAll('.tab')[idx]?.classList.add('active');
+}
+</script>
+</body>
+</html>
