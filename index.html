@@ -3423,7 +3423,10 @@ const activePeps = data.peptides.filter(r => getField(r,'Status') === 'Active');
         </td>
         ${days.map((_,i) => dayCell(name, i, MORN_BG)).join('')}
         ${vialBtns(name)}
-        
+      <td style="border:1px solid #000;background:${MORN_BG};padding:2px 4px">
+        <input type="text" placeholder="Notes..." data-compound="${name}" data-type="notes"
+          style="width:100%;border:none;background:transparent;font-size:11px;font-family:'DM Sans',sans-serif;outline:none;color:var(--text)">
+      </td>
       </tr>`;
     });
   }
@@ -3440,7 +3443,10 @@ const activePeps = data.peptides.filter(r => getField(r,'Status') === 'Active');
         </td>
         ${days.map((_,i) => dayCell(name, i, NIGHT_BG)).join('')}
         ${vialBtns(name)}
-        
+      <td style="border:1px solid #000;background:${NIGHT_BG};padding:2px 4px">
+        <input type="text" placeholder="Notes..." data-compound="${name}" data-type="notes"
+          style="width:100%;border:none;background:transparent;font-size:11px;font-family:'DM Sans',sans-serif;outline:none;color:var(--text)">
+      </td>
       </tr>`;
     });
   }
