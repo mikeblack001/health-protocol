@@ -3316,7 +3316,8 @@ async function fetchHistoricalCompounds(mondayISO) {
 }
 
 function renderTracker(weekNum) {
-  const activePeps = data.peptides.filter(r => getField(r,'Status') === 'Active');
+  _currentMondayISO = mondayISO;
+const activePeps = data.peptides.filter(r => getField(r,'Status') === 'Active');
   const pepMap = {};
   activePeps.forEach(r => { pepMap[getField(r,'Compound')] = r; });
   // Case-insensitive lookup for historical mode — use ALL peptides so paused compounds resolve correctly
@@ -3420,10 +3421,7 @@ function renderTracker(weekNum) {
         </td>
         ${days.map((_,i) => dayCell(name, i, MORN_BG)).join('')}
         ${vialBtns(name)}
-        <td style="border:1px solid #000;background:${MORN_BG};padding:2px 4px">
-          <input type="text" placeholder="Notes..." data-compound="${name}" data-type="notes"
-            style="width:100%;border:none;background:transparent;font-size:11px;font-family:'DM Sans',sans-serif;outline:none;color:var(--text)">
-        </td>
+        
       </tr>`;
     });
   }
@@ -3440,10 +3438,7 @@ function renderTracker(weekNum) {
         </td>
         ${days.map((_,i) => dayCell(name, i, NIGHT_BG)).join('')}
         ${vialBtns(name)}
-        <td style="border:1px solid #000;background:${NIGHT_BG};padding:2px 4px">
-          <input type="text" placeholder="Notes..." data-compound="${name}" data-type="notes"
-            style="width:100%;border:none;background:transparent;font-size:11px;font-family:'DM Sans',sans-serif;outline:none;color:var(--text)">
-        </td>
+        
       </tr>`;
     });
   }
@@ -3770,7 +3765,16 @@ async function logVialEvent(compound, type) {
   } catch(e) { alert('Log failed: ' + e.message); }
 }
 
-async function saveTrackerWeek(mondayISO) {
+let _autoSaveTimer = null;
+let _currentMondayISO = null;
+
+function autoSave() {
+  if (!_currentMondayISO) return;
+  clearTimeout(_autoSaveTimer);
+  _autoSaveTimer = setTimeout(() => saveTrackerWeek(_currentMondayISO, true), 800);
+}
+
+async function saveTrackerWeek(mondayISO, silent) {
   const boxes = document.querySelectorAll('.check-box[data-compound]');
   const entries = [];
   boxes.forEach(b => {
@@ -3778,23 +3782,32 @@ async function saveTrackerWeek(mondayISO) {
       entries.push(`${b.dataset.date}|${b.dataset.compound}:${b.dataset.s}`);
     }
   });
-  const noteInputs = document.querySelectorAll('input[data-type="notes"]');
-  noteInputs.forEach(n => {
-    if (n.value.trim()) entries.push(`NOTE|${n.dataset.compound}:${n.value.trim()}`);
-  });
-  if (!entries.length) { alert('Nothing to save — mark some injections first.'); return; }
+  if (!entries.length && !silent) { alert('Nothing to save — mark some injections first.'); return; }
   try {
-    await fetch(`https://api.airtable.com/v0/${BASE}/${TABLES.dailyLog}`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fields: {
-        [DL.date]: mondayISO,
-        [DL.pepLog]: entries.join(', '),
-        [DL.pepTaken]: true
-      }})
-    });
-    alert('Week saved ✓');
-  } catch(e) { alert('Save failed: ' + e.message); }
+    // Check if record exists for this week
+    const chkUrl = `https://api.airtable.com/v0/${BASE}/${TABLES.dailyLog}?filterByFormula=${encodeURIComponent('IS_SAME({Date},"'+mondayISO+'","day")')}`;
+    const chkRes = await fetch(chkUrl, { headers: { Authorization: `Bearer ${TOKEN}` }});
+    const chkJ = await chkRes.json();
+    const existing = (chkJ.records||[])[0];
+    if (existing) {
+      await fetch(`https://api.airtable.com/v0/${BASE}/${TABLES.dailyLog}/${existing.id}`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fields: { [DL.pepLog]: entries.join(', '), [DL.pepTaken]: true }})
+      });
+    } else {
+      await fetch(`https://api.airtable.com/v0/${BASE}/${TABLES.dailyLog}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fields: { [DL.date]: mondayISO, [DL.pepLog]: entries.join(', '), [DL.pepTaken]: true }})
+      });
+    }
+    if (!silent) alert('Week saved ✓');
+    else {
+      const btn = document.getElementById('save-status');
+      if (btn) { btn.textContent = '✓ Saved'; btn.style.color='var(--green)'; setTimeout(()=>{btn.textContent='';}, 2000); }
+    }
+  } catch(e) { if (!silent) alert('Save failed: ' + e.message); }
 }
 
 function filterPeptides(f, el) {
