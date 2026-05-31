@@ -544,6 +544,7 @@
       <div class="drop-menu" id="drop-ex">
         <button class="drop-item" onclick="navDrop('workouts','nav-ex')">Workouts</button>
         <button class="drop-item" onclick="navDrop('workout-suggestions','nav-ex')">Workout Suggestions</button>
+        <button class="drop-item" onclick="navDrop('pdfqa','nav-ex')">PDF Verify</button>
       </div>
     </div>
 
@@ -1017,7 +1018,7 @@
   </div>
 
   <!-- DATA BROWSER -->
-  <div id="view-pdfqa" class="view"></div>
+  <div id="view-pdfqa" class="view" style="padding:0;overflow:hidden"><iframe src="verify.html" style="width:100%;height:calc(100vh - 62px);border:none;display:block"></iframe></div>
   <div id="view-databrowser" class="view">
     <div class="section-header" style="flex-wrap:wrap;gap:10px">
       <h2>Data Browser</h2>
