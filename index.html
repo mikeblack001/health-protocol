@@ -3382,81 +3382,7 @@ function renderTracker(weekNum) {
     </td>`;
   }
 
-  async function updateVialCells() {
-    try {
-      // Fetch all peptide records with Compound + Status + End Date fields
-      let records = [], offset = null;
-      do {
-        let url = `https://api.airtable.com/v0/${BASE}/tblMs6YRdP4wkndUp?fields[]=fldeH5uyKXDFPZbHK&fields[]=fldeCBOtYYp6BtAfh&fields[]=fldbS91GtXsxjZU4q&fields[]=fldN7WOCx7ETJwmrB&fields[]=fldyExNQXycfMjd1S&fields[]=fld9J0U5iSDzyaaun&fields[]=fld3I1yzis1GsIDig&pageSize=100`;
-        if (offset) url += `&offset=${encodeURIComponent(offset)}`;
-        const res = await fetch(url, { headers: { Authorization: `Bearer ${TOKEN}` }});
-        const j = await res.json();
-        records = records.concat(j.records || []);
-        offset = j.offset;
-      } while (offset);
 
-      // Build map: compound → active record
-      const activeMap = {};
-      records.forEach(r => {
-        const compound = r.fields['fldeH5uyKXDFPZbHK'];
-        const status = r.fields['fldeCBOtYYp6BtAfh'];
-        if (compound && status === 'Active') activeMap[compound] = r;
-      });
-
-      // Update each vial cell
-      document.querySelectorAll('td[data-vial-compound]').forEach(td => {
-        const name = td.dataset.vialCompound;
-        const rec = activeMap[name];
-        if (rec) {
-          td.innerHTML = `<button onclick="markVialFinished('${name}','${rec.id}')" title="Mark vial empty" style="font-size:10px;padding:2px 7px;border:1px solid #f44336;border-radius:3px;background:#fce4ec;cursor:pointer;font-weight:600;color:#c62828">Empty</button>`;
-          // Store rec data on button for use in markVialFinished
-          td.dataset.vialRecId = rec.id;
-          td.dataset.vialDose = rec.fields['fldN7WOCx7ETJwmrB'] || '';
-          td.dataset.vialFreq = rec.fields['fldyExNQXycfMjd1S'] || '';
-          td.dataset.vialTiming = rec.fields['fld9J0U5iSDzyaaun'] || '';
-          td.dataset.vialNotes = rec.fields['fld3I1yzis1GsIDig'] || '';
-        } else {
-          td.innerHTML = `<span style="font-size:10px;color:#aaa">—</span>`;
-        }
-      });
-    } catch(e) { console.error('updateVialCells:', e); }
-  }
-
-  async function markVialFinished(compound, recId) {
-    const boxes = [...document.querySelectorAll(`.check-box[data-compound="${compound}"]`)];
-    const checkedDates = boxes.filter(b => b.dataset.s && b.dataset.s !== '0').map(b => b.dataset.date).filter(Boolean).sort();
-    if (!checkedDates.length) { alert('No injection checked for ' + compound + ' this week — check a date first.'); return; }
-    const endDate = checkedDates[checkedDates.length - 1];
-    const nextDate = checkedDates.find(d => d > endDate) || null;
-    const msg = nextDate
-      ? `Mark ${compound} vial empty on ${endDate}\nNew vial starts: ${nextDate}`
-      : `Mark ${compound} vial empty on ${endDate}\nNew vial start will be set on next logged injection.`;
-    if (!confirm(msg)) return;
-    try {
-      const res = await fetch(`https://api.airtable.com/v0/${BASE}/tblMs6YRdP4wkndUp/${recId}`, {
-        method: 'PATCH',
-        headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fields: { 'fldeCBOtYYp6BtAfh': 'Empty Vial', 'fldbS91GtXsxjZU4q': endDate }, typecast: true })
-      });
-      if (!res.ok) throw new Error(await res.text());
-      if (nextDate) {
-        const td = document.querySelector(`td[data-vial-compound="${compound}"]`);
-        const newFields = { 'fldeH5uyKXDFPZbHK': compound, 'fldeCBOtYYp6BtAfh': 'Active', 'fldO3s24TR8o1qfSY': nextDate };
-        if (td) {
-          if (td.dataset.vialDose) newFields['fldN7WOCx7ETJwmrB'] = td.dataset.vialDose;
-          if (td.dataset.vialFreq) newFields['fldyExNQXycfMjd1S'] = td.dataset.vialFreq;
-          if (td.dataset.vialTiming) newFields['fld9J0U5iSDzyaaun'] = td.dataset.vialTiming;
-          if (td.dataset.vialNotes) newFields['fld3I1yzis1GsIDig'] = td.dataset.vialNotes;
-        }
-        await fetch(`https://api.airtable.com/v0/${BASE}/tblMs6YRdP4wkndUp`, {
-          method: 'POST', headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ fields: newFields, typecast: true })
-        });
-      }
-      const td = document.querySelector(`td[data-vial-compound="${compound}"]`);
-      if (td) td.innerHTML = `<span style="font-size:10px;color:#aaa">—</span>`;
-    } catch(e) { alert('Failed: ' + e.message); }
-  }
 
   let html = `
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
@@ -3470,7 +3396,7 @@ function renderTracker(weekNum) {
       <button onclick="printTracker()" style="padding:5px 14px;background:var(--surface);border:1px solid var(--border);border-radius:6px;cursor:pointer;font-size:13px">🖨 Print</button>
     </div>
   </div>
-  <div style="border:3px solid #000;border-radius:8px;overflow-x:auto"><table style="border-collapse:collapse;width:100%;table-layout:fixed;font-size:13px;min-width:820px">
+  <div style="border:3px solid #000;border-radius:8px;overflow-x:auto"><table style="border-collapse:collapse;width:100%;font-size:13px;min-width:820px">
   <thead><tr>
     <th style="text-align:left;padding:6px 10px;background:#D9D9D9;border:1px solid #999;width:200px;min-width:200px;max-width:200px">Medication</th>
     ${days.map((d,i)=>{const dd=new Date(monday);dd.setDate(monday.getDate()+i);const mo=dd.getMonth()+1;const dy=dd.getDate();return`<th style="text-align:center;padding:4px 4px;background:#D9D9D9;border:1px solid #999;width:44px"><div style="font-weight:700;font-size:11px">${d}</div><div style="font-size:9px;color:#666;font-weight:400">${mo}/${dy}</div></th>`;}).join('')}
@@ -3519,6 +3445,83 @@ function renderTracker(weekNum) {
 
   html += `</tbody></table></div>`;
   document.getElementById('tracker-content').innerHTML = html;
+}
+
+
+async function updateVialCells() {
+  try {
+    // Fetch all peptide records with Compound + Status + End Date fields
+    let records = [], offset = null;
+    do {
+      let url = `https://api.airtable.com/v0/${BASE}/tblMs6YRdP4wkndUp?fields[]=fldeH5uyKXDFPZbHK&fields[]=fldeCBOtYYp6BtAfh&fields[]=fldbS91GtXsxjZU4q&fields[]=fldN7WOCx7ETJwmrB&fields[]=fldyExNQXycfMjd1S&fields[]=fld9J0U5iSDzyaaun&fields[]=fld3I1yzis1GsIDig&pageSize=100`;
+      if (offset) url += `&offset=${encodeURIComponent(offset)}`;
+      const res = await fetch(url, { headers: { Authorization: `Bearer ${TOKEN}` }});
+      const j = await res.json();
+      records = records.concat(j.records || []);
+      offset = j.offset;
+    } while (offset);
+
+    // Build map: compound → active record
+    const activeMap = {};
+    records.forEach(r => {
+      const compound = r.fields['fldeH5uyKXDFPZbHK'];
+      const status = r.fields['fldeCBOtYYp6BtAfh'];
+      if (compound && status === 'Active') activeMap[compound] = r;
+    });
+
+    // Update each vial cell
+    document.querySelectorAll('td[data-vial-compound]').forEach(td => {
+      const name = td.dataset.vialCompound;
+      const rec = activeMap[name];
+      if (rec) {
+        td.innerHTML = `<button onclick="markVialFinished('${name}','${rec.id}')" title="Mark vial empty" style="font-size:10px;padding:2px 7px;border:1px solid #f44336;border-radius:3px;background:#fce4ec;cursor:pointer;font-weight:600;color:#c62828">Empty</button>`;
+        // Store rec data on button for use in markVialFinished
+        td.dataset.vialRecId = rec.id;
+        td.dataset.vialDose = rec.fields['fldN7WOCx7ETJwmrB'] || '';
+        td.dataset.vialFreq = rec.fields['fldyExNQXycfMjd1S'] || '';
+        td.dataset.vialTiming = rec.fields['fld9J0U5iSDzyaaun'] || '';
+        td.dataset.vialNotes = rec.fields['fld3I1yzis1GsIDig'] || '';
+      } else {
+        td.innerHTML = `<span style="font-size:10px;color:#aaa">—</span>`;
+      }
+    });
+  } catch(e) { console.error('updateVialCells:', e); }
+}
+
+async function markVialFinished(compound, recId) {
+  const boxes = [...document.querySelectorAll(`.check-box[data-compound="${compound}"]`)];
+  const checkedDates = boxes.filter(b => b.dataset.s && b.dataset.s !== '0').map(b => b.dataset.date).filter(Boolean).sort();
+  if (!checkedDates.length) { alert('No injection checked for ' + compound + ' this week — check a date first.'); return; }
+  const endDate = checkedDates[checkedDates.length - 1];
+  const nextDate = checkedDates.find(d => d > endDate) || null;
+  const msg = nextDate
+    ? `Mark ${compound} vial empty on ${endDate}\nNew vial starts: ${nextDate}`
+    : `Mark ${compound} vial empty on ${endDate}\nNew vial start will be set on next logged injection.`;
+  if (!confirm(msg)) return;
+  try {
+    const res = await fetch(`https://api.airtable.com/v0/${BASE}/tblMs6YRdP4wkndUp/${recId}`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fields: { 'fldeCBOtYYp6BtAfh': 'Empty Vial', 'fldbS91GtXsxjZU4q': endDate }, typecast: true })
+    });
+    if (!res.ok) throw new Error(await res.text());
+    if (nextDate) {
+      const td = document.querySelector(`td[data-vial-compound="${compound}"]`);
+      const newFields = { 'fldeH5uyKXDFPZbHK': compound, 'fldeCBOtYYp6BtAfh': 'Active', 'fldO3s24TR8o1qfSY': nextDate };
+      if (td) {
+        if (td.dataset.vialDose) newFields['fldN7WOCx7ETJwmrB'] = td.dataset.vialDose;
+        if (td.dataset.vialFreq) newFields['fldyExNQXycfMjd1S'] = td.dataset.vialFreq;
+        if (td.dataset.vialTiming) newFields['fld9J0U5iSDzyaaun'] = td.dataset.vialTiming;
+        if (td.dataset.vialNotes) newFields['fld3I1yzis1GsIDig'] = td.dataset.vialNotes;
+      }
+      await fetch(`https://api.airtable.com/v0/${BASE}/tblMs6YRdP4wkndUp`, {
+        method: 'POST', headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fields: newFields, typecast: true })
+      });
+    }
+    const td = document.querySelector(`td[data-vial-compound="${compound}"]`);
+    if (td) td.innerHTML = `<span style="font-size:10px;color:#aaa">—</span>`;
+  } catch(e) { alert('Failed: ' + e.message); }
 }
 
 async function shiftTrackerWeek(dir) {
