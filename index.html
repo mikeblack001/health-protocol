@@ -2510,13 +2510,16 @@ function jumpToWeek(val) {
   const monday = getTrackerMonday();
   const mondayISO = monday.toISOString().split('T')[0];
   if (trackerMondayOffset < 0) {
-    fetchHistoricalCompounds(mondayISO).then(h=>{trackerHistoricalData=h;renderTracker();populateWeekDropdown();loadTrackerWeekData(mondayISO);updateVialCells();});
+    fetchHistoricalCompounds(mondayISO).then(h=>{trackerHistoricalData=h;renderTracker();loadTrackerWeekData(mondayISO);updateVialCells();});
   } else {
-    trackerHistoricalData=null;renderTracker();populateWeekDropdown();loadTrackerWeekData(mondayISO);updateVialCells();
+    trackerHistoricalData=null;renderTracker();loadTrackerWeekData(mondayISO);updateVialCells();
   }
 }
 
+var _weekDropdownPopulated = false;
 async function populateWeekDropdown() {
+  if (_weekDropdownPopulated) return;
+  _weekDropdownPopulated = true;
   const sel = document.getElementById('tracker-week-jump');
   if (!sel) return;
   const currentISO = _currentMondayISO;
