@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AT Sync — Health OS</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0a0a0a;
+    color: #e0e0e0;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 13px;
+    padding: 24px;
+    min-height: 100vh;
+  }
+  h1 {
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #444;
+    margin-bottom: 24px;
+  }
+  #status {
+    margin-bottom: 16px;
+    color: #888;
+    font-size: 12px;
+  }
+  .table-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 6px 0;
+    border-bottom: 1px solid #1a1a1a;
+  }
+  .table-name { color: #ccc; width: 180px; flex-shrink: 0; }
+  .table-count { color: #4a9eff; width: 80px; text-align: right; flex-shrink: 0; }
+  .table-status { font-size: 11px; color: #444; }
+  .table-status.done { color: #4caf50; }
+  .table-status.error { color: #f44; }
+  .table-status.loading { color: #ff9800; }
+  #summary {
+    margin-top: 24px;
+    padding: 16px;
+    background: #111;
+    border: 1px solid #222;
+    border-radius: 4px;
+    display: none;
+  }
+  #summary h2 { font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase; color: #4a9eff; margin-bottom: 12px; }
+  .summary-line { color: #888; margin-bottom: 4px; }
+  .summary-line span { color: #e0e0e0; }
+  #refresh-btn {
+    margin-top: 20px;
+    padding: 8px 20px;
+    background: #1a1a1a;
+    border: 1px solid #333;
+    color: #ccc;
+    font-family: inherit;
+    font-size: 12px;
+    cursor: pointer;
+    border-radius: 3px;
+    letter-spacing: 0.1em;
+  }
+  #refresh-btn:hover { background: #222; border-color: #4a9eff; color: #4a9eff; }
+  #cache-info { font-size: 11px; color: #333; margin-top: 8px; }
+</style>
+</head>
+<body>
+<h1>Health OS — Airtable Full Sync</h1>
+<div id="status">Initializing...</div>
+<div id="table-list"></div>
+<div id="summary"></div>
+<button id="refresh-btn" onclick="runSync()" style="display:none">Force Refresh</button>
+<div id="cache-info"></div>
+
+<script>
+const BASE_ID = 'appmHDG4TGT1xy6R6';
+const TOKEN = 'pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
+const CACHE_KEY = 'at_full_snapshot';
+const CACHE_MAX_AGE_MS = 60 * 60 * 1000; // 1 hour
+
+const TABLES = [
+  { name: 'Peptides',        id: 'tblMs6YRdP4wkndUp' },
+  { name: 'Supplements',     id: 'tblSnkc0Gu2BzGACP' },
+  { name: 'DailyLog',        id: 'tblaYuZjl4Pu4nKxS' },
+  { name: 'Bloodwork',       id: 'tbl3200yJid6fXaOp' },
+  { name: 'Workouts',        id: 'tbl6AW6DqsRPu3I9t' },
+  { name: 'Vendors',         id: 'tblI0nfBBuHXjp3KT' },
+  { name: 'ProtocolChanges', id: 'tblolVx7YwO5cJhsE' },
+  { name: 'Pricing',         id: 'tblnW21TLSqgVerwQ' },
+  { name: 'Purchases',       id: 'tblWmflohL6d6HC9p' },
+  { name: 'Goals',           id: 'tblRuaROlyG93Bz4Y' },
+  { name: 'Profile',         id: 'tblPBJkYqlnzrBK3B' },
+  { name: 'SuppChanges',     id: 'tblcwqEVCMfSwNSMu' },
+  { name: 'Sessions',        id: 'tblk9tTYIcIY4tWjF' },
+  { name: 'Sets',            id: 'tblKDqjy5RzqaJvjr' },
+  { name: 'InjectionLog',    id: 'tblBvEaLkGGipnOFc' },
+];
+
+function setStatus(msg) {
+  document.getElementById('status').textContent = msg;
+}
+
+function updateRow(tableId, count, statusText, statusClass) {
+  const row = document.getElementById('row-' + tableId);
+  if (!row) return;
+  row.querySelector('.table-count').textContent = count !== null ? count.toLocaleString() : '';
+  const s = row.querySelector('.table-status');
+  s.textContent = statusText;
+  s.className = 'table-status ' + statusClass;
+}
+
+function buildRows() {
+  const container = document.getElementById('table-list');
+  container.innerHTML = '';
+  TABLES.forEach(t => {
+    const row = document.createElement('div');
+    row.className = 'table-row';
+    row.id = 'row-' + t.id;
+    row.innerHTML = `
+      <div class="table-name">${t.name}</div>
+      <div class="table-count"></div>
+      <div class="table-status">waiting</div>
+    `;
+    container.appendChild(row);
+  });
+}
+
+async function fetchAllRecords(tableId) {
+  let records = [];
+  let offset = null;
+  do {
+    let url = `https://api.airtable.com/v0/${BASE_ID}/${tableId}?pageSize=100`;
+    if (offset) url += `&offset=${encodeURIComponent(offset)}`;
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${TOKEN}` }
+    });
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error(`HTTP ${res.status}: ${err}`);
+    }
+    const data = await res.json();
+    records = records.concat(data.records || []);
+    offset = data.offset || null;
+  } while (offset);
+  return records;
+}
+
+async function runSync(forceRefresh = true) {
+  buildRows();
+  setStatus('Syncing all tables...');
+  document.getElementById('summary').style.display = 'none';
+  document.getElementById('refresh-btn').style.display = 'none';
+  document.getElementById('cache-info').textContent = '';
+
+  const snapshot = {};
+  let totalRecords = 0;
+  let errors = 0;
+
+  for (const table of TABLES) {
+    updateRow(table.id, null, 'loading...', 'loading');
+    try {
+      const records = await fetchAllRecords(table.id);
+      snapshot[table.name] = { id: table.id, records };
+      totalRecords += records.length;
+      updateRow(table.id, records.length, '✓ synced', 'done');
+    } catch (e) {
+      snapshot[table.name] = { id: table.id, records: [], error: e.message };
+      errors++;
+      updateRow(table.id, 0, '✗ ' + e.message.substring(0, 40), 'error');
+    }
+  }
+
+  const meta = {
+    syncedAt: new Date().toISOString(),
+    totalRecords,
+    errors
+  };
+  snapshot.__meta = meta;
+
+  // Store in localStorage
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify(snapshot));
+    // Also expose on window for easy JS access
+    window.AT_SNAPSHOT = snapshot;
+  } catch(e) {
+    // localStorage full — store without Sets records (largest table) as fallback
+    // Still keep window.AT_SNAPSHOT complete
+    window.AT_SNAPSHOT = snapshot;
+    const slim = Object.assign({}, snapshot);
+    slim.Sets = { id: snapshot.Sets?.id, records: [], note: 'omitted from localStorage due to size' };
+    try { localStorage.setItem(CACHE_KEY, JSON.stringify(slim)); } catch(e2) {}
+  }
+
+  setStatus(`Sync complete — ${totalRecords.toLocaleString()} total records${errors > 0 ? ` (${errors} errors)` : ''}`);
+
+  const summary = document.getElementById('summary');
+  summary.style.display = 'block';
+  summary.innerHTML = `
+    <h2>Snapshot Summary</h2>
+    <div class="summary-line">Total records: <span>${totalRecords.toLocaleString()}</span></div>
+    <div class="summary-line">Synced at: <span>${new Date(meta.syncedAt).toLocaleString()}</span></div>
+    <div class="summary-line">Errors: <span>${errors}</span></div>
+    <div class="summary-line">Cache key: <span>${CACHE_KEY}</span></div>
+    <div class="summary-line">window.AT_SNAPSHOT: <span>ready (${Object.keys(snapshot).length - 1} tables)</span></div>
+  `;
+  document.getElementById('refresh-btn').style.display = 'inline-block';
+}
+
+// On load — always run fresh sync
+window.addEventListener('load', () => runSync());
+</script>
+</body>
+</html>
