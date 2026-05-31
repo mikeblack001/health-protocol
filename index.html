@@ -2154,7 +2154,7 @@ async function loadTrackerWeekData(mondayISO) {
     return (c||'').toLowerCase() === 'week note';
   });
   const wnel = document.getElementById('tracker-week-note');
-  if (wnel) wnel.value = weekNoteRec ? (weekNoteRec.fields['fldmGAKBTKLMGeRGn']||'') : '';
+  if (wnel) wnel.value = weekNoteRec ? (weekNoteRec.fields['fldmGAKBTKLMGeRGn'] || weekNoteRec.fields['Week Note'] || '') : '';
 
   records.forEach(r => {
       const f = r.fields;
