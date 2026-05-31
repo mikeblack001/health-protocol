@@ -2555,7 +2555,6 @@ async function populateWeekDropdown() {
     return;
   }
   if (_weekDropdownPopulated) return;
-  const sel = document.getElementById('tracker-week-jump');
   if (!sel) return;
   const currentISO = _currentMondayISO;
   sel.innerHTML = '<option value="">Jump to week...</option>';
