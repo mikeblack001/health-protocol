@@ -2505,7 +2505,7 @@ async function populateWeekDropdown() {
       mondaySet.add(d.toISOString().split('T')[0]);
     });
     // Sort descending (newest first)
-    const mondays = [...mondaySet].sort((a,b) => b.localeCompare(a));
+    const mondays = [...mondaySet].sort((a,b) => a.localeCompare(b));
     mondays.forEach(iso => {
       const d = new Date(iso + 'T12:00:00');
       const opt = document.createElement('option');
