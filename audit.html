@@ -459,26 +459,6 @@ async function loadWeekGrid(date){
 
   });
 
-  // Post-process: merge empty-timing keys into matching non-empty timing keys
-  Object.keys(data).forEach(key => {
-    const {cmp, timing} = data[key];
-    if (timing) return; // has timing, skip
-    // Find a key with same compound and non-empty timing
-    const matchKey = Object.keys(data).find(k => k !== key && data[k].cmp === cmp && data[k].timing);
-    if (matchKey) {
-      // Merge days into matchKey
-      Object.entries(data[key].days).forEach(([day, cell]) => {
-        if (!data[matchKey].days[day]) data[matchKey].days[day] = {sites:[], doses:[], n:0};
-        data[matchKey].days[day].n += cell.n;
-        cell.sites.forEach(s => data[matchKey].days[day].sites.push(s));
-        cell.doses.forEach(d => data[matchKey].days[day].doses.push(d));
-      });
-      delete data[key];
-      const idx = keyOrder.indexOf(key);
-      if (idx > -1) keyOrder.splice(idx, 1);
-    }
-  });
-
   // Apply saved order — only use keys that exist in actual data this week
   const saved=getRowOrder(date).filter(s=>keyOrder.includes(s)||keyOrder.some(k=>k.startsWith(s+'||')));
   const allKeys=keyOrder;
