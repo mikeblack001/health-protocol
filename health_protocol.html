@@ -3058,7 +3058,6 @@ function mobileNav(viewId) {
   if (viewId === 'suppchanges') loadSuppChanges();
     if (viewId === 'suppvendors') loadSuppVendors();
     if (viewId === 'suppdash') loadSuppDash();
-  if (viewId === 'suppvendors') loadSuppVendors();
   if (viewId === 'workout-suggestions') loadWorkoutSuggestions();
   if (viewId === 'workouts') document.getElementById('workout-date').value = new Date().toISOString().split('T')[0];
   if (viewId === 'databrowser') { _dbAllRows = []; _dbColumns = []; document.getElementById('db-collection').value = ''; document.getElementById('db-search').value = ''; document.getElementById('db-count').textContent = ''; document.getElementById('db-content').innerHTML = '<div style="padding:40px;text-align:center;color:var(--muted);font-size:14px">Select a collection above to view all records</div>'; }
@@ -4660,7 +4659,6 @@ function buildWeeklyPrintHTML(monday) {
     if (viewId === 'suppchanges') loadSuppChanges();
     if (viewId === 'suppvendors') loadSuppVendors();
     if (viewId === 'suppdash') loadSuppDash();
-  if (viewId === 'suppvendors') loadSuppVendors();
     if (viewId === 'workout-suggestions') loadWorkoutSuggestions();
     if (viewId === 'pdfqa') initPdfQA();
     if (viewId === 'databrowser') { _dbAllRows = []; _dbColumns = []; document.getElementById('db-collection').value = ''; document.getElementById('db-search').value = ''; document.getElementById('db-count').textContent = ''; document.getElementById('db-content').innerHTML = '<div style="padding:40px;text-align:center;color:var(--muted);font-size:14px">Select a collection above to view all records</div>'; }
