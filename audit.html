@@ -553,12 +553,10 @@ async function saveRowOrderToAT(orderedKeys) {
     const url = `https://api.airtable.com/v0/${AT_BASE}/${LOG.tbl}?filterByFormula=OR(${encodeURIComponent(orParts)})&fields[]=Compound&fields[]=fldoGvhlbs8oHCRjP&pageSize=100`;
     const resp = await fetch(url, { headers: { Authorization: `Bearer ${AT_TOK}` } });
     const data = await resp.json();
-    const seen = new Set();
     const updates = [];
     (data.records || []).forEach(r => {
       const c = Array.isArray(r.fields['Compound']) ? r.fields['Compound'][0] : r.fields['Compound'];
-      if (c && compoundOrder[c] !== undefined && !seen.has(c)) {
-        seen.add(c);
+      if (c && compoundOrder[c] !== undefined) {
         updates.push({ id: r.id, fields: { 'fldoGvhlbs8oHCRjP': compoundOrder[c] } });
       }
     });
