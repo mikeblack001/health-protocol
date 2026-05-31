@@ -1968,9 +1968,9 @@ function renderTracker(weekNum) {
     return `<td style="background:${cellBg};border:1px solid #000;width:44px;text-align:center;padding:1px">
       <div class="check-box" data-compound="${compound}" data-day="${dayIdx}" data-date="${dateStr}" data-scheduled="${isActive?'1':'0'}" onclick="
         var s=this.dataset.s||'0';
-        var next=s==='L'?'R':s==='R'?'S':s==='S'?'N':s==='N'?'0':'L';
+        var next=s==='L'?'R':s==='R'?'S':s==='S'?'0':'L';
         this.dataset.s=next; this.textContent=next==='0'?'':next;
-        var c=next==='L'?['#dbeafe','#2563eb','#1d4ed8']:next==='R'?['#fef3c7','#d97706','#92400e']:next==='S'?['#fee2e2','#dc2626','#dc2626']:next==='N'?['#e5e7eb','#6b7280','#6b7280']:['','#888',''];
+        var c=next==='L'?['#dbeafe','#2563eb','#1d4ed8']:next==='R'?['#fef3c7','#d97706','#92400e']:next==='S'?['#fee2e2','#dc2626','#dc2626']:['','#888',''];
         this.style.background=c[0];this.style.borderColor=c[1];this.style.color=c[2];saveCheckbox(this);
       " style="margin:0 auto;border:1.5px solid ${isActive?'#888':'#bbb'};opacity:${isActive?'1':'0.6'}"></div></td>`;
   }
@@ -2093,7 +2093,7 @@ async function loadTrackerWeekData(mondayISO) {
     const prevISO = prevDay.toISOString().split('T')[0];
     const nextISO = nextDay.toISOString().split('T')[0];
     const formula = `AND(IS_AFTER({Date},"${prevISO}"),IS_BEFORE({Date},"${nextISO}"))`;
-    const url = `https://api.airtable.com/v0/${BASE}/tblBvEaLkGGipnOFc?filterByFormula=${encodeURIComponent(formula)}&fields[]=Date&fields[]=Compound&fields[]=Site&fields[]=Name&fields[]=Notes`;
+    const url = `https://api.airtable.com/v0/${BASE}/tblBvEaLkGGipnOFc?filterByFormula=${encodeURIComponent(formula)}&fields[]=Date&fields[]=Compound&fields[]=Site&fields[]=Name&fields[]=Notes&fields[]=fldmGAKBTKLMGeRGn`;
     const res = await fetch(url, { headers: { Authorization: `Bearer ${TOKEN}` } });
     const json = await res.json();
     const records = json.records || [];
@@ -2161,15 +2161,12 @@ async function loadTrackerWeekData(mondayISO) {
       const date = f['Date'];
       const site = f['Site'] || '✓';
       if (!rawCompound || !date) return;
+      if ((rawCompound||'').toLowerCase().trim() === 'week note') return;
       const resolved = resolveCompound(rawCompound);
       const box = allBoxes.find(b => norm(b.dataset.compound) === resolved && b.dataset.date === date);
       if (box) {
         applyState(box, site, r.id);
-        const note = f['Notes'];
-        if (note && note.trim()) {
-          const noteInput = document.querySelector(`input[data-type="notes"][data-compound="${box.dataset.compound}"]`);
-          if (noteInput && !noteInput.value) noteInput.value = note.trim();
-        }
+        // Notes field not propagated to tracker input
       }
     });
 
