@@ -2502,13 +2502,15 @@ async function skipDay(dateStr) {
   } catch(e) { console.error('skipDay failed:', e); }
 }
 
-function shiftJumpWeek(dir) {
+async function shiftJumpWeek(dir) {
+  // Wait for dropdown to be populated
+  if (!_weekDropdownPopulated) await populateWeekDropdown();
   const sel = document.getElementById('tracker-week-jump');
   const opts = [...sel.options].filter(o => o.value);
   if (!opts.length) return;
-  const cur = sel.value || _currentMondayISO;
+  const cur = _currentMondayISO || sel.value;
   const idx = cur ? opts.findIndex(o => o.value === cur) : -1;
-  const next = opts[Math.max(0, Math.min(opts.length - 1, (idx === -1 ? opts.length - 1 : idx) + dir))];
+  const next = opts[Math.max(0, Math.min(opts.length - 1, (idx === -1 ? 0 : idx) + dir))];
   if (next) { sel.value = next.value; jumpToWeek(next.value); }
 }
 function jumpToWeek(val) {
