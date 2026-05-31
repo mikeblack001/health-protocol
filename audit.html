@@ -448,6 +448,7 @@ async function loadWeekGrid(date){
   recs.forEach(r=>{
     const f=r.fields,cmp=f[LOG.compound]||'',day=(f[LOG.date]||'').slice(0,10),site=f[LOG.site]||'',timing=f[LOG.timing]||'';
     if(!cmp||!day)return;
+    if((cmp||'').toLowerCase().trim()==='week note')return;
     const key=cmp+'||'+timing;
     // Also track by compound-only key for grouping same compound different timings
     if(!data[key]){data[key]={cmp,timing,days:{}};keyOrder.push(key);}
@@ -455,17 +456,26 @@ async function loadWeekGrid(date){
     data[key].days[day].n++;
     if(site)data[key].days[day].sites.push(site);
     const dose=f[LOG.dose]||'';if(dose)data[key].days[day].doses.push(dose);
-    // If timing is empty, also merge into the non-empty timing key if one exists
-    if(!timing){
-      const matchKey=keyOrder.find(k=>k.startsWith(cmp+'||')&&k!==key&&data[k]);
-      if(matchKey){
-        if(!data[matchKey].days[day])data[matchKey].days[day]={sites:[],doses:[],n:0};
-        data[matchKey].days[day].n+=data[key].days[day].n;
-        if(site)data[matchKey].days[day].sites.push(site);
-        if(dose)data[matchKey].days[day].doses.push(dose);
-        delete data[key];
-        keyOrder.splice(keyOrder.indexOf(key),1);
-      }
+
+  });
+
+  // Post-process: merge empty-timing keys into matching non-empty timing keys
+  Object.keys(data).forEach(key => {
+    const {cmp, timing} = data[key];
+    if (timing) return; // has timing, skip
+    // Find a key with same compound and non-empty timing
+    const matchKey = Object.keys(data).find(k => k !== key && data[k].cmp === cmp && data[k].timing);
+    if (matchKey) {
+      // Merge days into matchKey
+      Object.entries(data[key].days).forEach(([day, cell]) => {
+        if (!data[matchKey].days[day]) data[matchKey].days[day] = {sites:[], doses:[], n:0};
+        data[matchKey].days[day].n += cell.n;
+        cell.sites.forEach(s => data[matchKey].days[day].sites.push(s));
+        cell.doses.forEach(d => data[matchKey].days[day].doses.push(d));
+      });
+      delete data[key];
+      const idx = keyOrder.indexOf(key);
+      if (idx > -1) keyOrder.splice(idx, 1);
     }
   });
 
