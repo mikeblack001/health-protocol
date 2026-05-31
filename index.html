@@ -2029,9 +2029,9 @@ function renderTracker(weekNum) {
     morning.forEach(r => {
       const name = getField(r,'Compound');
       html += `<tr>
-        <td style="padding:5px 10px;border:1px solid #000;background:${MORN_BG}">
+        <td style="padding:5px 10px;border:1px solid #000;background:${MORN_BG}" data-compound-label="${name}">
           <div style="font-weight:700;font-size:13px;line-height:1.3;color:var(--text)">${name}</div>
-          <div style="font-size:10px;color:var(--muted);margin-top:1px">${[getField(r,'Dose'), getField(r,'Frequency')].filter(Boolean).join(' · ')}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:1px"><span class="tracker-dose-label">${getField(r,'Dose')}</span>${getField(r,'Frequency') ? ' · '+getField(r,'Frequency') : ''}</div>
         </td>
         ${days.map((_,i) => dayCell(name, i, MORN_BG)).join('')}
         ${vialBtns(name)}
@@ -2050,9 +2050,9 @@ function renderTracker(weekNum) {
     night.forEach(r => {
       const name = getField(r,'Compound');
       html += `<tr>
-        <td style="padding:3px 6px;border:1px solid #000;background:${NIGHT_BG};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+        <td style="padding:3px 6px;border:1px solid #000;background:${NIGHT_BG};overflow:hidden;text-overflow:ellipsis;white-space:nowrap" data-compound-label="${name}">
           <div style="font-weight:700;font-size:13px;line-height:1.3;color:var(--text)">${name}</div>
-          <div style="font-size:10px;color:var(--muted);margin-top:1px">${[getField(r,'Dose'), getField(r,'Frequency')].filter(Boolean).join(' · ')}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:1px"><span class="tracker-dose-label">${getField(r,'Dose')}</span>${getField(r,'Frequency') ? ' · '+getField(r,'Frequency') : ''}</div>
         </td>
         ${days.map((_,i) => dayCell(name, i, NIGHT_BG)).join('')}
         ${vialBtns(name)}
@@ -2188,6 +2188,27 @@ async function loadTrackerWeekData(mondayISO) {
           const noteInput = document.querySelector(`input[data-type="notes"][data-compound="${box.dataset.compound}"]`);
           if (noteInput && !noteInput.value) noteInput.value = note.trim();
         }
+      }
+    });
+
+    // Update compound dose labels from InjectionLog records (historical accuracy)
+    const doseMap = {};
+    records.forEach(r => {
+      const f = r.fields;
+      const raw = Array.isArray(f['Compound']) ? f['Compound'][0] : (f['Compound']||'');
+      const dose = f['Dose'];
+      if (raw && dose && (raw||'').toLowerCase().trim() !== 'week note') {
+        const resolved = resolveCompound(raw);
+        if (!doseMap[resolved]) doseMap[resolved] = dose;
+      }
+    });
+    // Update DOM labels for compounds that have a dose in InjectionLog this week
+    document.querySelectorAll('td[data-compound-label]').forEach(td => {
+      const compound = td.dataset.compoundLabel;
+      const dose = doseMap[compound.toLowerCase()] || doseMap[resolveCompound(compound.toLowerCase())];
+      if (dose) {
+        const sub = td.querySelector('.tracker-dose-label');
+        if (sub) sub.textContent = dose;
       }
     });
 
