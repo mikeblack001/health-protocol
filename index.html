@@ -859,10 +859,9 @@
     <div id="tracker-legend" style="margin-top:8px;display:flex;gap:10px;font-size:11px;font-family:'DM Mono',monospace;flex-wrap:wrap">
       <span style="background:#dbeafe;border:1px solid #2563eb;color:#1d4ed8;padding:2px 8px;border-radius:4px">L = Left</span>
       <span style="background:#fef3c7;border:1px solid #d97706;color:#92400e;padding:2px 8px;border-radius:4px">R = Right</span>
-      <span style="background:#f3e8ff;border:1px solid #9333ea;color:#7e22ce;padding:2px 8px;border-radius:4px">Abd = Abdomen</span>
-      <span style="background:#fce7f3;border:1px solid #db2777;color:#be185d;padding:2px 8px;border-radius:4px">X = Other site</span>
+      <span style="background:#fce7f3;border:1px solid #db2777;color:#be185d;padding:2px 8px;border-radius:4px">X = Taken</span>
       <span style="background:#fee2e2;border:1px solid #dc2626;color:#dc2626;padding:2px 8px;border-radius:4px">S = Skipped</span>
-      <span style="background:#e5e7eb;border:1px solid #6b7280;color:#6b7280;padding:2px 8px;border-radius:4px">N = Not Available</span>
+      
     </div>
   </div>
 
@@ -1362,7 +1361,7 @@ async function loadAll() {
       try { renderPeptides('Active'); } catch(e2) { console.error('[loadAll] renderPeptides failed:', e2); }
     loadVendors();
       try { renderSupplements('Active'); } catch(e2) { console.error('[loadAll] renderSupplements failed:', e2); }
-      try { renderTracker(); const _tm = getTrackerMonday(); loadTrackerWeekData(_tm.toISOString().split('T')[0]); } catch(e2) { console.error('[loadAll] renderTracker failed:', e2); }
+      try { renderTracker(); populateWeekDropdown(); const _tm = getTrackerMonday(); loadTrackerWeekData(_tm.toISOString().split('T')[0]); updateVialCells(); } catch(e2) { console.error('[loadAll] renderTracker failed:', e2); }
     renderPrintList();
     } catch(e) {
     document.getElementById('statusDot').className = 'status-dot';
@@ -1830,12 +1829,12 @@ const TRACKER_SCHEDULE = {
   'Testosterone':           [0,3],          // Mon/Thu
   'Deca (Nandrolone)':      [0,3],          // Mon/Thu
   'NAD+':                   [1,4,6],        // Tue/Fri/Sun
-  'Retatrutide':            [2],            // Wed
+  'Retatrutide':            [0],            // Mon
   'Cagrilintide':           [2],            // Wed
   'Tesamorelin':            [0,1,2,3,4,5],  // Mon-Sat
   'GHK-Cu':                 [0,1,2,3,4,5,6],// Daily
   'Melanotan II (MT2)':     [1],            // Tue
-  'Tirzepatide':            [6],            // Sun
+  'Tirzepatide':            [5],            // Sat
   'CJC-1295 No DAC':        [0,1,2,3,6],   // Mon/Tue/Wed/Thu/Sun
   'Ipamorelin':             [0,1,2,3,6],   // Mon/Tue/Wed/Thu/Sun
   'DSIP':                   [0,2,4,5,6],   // Mon/Wed/Fri/Sat/Sun
@@ -1956,14 +1955,13 @@ function renderTracker(weekNum) {
         var next=s==='L'?'R':s==='R'?'S':s==='S'?'N':s==='N'?'0':'L';
         this.dataset.s=next; this.textContent=next==='0'?'':next;
         var c=next==='L'?['#dbeafe','#2563eb','#1d4ed8']:next==='R'?['#fef3c7','#d97706','#92400e']:next==='S'?['#fee2e2','#dc2626','#dc2626']:next==='N'?['#e5e7eb','#6b7280','#6b7280']:['','#888',''];
-        this.style.background=c[0];this.style.borderColor=c[1];this.style.color=c[2];
+        this.style.background=c[0];this.style.borderColor=c[1];this.style.color=c[2];autoSave();
       " style="margin:0 auto;border:1.5px solid ${isActive?'#888':'#bbb'};opacity:${isActive?'1':'0.6'}"></div></td>`;
   }
 
   function vialBtns(name) {
-    return `<td style="border:1px solid #ccc;padding:2px 4px;white-space:nowrap">
-      <button onclick="logVialEvent('${name}','New Vial')" title="New Vial" style="font-size:10px;padding:1px 5px;border:1px solid #aaa;border-radius:3px;cursor:pointer;background:#e8f5e9;margin-right:2px">N</button>
-      <button onclick="logVialEvent('${name}','Finished Vial')" title="Finished Vial" style="font-size:10px;padding:1px 5px;border:1px solid #aaa;border-radius:3px;cursor:pointer;background:#fff3e0">F</button>
+    return `<td style="border:1px solid #ccc;padding:2px 4px;white-space:nowrap;text-align:center;width:70px" data-vial-compound="${name}">
+      <span style="font-size:10px;color:#ccc">·</span>
     </td>`;
   }
 
@@ -1973,6 +1971,9 @@ function renderTracker(weekNum) {
       <button onclick="shiftTrackerWeek(-1)" style="padding:4px 10px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:var(--surface);font-size:13px">‹ Prev</button>
       <span style="font-family:'DM Mono',monospace;font-size:13px;font-weight:600">${weekLabel}</span>
       <button onclick="shiftTrackerWeek(1)" style="padding:4px 10px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:var(--surface);font-size:13px">Next ›</button>
+  <select id="tracker-week-jump" onchange="jumpToWeek(this.value)" style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:'DM Mono',monospace;color:var(--text);background:var(--surface);cursor:pointer;min-width:100px">
+    <option value="">Jump to week...</option>
+  </select>
     </div>
     <div style="display:flex;gap:8px">
       <button onclick="saveTrackerWeek('${mondayISO}')" style="padding:5px 14px;background:var(--accent);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px">💾 Save Week</button>
@@ -1982,9 +1983,9 @@ function renderTracker(weekNum) {
   <div style="border:3px solid #000;border-radius:8px;overflow-x:auto;max-width:100%"><table style="border-collapse:collapse;width:100%;font-size:13px;min-width:820px">
   <thead><tr>
     <th style="text-align:left;padding:6px 10px;background:#D9D9D9;border:1px solid #999;min-width:220px">Medication</th>
-    ${days.map(d=>`<th style="text-align:center;padding:6px 4px;background:#D9D9D9;border:1px solid #999;width:44px">${d}</th>`).join('')}
+    ${days.map((d,i)=>{const dd=new Date(monday);dd.setDate(monday.getDate()+i);const mo=dd.getMonth()+1;const dy=dd.getDate();const dateStr=dd.toISOString().split('T')[0];return`<th style="text-align:center;padding:4px 2px;background:#D9D9D9;border:1px solid #999;width:44px"><div style="font-weight:700;font-size:11px">${d}</div><div style="font-size:9px;color:#666;font-weight:400">${mo}/${dy}</div><button onclick="skipDay('${dateStr}')" title="Skip all" style="font-size:8px;padding:1px 4px;border:1px solid #aaa;border-radius:3px;background:#fff;cursor:pointer;margin-top:2px;color:#666">Skip</button></th>`;}).join('')}
     <th style="background:#D9D9D9;border:1px solid #999;padding:4px 6px;font-size:11px">Vial</th>
-    <th style="text-align:left;padding:6px 10px;background:#D9D9D9;border:1px solid #999">Notes</th>
+    <th style="text-align:left;padding:6px 10px;background:#D9D9D9;border:1px solid #999;width:150px">Notes</th>
   </tr></thead><tbody>`;
 
   if (morning.length) {
@@ -2040,7 +2041,9 @@ async function shiftTrackerWeek(dir) {
     trackerHistoricalData = null;
   }
   renderTracker();
+  populateWeekDropdown();
   loadTrackerWeekData(mondayISO);
+  updateVialCells();
 }
 
 async function loadTrackerWeekData(mondayISO) {
@@ -2144,6 +2147,9 @@ async function loadTrackerWeekData(mondayISO) {
     const dlJson = await dlRes.json();
     const dlRec = (dlJson.records||[])[0];
     if (dlRec) {
+      const weekNote = dlRec.fields['fldAj7KhZciME5aOt']||'';
+      const wnel = document.getElementById('tracker-week-note');
+      if(wnel && weekNote) wnel.value = weekNote;
       const pepLog = dlRec.fields['fldAatoFJQPQwbVhQ'] || '';
       pepLog.split(', ').forEach(entry => {
         if (entry.startsWith('NOTE|')) {
@@ -2153,7 +2159,7 @@ async function loadTrackerWeekData(mondayISO) {
           const compound = rest.slice(0, ci).trim();
           const val = rest.slice(ci + 1).trim();
           const noteInput = document.querySelector(`input[data-type="notes"][data-compound="${compound}"]`);
-          if (noteInput) noteInput.value = val;
+          if (noteInput && val.toLowerCase() !== 'empty') noteInput.value = val;
         } else if (entry.includes('|') && entry.includes(':')) {
           // Format: "YYYY-MM-DD|compoundName:STATE" — restore saved tracker states (S, N, L, R, etc.)
           const pipeIdx = entry.indexOf('|');
@@ -2189,31 +2195,32 @@ async function logVialEvent(compound, type) {
   } catch(e) { alert('Log failed: ' + e.message); }
 }
 
-async function saveTrackerWeek(mondayISO) {
+let _autoSaveTimer = null;
+let _currentMondayISO = null;
+function autoSave() {
+  if (!_currentMondayISO) return;
+  clearTimeout(_autoSaveTimer);
+  _autoSaveTimer = setTimeout(() => saveTrackerWeek(_currentMondayISO, true), 800);
+}
+async function saveTrackerWeek(mondayISO, silent) {
   const boxes = document.querySelectorAll('.check-box[data-compound]');
   const entries = [];
-  boxes.forEach(b => {
-    if (b.dataset.s && b.dataset.s !== '0') {
-      entries.push(`${b.dataset.date}|${b.dataset.compound}:${b.dataset.s}`);
-    }
-  });
+  boxes.forEach(b => { if (b.dataset.s && b.dataset.s !== '0') entries.push(`${b.dataset.date}|${b.dataset.compound}:${b.dataset.s}`); });
   const noteInputs = document.querySelectorAll('input[data-type="notes"]');
-  noteInputs.forEach(n => {
-    if (n.value.trim()) entries.push(`NOTE|${n.dataset.compound}:${n.value.trim()}`);
-  });
-  if (!entries.length) { alert('Nothing to save — mark some injections first.'); return; }
+  noteInputs.forEach(n => { if (n.value.trim() && n.value !== 'empty') entries.push(`NOTE|${n.dataset.compound}:${n.value.trim()}`); });
+  if (!entries.length && !silent) { alert('Nothing to save.'); return; }
   try {
-    await fetch(`https://api.airtable.com/v0/${BASE}/${TABLES.dailyLog}`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fields: {
-        [DL.date]: mondayISO,
-        [DL.pepLog]: entries.join(', '),
-        [DL.pepTaken]: true
-      }})
-    });
-    alert('Week saved ✓');
-  } catch(e) { alert('Save failed: ' + e.message); }
+    const chkUrl = `https://api.airtable.com/v0/${BASE}/${TABLES.dailyLog}?filterByFormula=${encodeURIComponent('IS_SAME({Date},"'+mondayISO+'","day")')}`;
+    const chkJ = await (await fetch(chkUrl, {headers:{Authorization:`Bearer ${TOKEN}`}})).json();
+    const existing = (chkJ.records||[])[0];
+    if (existing) {
+      await fetch(`https://api.airtable.com/v0/${BASE}/${TABLES.dailyLog}/${existing.id}`, {method:'PATCH',headers:{Authorization:`Bearer ${TOKEN}`,'Content-Type':'application/json'},body:JSON.stringify({fields:{[DL.pepLog]:entries.join(', '),[DL.pepTaken]:true}})});
+    } else if (entries.length) {
+      await fetch(`https://api.airtable.com/v0/${BASE}/${TABLES.dailyLog}`, {method:'POST',headers:{Authorization:`Bearer ${TOKEN}`,'Content-Type':'application/json'},body:JSON.stringify({fields:{[DL.date]:mondayISO,[DL.pepLog]:entries.join(', '),[DL.pepTaken]:true}})});
+    }
+    if (!silent) alert('Week saved ✓');
+    else { const el=document.getElementById('save-status'); if(el){el.textContent='✓';el.style.color='var(--green)';setTimeout(()=>{el.textContent='';},2000);} }
+  } catch(e) { if (!silent) alert('Save failed: '+e.message); }
 }
 
 function selectWeek(btn) {
@@ -2221,6 +2228,110 @@ function selectWeek(btn) {
   btn.classList.add('active');
   const weekNum = parseInt(btn.textContent.replace('Week ',''));
   renderTracker(weekNum);
+}
+
+async function updateVialCells() {
+  try {
+    const res = await fetch(`https://api.airtable.com/v0/${BASE}/tblMs6YRdP4wkndUp?fields[]=Compound&fields[]=Status&fields[]=Dose&fields[]=Frequency&fields[]=Timing&fields[]=Notes&sort[0][field]=Start Date&sort[0][direction]=desc&pageSize=100`, {headers:{Authorization:`Bearer ${TOKEN}`}});
+    const d = await res.json();
+    const activeMap = {};
+    (d.records||[]).forEach(r => { const c=r.fields['Compound']; if(c&&!activeMap[c]) activeMap[c]=r; });
+    document.querySelectorAll('td[data-vial-compound]').forEach(td => {
+      const name = td.dataset.vialCompound;
+      const rec = activeMap[name];
+      if (rec) {
+        td.innerHTML = `<button onclick="markVialFinishedByName('${name}')" title="Mark vial empty" style="font-size:10px;padding:2px 7px;border:1px solid #f44336;border-radius:3px;background:#fce4ec;cursor:pointer;font-weight:600;color:#c62828">Empty</button>`;
+        td.dataset.vialRecId = rec.id;
+        td.dataset.vialDose = rec.fields['Dose']||'';
+        td.dataset.vialFreq = rec.fields['Frequency']||'';
+        td.dataset.vialTiming = rec.fields['Timing']||'';
+        td.dataset.vialNotes = rec.fields['Notes']||'';
+      } else {
+        td.innerHTML = `<span style="font-size:10px;color:#aaa">—</span>`;
+      }
+    });
+  } catch(e) { console.error('updateVialCells:',e); }
+}
+
+async function markVialFinishedByName(compound) {
+  const td = document.querySelector(`td[data-vial-compound="${compound}"]`);
+  const recId = td?.dataset?.vialRecId;
+  if (!recId) { alert('No record found for '+compound); return; }
+  const boxes = [...document.querySelectorAll(`.check-box[data-compound="${compound}"]`)];
+  const checkedDates = boxes.filter(b=>b.dataset.s&&b.dataset.s!=='0').map(b=>b.dataset.date).filter(Boolean).sort();
+  if (!checkedDates.length) { alert('Check an injection date first for '+compound); return; }
+  const endDate = checkedDates[checkedDates.length-1];
+  const nextDate = checkedDates.find(d=>d>endDate)||null;
+  const msg = nextDate ? `Mark ${compound} empty on ${endDate}\nNew vial starts: ${nextDate}` : `Mark ${compound} empty on ${endDate}`;
+  if (!confirm(msg)) return;
+  try {
+    await fetch(`https://api.airtable.com/v0/${BASE}/tblMs6YRdP4wkndUp/${recId}`,{method:'PATCH',headers:{Authorization:`Bearer ${TOKEN}`,'Content-Type':'application/json'},body:JSON.stringify({fields:{'Status':'Empty Vial','End Date':endDate},typecast:true})});
+    if (nextDate) {
+      const nf={'Compound':compound,'Status':'Active','Start Date':nextDate};
+      if(td.dataset.vialDose) nf['Dose']=td.dataset.vialDose;
+      if(td.dataset.vialFreq) nf['Frequency']=td.dataset.vialFreq;
+      if(td.dataset.vialTiming) nf['Timing']=td.dataset.vialTiming;
+      await fetch(`https://api.airtable.com/v0/${BASE}/tblMs6YRdP4wkndUp`,{method:'POST',headers:{Authorization:`Bearer ${TOKEN}`,'Content-Type':'application/json'},body:JSON.stringify({fields:nf,typecast:true})});
+    }
+    if(td) td.innerHTML=`<span style="font-size:10px;color:#aaa">—</span>`;
+  } catch(e) { alert('Failed: '+e.message); }
+}
+
+async function saveWeekNote(val, mondayISO) {
+  if (!val || !val.trim()) return;
+  try {
+    const url=`https://api.airtable.com/v0/${BASE}/${TABLES.dailyLog}?filterByFormula=${encodeURIComponent('IS_SAME({Date},"'+mondayISO+'","day")')}`;
+    const j=await(await fetch(url,{headers:{Authorization:`Bearer ${TOKEN}`}})).json();
+    const rec=(j.records||[])[0];
+    if(rec){await fetch(`https://api.airtable.com/v0/${BASE}/${TABLES.dailyLog}/${rec.id}`,{method:'PATCH',headers:{Authorization:`Bearer ${TOKEN}`,'Content-Type':'application/json'},body:JSON.stringify({fields:{'fldAj7KhZciME5aOt':val.trim()}})});}
+    else{await fetch(`https://api.airtable.com/v0/${BASE}/${TABLES.dailyLog}`,{method:'POST',headers:{Authorization:`Bearer ${TOKEN}`,'Content-Type':'application/json'},body:JSON.stringify({fields:{'fldSk3hNQJTDKOyfT':mondayISO,'fldAj7KhZciME5aOt':val.trim()}})});}
+  } catch(e) { console.error('saveWeekNote:',e); }
+}
+
+function skipDay(dateStr) {
+  document.querySelectorAll(`.check-box[data-date="${dateStr}"]`).forEach(box => {
+    if (box.dataset.scheduled !== '1') return;
+    box.dataset.s='S'; box.textContent='S';
+    box.style.background='#fee2e2'; box.style.borderColor='#dc2626'; box.style.color='#dc2626';
+  });
+  autoSave();
+}
+
+function jumpToWeek(val) {
+  if (!val) return;
+  const target = new Date(val+'T12:00:00');
+  const today = new Date();
+  const currentMon = new Date(today);
+  currentMon.setDate(today.getDate()-((today.getDay()+6)%7));
+  currentMon.setHours(0,0,0,0);
+  trackerMondayOffset = Math.round((target-currentMon)/(7*24*60*60*1000));
+  const monday = getTrackerMonday();
+  const mondayISO = monday.toISOString().split('T')[0];
+  if (trackerMondayOffset < 0) {
+    fetchHistoricalCompounds(mondayISO).then(h=>{trackerHistoricalData=h;renderTracker();populateWeekDropdown();loadTrackerWeekData(mondayISO);updateVialCells();});
+  } else {
+    trackerHistoricalData=null;renderTracker();populateWeekDropdown();loadTrackerWeekData(mondayISO);updateVialCells();
+  }
+}
+
+function populateWeekDropdown() {
+  const sel = document.getElementById('tracker-week-jump');
+  if (!sel) return;
+  const currentISO = _currentMondayISO;
+  sel.innerHTML = '<option value="">Jump to week...</option>';
+  const start = new Date('2024-10-28T12:00:00');
+  const today = new Date();
+  let dd = new Date(start);
+  dd.setDate(dd.getDate()-((dd.getDay()+6)%7));
+  while (dd <= today) {
+    const iso = dd.toISOString().split('T')[0];
+    const opt = document.createElement('option');
+    opt.value = iso;
+    opt.textContent = (dd.getMonth()+1)+'/'+dd.getDate()+'/'+String(dd.getFullYear()).slice(2);
+    sel.appendChild(opt);
+    dd.setDate(dd.getDate()+7);
+  }
+  if (currentISO) sel.value = currentISO;
 }
 
 function filterPeptides(f, el) {
