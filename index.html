@@ -2374,9 +2374,28 @@ async function skipDay(dateStr) {
     box.style.background='#fee2e2'; box.style.borderColor='#dc2626'; box.style.color='#dc2626';
     skipBoxes.push(box);
   });
-  for (const box of skipBoxes) {
-    await saveCheckbox(box);
-    await new Promise(r => setTimeout(r, 60));
+  if (!skipBoxes.length) return;
+  // Batch into groups of 10 (AT limit per request)
+  const INJ_LOG = 'tblBvEaLkGGipnOFc';
+  for (let i = 0; i < skipBoxes.length; i += 10) {
+    const batch = skipBoxes.slice(i, i + 10);
+    const records = batch.map(box => ({ fields: {
+      'fldt9vYT8Tm37Gf3k': dateStr + ' ' + box.dataset.compound + ' S',
+      'fldhYEtLEGA4VxvvO': dateStr,
+      'fldwVFyizH4mBANBa': box.dataset.compound,
+      'fldHDlJY8FpAvK018': 'S'
+    }}));
+    try {
+      const resp = await fetch(`https://api.airtable.com/v0/${BASE}/${INJ_LOG}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ records, typecast: true })
+      });
+      const data = await resp.json();
+      (data.records || []).forEach((rec, idx) => {
+        if (rec.id) batch[idx].dataset.recId = rec.id;
+      });
+    } catch(e) { console.error('skipDay batch failed:', e); }
   }
 }
 
