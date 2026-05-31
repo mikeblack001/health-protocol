@@ -538,7 +538,7 @@
           <button class="drop-item" style="width:100%">💉 Injections</button>
           <div class="drop-submenu">
             <button class="drop-item" onclick="navDrop('injlog','nav-pep')">Injection Log</button>
-            <button class="drop-item" onclick="navDrop('pdfqa','nav-pep')" style="color:var(--accent);font-weight:600">📄 PDF Injection Verify</button>
+            <button class="drop-item" onclick="window.open('https://mikeblack001.github.io/health-protocol/audit.html','_blank')" style="color:var(--accent);font-weight:600">📄 PDF Injection Verify</button>
             <button class="drop-item" onclick="navDrop('injaudit','nav-pep')">💉 Injection Log Audit</button>
           </div>
         </div>
@@ -582,7 +582,7 @@
         <div class="drop-divider"></div>
         <button class="drop-item" onclick="navDrop('databrowser','nav-tools')" style="color:var(--accent);font-weight:600">📊 Data Browser</button>
         <div class="drop-divider"></div>
-        <button class="drop-item" onclick="navDrop('pdfqa','nav-tools')" style="color:var(--accent);font-weight:600">📄 Data Accuracy Check</button>
+        <button class="drop-item" onclick="window.open('https://mikeblack001.github.io/health-protocol/audit.html','_blank')" style="color:var(--accent);font-weight:600">📄 Data Accuracy Check</button>
         <div class="drop-divider"></div>
         <button class="drop-item" onclick="openWeeklyPrint()" style="color:var(--accent);font-weight:600">🖨 Weekly Workout Print</button>
         <button class="drop-item" onclick="printTracker()" style="color:var(--accent);font-weight:600">🖨 Peptide Tracker Print</button>
@@ -1031,7 +1031,7 @@
   </div>
 
   <!-- DATA BROWSER -->
-  <div id="view-pdfqa" class="view" style="padding:0;overflow:hidden"><iframe src="https://mikeblack001.github.io/health-protocol/audit.html" style="width:100%;height:100%;border:none;display:block"></iframe></div>
+  <div id="view-pdfqa" class="view"></div>
   <div id="view-databrowser" class="view">
     <div class="section-header" style="flex-wrap:wrap;gap:10px">
       <h2>Data Browser</h2>
