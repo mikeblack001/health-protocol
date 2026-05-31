@@ -1988,9 +1988,9 @@ function renderTracker(weekNum) {
       style="flex:1;padding:5px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface);outline:none"
       onblur="saveWeekNote(this.value,'${mondayISO}')">
   </div>
-  <div style="border:3px solid #000;border-radius:8px;overflow-x:auto;max-width:100%"><table style="border-collapse:collapse;width:100%;font-size:12px">
+  <div style="border:3px solid #000;border-radius:8px;overflow-x:auto;max-width:100%"><table style="border-collapse:collapse;width:100%;table-layout:fixed;font-size:12px">
   <thead><tr>
-    <th style="text-align:left;padding:4px 6px;background:#D9D9D9;border:1px solid #999;min-width:150px">Medication</th>
+    <th style="text-align:left;padding:4px 6px;background:#D9D9D9;border:1px solid #999;width:160px">Medication</th>
     ${days.map((d,i)=>{const dd=new Date(monday);dd.setDate(monday.getDate()+i);const mo=dd.getMonth()+1;const dy=dd.getDate();const dateStr=dd.toISOString().split('T')[0];return`<th style="text-align:center;padding:2px 1px;background:#D9D9D9;border:1px solid #999;width:44px"><div style="font-weight:700;font-size:11px">${d}</div><div style="font-size:9px;color:#666;font-weight:400">${mo}/${dy}</div><button onclick="skipDay('${dateStr}')" title="Skip all" style="font-size:8px;padding:1px 4px;border:1px solid #aaa;border-radius:3px;background:#fff;cursor:pointer;margin-top:2px;color:#666">Skip</button></th>`;}).join('')}
     <th style="background:#D9D9D9;border:1px solid #999;padding:4px 6px;font-size:11px">Vial</th>
     <th style="text-align:left;padding:6px 10px;background:#D9D9D9;border:1px solid #999;width:150px">Notes</th>
@@ -2021,7 +2021,7 @@ function renderTracker(weekNum) {
     night.forEach(r => {
       const name = getField(r,'Compound');
       html += `<tr>
-        <td style="padding:3px 6px;border:1px solid #000;background:${NIGHT_BG};max-width:150px">
+        <td style="padding:3px 6px;border:1px solid #000;background:${NIGHT_BG};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
           <div style="font-weight:700;font-size:13px;line-height:1.3;color:var(--text)">${name}</div>
           <div style="font-size:10px;color:var(--muted);margin-top:1px">${[getField(r,'Dose'), getField(r,'Frequency')].filter(Boolean).join(' · ')}</div>
         </td>
