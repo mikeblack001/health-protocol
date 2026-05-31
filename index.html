@@ -2539,23 +2539,24 @@ function jumpToWeek(val) {
 }
 
 var _weekDropdownPopulated = false;
-var _weekDropdownOptions = []; // cache of {value, label} for fast restore
-var _weekList = []; // sorted list of week ISO dates for Prev/Next navigation
+var _weekList = [];
 async function populateWeekDropdown() {
-  const sel = document.getElementById('tracker-week-jump');
-  if (!sel) return;
-  // If we have cached options, just restore them instantly
-  if (_weekDropdownOptions.length) {
-    sel.innerHTML = '<option value="">Jump to week...</option>';
-    _weekDropdownOptions.forEach(({value, label}) => {
-      const opt = document.createElement('option');
-      opt.value = value; opt.textContent = label;
-      sel.appendChild(opt);
-    });
-    if (_currentMondayISO) sel.value = _currentMondayISO;
+  if (_weekDropdownPopulated && _weekList.length) {
+    const sel = document.getElementById('tracker-week-jump');
+    if (sel && !sel.options.length || sel.options.length <= 1) {
+      sel.innerHTML = '<option value="">Jump to week...</option>';
+      _weekList.forEach(iso => {
+        const d = new Date(iso+'T12:00:00');
+        const opt = document.createElement('option');
+        opt.value = iso;
+        opt.textContent = (d.getMonth()+1)+'/'+d.getDate()+'/'+String(d.getFullYear()).slice(2);
+        sel.appendChild(opt);
+      });
+      if (_currentMondayISO) sel.value = _currentMondayISO;
+    }
     return;
   }
-  if (_weekDropdownPopulated) return;
+  const sel = document.getElementById('tracker-week-jump');
   if (!sel) return;
   const currentISO = _currentMondayISO;
   sel.innerHTML = '<option value="">Jump to week...</option>';
@@ -2605,9 +2606,7 @@ async function populateWeekDropdown() {
     });
   }
   if (currentISO) sel.value = currentISO;
-  // Cache options for fast restore after renderTracker
-  _weekDropdownOptions = [...sel.options].filter(o=>o.value).map(o=>({value:o.value,label:o.textContent}));
-  _weekList = _weekDropdownOptions.map(o=>o.value);
+  _weekList = [...sel.options].filter(o=>o.value).map(o=>o.value);
   _weekDropdownPopulated = true;
 }
 
