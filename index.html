@@ -3388,17 +3388,47 @@ function renderTracker(weekNum) {
   }
 
   async function markVialFinished(compound, recId) {
+    // All checked dates for this compound in current week view
     const boxes = [...document.querySelectorAll(`.check-box[data-compound="${compound}"]`)];
+    const allDates = boxes.map(b => b.dataset.date).filter(Boolean).sort();
     const checkedDates = boxes.filter(b => b.dataset.s && b.dataset.s !== '0').map(b => b.dataset.date).filter(Boolean).sort();
-    const endDate = checkedDates.length ? checkedDates[checkedDates.length - 1] : new Date().toISOString().split('T')[0];
-    if (!confirm(`Mark ${compound} vial as finished on ${endDate}?`)) return;
+    if (!checkedDates.length) { alert('No injection checked for ' + compound + ' this week — check a date first.'); return; }
+    const endDate = checkedDates[checkedDates.length - 1];
+    // Next checked date after endDate = new vial start
+    const nextDate = checkedDates.find(d => d > endDate) || null;
+    const msg = nextDate
+      ? `Mark ${compound} vial empty on ${endDate}\nNew vial starts: ${nextDate}`
+      : `Mark ${compound} vial empty on ${endDate}\nNew vial start date will be set when next injection is logged.`;
+    if (!confirm(msg)) return;
     try {
+      // 1. Mark current record Empty Vial
       const res = await fetch(`https://api.airtable.com/v0/${BASE}/tblMs6YRdP4wkndUp/${recId}`, {
         method: 'PATCH',
         headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ fields: { 'fldeCBOtYYp6BtAfh': 'Empty Vial', 'fldbS91GtXsxjZU4q': endDate }, typecast: true })
       });
       if (!res.ok) throw new Error(await res.text());
+      // 2. Create new Active record if next date known
+      if (nextDate) {
+        const pepRec = data.peptides.find(r => r.id === recId);
+        const newFields = {
+          'fldeH5uyKXDFPZbHK': compound,
+          'fldeCBOtYYp6BtAfh': 'Active',
+          'fldO3s24TR8o1qfSY': nextDate,
+        };
+        if (pepRec) {
+          const dose = pepRec.fields['fldN7WOCx7ETJwmrB']; if (dose) newFields['fldN7WOCx7ETJwmrB'] = dose;
+          const freq = pepRec.fields['fldyExNQXycfMjd1S']; if (freq) newFields['fldyExNQXycfMjd1S'] = freq;
+          const timing = pepRec.fields['fld9J0U5iSDzyaaun']; if (timing) newFields['fld9J0U5iSDzyaaun'] = timing;
+          const notes = pepRec.fields['fld3I1yzis1GsIDig']; if (notes) newFields['fld3I1yzis1GsIDig'] = notes;
+        }
+        await fetch(`https://api.airtable.com/v0/${BASE}/tblMs6YRdP4wkndUp`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fields: newFields, typecast: true })
+        });
+      }
+      // Update UI
       const td = document.querySelector(`button[onclick*="markVialFinished('${compound}'"]`)?.closest('td');
       if (td) td.innerHTML = `<span style="font-size:10px;color:#aaa" title="Empty Vial — ${endDate}">—</span>`;
       data.peptides.forEach(r => { if (r.id === recId) { r.fields['fldeCBOtYYp6BtAfh'] = 'Empty Vial'; r.fields['fldbS91GtXsxjZU4q'] = endDate; }});
