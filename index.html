@@ -1902,8 +1902,14 @@ async function fetchHistoricalCompounds(mondayISO) {
     const url = `https://api.airtable.com/v0/${BASE}/tblBvEaLkGGipnOFc?filterByFormula=${encodeURIComponent(formula)}&fields[]=Date&fields[]=Compound&fields[]=Name&fields[]=Row%20Order&sort[0][field]=Row%20Order&sort[0][direction]=asc`;
     const res = await fetch(url, { headers: { Authorization: `Bearer ${TOKEN}` }});
     const json = await res.json();
+    // Sort: records with Row Order first (asc), nulls last
+    const recs = (json.records||[]).sort((a,b) => {
+      const oa = a.fields['Row Order'] ?? 99999;
+      const ob = b.fields['Row Order'] ?? 99999;
+      return oa - ob;
+    });
     const map = new Map();
-    (json.records||[]).forEach(r => {
+    recs.forEach(r => {
       const f = r.fields;
       const raw = Array.isArray(f['Compound']) ? f['Compound'][0] : (f['Compound'] || f['Name']);
       const date = f['Date'];
