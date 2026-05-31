@@ -1941,6 +1941,7 @@ function renderTracker(weekNum) {
   const fmt = d => d.toLocaleDateString('en-US', {month:'short', day:'numeric'});
   const weekLabel = `${fmt(monday)} – ${fmt(sunday)}, ${monday.getFullYear()}`;
   const mondayISO = monday.toISOString().split('T')[0];
+  _currentMondayISO = mondayISO;
 
   function dayCell(compound, dayIdx, bg) {
     const active = TRACKER_SCHEDULE[compound];
