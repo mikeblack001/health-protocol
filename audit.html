@@ -539,38 +539,34 @@ function initGridDrag(){
 
 
 async function saveRowOrderToAT(orderedKeys) {
-  if (!curDate || !gTok) return;
+  if (!curDate) return;
   try {
-    // Get compound name from key (key format is "compound||timing" or just "compound")
     const compoundOrder = {};
     orderedKeys.forEach((key, idx) => {
       const compound = key.split('||')[0];
-      if (!compoundOrder[compound] || idx < compoundOrder[compound]) {
+      if (compound && compound !== 'Week Note' && (!compoundOrder[compound] || idx < compoundOrder[compound])) {
         compoundOrder[compound] = idx + 1;
       }
     });
-    // Fetch all records for current week
     const days = getWkDates(curDate);
     const orParts = days.map(d => `IS_SAME({${LOG.date}},"${d}","day")`).join(',');
-    const url = `https://api.airtable.com/v0/${AT_BASE}/${LOG.tbl}?filterByFormula=OR(${encodeURIComponent(orParts)})&fields[]=${LOG.compound}&fields[]=fldoGvhlbs8oHCRjP&pageSize=100`;
+    const url = `https://api.airtable.com/v0/${AT_BASE}/${LOG.tbl}?filterByFormula=OR(${encodeURIComponent(orParts)})&fields[]=Compound&fields[]=fldoGvhlbs8oHCRjP&pageSize=100`;
     const resp = await fetch(url, { headers: { Authorization: `Bearer ${AT_TOK}` } });
     const data = await resp.json();
-    const updates = (data.records || [])
-      .filter(r => {
-        const c = Array.isArray(r.fields[LOG.compound]) ? r.fields[LOG.compound][0] : r.fields[LOG.compound];
-        return c && compoundOrder[c] !== undefined;
-      })
-      .map(r => {
-        const c = Array.isArray(r.fields[LOG.compound]) ? r.fields[LOG.compound][0] : r.fields[LOG.compound];
-        return { id: r.id, fields: { 'fldoGvhlbs8oHCRjP': compoundOrder[c] } };
-      });
-    // Batch update in groups of 10
+    const seen = new Set();
+    const updates = [];
+    (data.records || []).forEach(r => {
+      const c = Array.isArray(r.fields['Compound']) ? r.fields['Compound'][0] : r.fields['Compound'];
+      if (c && compoundOrder[c] !== undefined && !seen.has(c)) {
+        seen.add(c);
+        updates.push({ id: r.id, fields: { 'fldoGvhlbs8oHCRjP': compoundOrder[c] } });
+      }
+    });
     for (let i = 0; i < updates.length; i += 10) {
-      const batch = updates.slice(i, i + 10);
       await fetch(`https://api.airtable.com/v0/${AT_BASE}/${LOG.tbl}`, {
         method: 'PATCH',
         headers: { Authorization: `Bearer ${AT_TOK}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ records: batch })
+        body: JSON.stringify({ records: updates.slice(i, i + 10) })
       });
     }
   } catch(e) { console.error('saveRowOrderToAT failed:', e); }
