@@ -491,6 +491,8 @@ async function loadWeekGrid(date){
   }
   initGridDrag();
   renderRecordsOrdered(orderedKeys);
+  // Auto-save row order to AT whenever a week is loaded
+  saveRowOrderToAT(orderedKeys);
 }
 
 function initGridDrag(){
