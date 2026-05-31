@@ -48,6 +48,11 @@
   .drop-caret { font-size: 9px; margin-left: 1px; opacity: 0.7; }
   .drop-menu { position: absolute; top: calc(100% + 4px); left: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 4px; min-width: 190px; z-index: 999; display: none; }
   .nav-dropdown.open .drop-menu { display: block; }
+  .drop-submenu-wrap { position: relative; }
+  .drop-submenu-wrap > .drop-item { display: flex; justify-content: space-between; align-items: center; }
+  .drop-submenu-wrap > .drop-item::after { content: '▶'; font-size: 9px; color: var(--muted); margin-left: 8px; }
+  .drop-submenu { display: none; position: absolute; left: 100%; top: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; min-width: 200px; box-shadow: 0 4px 16px rgba(0,0,0,0.12); z-index: 200; padding: 4px 0; }
+  .drop-submenu-wrap:hover .drop-submenu { display: block; }
   .drop-item { display: block; width: 100%; text-align: left; background: none; border: none; color: var(--muted); font-family: 'DM Sans', sans-serif; font-size: 14px; padding: 8px 14px; border-radius: 5px; cursor: pointer; text-decoration: none; }
   .drop-item:hover:not(:disabled) { color: var(--text); background: var(--surface2); }
   .drop-soon { opacity: 0.4; cursor: default; font-style: italic; }
@@ -524,11 +529,19 @@
 <button class="drop-item" onclick="navDrop('peptides','nav-pep')">Peptides</button>
         <button class="drop-item" onclick="navDrop('tracker','nav-pep')">Peptide Tracker</button>
         <button class="drop-item" onclick="navDrop('changes','nav-pep')">Peptide Changes</button>
-        <button class="drop-item" onclick="navDrop('injlog','nav-pep')">Injection Log</button>
         <div class="drop-divider"></div>
         <button class="drop-item" onclick="navDrop('pricing','nav-pep')">Pricing</button>
         <button class="drop-item" onclick="navDrop('purchases','nav-pep')">Purchases</button>
         <button class="drop-item" onclick="navDrop('vendors','nav-pep')">Peptide Vendors</button>
+        <div style="border-top:1px solid var(--border);margin:4px 8px;"></div>
+        <div class="drop-submenu-wrap">
+          <button class="drop-item" style="width:100%">💉 Injections</button>
+          <div class="drop-submenu">
+            <button class="drop-item" onclick="navDrop('injlog','nav-pep')">Injection Log</button>
+            <button class="drop-item" onclick="window.open('audit.html','_blank')" style="color:var(--accent);font-weight:600">📄 PDF Injection Verify</button>
+            <button class="drop-item" onclick="navDrop('injaudit','nav-pep')">💉 Injection Log Audit</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -570,7 +583,6 @@
         <button class="drop-item" onclick="navDrop('databrowser','nav-tools')" style="color:var(--accent);font-weight:600">📊 Data Browser</button>
         <div class="drop-divider"></div>
         <button class="drop-item" onclick="navDrop('pdfqa','nav-tools')" style="color:var(--accent);font-weight:600">📄 Data Accuracy Check</button>
-        <button class="drop-item" onclick="navDrop('injaudit','nav-tools')" style="color:var(--accent);font-weight:600">📋 Injection Log Audit</button>
         <div class="drop-divider"></div>
         <button class="drop-item" onclick="openWeeklyPrint()" style="color:var(--accent);font-weight:600">🖨 Weekly Workout Print</button>
         <button class="drop-item" onclick="printTracker()" style="color:var(--accent);font-weight:600">🖨 Peptide Tracker Print</button>
