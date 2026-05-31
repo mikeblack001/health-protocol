@@ -2777,7 +2777,7 @@ async function loadAll() {
       try { renderPeptides('Active'); } catch(e2) { console.error('[loadAll] renderPeptides failed:', e2); }
     loadVendors();
       try { renderSupplements('Active'); } catch(e2) { console.error('[loadAll] renderSupplements failed:', e2); }
-      try { renderTracker(); const _tm = getTrackerMonday(); loadTrackerWeekData(_tm.toISOString().split('T')[0]); updateVialCells(); } catch(e2) { console.error('[loadAll] renderTracker failed:', e2); }
+      try { renderTracker(); populateWeekDropdown(); const _tm = getTrackerMonday(); loadTrackerWeekData(_tm.toISOString().split('T')[0]); updateVialCells(); } catch(e2) { console.error('[loadAll] renderTracker failed:', e2); }
     renderPrintList();
     } catch(e) {
     document.getElementById('statusDot').className = 'status-dot';
