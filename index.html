@@ -2503,16 +2503,20 @@ async function skipDay(dateStr) {
 }
 
 async function shiftJumpWeek(dir) {
-  if (!_weekDropdownPopulated) await populateWeekDropdown();
-  const sel = document.getElementById('tracker-week-jump');
-  const opts = [...sel.options].filter(o => o.value);
-  if (!opts.length) return;
-  const cur = _currentMondayISO || sel.value;
-  let idx = cur ? opts.findIndex(o => o.value === cur) : -1;
-  // If current week not in dropdown, start from last option when going Prev, first when going Next
-  if (idx === -1) idx = dir < 0 ? opts.length : -1;
-  const next = opts[Math.max(0, Math.min(opts.length - 1, idx + dir))];
-  if (next) { sel.value = next.value; jumpToWeek(next.value); }
+  if (!_weekList.length) {
+    await populateWeekDropdown();
+  }
+  if (!_weekList.length) return;
+  const cur = _currentMondayISO;
+  let idx = cur ? _weekList.indexOf(cur) : -1;
+  if (idx === -1) idx = dir < 0 ? _weekList.length : -1;
+  const nextIdx = Math.max(0, Math.min(_weekList.length - 1, idx + dir));
+  const nextVal = _weekList[nextIdx];
+  if (nextVal) {
+    const sel = document.getElementById('tracker-week-jump');
+    if (sel) sel.value = nextVal;
+    jumpToWeek(nextVal);
+  }
 }
 function jumpToWeek(val) {
   if (!val) return;
@@ -2535,6 +2539,7 @@ function jumpToWeek(val) {
 
 var _weekDropdownPopulated = false;
 var _weekDropdownOptions = []; // cache of {value, label} for fast restore
+var _weekList = []; // sorted list of week ISO dates for Prev/Next navigation
 async function populateWeekDropdown() {
   const sel = document.getElementById('tracker-week-jump');
   if (!sel) return;
@@ -2602,6 +2607,7 @@ async function populateWeekDropdown() {
   if (currentISO) sel.value = currentISO;
   // Cache options for fast restore after renderTracker
   _weekDropdownOptions = [...sel.options].filter(o=>o.value).map(o=>({value:o.value,label:o.textContent}));
+  _weekList = _weekDropdownOptions.map(o=>o.value);
   _weekDropdownPopulated = true;
 }
 
