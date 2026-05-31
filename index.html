@@ -3624,13 +3624,6 @@ async function saveTrackerWeek(mondayISO) {
   } catch(e) { alert('Save failed: ' + e.message); }
 }
 
-function selectWeek(btn) {
-  document.querySelectorAll('.week-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  const weekNum = parseInt(btn.textContent.replace('Week ',''));
-  renderTracker(weekNum);
-}
-
 function filterPeptides(f, el) {
   el.closest('.filter-bar').querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
   el.classList.add('active');
@@ -6765,12 +6758,6 @@ function fmtDate(d) {
   return months[parseInt(m)-1] + ' ' + parseInt(day) + ', ' + y;
 }
 
-function firstSource(src) {
-  if (!src) return '—';
-  if (Array.isArray(src)) return src[0] || '—';
-  return String(src).split(',')[0].trim() || '—';
-}
-
 // ===== SUPPLEMENT VENDORS =====
 function loadSuppVendors() {
   renderSuppVendors();
@@ -8050,57 +8037,6 @@ async function runVerification() {
 
 
 
-
-function drawLine(canvasId, labels, data1, label1, color1, data2, label2, color2) {
-  const canvas = document.getElementById(canvasId);
-  if (!canvas) return;
-  const ctx = canvas.getContext('2d');
-  const W = canvas.offsetWidth; canvas.width = W; canvas.height = canvas.height || 80;
-  const H = canvas.height;
-  const pad = {t:20,r:20,b:30,l:45};
-  const valid1 = data1.map((v,i)=>v!==null?{x:i,v:v}:null).filter(Boolean);
-  if (!valid1.length) return;
-  const allVals = [...valid1.map(p=>p.v), ...(data2||[]).filter(v=>v!==null)];
-  const minV = Math.min(...allVals)*0.98, maxV = Math.max(...allVals)*1.02;
-  const xScale = n => pad.l + (n/(labels.length-1||1))*(W-pad.l-pad.r);
-  const yScale = v => pad.t + (1-(v-minV)/(maxV-minV||1))*(H-pad.t-pad.b);
-  ctx.clearRect(0,0,W,H);
-  ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--surface') || '#fff';
-  ctx.fillRect(0,0,W,H);
-  // Grid
-  ctx.strokeStyle = '#e5e7eb'; ctx.lineWidth = 0.5;
-  [0,0.25,0.5,0.75,1].forEach(t => {
-    const y = pad.t + t*(H-pad.t-pad.b);
-    ctx.beginPath(); ctx.moveTo(pad.l,y); ctx.lineTo(W-pad.r,y); ctx.stroke();
-    const val = maxV - t*(maxV-minV);
-    ctx.fillStyle = '#9ca3af'; ctx.font = '10px sans-serif'; ctx.textAlign='right';
-    ctx.fillText(val.toFixed(1), pad.l-4, y+3);
-  });
-  // Line 1
-  ctx.strokeStyle = color1; ctx.lineWidth = 2; ctx.beginPath();
-  valid1.forEach((p,i) => i===0 ? ctx.moveTo(xScale(p.x),yScale(p.v)) : ctx.lineTo(xScale(p.x),yScale(p.v)));
-  ctx.stroke();
-  // Dots
-  valid1.forEach(p => { ctx.fillStyle=color1; ctx.beginPath(); ctx.arc(xScale(p.x),yScale(p.v),3,0,Math.PI*2); ctx.fill(); });
-  // Line 2
-  if (data2) {
-    const valid2 = data2.map((v,i)=>v!==null?{x:i,v:v}:null).filter(Boolean);
-    if (valid2.length) {
-      ctx.strokeStyle = color2; ctx.lineWidth = 2; ctx.setLineDash([4,3]); ctx.beginPath();
-      valid2.forEach((p,i) => i===0 ? ctx.moveTo(xScale(p.x),yScale(p.v)) : ctx.lineTo(xScale(p.x),yScale(p.v)));
-      ctx.stroke(); ctx.setLineDash([]);
-      valid2.forEach(p => { ctx.fillStyle=color2; ctx.beginPath(); ctx.arc(xScale(p.x),yScale(p.v),3,0,Math.PI*2); ctx.fill(); });
-    }
-  }
-  // Label
-  ctx.fillStyle = '#374151'; ctx.font = 'bold 11px sans-serif'; ctx.textAlign='left';
-  ctx.fillText(label1, pad.l, pad.t-5);
-  if (label2) { ctx.fillStyle=color2; ctx.fillText(' / '+label2, pad.l+ctx.measureText(label1).width+2, pad.t-5); }
-  // X axis dates - show every Nth
-  const step = Math.ceil(labels.length/8);
-  ctx.fillStyle = '#9ca3af'; ctx.font = '9px sans-serif'; ctx.textAlign='center';
-  labels.forEach((l,i) => { if(i%step===0) ctx.fillText(l.slice(5), xScale(i), H-5); });
-}
 
 // ── BODY & VITALS ──────────────────────────────────────────────
 let bcAllRecords = [], bcDays = 30;
