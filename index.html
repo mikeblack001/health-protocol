@@ -1897,7 +1897,7 @@ async function fetchHistoricalCompounds(mondayISO) {
     const prev = new Date(mon); prev.setDate(mon.getDate() - 1);
     const next = new Date(mon); next.setDate(mon.getDate() + 7);
     const formula = `AND(IS_AFTER({Date},"${prev.toISOString().split('T')[0]}"),IS_BEFORE({Date},"${next.toISOString().split('T')[0]}"))`;
-    const url = `https://api.airtable.com/v0/${BASE}/tblBvEaLkGGipnOFc?filterByFormula=${encodeURIComponent(formula)}&fields[]=Date&fields[]=Compound&fields[]=Name`;
+    const url = `https://api.airtable.com/v0/${BASE}/tblBvEaLkGGipnOFc?filterByFormula=${encodeURIComponent(formula)}&fields[]=Date&fields[]=Compound&fields[]=Name&sort[0][field]=Date&sort[0][direction]=asc`;
     const res = await fetch(url, { headers: { Authorization: `Bearer ${TOKEN}` }});
     const json = await res.json();
     const map = new Map();
@@ -1925,17 +1925,10 @@ function renderTracker(weekNum) {
 
   let morning, night;
   if (trackerHistoricalData) {
-    const mornOrder = TRACKER_MORNING_ORDER.map(n => n.toLowerCase());
-    const nightOrder = TRACKER_NIGHT_ORDER.map(n => n.toLowerCase());
-    const sortByOrder = (names, order) => [
-      ...order.filter(o => names.some(n => n === o || (pepMapCI[n] && getField(pepMapCI[n],'Compound').toLowerCase() === o))),
-      ...names.filter(n => { const k = (pepMapCI[n] ? getField(pepMapCI[n],'Compound').toLowerCase() : n); return !order.includes(k); })
-    ].map(o => names.find(n => n === o || (pepMapCI[n] && getField(pepMapCI[n],'Compound').toLowerCase() === o)) || o);
+    // Preserve insertion order from InjectionLog (matches PDF row order for that week)
     const histNames = [...trackerHistoricalData.keys()];
-    const histMorn = sortByOrder(histNames.filter(n => !isNightPep(n)), mornOrder);
-    const histNight = sortByOrder(histNames.filter(n => isNightPep(n)), nightOrder);
-    morning = histMorn.map(n => pepMap[n] || pepMapCI[n] || { fields: { Compound: n, Dose: '', Status: 'Historical', Timing: 'Morning' }});
-    night   = histNight.map(n => pepMap[n] || pepMapCI[n] || { fields: { Compound: n, Dose: '', Status: 'Historical', Timing: 'Night' }});
+    morning = histNames.filter(n => !isNightPep(n)).map(n => pepMap[n] || pepMapCI[n] || { fields: { Compound: n, Dose: '', Status: 'Historical', Timing: 'Morning' }});
+    night   = histNames.filter(n => isNightPep(n)).map(n => pepMap[n] || pepMapCI[n] || { fields: { Compound: n, Dose: '', Status: 'Historical', Timing: 'Night' }});
   } else {
     const knownM = new Set(TRACKER_MORNING_ORDER), knownN = new Set(TRACKER_NIGHT_ORDER);
     morning = [
