@@ -64,8 +64,9 @@
   .view { display: none; }
   .view.active { display: block; }
   #view-tracker { overflow-x: auto; }
-  #tracker-content th:nth-last-child(2), #tracker-content td:nth-last-child(2) { width:75px !important; max-width:75px !important; }
-  #tracker-content th:last-child, #tracker-content td:last-child { width:140px !important; max-width:140px !important; }
+  #tracker-content { width: 100%; }
+  #tracker-content > div { width: 100%; }
+  #tracker-content table { width: 100% !important; }
 
   /* DASHBOARD */
   .dash-header { margin-bottom: 24px; }
