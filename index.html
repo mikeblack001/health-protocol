@@ -1928,12 +1928,9 @@ function renderTracker(weekNum) {
   try { savedOrder = JSON.parse(localStorage.getItem('mba_row_order') || '[]'); } catch(e) {}
   // savedOrder entries are "Compound||Timing" e.g. "Testosterone||Morning"
   function getSavedIdx(name, timing) {
-    const key = name + '||' + timing;
-    const idx = savedOrder.indexOf(key);
-    if (idx !== -1) return idx;
-    // fallback: match by compound name only
-    const fallback = savedOrder.findIndex(k => k.split('||')[0] === name);
-    return fallback !== -1 ? fallback : 9999;
+    // Match by compound name only — ignore timing suffix (may be stale in saved order)
+    const idx = savedOrder.findIndex(k => k.split('||')[0] === name);
+    return idx !== -1 ? idx : 9999;
   }
   function sortByAuditOrder(peps, timing) {
     return [...peps].sort((a, b) => {
