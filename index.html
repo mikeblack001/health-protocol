@@ -2368,7 +2368,7 @@ async function saveWeekNote(val, mondayISO) {
 function skipDay(dateStr) {
   const skipBoxes = [];
   document.querySelectorAll(`.check-box[data-date="${dateStr}"]`).forEach(box => {
-    if (box.dataset.scheduled !== '1') return;
+    if (box.dataset.s && box.dataset.s !== '0') return; // already set, don't overwrite
     box.dataset.s='S'; box.textContent='S';
     box.style.background='#fee2e2'; box.style.borderColor='#dc2626'; box.style.color='#dc2626';
     skipBoxes.push(box);
