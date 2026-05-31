@@ -2448,22 +2448,32 @@ async function skipDay(dateStr) {
   document.querySelectorAll(`.check-box[data-date="${dateStr}"]`).forEach(box => {
     if (box.dataset.scheduled !== '1') return;
     if (box.dataset.s && box.dataset.s !== '0') return;
+    if (box.dataset.recId) return; // already has AT record
     box.dataset.s='S'; box.textContent='S';
     box.style.background='#fee2e2'; box.style.borderColor='#dc2626'; box.style.color='#dc2626';
     skipBoxes.push(box);
   });
   if (!skipBoxes.length) return;
-  // Batch into groups of 10 (AT limit per request)
+  // Check AT for existing records for these compounds on this date to avoid duplicates
   const INJ_LOG = 'tblBvEaLkGGipnOFc';
-  for (let i = 0; i < skipBoxes.length; i += 10) {
-    const batch = skipBoxes.slice(i, i + 10);
-    const records = batch.map(box => ({ fields: {
-      'fldt9vYT8Tm37Gf3k': dateStr + ' ' + box.dataset.compound + ' S',
-      'fldhYEtLEGA4VxvvO': dateStr,
-      'fldwVFyizH4mBANBa': box.dataset.compound,
-      'fldHDlJY8FpAvK018': 'S'
-    }}));
-    try {
+  try {
+    const compounds = skipBoxes.map(b => b.dataset.compound);
+    const formula = `AND(IS_SAME({Date},"${dateStr}","day"),OR(${compounds.map(c=>`{Compound}="${c}"`).join(',')}))`;
+    const chk = await fetch(`https://api.airtable.com/v0/${BASE}/${INJ_LOG}?filterByFormula=${encodeURIComponent(formula)}&fields[]=Compound&pageSize=100`, {
+      headers: { Authorization: `Bearer ${TOKEN}` }
+    });
+    const chkData = await chk.json();
+    const existing = new Set((chkData.records||[]).map(r => r.fields['Compound']));
+    const newBoxes = skipBoxes.filter(b => !existing.has(b.dataset.compound));
+    if (!newBoxes.length) return;
+    for (let i = 0; i < newBoxes.length; i += 10) {
+      const batch = newBoxes.slice(i, i + 10);
+      const records = batch.map(box => ({ fields: {
+        'fldt9vYT8Tm37Gf3k': dateStr + ' ' + box.dataset.compound + ' S',
+        'fldhYEtLEGA4VxvvO': dateStr,
+        'fldwVFyizH4mBANBa': box.dataset.compound,
+        'fldHDlJY8FpAvK018': 'S'
+      }}));
       const resp = await fetch(`https://api.airtable.com/v0/${BASE}/${INJ_LOG}`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
@@ -2473,8 +2483,8 @@ async function skipDay(dateStr) {
       (data.records || []).forEach((rec, idx) => {
         if (rec.id) batch[idx].dataset.recId = rec.id;
       });
-    } catch(e) { console.error('skipDay batch failed:', e); }
-  }
+    }
+  } catch(e) { console.error('skipDay failed:', e); }
 }
 
 function jumpToWeek(val) {
