@@ -1973,9 +1973,10 @@ function renderTracker(weekNum) {
   _currentMondayISO = mondayISO;
 
   function dayCell(compound, dayIdx, bg) {
-    const active = TRACKER_SCHEDULE[compound];
-    // In historical mode, don't gray out days — injection log is the ground truth
-    const isActive = !active || active.includes(dayIdx);
+    // Use dynamic schedule from InjectionLog history if available, else fall back to hardcoded
+    const dynSched = window._compoundSchedule && window._compoundSchedule[compound.toLowerCase()];
+    const active = dynSched ? [...dynSched] : TRACKER_SCHEDULE[compound];
+    const isActive = !active || active.length === 0 || active.includes(dayIdx);
     const dayDate = new Date(monday); dayDate.setDate(monday.getDate() + dayIdx);
     const dateStr = dayDate.toISOString().split('T')[0];
     const cellBg = isActive ? bg : INACTIVE;
@@ -2114,6 +2115,30 @@ async function loadTrackerWeekData(mondayISO) {
     const json = await res.json();
     const records = json.records || [];
     const allBoxes = Array.from(document.querySelectorAll('.check-box[data-compound]'));
+
+    // Build dynamic schedule: fetch last 8 weeks of InjectionLog to determine active days per compound
+    try {
+      const histStart = new Date(mon); histStart.setDate(histStart.getDate() - 56); // 8 weeks back
+      const histFormula = `AND(IS_AFTER({Date},"${histStart.toISOString().split('T')[0]}"),IS_BEFORE({Date},"${nextISO}"))`;
+      const histUrl = `https://api.airtable.com/v0/${BASE}/tblBvEaLkGGipnOFc?filterByFormula=${encodeURIComponent(histFormula)}&fields[]=Date&fields[]=Compound&pageSize=100`;
+      const histResp = await fetch(histUrl, { headers: { Authorization: `Bearer ${TOKEN}` } });
+      const histJson = await histResp.json();
+      const schedMap = {};
+      (histJson.records || []).forEach(r => {
+        const raw = Array.isArray(r.fields['Compound']) ? r.fields['Compound'][0] : (r.fields['Compound']||'');
+        const date = r.fields['Date'];
+        if (!raw || !date || raw.toLowerCase().trim() === 'week note') return;
+        const key = raw.toLowerCase().trim();
+        if (!schedMap[key]) schedMap[key] = new Set();
+        const d = new Date(date + 'T12:00:00');
+        const dow = (d.getDay() + 6) % 7; // 0=Mon, 6=Sun
+        schedMap[key].add(dow);
+      });
+      window._compoundSchedule = schedMap;
+      // Re-render tracker with new schedule so greying applies immediately
+      const savedOffset = trackerMondayOffset;
+      renderTracker();
+    } catch(e) { console.error('dynamic schedule failed:', e); }
     const norm = s => (s||'').toLowerCase().trim().replace(/\s+/g,' ');
     // Alias map: injection log name → tracker name (both normalized)
     const ALIAS = {
