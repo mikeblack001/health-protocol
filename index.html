@@ -527,6 +527,11 @@
         <button class="drop-item" onclick="navDrop('pricing','nav-pep')">Pricing</button>
         <button class="drop-item" onclick="navDrop('purchases','nav-pep')">Purchases</button>
         <button class="drop-item" onclick="navDrop('vendors','nav-pep')">Peptide Vendors</button>
+<div class="drop-divider" style="border-top:1px solid var(--border);margin:4px 8px;"></div>
+<div style="font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);padding:4px 12px 2px">Injections</div>
+<button class="drop-item" onclick="navDrop('injlog','nav-pep')">Injection Log</button>
+<button class="drop-item" onclick="window.open('audit.html','_blank')" style="color:var(--accent);font-weight:600">📄 PDF Injection Verify</button>
+<button class="drop-item" onclick="navDrop('injaudit','nav-pep')">💉 Injection Log Audit</button>
       </div>
     </div>
 
@@ -569,7 +574,6 @@
         <div class="drop-divider"></div>
         <button class="drop-item" onclick="navDrop('databrowser','nav-tools')" style="color:var(--accent);font-weight:600">📊 Data Browser</button>
         <div class="drop-divider"></div>
-        <button class="drop-item" onclick="window.open('audit.html','_blank')" style="color:var(--accent);font-weight:600">📄 Data Accuracy Check</button>
         <button class="drop-item" onclick="navDrop('injaudit','nav-tools')" style="color:var(--accent);font-weight:600">📋 Injection Log Audit</button>
         <div class="drop-divider"></div>
         <button class="drop-item" onclick="openWeeklyPrint()" style="color:var(--accent);font-weight:600">🖨 Weekly Workout Print</button>
