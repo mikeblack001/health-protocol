@@ -3398,7 +3398,7 @@ function renderTracker(weekNum) {
   <div style="border:3px solid #000;border-radius:8px;overflow-x:auto"><table style="border-collapse:collapse;width:100%;font-size:13px;min-width:820px">
   <thead><tr>
     <th style="text-align:left;padding:6px 10px;background:#D9D9D9;border:1px solid #999;width:200px;min-width:200px;max-width:200px">Medication</th>
-    ${days.map((d,i)=>{const dd=new Date(monday);dd.setDate(monday.getDate()+i);const mo=dd.getMonth()+1;const dy=dd.getDate();return`<th style="text-align:center;padding:4px 4px;background:#D9D9D9;border:1px solid #999;width:44px"><div style="font-weight:700;font-size:11px">${d}</div><div style="font-size:9px;color:#666;font-weight:400">${mo}/${dy}</div></th>`;}).join('')}
+    ${days.map((d,i)=>{const dd=new Date(monday);dd.setDate(monday.getDate()+i);const mo=dd.getMonth()+1;const dy=dd.getDate();const dateStr=dd.toISOString().split('T')[0];return`<th style="text-align:center;padding:4px 2px;background:#D9D9D9;border:1px solid #999;width:44px"><div style="font-weight:700;font-size:11px">${d}</div><div style="font-size:9px;color:#666;font-weight:400">${mo}/${dy}</div><button onclick="skipDay('${dateStr}')" title="Skip all for this day" style="font-size:8px;padding:1px 4px;border:1px solid #aaa;border-radius:3px;background:#fff;cursor:pointer;margin-top:2px;color:#666">Skip</button></th>`;}).join('')}
     <th style="background:#D9D9D9;border:1px solid #999;padding:4px 6px;font-size:11px;width:70px;min-width:70px;max-width:70px">Vial</th>
     <th style="text-align:left;padding:6px 10px;background:#D9D9D9;border:1px solid #999;width:160px;max-width:160px">Notes</th>
   </tr></thead><tbody>`;
@@ -3650,6 +3650,43 @@ async function loadTrackerWeekData(mondayISO) {
       });
     }
   } catch(e) { console.error('loadTrackerWeekData failed:', e); }
+}
+
+async function saveWeekNote(val, mondayISO) {
+  if (!val.trim()) return;
+  try {
+    // Find or create DailyLog record for this Monday
+    const url = `https://api.airtable.com/v0/${BASE}/${TABLES.dailyLog}?filterByFormula=${encodeURIComponent('IS_SAME({Date},"' + mondayISO + '","day")')}`;
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${TOKEN}` }});
+    const j = await res.json();
+    const rec = (j.records||[])[0];
+    if (rec) {
+      await fetch(`https://api.airtable.com/v0/${BASE}/${TABLES.dailyLog}/${rec.id}`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fields: { 'fldAj7KhZciME5aOt': val.trim() }})
+      });
+    } else {
+      await fetch(`https://api.airtable.com/v0/${BASE}/${TABLES.dailyLog}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fields: { 'fldSk3hNQJTDKOyfT': mondayISO, 'fldAj7KhZciME5aOt': val.trim() }})
+      });
+    }
+  } catch(e) { console.error('saveWeekNote:', e); }
+}
+
+function skipDay(dateStr) {
+  const boxes = document.querySelectorAll(`.check-box[data-date="${dateStr}"]`);
+  const COLORS = { 'S': ['#fee2e2','#dc2626','#dc2626'] };
+  boxes.forEach(box => {
+    if (box.dataset.scheduled === 'false') return; // skip unscheduled days
+    box.dataset.s = 'S';
+    box.textContent = 'S';
+    box.style.background = COLORS.S[0];
+    box.style.borderColor = COLORS.S[1];
+    box.style.color = COLORS.S[2];
+  });
 }
 
 async function logVialEvent(compound, type) {
