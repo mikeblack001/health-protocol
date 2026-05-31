@@ -2069,7 +2069,9 @@ async function shiftTrackerWeek(dir) {
     trackerHistoricalData = null;
   }
   renderTracker();
-  populateWeekDropdown();
+  // Sync dropdown without re-fetching
+  const sel = document.getElementById('tracker-week-jump');
+  if (sel) sel.value = mondayISO;
   loadTrackerWeekData(mondayISO);
   updateVialCells();
 }
@@ -2505,8 +2507,8 @@ function shiftJumpWeek(dir) {
   const opts = [...sel.options].filter(o => o.value);
   if (!opts.length) return;
   const cur = sel.value || _currentMondayISO;
-  const idx = opts.findIndex(o => o.value === cur);
-  const next = opts[Math.max(0, Math.min(opts.length - 1, idx + dir))];
+  const idx = cur ? opts.findIndex(o => o.value === cur) : -1;
+  const next = opts[Math.max(0, Math.min(opts.length - 1, (idx === -1 ? opts.length - 1 : idx) + dir))];
   if (next) { sel.value = next.value; jumpToWeek(next.value); }
 }
 function jumpToWeek(val) {
