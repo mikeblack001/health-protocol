@@ -3473,7 +3473,7 @@ function renderTracker(weekNum) {
   <div style="border:3px solid #000;border-radius:8px;overflow-x:auto"><table style="border-collapse:collapse;width:100%;font-size:13px;min-width:820px">
   <thead><tr>
     <th style="text-align:left;padding:6px 10px;background:#D9D9D9;border:1px solid #999;width:170px;min-width:170px">Medication</th>
-    ${days.map(d=>`<th style="text-align:center;padding:6px 4px;background:#D9D9D9;border:1px solid #999;width:44px">${d}</th>`).join('')}
+    ${days.map((d,i)=>{const dd=new Date(monday);dd.setDate(monday.getDate()+i);const mo=dd.getMonth()+1;const dy=dd.getDate();return`<th style="text-align:center;padding:4px 4px;background:#D9D9D9;border:1px solid #999;width:44px"><div style="font-weight:700;font-size:11px">${d}</div><div style="font-size:9px;color:#666;font-weight:400">${mo}/${dy}</div></th>`;}).join('')}
     <th style="background:#D9D9D9;border:1px solid #999;padding:4px 6px;font-size:11px">Vial</th>
     <th style="text-align:left;padding:6px 10px;background:#D9D9D9;border:1px solid #999;width:120px">Notes</th>
   </tr></thead><tbody>`;
