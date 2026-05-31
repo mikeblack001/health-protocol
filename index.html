@@ -1897,7 +1897,7 @@ async function fetchHistoricalCompounds(mondayISO) {
     const prev = new Date(mon); prev.setDate(mon.getDate() - 1);
     const next = new Date(mon); next.setDate(mon.getDate() + 7);
     const formula = `AND(IS_AFTER({Date},"${prev.toISOString().split('T')[0]}"),IS_BEFORE({Date},"${next.toISOString().split('T')[0]}"))`;
-    const url = `https://api.airtable.com/v0/${BASE}/tblBvEaLkGGipnOFc?filterByFormula=${encodeURIComponent(formula)}&fields[]=Date&fields[]=Compound&fields[]=Name&sort[0][field]=Date&sort[0][direction]=asc`;
+    const url = `https://api.airtable.com/v0/${BASE}/tblBvEaLkGGipnOFc?filterByFormula=${encodeURIComponent(formula)}&fields[]=Date&fields[]=Compound&fields[]=Name`;
     const res = await fetch(url, { headers: { Authorization: `Bearer ${TOKEN}` }});
     const json = await res.json();
     const map = new Map();
