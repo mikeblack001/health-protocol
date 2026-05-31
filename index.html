@@ -2215,36 +2215,17 @@ function autoSave() {
   _autoSaveTimer = setTimeout(() => saveTrackerWeek(_currentMondayISO, true), 800);
 }
 async function saveTrackerWeek(mondayISO, silent) {
-  const boxes = document.querySelectorAll('.check-box[data-compound]');
-  const toSave = [];
-  boxes.forEach(b => {
-    if (b.dataset.s && b.dataset.s !== '0') {
-      toSave.push({date: b.dataset.date, compound: b.dataset.compound, site: b.dataset.s});
-    }
-  });
-  if (!toSave.length && !silent) { alert('Nothing to save.'); return; }
-  try {
-    // Save each checked injection to InjectionLog
-    // Batch in groups of 10
-    for (let i = 0; i < toSave.length; i += 10) {
-      const batch = toSave.slice(i, i+10);
-      const records = batch.map(e => ({
-        fields: {
-          'fldt9vYT8Tm37Gf3k': `${e.date} ${e.compound}`,
-          'fldhYEtLEGA4VxvvO': e.date,
-          'fldwVFyizH4mBANBa': e.compound,
-          'fldHDlJY8FpAvK018': e.site
-        }
-      }));
-      await fetch(`https://api.airtable.com/v0/${BASE}/tblBvEaLkGGipnOFc`, {
-        method: 'POST',
-        headers: {Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json'},
-        body: JSON.stringify({records, typecast: true})
-      });
-    }
-    if (!silent) alert('Week saved ✓');
-    else { const el=document.getElementById('save-status'); if(el){el.textContent='✓';el.style.color='var(--green)';setTimeout(()=>{el.textContent=''},2000);} }
-  } catch(e) { if (!silent) alert('Save failed: '+e.message); }
+  // Tracker reads injection states from InjectionLog (read-only)
+  // Only save week note if present
+  const wnel = document.getElementById('tracker-week-note');
+  if (wnel && wnel.value.trim()) {
+    await saveWeekNote(wnel.value, mondayISO);
+  }
+  if (!silent) alert('Week note saved ✓');
+  else {
+    const el = document.getElementById('save-status');
+    if (el) { el.textContent = '✓'; el.style.color = 'var(--green)'; setTimeout(() => { el.textContent = ''; }, 2000); }
+  }
 }
 
 function selectWeek(btn) {
