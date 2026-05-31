@@ -2365,15 +2365,18 @@ async function saveWeekNote(val, mondayISO) {
   finally { _weekNoteSaving[mondayISO] = false; }
 }
 
-function skipDay(dateStr) {
+async function skipDay(dateStr) {
   const skipBoxes = [];
   document.querySelectorAll(`.check-box[data-date="${dateStr}"]`).forEach(box => {
-    if (box.dataset.s && box.dataset.s !== '0') return; // already set, don't overwrite
+    if (box.dataset.s && box.dataset.s !== '0') return;
     box.dataset.s='S'; box.textContent='S';
     box.style.background='#fee2e2'; box.style.borderColor='#dc2626'; box.style.color='#dc2626';
     skipBoxes.push(box);
   });
-  skipBoxes.forEach(box => saveCheckbox(box));
+  for (const box of skipBoxes) {
+    await saveCheckbox(box);
+    await new Promise(r => setTimeout(r, 60));
+  }
 }
 
 function jumpToWeek(val) {
