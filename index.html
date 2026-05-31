@@ -3631,6 +3631,9 @@ async function loadTrackerWeekData(mondayISO) {
     const dlJson = await dlRes.json();
     const dlRec = (dlJson.records||[])[0];
     if (dlRec) {
+      const weekNote = dlRec.fields['fldAj7KhZciME5aOt'] || '';
+      const weekNoteEl = document.getElementById('tracker-week-note');
+      if (weekNoteEl && weekNote) weekNoteEl.value = weekNote;
       const pepLog = dlRec.fields['fldAatoFJQPQwbVhQ'] || '';
       pepLog.split(', ').forEach(entry => {
         if (entry.startsWith('NOTE|')) {
