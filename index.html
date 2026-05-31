@@ -2777,7 +2777,7 @@ async function loadAll() {
       try { renderPeptides('Active'); } catch(e2) { console.error('[loadAll] renderPeptides failed:', e2); }
     loadVendors();
       try { renderSupplements('Active'); } catch(e2) { console.error('[loadAll] renderSupplements failed:', e2); }
-      try { renderTracker(); const _tm = getTrackerMonday(); loadTrackerWeekData(_tm.toISOString().split('T')[0]); } catch(e2) { console.error('[loadAll] renderTracker failed:', e2); }
+      try { renderTracker(); const _tm = getTrackerMonday(); loadTrackerWeekData(_tm.toISOString().split('T')[0]); updateVialCells(); } catch(e2) { console.error('[loadAll] renderTracker failed:', e2); }
     renderPrintList();
     } catch(e) {
     document.getElementById('statusDot').className = 'status-dot';
@@ -3376,15 +3376,50 @@ function renderTracker(weekNum) {
   }
 
   function vialBtns(name) {
-    const pepRec = data.peptides.find(r => getField(r,'Compound') === name && getField(r,'Status') === 'Active');
-    const recId = pepRec ? pepRec.id : null;
-    const isEmptyVial = !recId && data.peptides.some(r => getField(r,'Compound') === name && getField(r,'Status') === 'Empty Vial');
-    return `<td style="border:1px solid #ccc;padding:2px 6px;white-space:nowrap;text-align:center">
-      ${recId
-        ? `<button onclick="markVialFinished('${name}','${recId}')" title="Mark vial empty" style="font-size:10px;padding:2px 7px;border:1px solid #f44336;border-radius:3px;background:#fce4ec;cursor:pointer;font-weight:600;color:#c62828">Empty</button>`
-        : `<span style="font-size:10px;color:#aaa">—</span>`
-      }
+    // Render placeholder — updateVialCells() fills in correct state after async fetch
+    return `<td style="border:1px solid #ccc;padding:2px 6px;white-space:nowrap;text-align:center" data-vial-compound="${name}">
+      <span style="font-size:10px;color:#ccc">·</span>
     </td>`;
+  }
+
+  async function updateVialCells() {
+    try {
+      // Fetch all peptide records with Compound + Status + End Date fields
+      let records = [], offset = null;
+      do {
+        let url = `https://api.airtable.com/v0/${BASE}/tblMs6YRdP4wkndUp?fields[]=fldeH5uyKXDFPZbHK&fields[]=fldeCBOtYYp6BtAfh&fields[]=fldbS91GtXsxjZU4q&fields[]=fldN7WOCx7ETJwmrB&fields[]=fldyExNQXycfMjd1S&fields[]=fld9J0U5iSDzyaaun&fields[]=fld3I1yzis1GsIDig&pageSize=100`;
+        if (offset) url += `&offset=${encodeURIComponent(offset)}`;
+        const res = await fetch(url, { headers: { Authorization: `Bearer ${TOKEN}` }});
+        const j = await res.json();
+        records = records.concat(j.records || []);
+        offset = j.offset;
+      } while (offset);
+
+      // Build map: compound → active record
+      const activeMap = {};
+      records.forEach(r => {
+        const compound = r.fields['fldeH5uyKXDFPZbHK'];
+        const status = r.fields['fldeCBOtYYp6BtAfh'];
+        if (compound && status === 'Active') activeMap[compound] = r;
+      });
+
+      // Update each vial cell
+      document.querySelectorAll('td[data-vial-compound]').forEach(td => {
+        const name = td.dataset.vialCompound;
+        const rec = activeMap[name];
+        if (rec) {
+          td.innerHTML = `<button onclick="markVialFinished('${name}','${rec.id}')" title="Mark vial empty" style="font-size:10px;padding:2px 7px;border:1px solid #f44336;border-radius:3px;background:#fce4ec;cursor:pointer;font-weight:600;color:#c62828">Empty</button>`;
+          // Store rec data on button for use in markVialFinished
+          td.dataset.vialRecId = rec.id;
+          td.dataset.vialDose = rec.fields['fldN7WOCx7ETJwmrB'] || '';
+          td.dataset.vialFreq = rec.fields['fldyExNQXycfMjd1S'] || '';
+          td.dataset.vialTiming = rec.fields['fld9J0U5iSDzyaaun'] || '';
+          td.dataset.vialNotes = rec.fields['fld3I1yzis1GsIDig'] || '';
+        } else {
+          td.innerHTML = `<span style="font-size:10px;color:#aaa">—</span>`;
+        }
+      });
+    } catch(e) { console.error('updateVialCells:', e); }
   }
 
   async function markVialFinished(compound, recId) {
@@ -3449,10 +3484,10 @@ function renderTracker(weekNum) {
   </div>
   <div style="border:3px solid #000;border-radius:8px;overflow-x:auto"><table style="border-collapse:collapse;width:100%;font-size:13px;min-width:820px">
   <thead><tr>
-    <th style="text-align:left;padding:6px 10px;background:#D9D9D9;border:1px solid #999;min-width:220px">Medication</th>
+    <th style="text-align:left;padding:6px 10px;background:#D9D9D9;border:1px solid #999;width:170px;min-width:170px">Medication</th>
     ${days.map(d=>`<th style="text-align:center;padding:6px 4px;background:#D9D9D9;border:1px solid #999;width:44px">${d}</th>`).join('')}
     <th style="background:#D9D9D9;border:1px solid #999;padding:4px 6px;font-size:11px">Vial</th>
-    <th style="text-align:left;padding:6px 10px;background:#D9D9D9;border:1px solid #999">Notes</th>
+    <th style="text-align:left;padding:6px 10px;background:#D9D9D9;border:1px solid #999;width:120px">Notes</th>
   </tr></thead><tbody>`;
 
   if (morning.length) {
@@ -3509,6 +3544,7 @@ async function shiftTrackerWeek(dir) {
   }
   renderTracker();
   loadTrackerWeekData(mondayISO);
+  updateVialCells();
 }
 
 async function loadTrackerWeekData(mondayISO) {
