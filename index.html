@@ -3375,9 +3375,9 @@ function renderTracker(weekNum) {
   }
 
   function vialBtns(name) {
-    // Render placeholder — updateVialCells() fills in correct state after async fetch
+    // Always render Empty button — updateVialCells fills in recId or hides if truly no record
     return `<td style="border:1px solid #ccc;padding:2px 4px;white-space:nowrap;text-align:center;width:70px;max-width:70px" data-vial-compound="${name}">
-      <span style="font-size:10px;color:#ccc">·</span>
+      <button onclick="markVialFinishedByName('${name}')" title="Mark vial empty" style="font-size:10px;padding:2px 7px;border:1px solid #f44336;border-radius:3px;background:#fce4ec;cursor:pointer;font-weight:600;color:#c62828">Empty</button>
     </td>`;
   }
 
@@ -3661,6 +3661,61 @@ async function loadTrackerWeekData(mondayISO) {
   } catch(e) { console.error('loadTrackerWeekData failed:', e); }
 }
 
+async function markVialFinishedByName(compound) {
+  const boxes = [...document.querySelectorAll(`.check-box[data-compound="${compound}"]`)];
+  const checkedDates = boxes.filter(b => b.dataset.s && b.dataset.s !== '0').map(b => b.dataset.date).filter(Boolean).sort();
+  if (!checkedDates.length) { alert('No injection checked for ' + compound + ' this week — check a date first.'); return; }
+  const endDate = checkedDates[checkedDates.length - 1];
+  const nextDate = checkedDates.find(d => d > endDate) || null;
+  // Find most recent Active or any record for this compound
+  const td = document.querySelector(`td[data-vial-compound="${compound}"]`);
+  const recId = td?.dataset?.vialRecId || '';
+  if (!recId) {
+    // Fetch most recent record for compound
+    try {
+      const res = await fetch(`https://api.airtable.com/v0/${BASE}/tblMs6YRdP4wkndUp?filterByFormula=${encodeURIComponent('AND({Compound}="'+compound+'",{Status}="Active")')}&pageSize=1`, {
+        headers: { Authorization: `Bearer ${TOKEN}` }
+      });
+      const j = await res.json();
+      const rec = (j.records||[])[0];
+      if (!rec) { alert('No Active record found for ' + compound); return; }
+      if (td) td.dataset.vialRecId = rec.id;
+      await doMarkVialEmpty(compound, rec.id, endDate, nextDate, td);
+    } catch(e) { alert('Error: ' + e.message); }
+    return;
+  }
+  await doMarkVialEmpty(compound, recId, endDate, nextDate, td);
+}
+
+async function doMarkVialEmpty(compound, recId, endDate, nextDate, td) {
+  const msg = nextDate
+    ? `Mark ${compound} vial empty on ${endDate}\nNew vial starts: ${nextDate}`
+    : `Mark ${compound} vial empty on ${endDate}`;
+  if (!confirm(msg)) return;
+  try {
+    await fetch(`https://api.airtable.com/v0/${BASE}/tblMs6YRdP4wkndUp/${recId}`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fields: { 'Status': 'Empty Vial', 'End Date': endDate }, typecast: true })
+    });
+    if (nextDate) {
+      const newFields = { 'Compound': compound, 'Status': 'Active', 'Start Date': nextDate };
+      if (td) {
+        if (td.dataset.vialDose) newFields['Dose'] = td.dataset.vialDose;
+        if (td.dataset.vialFreq) newFields['Frequency'] = td.dataset.vialFreq;
+        if (td.dataset.vialTiming) newFields['Timing'] = td.dataset.vialTiming;
+        if (td.dataset.vialNotes) newFields['Notes'] = td.dataset.vialNotes;
+      }
+      await fetch(`https://api.airtable.com/v0/${BASE}/tblMs6YRdP4wkndUp`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fields: newFields, typecast: true })
+      });
+    }
+    if (td) td.innerHTML = `<span style="font-size:10px;color:#aaa">—</span>`;
+  } catch(e) { alert('Failed: ' + e.message); }
+}
+
 async function saveWeekNote(val, mondayISO) {
   if (!val.trim()) return;
   try {
@@ -3687,14 +3742,13 @@ async function saveWeekNote(val, mondayISO) {
 
 function skipDay(dateStr) {
   const boxes = document.querySelectorAll(`.check-box[data-date="${dateStr}"]`);
-  const COLORS = { 'S': ['#fee2e2','#dc2626','#dc2626'] };
   boxes.forEach(box => {
-    if (box.dataset.scheduled === 'false') return; // skip unscheduled days
+    if (box.dataset.scheduled !== 'true') return;
     box.dataset.s = 'S';
     box.textContent = 'S';
-    box.style.background = COLORS.S[0];
-    box.style.borderColor = COLORS.S[1];
-    box.style.color = COLORS.S[2];
+    box.style.background = '#fee2e2';
+    box.style.borderColor = '#dc2626';
+    box.style.color = '#dc2626';
   });
 }
 
