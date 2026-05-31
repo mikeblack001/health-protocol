@@ -2135,9 +2135,20 @@ async function loadTrackerWeekData(mondayISO) {
         schedMap[key].add(dow);
       });
       window._compoundSchedule = schedMap;
-      // Re-render tracker with new schedule so greying applies immediately
-      const savedOffset = trackerMondayOffset;
-      renderTracker();
+      // Apply greying to existing cells without full re-render
+      document.querySelectorAll('.check-box').forEach(box => {
+        const compound = box.dataset.compound;
+        const dayIdx = parseInt(box.dataset.day);
+        if (!compound || isNaN(dayIdx)) return;
+        const sched = schedMap[compound.toLowerCase()];
+        const isActive = !sched || sched.size === 0 || sched.has(dayIdx);
+        const bg = box.closest('tr')?.style?.background || '';
+        if (!isActive) {
+          box.closest('td').style.background = '#DEDEDE';
+          box.style.opacity = '0.6';
+          box.style.borderColor = '#bbb';
+        }
+      });
     } catch(e) { console.error('dynamic schedule failed:', e); }
     const norm = s => (s||'').toLowerCase().trim().replace(/\s+/g,' ');
     // Alias map: injection log name → tracker name (both normalized)
