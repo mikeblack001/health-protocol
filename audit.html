@@ -169,9 +169,11 @@ select.fe{cursor:pointer}
     <div id="dnav">
       <button onclick="navD(-1)">◀ Prev</button>
       <select id="d-sel" onchange="selDate()"><option value="">— Select Date —</option></select>
-      <select id="w-sel" onchange="selWeek()" title="Jump to week"><option value="">— Week —</option></select>
-      <input id="w-date" type="text" placeholder="MM/DD/YYYY" title="Jump to any date" style="padding:5px 6px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;color:#374151;width:110px" oninput="autoSlash(this)" onkeydown="if(event.key==='Enter')jumpToDate(this.value)">
       <button onclick="navD(1)">Next ▶</button>
+      <span style="color:#d1d5db;margin:0 4px">|</span>
+      <button onclick="navW(-1)">◀ Prev</button>
+      <select id="w-sel" onchange="selWeek()" title="Jump to week"><option value="">— Week —</option></select>
+      <button onclick="navW(1)">Next ▶</button>
       <span id="d-cnt"></span>
       <div id="dnav-r">
         <button class="hbtn" style="background:#2563eb;border-color:#2563eb;color:#fff" onclick="openAddModal()">+ Add Record</button>
@@ -783,6 +785,15 @@ function navD(dir){
   const i=curDate?allDates.indexOf(curDate):-1;
   const d=allDates[Math.max(0,Math.min(allDates.length-1,i+dir))];
   if(d)setDate(d);
+}
+function navW(dir){
+  const sel=document.getElementById('w-sel');
+  const opts=[...sel.options].filter(o=>o.value);
+  if(!opts.length)return;
+  const cur=sel.value;
+  const i=opts.findIndex(o=>o.value===cur);
+  const next=opts[Math.max(0,Math.min(opts.length-1,i+dir))];
+  if(next){sel.value=next.value;selWeek();}
 }
 
 async function setDate(date){
