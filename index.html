@@ -63,8 +63,7 @@
   main { max-width: 1100px; margin: 0 auto; padding: 24px; }
   .view { display: none; }
   .view.active { display: block; }
-  #tracker-content { max-width: 100%; overflow-x: auto; }
-  #tracker-content table { max-width: 100%; }
+  #view-tracker { overflow-x: auto; }
 
   /* DASHBOARD */
   .dash-header { margin-bottom: 24px; }
@@ -856,7 +855,7 @@
     </div>
   </div>
 
-  <div id="view-tracker" class="view" style="overflow-x:auto">
+  <div id="view-tracker" class="view">
     <div id="tracker-content" style="min-width:0"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
     <div id="tracker-legend" style="margin-top:8px;display:flex;gap:10px;font-size:11px;font-family:'DM Mono',monospace;flex-wrap:wrap">
       <span style="background:#dbeafe;border:1px solid #2563eb;color:#1d4ed8;padding:2px 8px;border-radius:4px">L = Left</span>
@@ -1989,7 +1988,7 @@ function renderTracker(weekNum) {
       style="flex:1;padding:5px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface);outline:none"
       onblur="saveWeekNote(this.value,'${mondayISO}')">
   </div>
-  <div style="border:3px solid #000;border-radius:8px;overflow-x:auto;max-width:100%"><table style="border-collapse:collapse;width:100%;table-layout:fixed;font-size:12px">
+  <div style="border:3px solid #000;border-radius:8px;overflow-x:auto;max-width:100%"><table style="border-collapse:collapse;width:100%;font-size:12px">
   <thead><tr>
     <th style="text-align:left;padding:6px 10px;background:#D9D9D9;border:1px solid #999;width:180px">Medication</th>
     ${days.map((d,i)=>{const dd=new Date(monday);dd.setDate(monday.getDate()+i);const mo=dd.getMonth()+1;const dy=dd.getDate();const dateStr=dd.toISOString().split('T')[0];return`<th style="text-align:center;padding:4px 2px;background:#D9D9D9;border:1px solid #999;width:52px"><div style="font-weight:700;font-size:11px">${d}</div><div style="font-size:9px;color:#666;font-weight:400">${mo}/${dy}</div><button onclick="skipDay('${dateStr}')" title="Skip all" style="font-size:8px;padding:1px 4px;border:1px solid #aaa;border-radius:3px;background:#fff;cursor:pointer;margin-top:2px;color:#666">Skip</button></th>`;}).join('')}
