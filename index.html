@@ -1017,6 +1017,7 @@
   </div>
 
   <!-- DATA BROWSER -->
+  <div id="view-pdfqa" class="view"></div>
   <div id="view-databrowser" class="view">
     <div class="section-header" style="flex-wrap:wrap;gap:10px">
       <h2>Data Browser</h2>
@@ -1585,6 +1586,7 @@ function renderSupplements(filter) {
   document.getElementById('supps-content').innerHTML = html || '<p style="color:var(--muted);padding:20px;font-family:DM Mono,monospace">No records found.</p>';
 }
 
+
 // ===== SUPPLEMENT DASHBOARD =====
 let suppDashLoaded = false;
 let suppDashAmazon = [];
@@ -1812,7 +1814,6 @@ function renderSuppDashReview() {
   const el = document.getElementById('suppdash-review-content');
   if (el) el.innerHTML = html;
 }
-
 
 // ===== PEPTIDE TRACKER =====
 let trackerMondayOffset = 0; // weeks offset from current week
