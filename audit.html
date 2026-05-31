@@ -632,11 +632,7 @@ async function gridCellClick(date,cmp,timing=''){
     const tim=card.querySelector('select.fe-timing');
     return sel&&sel.value===cmp&&(!timing||(tim&&tim.value===timing));
   });
-  // Fallback: first compound match
-  if(!found)found=cards.find(card=>{
-    const sel=card.querySelector('select.fe-compound');
-    return sel&&sel.value===cmp;
-  });
+  // No fallback — require compound+timing match to avoid wrong card
   if(found){
     document.querySelectorAll('.card').forEach(card=>card.style.outline='');
     found.scrollIntoView({behavior:'smooth',block:'center'});
