@@ -1923,32 +1923,45 @@ function renderTracker(weekNum) {
   const pepMapCI = {};
   data.peptides.forEach(r => { pepMapCI[getField(r,'Compound').toLowerCase()] = r; });
 
+  // Read saved order from audit.html localStorage (key: mba_row_order)
+  let savedOrder = [];
+  try { savedOrder = JSON.parse(localStorage.getItem('mba_row_order') || '[]'); } catch(e) {}
+  // savedOrder entries are "Compound||Timing" e.g. "Testosterone||Morning"
+  function getSavedIdx(name, timing) {
+    const key = name + '||' + timing;
+    const idx = savedOrder.indexOf(key);
+    if (idx !== -1) return idx;
+    // fallback: match by compound name only
+    const fallback = savedOrder.findIndex(k => k.split('||')[0] === name);
+    return fallback !== -1 ? fallback : 9999;
+  }
+  function sortByAuditOrder(peps, timing) {
+    return [...peps].sort((a, b) => {
+      const na = getField(a,'Compound'), nb = getField(b,'Compound');
+      const ia = getSavedIdx(na, timing), ib = getSavedIdx(nb, timing);
+      if (ia !== ib) return ia - ib;
+      return na.localeCompare(nb);
+    });
+  }
+
   let morning, night;
   if (trackerHistoricalData) {
-    // Historical mode: compound list comes from injection log
-    // Sort by known order (TRACKER_*_ORDER), unknowns appended at end
-    const mornOrder = TRACKER_MORNING_ORDER.map(n => n.toLowerCase());
-    const nightOrder = TRACKER_NIGHT_ORDER.map(n => n.toLowerCase());
-    const sortByOrder = (names, order) => [
-      ...order.filter(o => names.some(n => n === o || (pepMapCI[n] && getField(pepMapCI[n],'Compound').toLowerCase() === o))),
-      ...names.filter(n => { const k = (pepMapCI[n] ? getField(pepMapCI[n],'Compound').toLowerCase() : n); return !order.includes(k); })
-    ].map(o => names.find(n => n === o || (pepMapCI[n] && getField(pepMapCI[n],'Compound').toLowerCase() === o)) || o);
     const histNames = [...trackerHistoricalData.keys()];
-    const histMorn = sortByOrder(histNames.filter(n => !isNightPep(n)), mornOrder);
-    const histNight = sortByOrder(histNames.filter(n => isNightPep(n)), nightOrder);
-    morning = histMorn.map(n => pepMap[n] || pepMapCI[n] || { fields: { Compound: n, Dose: '', Status: 'Historical', Timing: 'Morning' }});
-    night   = histNight.map(n => pepMap[n] || pepMapCI[n] || { fields: { Compound: n, Dose: '', Status: 'Historical', Timing: 'Night' }});
+    const histMornRecs = histNames.filter(n => !isNightPep(n)).map(n => pepMap[n] || pepMapCI[n] || { fields: { Compound: n, Dose: '', Status: 'Historical', Timing: 'Morning' }});
+    const histNightRecs = histNames.filter(n => isNightPep(n)).map(n => pepMap[n] || pepMapCI[n] || { fields: { Compound: n, Dose: '', Status: 'Historical', Timing: 'Night' }});
+    morning = savedOrder.length ? sortByAuditOrder(histMornRecs, 'Morning') : histMornRecs;
+    night   = savedOrder.length ? sortByAuditOrder(histNightRecs, 'Night')   : histNightRecs;
   } else {
-    // Current/future: known order first, then any unlisted Active peps
-    const knownM = new Set(TRACKER_MORNING_ORDER), knownN = new Set(TRACKER_NIGHT_ORDER);
-    morning = [
+    const allMorn = [
       ...TRACKER_MORNING_ORDER.map(n => pepMap[n]).filter(Boolean),
-      ...activePeps.filter(r => { const n = getField(r,'Compound'); const t = getField(r,'Timing')||''; return !t.toLowerCase().includes('night') && !knownM.has(n); })
+      ...activePeps.filter(r => { const n = getField(r,'Compound'); const t = getField(r,'Timing')||''; return !t.toLowerCase().includes('night') && !TRACKER_MORNING_ORDER.includes(n); })
     ];
-    night = [
+    const allNight = [
       ...TRACKER_NIGHT_ORDER.map(n => pepMap[n]).filter(Boolean),
-      ...activePeps.filter(r => { const n = getField(r,'Compound'); const t = getField(r,'Timing')||''; return t.toLowerCase().includes('night') && !knownN.has(n); })
+      ...activePeps.filter(r => { const n = getField(r,'Compound'); const t = getField(r,'Timing')||''; return t.toLowerCase().includes('night') && !TRACKER_NIGHT_ORDER.includes(n); })
     ];
+    morning = savedOrder.length ? sortByAuditOrder(allMorn, 'Morning') : allMorn;
+    night   = savedOrder.length ? sortByAuditOrder(allNight, 'Night')   : allNight;
   }
   const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
 
