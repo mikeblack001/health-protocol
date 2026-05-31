@@ -3316,7 +3316,6 @@ async function fetchHistoricalCompounds(mondayISO) {
 }
 
 function renderTracker(weekNum) {
-  _currentMondayISO = mondayISO;
 const activePeps = data.peptides.filter(r => getField(r,'Status') === 'Active');
   const pepMap = {};
   activePeps.forEach(r => { pepMap[getField(r,'Compound')] = r; });
