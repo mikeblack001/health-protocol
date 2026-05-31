@@ -495,7 +495,7 @@ async function loadWeekGrid(date){
   initGridDrag();
   renderRecordsOrdered(orderedKeys);
   // Auto-save row order to AT whenever a week is loaded
-  saveRowOrderToAT(orderedKeys);
+  saveRowOrderToAT(orderedKeys, date);
 }
 
 function initGridDrag(){
@@ -543,8 +543,9 @@ function initGridDrag(){
 }
 
 
-async function saveRowOrderToAT(orderedKeys) {
-  if (!curDate) return;
+async function saveRowOrderToAT(orderedKeys, weekDate) {
+  const useDate = weekDate || curDate;
+  if (!useDate) return;
   try {
     const compoundOrder = {};
     orderedKeys.forEach((key, idx) => {
@@ -553,7 +554,7 @@ async function saveRowOrderToAT(orderedKeys) {
         compoundOrder[compound] = idx + 1;
       }
     });
-    const days = getWkDates(curDate);
+    const days = getWkDates(useDate);
     const orParts = days.map(d => `IS_SAME({${LOG.date}},"${d}","day")`).join(',');
     const url = `https://api.airtable.com/v0/${AT_BASE}/${LOG.tbl}?filterByFormula=OR(${encodeURIComponent(orParts)})&fields[]=Compound&fields[]=fldoGvhlbs8oHCRjP&pageSize=100`;
     const resp = await fetch(url, { headers: { Authorization: `Bearer ${AT_TOK}` } });
