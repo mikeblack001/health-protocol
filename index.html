@@ -3453,7 +3453,7 @@ async function updateVialCells() {
     // Fetch all peptide records with Compound + Status + End Date fields
     let records = [], offset = null;
     do {
-      let url = `https://api.airtable.com/v0/${BASE}/tblMs6YRdP4wkndUp?fields[]=fldeH5uyKXDFPZbHK&fields[]=fldeCBOtYYp6BtAfh&fields[]=fldbS91GtXsxjZU4q&fields[]=fldN7WOCx7ETJwmrB&fields[]=fldyExNQXycfMjd1S&fields[]=fld9J0U5iSDzyaaun&fields[]=fld3I1yzis1GsIDig&pageSize=100`;
+      let url = `https://api.airtable.com/v0/${BASE}/tblMs6YRdP4wkndUp?fields[]=Compound&fields[]=Status&fields[]=End+Date&fields[]=Dose&fields[]=Frequency&fields[]=Timing&fields[]=Notes&pageSize=100`;
       if (offset) url += `&offset=${encodeURIComponent(offset)}`;
       const res = await fetch(url, { headers: { Authorization: `Bearer ${TOKEN}` }});
       const j = await res.json();
@@ -3502,7 +3502,7 @@ async function markVialFinished(compound, recId) {
     const res = await fetch(`https://api.airtable.com/v0/${BASE}/tblMs6YRdP4wkndUp/${recId}`, {
       method: 'PATCH',
       headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fields: { 'fldeCBOtYYp6BtAfh': 'Empty Vial', 'fldbS91GtXsxjZU4q': endDate }, typecast: true })
+      body: JSON.stringify({ fields: { 'Status': 'Empty Vial', 'End Date': endDate }, typecast: true })
     });
     if (!res.ok) throw new Error(await res.text());
     if (nextDate) {
