@@ -3371,7 +3371,7 @@ const activePeps = data.peptides.filter(r => getField(r,'Status') === 'Active');
         var next=s==='L'?'R':s==='R'?'S':s==='S'?'X':s==='X'?'0':'L';
         this.dataset.s=next; this.textContent=next==='0'?'':next;
         var c=next==='L'?['#dbeafe','#2563eb','#1d4ed8']:next==='R'?['#fef3c7','#d97706','#92400e']:next==='S'?['#fee2e2','#dc2626','#dc2626']:next==='N'?['#e5e7eb','#6b7280','#6b7280']:['','#888',''];
-        this.style.background=c[0];this.style.borderColor=c[1];this.style.color=c[2];
+        this.style.background=c[0];this.style.borderColor=c[1];this.style.color=c[2];autoSave();
       " style="margin:0 auto;border:1.5px solid ${isActive?'#888':'#bbb'};opacity:${isActive?'1':'0.6'}"></div></td>`;
   }
 
@@ -3524,6 +3524,7 @@ async function shiftTrackerWeek(dir) {
     trackerHistoricalData = null;
   }
   renderTracker();
+  populateWeekDropdown();
   loadTrackerWeekData(mondayISO);
   updateVialCells();
 }
@@ -3736,6 +3737,47 @@ async function saveWeekNote(val, mondayISO) {
       });
     }
   } catch(e) { console.error('saveWeekNote:', e); }
+}
+
+function jumpToWeek(val) {
+  if (!val) return;
+  const target = new Date(val + 'T12:00:00');
+  const today = new Date();
+  const currentMon = new Date(today);
+  currentMon.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+  currentMon.setHours(0,0,0,0);
+  const diffMs = target - currentMon;
+  const diffWeeks = Math.round(diffMs / (7 * 24 * 60 * 60 * 1000));
+  trackerMondayOffset = diffWeeks;
+  const monday = getTrackerMonday();
+  const mondayISO = monday.toISOString().split('T')[0];
+  if (trackerMondayOffset < 0) {
+    fetchHistoricalCompounds(mondayISO).then(h => { trackerHistoricalData = h; renderTracker(); loadTrackerWeekData(mondayISO); updateVialCells(); });
+  } else {
+    trackerHistoricalData = null; renderTracker(); loadTrackerWeekData(mondayISO); updateVialCells();
+  }
+}
+
+function populateWeekDropdown() {
+  const sel = document.getElementById('tracker-week-jump');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">Jump to week...</option>';
+  // Generate weeks from Oct 2024 to current
+  const start = new Date('2024-10-28T12:00:00');
+  const today = new Date();
+  let d = new Date(start);
+  // Align to Monday
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+  while (d <= today) {
+    const iso = d.toISOString().split('T')[0];
+    const mo = d.getMonth()+1, dy = d.getDate(), yr = String(d.getFullYear()).slice(2);
+    const opt = document.createElement('option');
+    opt.value = iso;
+    opt.textContent = mo+'/'+dy+'/'+yr;
+    sel.appendChild(opt);
+    d.setDate(d.getDate() + 7);
+  }
+  sel.selectedIndex = sel.options.length - 1;
 }
 
 function skipDay(dateStr) {
