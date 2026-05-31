@@ -2447,22 +2447,55 @@ function jumpToWeek(val) {
   }
 }
 
-function populateWeekDropdown() {
+async function populateWeekDropdown() {
   const sel = document.getElementById('tracker-week-jump');
   if (!sel) return;
   const currentISO = _currentMondayISO;
   sel.innerHTML = '<option value="">Jump to week...</option>';
-  const start = new Date('2024-10-28T12:00:00');
-  const today = new Date();
-  let dd = new Date(start);
-  dd.setDate(dd.getDate()-((dd.getDay()+6)%7));
-  while (dd <= today) {
-    const iso = dd.toISOString().split('T')[0];
-    const opt = document.createElement('option');
-    opt.value = iso;
-    opt.textContent = (dd.getMonth()+1)+'/'+dd.getDate()+'/'+String(dd.getFullYear()).slice(2);
-    sel.appendChild(opt);
-    dd.setDate(dd.getDate()+7);
+  try {
+    // Get all distinct dates from InjectionLog (excluding Week Note)
+    let allDates = [], offset = null;
+    do {
+      let url = `https://api.airtable.com/v0/${BASE}/tblBvEaLkGGipnOFc?fields[]=Date&pageSize=100`;
+      if (offset) url += '&offset=' + encodeURIComponent(offset);
+      const r = await fetch(url, {headers:{Authorization:`Bearer ${TOKEN}`}});
+      const d = await r.json();
+      (d.records||[]).forEach(rec => { if (rec.fields['Date']) allDates.push(rec.fields['Date']); });
+      offset = d.offset || null;
+    } while (offset);
+    // Convert each date to its Monday, deduplicate
+    const mondaySet = new Set();
+    allDates.forEach(dateStr => {
+      const d = new Date(dateStr + 'T12:00:00');
+      d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+      mondaySet.add(d.toISOString().split('T')[0]);
+    });
+    // Sort descending (newest first)
+    const mondays = [...mondaySet].sort((a,b) => b.localeCompare(a));
+    mondays.forEach(iso => {
+      const d = new Date(iso + 'T12:00:00');
+      const opt = document.createElement('option');
+      opt.value = iso;
+      opt.textContent = (d.getMonth()+1)+'/'+d.getDate()+'/'+String(d.getFullYear()).slice(2);
+      sel.appendChild(opt);
+    });
+  } catch(e) {
+    // Fallback: generate all weeks from Oct 2024 to today
+    const start = new Date('2024-10-28T12:00:00');
+    const today = new Date();
+    let dd = new Date(start);
+    dd.setDate(dd.getDate()-((dd.getDay()+6)%7));
+    const opts = [];
+    while (dd <= today) {
+      const iso = dd.toISOString().split('T')[0];
+      opts.push({iso, label: (dd.getMonth()+1)+'/'+dd.getDate()+'/'+String(dd.getFullYear()).slice(2)});
+      dd.setDate(dd.getDate()+7);
+    }
+    opts.reverse().forEach(({iso, label}) => {
+      const opt = document.createElement('option');
+      opt.value = iso; opt.textContent = label;
+      sel.appendChild(opt);
+    });
   }
   if (currentISO) sel.value = currentISO;
 }
