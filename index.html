@@ -2736,11 +2736,7 @@ async function loadSchedule() {
     h += `<div class="table-wrap">
       <div class="timing-header" style="display:flex;align-items:center;gap:10px;justify-content:space-between">
         <span>Inactive (A–Z)</span>
-        <select id="inactive-status-filter" onchange="filterInactive()"
-          style="font-size:11px;padding:2px 6px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text)">
-          <option value="">All Statuses</option>
-          ${STATUS_OPTS.filter(s=>s!=='Active').map(s=>`<option value="${s}">${s}</option>`).join('')}
-        </select>
+
       </div>
       <table style="width:100%;border-collapse:collapse;font-size:12px">
         <thead><tr style="background:var(--surface2);border-bottom:2px solid var(--border)">
@@ -2854,13 +2850,7 @@ function sortInactive() {
   rows.forEach(r => tbody.appendChild(r));
 }
 
-function filterInactive() {
-  const status = document.getElementById('inactive-status-filter')?.value||'';
-  document.querySelectorAll('#inactive-tbody tr').forEach(row => {
-    const match = !status || row.dataset.status === status;
-    row.style.display = match ? '' : 'none';
-  });
-}
+
 
 function schedStatusChange(sel,recId,name) {
   const row = document.getElementById(`sched-row-${recId}`);
