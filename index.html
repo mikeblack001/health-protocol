@@ -1854,7 +1854,7 @@ const TRACKER_SCHEDULE = {
   'Tirzepatide':            [5],            // Sat
   'CJC-1295 No DAC':        [0,1,2,3,6],   // Mon/Tue/Wed/Thu/Sun
   'Ipamorelin':             [0,1,2,3,6],   // Mon/Tue/Wed/Thu/Sun
-  'DSIP':                   [0,2,4,5,6],   // Mon/Wed/Fri/Sat/Sun
+  'DSIP':                   [0,2,3,5,6],   // Mon/Wed/Thu/Sat/Sun
   'KPV':                    [0,1,2,3,4,5,6],// Daily
   'Epitalon':               [0,1,2,3,4,5,6],// Daily
 };
@@ -1962,10 +1962,17 @@ function renderTracker(weekNum) {
 
   function dayCell(compound, dayIdx, bg, timing) {
     // Use dynamic schedule from InjectionLog history if available, else fall back to hardcoded
-    // TRACKER_SCHEDULE takes priority; dynamic schedule only fills unknowns
-    const staticSched = TRACKER_SCHEDULE[compound];
-    const dynSched = !staticSched && window._compoundSchedule && window._compoundSchedule[compound.toLowerCase()];
-    const active = staticSched || (dynSched ? [...dynSched] : null);
+    // Read schedule from Peptides table (AT) first, fall back to TRACKER_SCHEDULE, then dynamic
+    const pepRec = pepMap[compound] || pepMapCI[compound.toLowerCase()];
+    const atSched = pepRec ? (getField(pepRec,'Schedule')||'').trim() : '';
+    let active;
+    if (atSched) {
+      active = atSched.split(',').map(s=>parseInt(s.trim())).filter(n=>!isNaN(n));
+    } else {
+      const staticSched = TRACKER_SCHEDULE[compound];
+      const dynSched = !staticSched && window._compoundSchedule && window._compoundSchedule[compound.toLowerCase()];
+      active = staticSched || (dynSched ? [...dynSched] : null);
+    }
     const isActive = !active || active.length === 0 || active.includes(dayIdx);
     const dayDate = new Date(monday); dayDate.setDate(monday.getDate() + dayIdx);
     const dateStr = dayDate.toISOString().split('T')[0];
@@ -2351,7 +2358,7 @@ function selectWeek(btn) {
 
 async function updateVialCells() {
   try {
-    const res = await fetch(`https://api.airtable.com/v0/${BASE}/tblMs6YRdP4wkndUp?fields[]=Compound&fields[]=Status&fields[]=Dose&fields[]=Frequency&fields[]=Timing&fields[]=Notes&sort[0][field]=Start Date&sort[0][direction]=desc&pageSize=100`, {headers:{Authorization:`Bearer ${TOKEN}`}});
+    const res = await fetch(`https://api.airtable.com/v0/${BASE}/tblMs6YRdP4wkndUp?fields[]=Compound&fields[]=Status&fields[]=Dose&fields[]=Frequency&fields[]=Timing&fields[]=Notes&fields[]=Schedule&sort[0][field]=Start Date&sort[0][direction]=desc&pageSize=100`, {headers:{Authorization:`Bearer ${TOKEN}`}});
     const d = await res.json();
     const activeMap = {};
     (d.records||[]).forEach(r => { const c=r.fields['Compound']; if(c&&!activeMap[c]) activeMap[c]=r; });
