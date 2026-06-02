@@ -4821,9 +4821,9 @@ async function printPeptideWeekly() {
   // Note row when present = 18px extra on week 1
   // Available row height: (883 - 2*(90 + (weekNote?18:0))) / (2 * totalRows)
   const noteH = weekNote ? 18 : 0;
-  // note row always present on all weeks now
+  // note row always present on all weeks, 36px tall
   const rowH = totalRows > 0
-    ? Math.max(16, Math.min(34, Math.floor((883 - 2*(90 + 22)) / (2 * totalRows))))
+    ? Math.max(16, Math.min(34, Math.floor((883 - 2*(90 + 36)) / (2 * totalRows))))
     : 26;
 
   function rows(order, bg) {
@@ -4850,7 +4850,7 @@ async function printPeptideWeekly() {
     wMon.setDate(monday.getDate() + weekOffset * 7);
     const mondayStr = wMon.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
     const noteText = weekOffset === 0 && weekNote ? weekNote : '';
-    const noteRow = `<tr><td colspan="9" style="border:1px solid #000;padding:3px 5px;font-size:7pt;color:#333;background:#fffde7!important;font-family:'DM Sans',Calibri,Arial,sans-serif;height:22px"><b>Week Note:</b> ${noteText}</td></tr>`;
+    const noteRow = `<tr><td colspan="9" style="border:1px solid #000;padding:4px 6px;font-size:8pt;color:#333;background:#ffffff!important;font-family:'DM Sans',Calibri,Arial,sans-serif;height:36px;vertical-align:top"><b>Week Note:</b> ${noteText}</td></tr>`;
     return `<table style="width:100%;border-collapse:collapse;margin-top:6px;border:2px solid #000;table-layout:fixed;font-size:8pt;font-family:'DM Sans',Calibri,Arial,sans-serif">
     <colgroup><col style="width:34%">${DAYS.map(()=>'<col style="width:6%">').join('')}<col style="width:24%"></colgroup>
     <tbody>
