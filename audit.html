@@ -1068,7 +1068,34 @@ async function saveField(id,field,value){
     const allV2=logRecs.length>0&&logRecs.every(r=>r.fields[LOG.verified]===true);
     updateVerifyBtn(allV2);
     loadWeekGrid(curDate);
+    // Auto-log to ProtocolChanges when a note is saved
+    if(field===LOG.notes&&value&&value.trim()){
+      const rec=logRecs.find(r=>r.id===id);
+      const compound=rec?rec.fields[LOG.compound]:'';
+      const date=rec?rec.fields[LOG.date]:curDate;
+      logProtocolChange(compound,date,value.trim());
+    }
   }catch(e){setSt('Save error: '+e.message);}
+}
+
+async function logProtocolChange(compound,date,note){
+  const PC_TBL='tblolVx7YwO5cJhsE';
+  const fields={};
+  // Date field
+  fields['fldlVjHBC4ds5H1UH']=date?date.slice(0,10):curDate;
+  // Compound field
+  if(compound)fields['fldoavYuElnEH8Wfb']=compound;
+  // Change/note field
+  fields['flde72p4W1kJ9melY']=note;
+  // Type = Note
+  fields['fld6vTK6VtYTDzy2s']='Note';
+  try{
+    await fetch('https://api.airtable.com/v0/'+AT_BASE+'/'+PC_TBL,{
+      method:'POST',
+      headers:{Authorization:'Bearer '+AT_TOK,'Content-Type':'application/json'},
+      body:JSON.stringify({fields,typecast:true})
+    });
+  }catch(e){console.warn('ProtocolChanges log failed:',e);}
 }
 
 
