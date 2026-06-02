@@ -2530,8 +2530,8 @@ function jumpToWeek(val) {
   const monday = getTrackerMonday();
   const mondayISO = monday.toISOString().split('T')[0];
   if (trackerMondayOffset < 0) {
-    Promise.all([fetchHistoricalCompounds(mondayISO), loadTrackerWeekData(mondayISO)]).then(([h]) => {
-      trackerHistoricalData=h; renderTracker(); populateWeekDropdown(); updateVialCells();
+    fetchHistoricalCompounds(mondayISO).then(h => {
+      trackerHistoricalData=h; renderTracker(); populateWeekDropdown(); loadTrackerWeekData(mondayISO); updateVialCells();
     });
   } else {
     trackerHistoricalData=null;renderTracker();populateWeekDropdown();loadTrackerWeekData(mondayISO);updateVialCells();
