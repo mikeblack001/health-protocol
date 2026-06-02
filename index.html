@@ -2147,13 +2147,17 @@ async function loadTrackerWeekData(mondayISO) {
       });
       window._compoundSchedule = schedMap;
       // Apply greying to existing cells without full re-render
+      // Only use dynamic schedule for compounds WITHOUT an AT Schedule field set
       document.querySelectorAll('.check-box').forEach(box => {
         const compound = box.dataset.compound;
         const dayIdx = parseInt(box.dataset.day);
         if (!compound || isNaN(dayIdx)) return;
+        // If compound has AT Schedule set, skip — already handled correctly by dayCell
+        const pepRec = pepMap[compound] || pepMapCI[compound.toLowerCase()];
+        const atSched = pepRec ? (getField(pepRec,'Schedule')||'').trim() : '';
+        if (atSched) return;
         const sched = schedMap[compound.toLowerCase()];
         const isActive = !sched || sched.size === 0 || sched.has(dayIdx);
-        const bg = box.closest('tr')?.style?.background || '';
         if (!isActive) {
           box.closest('td').style.background = '#DEDEDE';
           box.style.opacity = '0.6';
