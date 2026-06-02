@@ -316,6 +316,10 @@ async function pdfRenderPage(){
   try{await pdfRenderTask.promise;}catch(e){if(e.name!=='RenderingCancelledException')console.error('PDF render:',e);}
   pdfRenderTask=null;
   extractPageDate(page);
+  // Auto-scan injections when page changes (not zoom-only re-renders)
+  if(lastExtractedPage!==window.pg){
+    scanPageInjections();
+  }
 }
 function pdfPrev(){pdfPage(window.pg-1);}
 function pdfNext(){pdfPage(window.pg+1);}
@@ -338,6 +342,115 @@ function pdfZoom(dir){
 const WORKER='https://anthropic-proxy.mikeblack01.workers.dev';
 const ANTH_KEY='sk-ant-api03-jWnl5azwXKPce1ZVdPZ8_8edO87_hOD8uZpDXQFa4ByFkqqdJOzouZo6uZo6xiVwxykvwcp5MVNeYIaYn0dDE_dVAA-H3QK9wAA';
 let lastExtractedPage=null;
+let scanInProgress=false;
+
+async function scanPageInjections(){
+  if(scanInProgress)return;
+  const canvas=document.getElementById('pp-canvas');
+  if(!canvas||canvas.width===0)return;
+  scanInProgress=true;
+  setSt('🔍 Scanning page…');
+  try{
+    // Capture full page as JPEG (compressed for API)
+    const tmp=document.createElement('canvas');
+    // Scale down to max 1200px wide to keep payload reasonable
+    const maxW=1200;
+    const ratio=Math.min(1,maxW/canvas.width);
+    tmp.width=Math.round(canvas.width*ratio);
+    tmp.height=Math.round(canvas.height*ratio);
+    tmp.getContext('2d').drawImage(canvas,0,0,tmp.width,tmp.height);
+    const b64=tmp.toDataURL('image/jpeg',0.80).split(',')[1];
+
+    const resp=await fetch(WORKER,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':ANTH_KEY,'anthropic-version':'2023-06-01'},
+      body:JSON.stringify({
+        model:'claude-opus-4-5',
+        max_tokens:1200,
+        messages:[{role:'user',content:[
+          {type:'image',source:{type:'base64',media_type:'image/jpeg',data:b64}},
+          {type:'text',text:`This is a handwritten injection log page. Extract every injection record you can see.
+Return ONLY a JSON array, no other text. Each object: {"compound":"name","date":"YYYY-MM-DD","site":"L or R or S or X","timing":"Morning or Night or Daily"}.
+Rules:
+- date: derive from any date visible on the page (column headers, row labels, or written dates). Use YYYY-MM-DD format.
+- site: L=left, R=right, S=subcutaneous/sub-q/stomach, X=taken/oral/done. If unclear use "X".
+- timing: Morning or Night. If unclear use "Morning".
+- compound: match exactly to one of these known compounds if possible: ${CMPS.join(', ')}.
+- Only include rows where you can see a clear checkmark, X, date entry, or site mark.
+- If no injections are visible, return [].
+Example: [{"compound":"Testosterone","date":"2025-06-01","site":"L","timing":"Morning"}]`}
+        ]}]
+      })
+    });
+    const data=await resp.json();
+    const txt=(data.content?.[0]?.text||'').trim();
+    let records=[];
+    try{
+      // Strip any markdown fences
+      const clean=txt.replace(/^```[a-z]*
+?/,'').replace(/```$/,'').trim();
+      records=JSON.parse(clean);
+    }catch(e){setSt('⚠ Scan parse error');scanInProgress=false;return;}
+
+    if(!Array.isArray(records)||!records.length){setSt('🔍 No injections found on page');scanInProgress=false;return;}
+
+    // Filter to valid records only
+    const validSites=['L','R','S','X'];
+    const validTimings=['Morning','Night','Evening','Daily'];
+    records=records.filter(r=>r.compound&&r.date&&r.date.match(/^\d{4}-\d{2}-\d{2}$/));
+
+    setSt('🔍 Found '+records.length+' records, checking AT…');
+
+    // For each unique date in results, fetch existing AT records to avoid duplicates
+    const dates=[...new Set(records.map(r=>r.date))];
+    const existing={};
+    for(const d of dates){
+      const q=encodeURIComponent('IS_SAME({'+LOG.date+'},"'+d+'","day")');
+      const flds=[LOG.compound,LOG.site,LOG.timing].map(f=>'fields%5B%5D='+f).join('&');
+      try{
+        const res=await atFetch(LOG.tbl+'?filterByFormula='+q+'&returnFieldsByFieldId=true&'+flds+'&pageSize=100');
+        (res.records||[]).forEach(r=>{
+          const c=r.fields[LOG.compound]||'';
+          const s=r.fields[LOG.site]||'';
+          const t=r.fields[LOG.timing]||'';
+          existing[d+'||'+c+'||'+t]=true;
+        });
+      }catch(e){}
+    }
+
+    // Create only missing records
+    const toCreate=records.filter(r=>{
+      const key=r.date+'||'+r.compound+'||'+(r.timing||'');
+      return !existing[key];
+    });
+
+    if(!toCreate.length){setSt('✓ Scan complete — all records already in AT');scanInProgress=false;return;}
+
+    // Push in batches of 10
+    let created=0;
+    for(let i=0;i<toCreate.length;i+=10){
+      const batch=toCreate.slice(i,i+10).map(r=>{
+        const fields={};
+        fields[LOG.date]=r.date;
+        fields[LOG.compound]=r.compound;
+        fields[LOG.name]=r.compound;
+        if(r.site&&validSites.includes(r.site))fields[LOG.site]=r.site;
+        if(r.timing&&validTimings.includes(r.timing))fields[LOG.timing]=r.timing;
+        return {fields};
+      });
+      await atFetch(LOG.tbl+'?returnFieldsByFieldId=true',{method:'POST',body:JSON.stringify({records:batch,typecast:true})});
+      created+=batch.length;
+    }
+
+    setSt('✓ Scan: added '+created+' record'+(created!==1?'s':'')+' to AT');
+    // Reload current date view if any created records match curDate
+    if(toCreate.some(r=>r.date===curDate)){
+      await reloadLog();
+      loadWeekGrid(curDate);
+    }
+  }catch(e){setSt('⚠ Scan error: '+e.message);}
+  scanInProgress=false;
+}
 
 async function extractPageDate(page){
   // Skip on initial page load — don't override auto-jump to first unverified
@@ -1223,3 +1336,4 @@ window.onload=()=>{
   </div>
 </body>
 </html>
+
