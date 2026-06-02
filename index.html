@@ -2685,7 +2685,7 @@ async function loadSchedule() {
     const status = f['Status']||'';
     const dose = f['Dose']||'';
     const freq = f['Frequency']||'';
-    return `<tr data-rec="${r.id}" id="sched-row-${r.id}" style="border-bottom:1px solid var(--border);opacity:0.65">
+    return `<tr data-rec="${r.id}" data-name="${name.toLowerCase()}" data-status="${status}" id="sched-row-${r.id}" style="border-bottom:1px solid var(--border);opacity:0.65">
       <td style="padding:8px 12px;min-width:200px">
         <div style="font-weight:600;font-size:13px">${name}</div>
         <div style="font-size:10px;color:var(--muted);margin-top:2px">${dose}${freq?' · '+freq:''}</div>
@@ -2845,8 +2845,8 @@ function sortInactive() {
   if (!tbody) return;
   const rows = [...tbody.querySelectorAll('tr')];
   rows.sort((a, b) => {
-    const na = (a.querySelector('td:first-child')?.firstElementChild?.textContent||a.querySelector('td:first-child')?.textContent||'').trim().toLowerCase().split('\n')[0].trim();
-    const nb = (b.querySelector('td:first-child')?.firstElementChild?.textContent||b.querySelector('td:first-child')?.textContent||'').trim().toLowerCase().split('\n')[0].trim();
+    const na = a.dataset.name||'';
+    const nb = b.dataset.name||'';
     return _inactiveSortAsc ? na.localeCompare(nb) : nb.localeCompare(na);
   });
   _inactiveSortAsc = !_inactiveSortAsc;
@@ -2857,12 +2857,14 @@ function sortInactive() {
 function filterInactive() {
   const status = document.getElementById('inactive-status-filter')?.value||'';
   document.querySelectorAll('#inactive-tbody tr').forEach(row => {
-    const sel = row.querySelector('select')?.value||'';
-    row.style.display = (!status || sel === status) ? '' : 'none';
+    const match = !status || row.dataset.status === status;
+    row.style.display = match ? '' : 'none';
   });
 }
 
 function schedStatusChange(sel,recId,name) {
+  const row = document.getElementById(`sched-row-${recId}`);
+  if (row) row.dataset.status = sel.value;
   schedSave(recId,{'Status':sel.value},name,`Status → ${sel.value}`);
 }
 
