@@ -4798,10 +4798,10 @@ async function printPeptideWeekly() {
     const days = Array.from({length:7},(_,i)=>{ const d=new Date(monday); d.setDate(monday.getDate()+i); return d.toISOString().split('T')[0]; });
     const orParts = days.map(d=>`IS_SAME({Date},"${d}","day")`).join(',');
     const formula = encodeURIComponent(`AND(OR(${orParts}),{Compound}="Week Note")`);
-    const url = `https://api.airtable.com/v0/${BASE}/tblBvEaLkGGipnOFc?filterByFormula=${formula}&fields[]=fldmGAKBTKLMGeRGn&pageSize=1`;
+    const url = `https://api.airtable.com/v0/${BASE}/tblBvEaLkGGipnOFc?filterByFormula=${formula}&fields[]=Week+Note&pageSize=1`;
     const res = await fetch(url, { headers: { Authorization: 'Bearer ' + TOKEN } });
     const json = await res.json();
-    if (json.records?.[0]) weekNote = json.records[0].fields['fldmGAKBTKLMGeRGn'] || '';
+    if (json.records?.[0]) weekNote = json.records[0].fields['Week Note'] || '';
   } catch(e) {}
 
   function getScheduleDays(name) {
@@ -4821,8 +4821,9 @@ async function printPeptideWeekly() {
   // Note row when present = 18px extra on week 1
   // Available row height: (883 - 2*(90 + (weekNote?18:0))) / (2 * totalRows)
   const noteH = weekNote ? 18 : 0;
+  // noteH only affects 1 of the 2 tables per page, so subtract once not twice
   const rowH = totalRows > 0
-    ? Math.max(16, Math.min(34, Math.floor((883 - 2*(90 + noteH)) / (2 * totalRows))))
+    ? Math.max(16, Math.min(34, Math.floor((883 - 2*90 - noteH) / (2 * totalRows))))
     : 26;
 
   function rows(order, bg) {
@@ -4863,12 +4864,12 @@ async function printPeptideWeekly() {
       ${DAYS.map(d=>`<th style="border:1px solid #000;padding:2px 1px;text-align:center;font-size:7.5pt">${d}</th>`).join('')}
       <th style="border:1px solid #000;padding:2px 4px;text-align:left;font-size:7.5pt">Notes</th>
     </tr>
+    ${noteRow}
     <tr><td colspan="9" style="background:${MORN_HDR}!important;color:#fff!important;font-weight:700;padding:2px 5px;font-size:7.5pt">☀ Morning</td></tr>
     ${rows(morningOrder, '#ffffff')}
     <tr><td colspan="9" style="height:4px;background:#ddd!important;border:1px solid #000"></td></tr>
     <tr><td colspan="9" style="background:${WEEK_BLUE}!important;color:#fff!important;font-weight:700;padding:2px 5px;font-size:7.5pt">🌙 Night</td></tr>
     ${rows(nightOrder, '#ffffff')}
-    ${noteRow}
     </tbody></table>`;
   }
 
