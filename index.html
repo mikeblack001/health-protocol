@@ -2131,11 +2131,15 @@ async function loadTrackerWeekData(mondayISO) {
     try {
       const histStart = new Date(mon); histStart.setDate(histStart.getDate() - 56); // 8 weeks back
       const histFormula = `AND(IS_AFTER({Date},"${histStart.toISOString().split('T')[0]}"),IS_BEFORE({Date},"${nextISO}"))`;
-      const histUrl = `https://api.airtable.com/v0/${BASE}/tblBvEaLkGGipnOFc?filterByFormula=${encodeURIComponent(histFormula)}&fields[]=Date&fields[]=Compound&pageSize=100`;
-      const histResp = await fetch(histUrl, { headers: { Authorization: `Bearer ${TOKEN}` } });
-      const histJson = await histResp.json();
+      const histBaseUrl = `https://api.airtable.com/v0/${BASE}/tblBvEaLkGGipnOFc?filterByFormula=${encodeURIComponent(histFormula)}&fields[]=Date&fields[]=Compound&pageSize=100`;
       const schedMap = {};
-      (histJson.records || []).forEach(r => {
+      let histOffset = null;
+      do {
+        const histUrl = histOffset ? histBaseUrl + '&offset=' + encodeURIComponent(histOffset) : histBaseUrl;
+        const histResp = await fetch(histUrl, { headers: { Authorization: `Bearer ${TOKEN}` } });
+        const histJson = await histResp.json();
+        histOffset = histJson.offset || null;
+        (histJson.records || []).forEach(r => {
         const raw = Array.isArray(r.fields['Compound']) ? r.fields['Compound'][0] : (r.fields['Compound']||'');
         const date = r.fields['Date'];
         if (!raw || !date || raw.toLowerCase().trim() === 'week note') return;
@@ -2144,25 +2148,33 @@ async function loadTrackerWeekData(mondayISO) {
         const d = new Date(date + 'T12:00:00');
         const dow = (d.getDay() + 6) % 7; // 0=Mon, 6=Sun
         schedMap[key].add(dow);
-      });
+        });
+      } while (histOffset);
       window._compoundSchedule = schedMap;
       // Apply greying to existing cells without full re-render
-      // Only use dynamic schedule for compounds WITHOUT an AT Schedule field set
+      // Use injection history to determine active days; fall back to AT Schedule for weeks with no history
       document.querySelectorAll('.check-box').forEach(box => {
         const compound = box.dataset.compound;
         const dayIdx = parseInt(box.dataset.day);
         if (!compound || isNaN(dayIdx)) return;
-        // If compound has AT Schedule set, skip — already handled correctly by dayCell
-        const pepRec = pepMap[compound] || pepMapCI[compound.toLowerCase()];
-        const atSched = pepRec ? (getField(pepRec,'Schedule')||'').trim() : '';
-        if (atSched) return;
         const sched = schedMap[compound.toLowerCase()];
-        const isActive = !sched || sched.size === 0 || sched.has(dayIdx);
-        if (!isActive) {
-          box.closest('td').style.background = '#DEDEDE';
-          box.style.opacity = '0.6';
-          box.style.borderColor = '#bbb';
+        if (sched && sched.size > 0) {
+          // History exists for this compound — use it
+          const isActive = sched.has(dayIdx);
+          if (!isActive) {
+            box.closest('td').style.background = '#DEDEDE';
+            box.style.opacity = '0.6';
+            box.style.borderColor = '#bbb';
+          } else {
+            // Restore white if previously greyed by initial render
+            const tr = box.closest('tr');
+            const rowBg = tr?.classList.contains('tracker-night') ? '#EEF4FB' : '#FFF8E7';
+            box.closest('td').style.background = rowBg;
+            box.style.opacity = '1';
+            box.style.borderColor = '#888';
+          }
         }
+        // No history: leave as rendered by dayCell (AT Schedule drives white/grey)
       });
     } catch(e) { console.error('dynamic schedule failed:', e); }
     const norm = s => (s||'').toLowerCase().trim().replace(/\s+/g,' ');
