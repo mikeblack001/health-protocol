@@ -2734,13 +2734,20 @@ async function loadSchedule() {
 
   if (inactive.length) {
     h += `<div class="table-wrap">
-      <div class="timing-header">Inactive (A–Z)</div>
+      <div class="timing-header" style="display:flex;align-items:center;gap:10px;justify-content:space-between">
+        <span>Inactive (A–Z)</span>
+        <select id="inactive-status-filter" onchange="filterInactive()"
+          style="font-size:11px;padding:2px 6px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text)">
+          <option value="">All Statuses</option>
+          ${STATUS_OPTS.filter(s=>s!=='Active').map(s=>`<option value="${s}">${s}</option>`).join('')}
+        </select>
+      </div>
       <table style="width:100%;border-collapse:collapse;font-size:12px">
         <thead><tr style="background:var(--surface2);border-bottom:2px solid var(--border)">
           <th style="text-align:left;padding:6px 12px;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.5px">Compound</th>
           <th style="padding:6px 8px;font-size:11px;font-weight:600">Status / Dose</th>
         </tr></thead>
-        <tbody>${inactive.map(r=>makeInactiveRow(r)).join('')}</tbody>
+        <tbody id="inactive-tbody">${inactive.map(r=>makeInactiveRow(r)).join('')}</tbody>
       </table>
     </div>`;
   }
@@ -2828,6 +2835,14 @@ function schedDayToggle(cb) {
   const rowBg = row.querySelector('td:nth-child(2)')?.style.background || '#FFF8E7';
   if (td) td.style.background = cb.checked ? rowBg : '#DEDEDE';
   schedSave(recId,{'fldU6gCdrblypWiPo':days.join(',')},name,`Schedule: ${days.map(d=>['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][d]).join('/')}`);
+}
+
+function filterInactive() {
+  const status = document.getElementById('inactive-status-filter')?.value||'';
+  document.querySelectorAll('#inactive-tbody tr').forEach(row => {
+    const sel = row.querySelector('select')?.value||'';
+    row.style.display = (!status || sel === status) ? '' : 'none';
+  });
 }
 
 function schedStatusChange(sel,recId,name) {
