@@ -1321,8 +1321,10 @@ async function fetchTable(tableId) {
 
 function renderPrintList() {
   const activePep = data.peptides.filter(r => getField(r,'Status') === 'Active');
-  const amPep = activePep.filter(r => !getField(r,'Timing').toLowerCase().includes('night'));
-  const pmPep = activePep.filter(r => getField(r,'Timing').toLowerCase().includes('night'));
+  const amPep = activePep.filter(r => !getField(r,'Timing').toLowerCase().includes('night'))
+    .sort((a,b) => ((a.fields['Row Order']??99999)-(b.fields['Row Order']??99999)));
+  const pmPep = activePep.filter(r => getField(r,'Timing').toLowerCase().includes('night'))
+    .sort((a,b) => ((a.fields['Row Order']??99999)-(b.fields['Row Order']??99999)));
   const activeSupp = data.supplements.filter(r => getField(r,'SuppStatus') === 'Active');
 
   let html = '';
@@ -1440,8 +1442,10 @@ function renderDashboard() {
   document.getElementById('stat-onorder').textContent = onOrder.length;
   document.getElementById('stat-paused').textContent = paused.length;
 
-  const amPep = activePep.filter(r => !getField(r,'Timing').toLowerCase().includes('night'));
-  const pmPep = activePep.filter(r => getField(r,'Timing').toLowerCase().includes('night'));
+  const amPep = activePep.filter(r => !getField(r,'Timing').toLowerCase().includes('night'))
+    .sort((a,b) => ((a.fields['Row Order']??99999)-(b.fields['Row Order']??99999)));
+  const pmPep = activePep.filter(r => getField(r,'Timing').toLowerCase().includes('night'))
+    .sort((a,b) => ((a.fields['Row Order']??99999)-(b.fields['Row Order']??99999)));
   document.getElementById('dash-pep-am').innerHTML = amPep.map(r => `
     <div class="quick-item">
       <div><div class="compound-name">${getField(r,'Compound')}</div><div class="compound-sub">${getField(r,'Dose')} · ${getField(r,'Frequency')}</div></div>
@@ -4890,8 +4894,10 @@ async function printPeptideWeekly() {
 
 function printProtocolList() {
   const activePep = data.peptides.filter(r => getField(r,'Status') === 'Active');
-  const amPep = activePep.filter(r => !getField(r,'Timing').toLowerCase().includes('night'));
-  const pmPep = activePep.filter(r => getField(r,'Timing').toLowerCase().includes('night'));
+  const amPep = activePep.filter(r => !getField(r,'Timing').toLowerCase().includes('night'))
+    .sort((a,b) => ((a.fields['Row Order']??99999)-(b.fields['Row Order']??99999)));
+  const pmPep = activePep.filter(r => getField(r,'Timing').toLowerCase().includes('night'))
+    .sort((a,b) => ((a.fields['Row Order']??99999)-(b.fields['Row Order']??99999)));
   const activeSupp = data.supplements.filter(r => getField(r,'SuppStatus') === 'Active');
 
   function pepTable(title, rows) {
