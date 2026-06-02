@@ -1861,7 +1861,7 @@ const TRACKER_SCHEDULE = {
   'Tesamorelin':            [0,1,2,3,4,5],  // Mon-Sat
   'GHK-Cu':                 [0,1,2,3,4,5,6],// Daily
   'Melanotan II (MT2)':     [1],            // Tue
-  'Tirzepatide':            [5],            // Sat
+  'Tirzepatide':            [6],            // Sun
   'CJC-1295 No DAC':        [0,1,2,3,6],   // Mon/Tue/Wed/Thu/Sun
   'Ipamorelin':             [0,1,2,3,6],   // Mon/Tue/Wed/Thu/Sun
   'DSIP':                   [0,2,3,5,6],   // Mon/Wed/Thu/Sat/Sun
@@ -2541,9 +2541,10 @@ function jumpToWeek(val) {
 var _weekDropdownPopulated = false;
 var _weekList = [];
 async function populateWeekDropdown() {
+  const sel = document.getElementById('tracker-week-jump');
+  if (!sel) return;
   if (_weekDropdownPopulated && _weekList.length) {
-    const sel = document.getElementById('tracker-week-jump');
-    if (sel && !sel.options.length || sel.options.length <= 1) {
+    if (!sel.options.length || sel.options.length <= 1) {
       sel.innerHTML = '<option value="">Jump to week...</option>';
       _weekList.forEach(iso => {
         const d = new Date(iso+'T12:00:00');
@@ -2556,8 +2557,6 @@ async function populateWeekDropdown() {
     }
     return;
   }
-  // sel already declared above
-  if (!sel) return;
   const currentISO = _currentMondayISO;
   sel.innerHTML = '<option value="">Jump to week...</option>';
   try {
