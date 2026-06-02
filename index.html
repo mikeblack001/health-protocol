@@ -4760,10 +4760,8 @@ async function saveAddChange() {
 async function printPeptideWeekly() {
   // Get current week Monday
   const today = new Date();
-  const dow = today.getDay();
   const monday = new Date(today);
-  monday.setDate(today.getDate() - ((dow + 6) % 7));
-  const mondayISO = monday.toISOString().split('T')[0];
+  monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
 
   // Build compound order from mba_row_order (schedule drag order), fallback to Row Order field
   let savedOrder = [];
@@ -4773,7 +4771,6 @@ async function printPeptideWeekly() {
   const pepMap = {};
   activePeps.forEach(r => { pepMap[getField(r,'Compound')] = r; });
 
-  // Build ordered morning/night from saved order, falling back to Row Order field sort
   let morningOrder = [], nightOrder = [];
   if (savedOrder.length) {
     savedOrder.forEach(key => {
@@ -4783,7 +4780,6 @@ async function printPeptideWeekly() {
       else { if (!morningOrder.includes(name)) morningOrder.push(name); }
     });
   }
-  // Fill in any active peps not in saved order
   const sortedByRowOrder = [...activePeps].sort((a,b) => ((a.fields['Row Order']??99999)-(b.fields['Row Order']??99999)));
   sortedByRowOrder.forEach(r => {
     const name = getField(r,'Compound');
@@ -4792,36 +4788,38 @@ async function printPeptideWeekly() {
     else { if (!morningOrder.includes(name)) morningOrder.push(name); }
   });
 
-  // Fetch current week note from InjectionLog
+  // Fetch current week note from InjectionLog using field ID for Compound (singleSelect)
   let weekNote = '';
   try {
     const days = Array.from({length:7},(_,i)=>{ const d=new Date(monday); d.setDate(monday.getDate()+i); return d.toISOString().split('T')[0]; });
     const orParts = days.map(d=>`IS_SAME({Date},"${d}","day")`).join(',');
-    const url = `https://api.airtable.com/v0/${BASE}/tblBvEaLkGGipnOFc?filterByFormula=${encodeURIComponent('AND(OR('+orParts+'),{Compound}="Week Note")')}&fields[]=fldmGAKBTKLMGeRGn&pageSize=1`;
+    const formula = encodeURIComponent(`AND(OR(${orParts}),{Compound}="Week Note")`);
+    const url = `https://api.airtable.com/v0/${BASE}/tblBvEaLkGGipnOFc?filterByFormula=${formula}&fields[]=fldmGAKBTKLMGeRGn&pageSize=1`;
     const res = await fetch(url, { headers: { Authorization: 'Bearer ' + TOKEN } });
     const json = await res.json();
     if (json.records?.[0]) weekNote = json.records[0].fields['fldmGAKBTKLMGeRGn'] || '';
   } catch(e) {}
 
-  // Get schedule days for each compound from AT Schedule field or TRACKER_SCHEDULE fallback
   function getScheduleDays(name) {
     const r = pepMap[name];
     if (!r) return [0,1,2,3,4,5,6];
     const sched = getField(r,'Schedule');
-    if (sched) {
-      // Parse comma-separated day indices
-      try { return sched.split(',').map(Number).filter(n => !isNaN(n)); } catch(e) {}
-    }
+    if (sched) { try { return sched.split(',').map(Number).filter(n => !isNaN(n)); } catch(e) {} }
     return TRACKER_SCHEDULE[name] || [0,1,2,3,4,5,6];
   }
 
   const DAYS = ['Mon','Tues','Wed','Thurs','Fri','Sat','Sun'];
-  const WEEK_BLUE = '#1a56db';
-  const MORN_HDR = '#E8A838';
-  const INACTIVE = '#C0C0C0';
+  const WEEK_BLUE = '#1a56db', MORN_HDR = '#E8A838', INACTIVE = '#C0C0C0';
   const totalRows = morningOrder.length + nightOrder.length;
-  const PAGE_H_PX = 883, TABLE_OVERHEAD = 96;
-  const rowH = totalRows > 0 ? Math.max(18, Math.min(36, Math.floor((PAGE_H_PX - 2*TABLE_OVERHEAD) / (2*totalRows)))) : 28;
+
+  // 2 tables per page, letter portrait @0.4in margins = ~883px usable
+  // Per table: week-hdr(22) + col-hdr(20) + morn-hdr(18) + divider(6) + night-hdr(18) + margin(6) = 90px overhead
+  // Note row when present = 18px extra on week 1
+  // Available row height: (883 - 2*(90 + (weekNote?18:0))) / (2 * totalRows)
+  const noteH = weekNote ? 18 : 0;
+  const rowH = totalRows > 0
+    ? Math.max(16, Math.min(34, Math.floor((883 - 2*(90 + noteH)) / (2 * totalRows))))
+    : 26;
 
   function rows(order, bg) {
     return order.map(name => {
@@ -4829,16 +4827,15 @@ async function printPeptideWeekly() {
       if (!r) return '';
       const dose = getField(r,'Dose');
       const label = dose
-        ? `<span style="font-size:8pt;font-weight:600">${name}</span> <span style="font-size:6.5pt;color:#555">${dose}</span>`
-        : `<span style="font-size:8pt;font-weight:600">${name}</span>`;
+        ? `<b style="font-size:8pt">${name}</b> <span style="font-size:6.5pt;color:#555">${dose}</span>`
+        : `<b style="font-size:8pt">${name}</b>`;
       const active = getScheduleDays(name);
-      let tr = `<tr><td style="background-color:${bg}!important;border:1px solid #000;padding:1px 3px;height:${rowH}px;vertical-align:middle;white-space:nowrap;overflow:hidden">${label}</td>`;
+      let tr = `<tr><td style="background:${bg}!important;border:1px solid #000;padding:1px 3px;height:${rowH}px;vertical-align:middle;white-space:nowrap;overflow:hidden;font-family:'DM Sans',Calibri,Arial,sans-serif">${label}</td>`;
       for (let d=0; d<7; d++) {
-        tr += active.includes(d)
-          ? `<td style="background-color:${bg}!important;border:1px solid #000;height:${rowH}px;"></td>`
-          : `<td style="background-color:${INACTIVE}!important;border:1px solid #000;height:${rowH}px;"></td>`;
+        const bg2 = active.includes(d) ? bg : INACTIVE;
+        tr += `<td style="background:${bg2}!important;border:1px solid #000;height:${rowH}px"></td>`;
       }
-      tr += `<td style="background-color:${bg}!important;border:1px solid #000;height:${rowH}px;padding:2px 3px;font-size:6.5pt;color:#555;vertical-align:top"></td></tr>`;
+      tr += `<td style="background:${bg}!important;border:1px solid #000;height:${rowH}px;padding:2px 3px;font-size:6.5pt;color:#555;vertical-align:top;font-family:'DM Sans',Calibri,Arial,sans-serif"></td></tr>`;
       return tr;
     }).join('');
   }
@@ -4848,35 +4845,35 @@ async function printPeptideWeekly() {
     wMon.setDate(monday.getDate() + weekOffset * 7);
     const mondayStr = wMon.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
     const noteRow = weekOffset === 0 && weekNote
-      ? `<tr><td colspan="9" style="border:1px solid #000;padding:2px 5px;font-size:7pt;color:#333;background:#fffde7!important"><strong>Note:</strong> ${weekNote}</td></tr>`
+      ? `<tr><td colspan="9" style="border:1px solid #000;padding:2px 5px;font-size:7pt;color:#333;background:#fffde7!important;font-family:'DM Sans',Calibri,Arial,sans-serif"><b>Week Note:</b> ${weekNote}</td></tr>`
       : '';
-    return `
-    <table style="width:100%;border-collapse:collapse;margin-top:10px;border:2px solid #000;table-layout:fixed;font-size:8pt">
+    return `<table style="width:100%;border-collapse:collapse;margin-top:6px;border:2px solid #000;table-layout:fixed;font-size:8pt;font-family:'DM Sans',Calibri,Arial,sans-serif">
     <colgroup><col style="width:34%">${DAYS.map(()=>'<col style="width:6%">').join('')}<col style="width:24%"></colgroup>
     <tbody>
     <tr>
-      <td style="background-color:${WEEK_BLUE}!important;color:#fff!important;font-weight:bold;font-size:8.5pt;padding:3px 6px;border:1px solid #000">Week ${weekOffset+1}</td>
-      <td colspan="8" style="background-color:#fff!important;border:1px solid #000;font-size:8.5pt;padding:3px 6px;color:#000">Monday: <strong>${mondayStr}</strong></td>
+      <td style="background:${WEEK_BLUE}!important;color:#fff!important;font-weight:700;font-size:8.5pt;padding:2px 6px;border:1px solid #000">Week ${weekOffset+1}</td>
+      <td colspan="8" style="background:#fff!important;border:1px solid #000;font-size:8.5pt;padding:2px 6px;color:#000">Monday: <b>${mondayStr}</b></td>
     </tr>
-    <tr style="background-color:#D9D9D9!important">
+    <tr style="background:#D9D9D9!important">
       <th style="border:1px solid #000;padding:2px 4px;text-align:left;font-size:7.5pt">Medication</th>
       ${DAYS.map(d=>`<th style="border:1px solid #000;padding:2px 1px;text-align:center;font-size:7.5pt">${d}</th>`).join('')}
       <th style="border:1px solid #000;padding:2px 4px;text-align:left;font-size:7.5pt">Notes</th>
     </tr>
-    <tr><td colspan="9" style="background-color:${MORN_HDR}!important;color:#fff!important;font-weight:bold;padding:2px 5px;font-size:7.5pt">☀ Morning</td></tr>
+    <tr><td colspan="9" style="background:${MORN_HDR}!important;color:#fff!important;font-weight:700;padding:2px 5px;font-size:7.5pt">☀ Morning</td></tr>
     ${rows(morningOrder, '#ffffff')}
-    <tr><td colspan="9" style="height:4px;background-color:#ddd!important;border:1px solid #000"></td></tr>
-    <tr><td colspan="9" style="background-color:${WEEK_BLUE}!important;color:#fff!important;font-weight:bold;padding:2px 5px;font-size:7.5pt">🌙 Night</td></tr>
+    <tr><td colspan="9" style="height:4px;background:#ddd!important;border:1px solid #000"></td></tr>
+    <tr><td colspan="9" style="background:${WEEK_BLUE}!important;color:#fff!important;font-weight:700;padding:2px 5px;font-size:7.5pt">🌙 Night</td></tr>
     ${rows(nightOrder, '#ffffff')}
     ${noteRow}
     </tbody></table>`;
   }
 
   const html = `<!DOCTYPE html><html><head><title>Peptide Weekly Print</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     @page { size: letter portrait; margin: 0.4in; }
-    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
-    body { font-family: Calibri, Arial, sans-serif; margin: 0; padding: 0; }
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; box-sizing: border-box; }
+    body { font-family: 'DM Sans', Calibri, Arial, sans-serif; margin: 0; padding: 0; font-size: 8pt; }
     .print-page { page-break-after: always; margin-bottom: 0; }
     .print-page:last-child { page-break-after: auto; }
   </style></head><body>
