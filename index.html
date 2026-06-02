@@ -2845,8 +2845,8 @@ function sortInactive() {
   if (!tbody) return;
   const rows = [...tbody.querySelectorAll('tr')];
   rows.sort((a, b) => {
-    const na = (a.querySelector('td:first-child div')?.textContent||'').trim().toLowerCase();
-    const nb = (b.querySelector('td:first-child div')?.textContent||'').trim().toLowerCase();
+    const na = (a.querySelector('td:first-child')?.firstElementChild?.textContent||a.querySelector('td:first-child')?.textContent||'').trim().toLowerCase().split('\n')[0].trim();
+    const nb = (b.querySelector('td:first-child')?.firstElementChild?.textContent||b.querySelector('td:first-child')?.textContent||'').trim().toLowerCase().split('\n')[0].trim();
     return _inactiveSortAsc ? na.localeCompare(nb) : nb.localeCompare(na);
   });
   _inactiveSortAsc = !_inactiveSortAsc;
