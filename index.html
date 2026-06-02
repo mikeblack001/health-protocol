@@ -531,7 +531,7 @@
         <button class="drop-item" onclick="navDrop('tracker','nav-pep')">Peptide Tracker</button>
         <button class="drop-item" onclick="navDrop('changes','nav-pep')">Peptide Changes</button>
         <button class="drop-item" onclick="navDrop('schedule','nav-pep')">📅 Peptide Schedule</button>
-        <button class="drop-item" onclick="printPeptideWeekly()">🖨 Peptide Weekly Print</button>
+        <button class="drop-item" onclick="printPeptideWeekly()" style="color:var(--accent);font-weight:600;white-space:nowrap">🖨 Peptide Weekly Print</button>
         <div class="drop-divider"></div>
         <button class="drop-item" onclick="navDrop('pricing','nav-pep')">Pricing</button>
         <button class="drop-item" onclick="navDrop('purchases','nav-pep')">Purchases</button>
@@ -1861,7 +1861,7 @@ const TRACKER_SCHEDULE = {
   'Tesamorelin':            [0,1,2,3,4,5],  // Mon-Sat
   'GHK-Cu':                 [0,1,2,3,4,5,6],// Daily
   'Melanotan II (MT2)':     [1],            // Tue
-  'Tirzepatide':            [5],            // Sat
+  'Tirzepatide':            [6],            // Sun
   'CJC-1295 No DAC':        [0,1,2,3,6],   // Mon/Tue/Wed/Thu/Sun
   'Ipamorelin':             [0,1,2,3,6],   // Mon/Tue/Wed/Thu/Sun
   'DSIP':                   [0,2,3,5,6],   // Mon/Wed/Thu/Sat/Sun
@@ -7518,7 +7518,7 @@ function prefillLogDate(dateStr) {
   <div class="modal-box">
     <div class="modal-title">Log Purchase</div>
     <div class="modal-field"><label>Vendor</label><select id="ap-vendor"></select></div>
-    <div class="modal-field"><label>Compound</label><input type="text" id="ap-compound" placeholder="e.g. Tirzepatide - 36u (9mg)"></div>
+    <div class="modal-field"><label>Compound</label><input type="text" id="ap-compound" placeholder="e.g. Tirzepatide - 40u (9mg)"></div>
     <div class="modal-field"><label>Date</label><input type="date" id="ap-date"></div>
     <div style="display:flex;gap:8px">
       <div class="modal-field" style="flex:1"><label>Qty (vials)</label><input type="number" min="1" id="ap-qty" placeholder="1"></div>
