@@ -2740,10 +2740,12 @@ async function loadSchedule() {
       </div>
       <table style="width:100%;border-collapse:collapse;font-size:12px">
         <thead><tr style="background:var(--surface2);border-bottom:2px solid var(--border)">
-          <th onclick="sortInactive()" style="text-align:left;padding:6px 12px;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;cursor:pointer;user-select:none">
-            Compound <span id="inactive-sort-icon">↑</span>
+          <th onclick="sortInactive('name')" style="text-align:left;padding:6px 12px;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;cursor:pointer;user-select:none">
+            Compound <span id="inactive-sort-icon-name">↑</span>
           </th>
-          <th style="padding:6px 8px;font-size:11px;font-weight:600">Status / Dose</th>
+          <th onclick="sortInactive('status')" style="padding:6px 8px;font-size:11px;font-weight:600;cursor:pointer;user-select:none">
+            Status / Dose <span id="inactive-sort-icon-status">↕</span>
+          </th>
         </tr></thead>
         <tbody id="inactive-tbody">${inactive.map(r=>makeInactiveRow(r)).join('')}</tbody>
       </table>
@@ -2835,18 +2837,20 @@ function schedDayToggle(cb) {
   schedSave(recId,{'fldU6gCdrblypWiPo':days.join(',')},name,`Schedule: ${days.map(d=>['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][d]).join('/')}`);
 }
 
-let _inactiveSortAsc = true;
-function sortInactive() {
+const _inactiveSortState = {name: true, status: true};
+function sortInactive(col) {
   const tbody = document.getElementById('inactive-tbody');
   if (!tbody) return;
+  const asc = _inactiveSortState[col];
   const rows = [...tbody.querySelectorAll('tr')];
   rows.sort((a, b) => {
-    const na = a.dataset.name||'';
-    const nb = b.dataset.name||'';
-    return _inactiveSortAsc ? na.localeCompare(nb) : nb.localeCompare(na);
+    const va = col === 'name' ? (a.dataset.name||'') : (a.dataset.status||'');
+    const vb = col === 'name' ? (b.dataset.name||'') : (b.dataset.status||'');
+    return asc ? va.localeCompare(vb) : vb.localeCompare(va);
   });
-  _inactiveSortAsc = !_inactiveSortAsc;
-  document.getElementById('inactive-sort-icon').textContent = _inactiveSortAsc ? '↑' : '↓';
+  _inactiveSortState[col] = !asc;
+  const icon = document.getElementById('inactive-sort-icon-' + col);
+  if (icon) icon.textContent = _inactiveSortState[col] ? '↑' : '↓';
   rows.forEach(r => tbody.appendChild(r));
 }
 
