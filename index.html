@@ -1962,8 +1962,10 @@ function renderTracker(weekNum) {
 
   function dayCell(compound, dayIdx, bg, timing) {
     // Use dynamic schedule from InjectionLog history if available, else fall back to hardcoded
-    const dynSched = window._compoundSchedule && window._compoundSchedule[compound.toLowerCase()];
-    const active = dynSched ? [...dynSched] : TRACKER_SCHEDULE[compound];
+    // TRACKER_SCHEDULE takes priority; dynamic schedule only fills unknowns
+    const staticSched = TRACKER_SCHEDULE[compound];
+    const dynSched = !staticSched && window._compoundSchedule && window._compoundSchedule[compound.toLowerCase()];
+    const active = staticSched || (dynSched ? [...dynSched] : null);
     const isActive = !active || active.length === 0 || active.includes(dayIdx);
     const dayDate = new Date(monday); dayDate.setDate(monday.getDate() + dayIdx);
     const dateStr = dayDate.toISOString().split('T')[0];
@@ -2219,26 +2221,7 @@ async function loadTrackerWeekData(mondayISO) {
       }
     });
 
-    // Update compound dose labels from InjectionLog records (historical accuracy)
-    const doseMap = {};
-    records.forEach(r => {
-      const f = r.fields;
-      const raw = Array.isArray(f['Compound']) ? f['Compound'][0] : (f['Compound']||'');
-      const dose = f['Dose'];
-      if (raw && dose && (raw||'').toLowerCase().trim() !== 'week note') {
-        const resolved = resolveCompound(raw);
-        if (!doseMap[resolved]) doseMap[resolved] = dose;
-      }
-    });
-    // Update DOM labels for compounds that have a dose in InjectionLog this week
-    document.querySelectorAll('td[data-compound-label]').forEach(td => {
-      const compound = td.dataset.compoundLabel;
-      const dose = doseMap[compound.toLowerCase()] || doseMap[resolveCompound(compound.toLowerCase())];
-      if (dose) {
-        const sub = td.querySelector('.tracker-dose-label');
-        if (sub) sub.textContent = dose;
-      }
-    });
+    // Dose labels always use current Peptides table (rendered at build time)
 
   } catch(e) { console.error('loadTrackerWeekData failed:', e); }
 }
