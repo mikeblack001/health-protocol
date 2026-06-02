@@ -2552,7 +2552,7 @@ async function populateWeekDropdown() {
     }
     return;
   }
-  const sel = document.getElementById('tracker-week-jump');
+  // sel already declared above
   if (!sel) return;
   const currentISO = _currentMondayISO;
   sel.innerHTML = '<option value="">Jump to week...</option>';
@@ -4891,7 +4891,7 @@ async function printPeptideWeekly() {
 }
 
 
-function printProtocolList()function printProtocolList() {
+function printProtocolList() {
   const activePep = data.peptides.filter(r => getField(r,'Status') === 'Active');
   const amPep = activePep.filter(r => !getField(r,'Timing').toLowerCase().includes('night'));
   const pmPep = activePep.filter(r => getField(r,'Timing').toLowerCase().includes('night'));
