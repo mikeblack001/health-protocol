@@ -531,7 +531,7 @@
         <button class="drop-item" onclick="navDrop('tracker','nav-pep')">Peptide Tracker</button>
         <button class="drop-item" onclick="navDrop('changes','nav-pep')">Peptide Changes</button>
         <button class="drop-item" onclick="navDrop('schedule','nav-pep')">📅 Peptide Schedule</button>
-        <button class="drop-item" onclick="printPeptideWeekly()" style="color:var(--accent);font-weight:600">🖨 Peptide Weekly Print</button>
+        <button class="drop-item" onclick="printPeptideWeekly()" style="color:var(--accent);font-weight:600;white-space:nowrap">🖨 Peptide Weekly Print</button>
         <div class="drop-divider"></div>
         <button class="drop-item" onclick="navDrop('pricing','nav-pep')">Pricing</button>
         <button class="drop-item" onclick="navDrop('purchases','nav-pep')">Purchases</button>
@@ -4858,7 +4858,6 @@ async function printPeptideWeekly() {
       <td style="background:${WEEK_BLUE}!important;color:#fff!important;font-weight:700;font-size:8.5pt;padding:2px 6px;border:1px solid #000">Week ${weekOffset+1}</td>
       <td colspan="8" style="background:#fff!important;border:1px solid #000;font-size:8.5pt;padding:2px 6px;color:#000">Monday: <b>${mondayStr}</b></td>
     </tr>
-    ${noteRow}
     <tr style="background:#D9D9D9!important">
       <th style="border:1px solid #000;padding:2px 4px;text-align:left;font-size:7.5pt">Medication</th>
       ${DAYS.map(d=>`<th style="border:1px solid #000;padding:2px 1px;text-align:center;font-size:7.5pt">${d}</th>`).join('')}
@@ -4869,6 +4868,7 @@ async function printPeptideWeekly() {
     <tr><td colspan="9" style="height:4px;background:#ddd!important;border:1px solid #000"></td></tr>
     <tr><td colspan="9" style="background:${WEEK_BLUE}!important;color:#fff!important;font-weight:700;padding:2px 5px;font-size:7.5pt">🌙 Night</td></tr>
     ${rows(nightOrder, '#ffffff')}
+    ${noteRow}
     </tbody></table>`;
   }
 
