@@ -530,6 +530,7 @@
 <button class="drop-item" onclick="navDrop('peptides','nav-pep')">Peptides</button>
         <button class="drop-item" onclick="navDrop('tracker','nav-pep')">Peptide Tracker</button>
         <button class="drop-item" onclick="navDrop('changes','nav-pep')">Peptide Changes</button>
+        <button class="drop-item" onclick="navDrop('schedule','nav-pep')">📅 Protocol Schedule</button>
         <div class="drop-divider"></div>
         <button class="drop-item" onclick="navDrop('pricing','nav-pep')">Pricing</button>
         <button class="drop-item" onclick="navDrop('purchases','nav-pep')">Purchases</button>
@@ -1198,6 +1199,8 @@
   </div>
 
   <!-- CHANGES VIEW -->
+  <div id="view-schedule" class="view"></div>
+
   <div id="view-changes" class="view">
     <div class="filter-bar">
       <span style="font-size:13px;font-weight:500;color:var(--text)">Peptide Changes</span>
@@ -2623,6 +2626,133 @@ function filterSuppSource(source, el) {
 let pricingData = [];
 let pricingFilter = 'all';
 let pricingMedFilter = '';
+
+
+async function loadSchedule() {
+  const el = document.getElementById('view-schedule');
+  if (!el) return;
+  el.innerHTML = '<div style="padding:20px;color:var(--muted)">Loading...</div>';
+
+  const DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const STATUS_OPTS = ['Active','Paused','Discontinued','On Order'];
+
+  // Fetch all peptides
+  const res = await fetch(`https://api.airtable.com/v0/${BASE}/tblMs6YRdP4wkndUp?fields[]=Compound&fields[]=Status&fields[]=Dose&fields[]=Schedule&fields[]=Timing&fields[]=Frequency&sort[0][field]=Compound&sort[0][direction]=asc&pageSize=100`, {headers:{Authorization:`Bearer ${TOKEN}`}});
+  const data = await res.json();
+  const recs = data.records || [];
+
+  let html = `
+  <div style="padding:20px">
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px">
+      <h2 style="margin:0;font-size:18px;font-weight:700">Protocol Schedule</h2>
+      <span style="font-size:11px;color:var(--muted);background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:2px 8px">As of 5/25/26 — update when changes occur</span>
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:12px">0=Mon · 1=Tue · 2=Wed · 3=Thu · 4=Fri · 5=Sat · 6=Sun &nbsp;|&nbsp; Changes auto-logged to Protocol Changes</div>
+    <table style="width:100%;border-collapse:collapse;font-size:13px">
+      <thead>
+        <tr style="background:var(--surface);border-bottom:2px solid var(--border)">
+          <th style="text-align:left;padding:8px 10px;font-weight:600">Compound</th>
+          <th style="text-align:left;padding:8px 10px;font-weight:600">Status</th>
+          <th style="text-align:left;padding:8px 10px;font-weight:600">Dose</th>
+          <th style="text-align:center;padding:8px 4px;font-weight:600" colspan="7">Schedule</th>
+          <th style="padding:8px 10px"></th>
+        </tr>
+      </thead>
+      <tbody>`;
+
+  recs.forEach(r => {
+    const f = r.fields;
+    const name = f['Compound']||'';
+    const status = f['Status']||'Active';
+    const dose = f['Dose']||'';
+    const sched = (f['Schedule']||'').split(',').map(s=>parseInt(s.trim())).filter(n=>!isNaN(n));
+    const isActive = status === 'Active';
+    const rowStyle = isActive ? '' : 'opacity:0.5';
+
+    const statusOpts = STATUS_OPTS.map(s => `<option value="${s}"${s===status?' selected':''}>${s}</option>`).join('');
+    const dayCells = DAYS.map((day,i) => {
+      const checked = sched.includes(i) ? 'checked' : '';
+      return `<td style="text-align:center;padding:4px 2px">
+        <label style="cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10px;color:var(--muted)">
+          <input type="checkbox" ${checked} data-rec="${r.id}" data-day="${i}" data-name="${name}" onchange="schedDayToggle(this)" style="cursor:pointer">
+          ${day}
+        </label>
+      </td>`;
+    }).join('');
+
+    html += `<tr style="border-bottom:1px solid var(--border);${rowStyle}" id="sched-row-${r.id}">
+      <td style="padding:8px 10px;font-weight:600">${name}</td>
+      <td style="padding:8px 6px">
+        <select onchange="schedStatusChange(this,'${r.id}','${name}')" style="font-size:12px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text)">
+          ${statusOpts}
+        </select>
+      </td>
+      <td style="padding:8px 6px">
+        <input type="text" value="${dose}" data-rec="${r.id}" data-name="${name}"
+          onblur="schedDoseChange(this)"
+          style="font-size:12px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text);width:90px">
+      </td>
+      ${dayCells}
+      <td style="padding:8px 6px">
+        <span id="sched-status-${r.id}" style="font-size:11px;color:var(--muted)"></span>
+      </td>
+    </tr>`;
+  });
+
+  html += '</tbody></table></div>';
+  el.innerHTML = html;
+}
+
+async function schedSave(recId, fields, name, changeDesc) {
+  const statusEl = document.getElementById(`sched-status-${recId}`);
+  if (statusEl) { statusEl.textContent = 'Saving...'; statusEl.style.color = 'var(--muted)'; }
+  try {
+    await fetch(`https://api.airtable.com/v0/${BASE}/tblMs6YRdP4wkndUp/${recId}`, {
+      method: 'PATCH',
+      headers: {Authorization:`Bearer ${TOKEN}`,'Content-Type':'application/json'},
+      body: JSON.stringify({fields})
+    });
+    // Log to ProtocolChanges
+    const today = new Date().toISOString().split('T')[0];
+    await fetch(`https://api.airtable.com/v0/${BASE}/tblolVx7YwO5cJhsE`, {
+      method: 'POST',
+      headers: {Authorization:`Bearer ${TOKEN}`,'Content-Type':'application/json'},
+      body: JSON.stringify({records:[{fields:{
+        'Change Date': today,
+        'Compound': name,
+        'Description of Change': changeDesc
+      }}], typecast: true})
+    });
+    if (statusEl) { statusEl.textContent = '✓ Saved'; statusEl.style.color = '#16a34a'; setTimeout(()=>{ if(statusEl) statusEl.textContent=''; },2000); }
+  } catch(e) {
+    if (statusEl) { statusEl.textContent = '✗ Error'; statusEl.style.color = '#dc2626'; }
+  }
+}
+
+function schedDayToggle(cb) {
+  const recId = cb.dataset.rec;
+  const name = cb.dataset.name;
+  const row = document.getElementById(`sched-row-${recId}`);
+  const days = [...row.querySelectorAll('input[type=checkbox]')]
+    .map((c,i) => c.checked ? i : null).filter(i => i !== null);
+  const schedStr = days.join(',');
+  schedSave(recId, {'fldU6gCdrblypWiPo': schedStr}, name, `Schedule updated to: ${days.map(d=>['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][d]).join('/')}`);
+}
+
+function schedStatusChange(sel, recId, name) {
+  const newStatus = sel.value;
+  // Update row opacity
+  const row = document.getElementById(`sched-row-${recId}`);
+  if (row) row.style.opacity = newStatus === 'Active' ? '1' : '0.5';
+  schedSave(recId, {'Status': newStatus}, name, `Status changed to: ${newStatus}`);
+}
+
+function schedDoseChange(input) {
+  const recId = input.dataset.rec;
+  const name = input.dataset.name;
+  const newDose = input.value.trim();
+  schedSave(recId, {'Dose': newDose}, name, `Dose changed to: ${newDose}`);
+}
 
 async function loadPricing() {
   const el = document.getElementById('pricing-content');
@@ -5030,6 +5160,7 @@ function buildWeeklyPrintHTML(monday) {
     if (viewId === 'purchases') loadPurchases();
     if (viewId === 'labs') loadLabs();
     if (viewId === 'changes') loadChanges();
+    if (viewId === 'schedule') loadSchedule();
     if (viewId === 'injaudit') loadInjAudit();
     if (viewId === 'workouts') document.getElementById('workout-date').value = new Date().toISOString().split('T')[0];
     if (viewId === 'goals') loadGoals();
