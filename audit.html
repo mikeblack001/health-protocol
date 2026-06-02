@@ -387,8 +387,7 @@ Example: [{"compound":"Testosterone","date":"2025-06-01","site":"L","timing":"Mo
     let records=[];
     try{
       // Strip any markdown fences
-      const clean=txt.replace(/^```[a-z]*
-?/,'').replace(/```$/,'').trim();
+      const clean=txt.replace(/^```[a-z]*\n?/,'').replace(/```$/,'').trim();
       records=JSON.parse(clean);
     }catch(e){setSt('⚠ Scan parse error');scanInProgress=false;return;}
 
