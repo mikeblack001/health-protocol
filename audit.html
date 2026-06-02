@@ -4,10 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>MB Injection Audit</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;background:#f0f2f5;color:#1a1a2e;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+body{font-family:'DM Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;background:#f0f2f5;color:#1a1a2e;height:100vh;display:flex;flex-direction:column;overflow:hidden}
 
 /* HEADER */
 #hdr{background:#1e2433;padding:0 14px;height:44px;display:flex;align-items:center;gap:10px;flex-shrink:0}
@@ -723,6 +724,9 @@ async function verifyWeek(){
       await atFetch(LOG.tbl,{method:'PATCH',body:JSON.stringify({records:batch,returnFieldsByFieldId:true})});
     }
     setSt('✓ Week verified ('+recs.length+' records)');
+    // Save current row order to AT before navigating away
+    const visibleKeys=[...document.querySelectorAll('#wgrid tbody tr[data-key]')].map(r=>r.dataset.key);
+    if(visibleKeys.length)await saveRowOrderToAT(visibleKeys,curDate);
     // Flash verify week button green then back to yellow
     const wBtn=document.getElementById('verify-week-btn');
     if(wBtn){wBtn.style.background='#16a34a';wBtn.style.borderColor='#16a34a';wBtn.textContent='✓ Verified!';}
