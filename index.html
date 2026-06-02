@@ -2250,24 +2250,6 @@ async function loadTrackerWeekData(mondayISO) {
   } catch(e) { console.error('loadTrackerWeekData failed:', e); }
 }
 
-async function logVialEvent(compound, type) {
-  try {
-    await fetch(`https://api.airtable.com/v0/${BASE}/tblolVx7YwO5cJhsE`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fields: {
-        'fldoavYuElnEH8Wfb': compound,
-        'fld6vTK6VtYTDzy2s': type,
-        'fldlVjHBC4ds5H1UH': new Date().toISOString().split('T')[0],
-        'flde72p4W1kJ9melY': `${type}: ${compound}`
-      }, typecast: true })
-    });
-    // Brief visual confirmation
-    const btns = document.querySelectorAll(`[onclick*="${compound}"]`);
-    btns.forEach(b => { const orig = b.style.background; b.style.background='#c8e6c9'; setTimeout(()=>b.style.background=orig,1000); });
-  } catch(e) { alert('Log failed: ' + e.message); }
-}
-
 async function saveTrackerNote(input) {
   const compound = input.dataset.compound;
   const val = input.value.trim();
@@ -2295,12 +2277,6 @@ async function saveTrackerNote(input) {
 
 let _autoSaveTimer = null;
 let _currentMondayISO = null;
-function autoSave() {
-  if (!_currentMondayISO) return;
-  clearTimeout(_autoSaveTimer);
-  _autoSaveTimer = setTimeout(() => saveTrackerWeek(_currentMondayISO, true), 800);
-}
-
 async function saveCheckbox(box) {
   const compound = box.dataset.compound;
   const date = box.dataset.date;
@@ -2364,13 +2340,6 @@ async function saveTrackerWeek(mondayISO, silent) {
     const el = document.getElementById('save-status');
     if (el) { el.textContent = '✓'; el.style.color = 'var(--green)'; setTimeout(() => { el.textContent = ''; }, 2000); }
   }
-}
-
-function selectWeek(btn) {
-  document.querySelectorAll('.week-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  const weekNum = parseInt(btn.textContent.replace('Week ',''));
-  renderTracker(weekNum);
 }
 
 async function updateVialCells() {
@@ -5970,54 +5939,11 @@ function buildWeeklyPrintHTML(monday) {
     document.getElementById('add-supp-change-modal').style.display = 'none';
   }
 
-  async function saveAddSuppChange() {
-    const btn = document.getElementById('asc-save-btn');
-    btn.disabled = true; btn.textContent = 'Saving...';
-    const fields = {};
-    const date = document.getElementById('asc-date').value;
-    const type = document.getElementById('asc-type').value;
-    const supp = document.getElementById('asc-supplement').value;
-    const desc = document.getElementById('asc-description').value;
-    const reason = document.getElementById('asc-reason').value;
-    const notes = document.getElementById('asc-notes').value;
-    if (date) fields[SC_FIELDS.date] = date;
-    if (type) fields[SC_FIELDS.type] = type;
-    if (supp) fields[SC_FIELDS.supplement] = supp;
-    if (desc) fields[SC_FIELDS.description] = desc;
-    if (reason) fields[SC_FIELDS.reason] = reason;
-    if (notes) fields[SC_FIELDS.notes] = notes;
-    try {
-      const r = await fetch(`https://api.airtable.com/v0/${BASE}/${TABLES.suppChanges}`, {
-        method: 'POST', headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ records: [{ fields }] })
-      });
-      const d = await r.json();
-      if (d.records) {
-        hideAddSuppChangeModal(); loadSuppChanges();
-        await updateSuppFromChange(supp, type, date);
-      } else alert('Error: ' + JSON.stringify(d.error || d));
-    } catch(e) { alert('Error: ' + e.message); }
-    btn.disabled = false; btn.textContent = 'Save';
-  }
-
-function showToast(msg) {
-  let t = document.getElementById('toast-msg');
-  if (!t) { t = document.createElement('div'); t.id = 'toast-msg'; t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--border);color:var(--text);padding:10px 18px;border-radius:8px;font-size:13px;font-family:DM Sans,sans-serif;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,0.15);transition:opacity 0.3s'; document.body.appendChild(t); }
-  t.textContent = msg; t.style.opacity = '1';
-  clearTimeout(t._timer); t._timer = setTimeout(() => { t.style.opacity = '0'; }, 3500);
-}
-
 function fmtDate(d) {
   if (!d) return '—';
   const [y,m,day] = d.split('-');
   const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   return months[parseInt(m)-1] + ' ' + parseInt(day) + ', ' + y;
-}
-
-function firstSource(src) {
-  if (!src) return '—';
-  if (Array.isArray(src)) return src[0] || '—';
-  return String(src).split(',')[0].trim() || '—';
 }
 
 // ===== SUPPLEMENT VENDORS =====
@@ -6100,37 +6026,6 @@ function getPrompt(type) {
     lab: "Extract lab results. Return ONLY a JSON array: [{date, marker, value, unit, ref_range, status}]. No explanation."
   };
   return p[type] || p.workout;
-}
-
-async function extractCurrentPage() {
-  toast("Starting extract... pages=" + pages.length + " cur=" + curPage, "ti", 5000);
-  if (!pages[curPage]) { toast("No page loaded (pages=" + pages.length + ")", "tr", 5000); return; }
-  var btn = document.getElementById("extractBtn");
-  btn.disabled = true; btn.textContent = "Extracting...";
-  try {
-    var b64 = pages[curPage].url.split(",")[1];
-    var resp = await fetch(WORKER_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: (document.getElementById("verifyModel")||{value:"claude-haiku-4-5-20251001"}).value, max_tokens: 4000,
-        system: getPrompt(pdfType),
-        messages: [{ role: "user", content: [
-          { type: "image", source: { type: "base64", media_type: "image/jpeg", data: b64 } },
-          { type: "text", text: "Page " + (curPage+1) + " of " + pages.length }
-        ]}]
-      })
-    });
-    var data = await resp.json();
-    var raw = ((data.content || []).find(function(x) { return x.type === "text"; }) || {text:"[]"}).text;
-    raw = raw.replace(/```json\n?|```\n?/g, "").trim();
-    var parsed = []; try { parsed = JSON.parse(raw); } catch(e) {}
-    if (!Array.isArray(parsed)) parsed = [];
-    renderExtracted(parsed);
-    markPage("ok");
-    toast("Extracted " + parsed.length + " records", "tg");
-  } catch(e) { toast("Extract error: " + e.message, "tr"); }
-  btn.disabled = false; btn.textContent = "\u21e9 Extract Page";
 }
 
 function renderExtracted(records) {
@@ -6229,12 +6124,6 @@ function signIn() {
     "&response_type=token" +
     "&scope=" + encodeURIComponent(GSC);
 }
-function signOut() {
-  clearTok(); gTok = null; setDot("d", "", "DRIVE");
-  document.getElementById("fileList").innerHTML = "<div class='abox'><div class='atitle'>Signed Out</div><button class='btn bp' onclick='signIn()'>Sign in with Google</button></div>";
-  toast("Signed out", "ti");
-}
-
 // ── SIDEBAR FILE LIST ─────────────────────────────────────────────────
 async function loadMappedFiles() {
   if (!gTok) { signIn(); return; }
@@ -6424,16 +6313,6 @@ function extractDateFromText(text) {
   return null;
 }
 
-function sendToClaude() {
-  if (!pages[curPage]) return;
-  // Download current page as JPEG for uploading to Claude chat
-  var a = document.createElement("a");
-  a.href = pages[curPage].url;
-  a.download = "page_" + (curPage+1) + "_" + (curFile ? curFile.name.replace(".pdf","") : "doc") + ".jpg";
-  a.click();
-  toast("Downloaded — upload this image to Claude chat", "ti", 5000);
-}
-function navPage(dir) { goToPage(curPage + dir); }
 function markPage(status) {
   pageStatus[curPage] = (pageStatus[curPage] === status) ? null : status;
   var th = document.getElementById("th_" + curPage);
@@ -6579,16 +6458,6 @@ function renderSettings() {
   }).join("");
 }
 function removeFile(type, idx) { cfg.types[type].files.splice(idx, 1); saveCfg(); renderSettings(); loadMappedFiles(); toast("Removed", "ti"); }
-function saveSettings() {
-  ["workout", "injection", "supplement", "lab"].forEach(function(type) {
-    var s = document.getElementById("atsel_" + type); if (s) { cfg.types[type].tableID = s.value; var t = atTables.find(function(x) { return x.id === s.value; }); if (t) cfg.types[type].tableName = t.name; }
-  });
-  saveCfg();
-  var el = document.getElementById("saveStatus"); if (el) { el.textContent = "Saved " + new Date().toLocaleTimeString(); setTimeout(function() { el.textContent = ""; }, 3000); }
-  toast("Saved", "tg"); loadMappedFiles();
-}
-function resetAll() { if (!confirm("Reset all settings?")) return; localStorage.removeItem("mb_pdfqa4"); location.reload(); }
-
 // ── FOLDER BROWSER ────────────────────────────────────────────────────
 async function fetchFolderContents(folderId) {
   if (folderCache[folderId]) return folderCache[folderId];
@@ -6646,19 +6515,8 @@ function togglePicker(id, name) {
   var cb = el ? el.querySelector("input") : null; if (cb) cb.checked = pickerPending.indexOf(id) >= 0;
   updatePickerCount();
 }
-function filterItems() { renderPickerList(document.getElementById("pickerSearch").value); }
 function updatePickerCount() { document.getElementById("pickerSelCount").textContent = pickerPending.length + " selected"; }
 function closePickerModal() { document.getElementById("pickerModal").classList.remove("open"); pickerType = null; pickerPending = []; }
-function confirmPicker() {
-  if (!pickerPending.length) { toast("No files selected", "tr"); return; }
-  pickerPending.forEach(function(id) {
-    var f = curFolderItems.find(function(x) { return x.id === id; }) || { id: id, name: id };
-    cfg.types[pickerType].files.push({ id: f.id, name: f.name });
-  });
-  saveCfg(); renderSettings(); loadMappedFiles();
-  toast("Added " + pickerPending.length + " file" + (pickerPending.length !== 1 ? "s" : "") + " to " + pickerType, "tg");
-  closePickerModal();
-}
 // pickerModal listener attached in initPdfQA()
 
 // pdfqa init — called from navDrop
@@ -6703,43 +6561,6 @@ async function callClaudePages(pageIndices, prompt) {
 }
 
 // ── AIRTABLE FETCH ────────────────────────────────────────────────────
-async function loadActivePeptides() {
-  document.getElementById("atContent").innerHTML = "<div style='padding:16px;color:var(--dd);font-size:11px;text-align:center'>Loading peptides...</div>";
-  try {
-    var url = "https://api.airtable.com/v0/" + BASE + "/tblMs6YRdP4wkndUp?pageSize=100&returnFieldsByFieldId=true";
-    var r = await fetch(url, { headers: { Authorization: "Bearer " + TOKEN } });
-    var d = await r.json();
-    var recs = (d.records || []).filter(function(rec) {
-      return ((rec.fields || {})["fldeCBOtYYp6BtAfh"] || {}).name === "Active";
-    }).sort(function(a,b){
-      var na = (a.fields["fld9J0U5iSDzyaaun"]||{}).name||"";
-      var nb = (b.fields["fld9J0U5iSDzyaaun"]||{}).name||"";
-      return na.localeCompare(nb) || ((a.fields["fldeH5uyKXDFPZbHK"]||"").localeCompare(b.fields["fldeH5uyKXDFPZbHK"]||""));
-    });
-    var html = "<div style='padding:8px 0'>";
-    var curTOD = "";
-    recs.forEach(function(rec) {
-      var f = rec.fields || {};
-      var name = f["fldeH5uyKXDFPZbHK"] || "?";
-      var dose = f["fldN7WOCx7ETJwmrB"] || "—";
-      var tod = (f["fld9J0U5iSDzyaaun"]||{}).name || "";
-      var freq = (f["fldyExNQXycfMjd1S"]||{}).name || "";
-      if (tod !== curTOD) {
-        curTOD = tod;
-        html += "<div style='padding:4px 14px 2px;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--dd);font-family:var(--mono);margin-top:6px'>" + esc(tod) + "</div>";
-      }
-      html += "<div style='display:flex;align-items:center;padding:5px 14px;border-bottom:1px solid var(--b)'>";
-      html += "<div style='flex:1;font-size:11px;font-weight:500'>" + esc(name) + "</div>";
-      html += "<div style='font-size:10px;font-family:var(--mono);color:var(--d)'>" + esc(dose) + "</div>";
-      html += "</div>";
-    });
-    html += "</div>";
-    document.getElementById("atContent").innerHTML = html;
-  } catch(e) {
-    document.getElementById("atContent").innerHTML = "<div style='padding:16px;color:var(--r);font-size:11px'>Error: " + esc(e.message) + "</div>";
-  }
-}
-
 var injAuditData = null; // cache loaded audit
 
 async function loadInjAuditPanel() {
@@ -7147,14 +6968,6 @@ function stat(n,label,color) {
 function td(v) { return "<td style=\'padding:6px 10px;font-family:var(--mono);font-size:10px\'>" + esc(v||"—") + "</td>"; }
 function tdMono(v) { return "<td style=\'padding:6px 10px;font-family:var(--mono)\'>" + esc(v||"—") + "</td>"; }
 
-function flagMissing(idx) {
-  var r = verifyRowData[idx];
-  if (!r) return;
-  var msg = "MISSING INJECTION RECORD:\nDate: " + r.date + "\nCompound: " + r.compound + "\nPDF Side: " + (r.pdf&&r.pdf.side||"") + "\nPDF Dose: " + (r.pdf&&r.pdf.dose||"") + "\nPDF TOD: " + (r.pdf&&r.pdf.tod||"") + "\nNotes: " + (r.pdf&&r.pdf.notes||"");
-  if (typeof sendPrompt === "function") sendPrompt(msg);
-  else { navigator.clipboard.writeText(msg); toast("Copied", "ti"); }
-}
-
 async function fixRecord(recId, idx) {
   var r = verifyRowData[idx];
   if (!r || !r.pdf) return;
@@ -7273,85 +7086,6 @@ function copyForClaude() {
 }
 
 // ── MAIN RUN ──────────────────────────────────────────────────────────
-async function runVerification() {
-  var btn = document.getElementById("runVerifyBtn");
-  var resEl = document.getElementById("verifyResults");
-  resEl.innerHTML = "";
-  if (!pages.length) { vStatus("No PDF loaded", "err"); return; }
-  btn.disabled = true; btn.textContent = "Running...";
-  try {
-    var pageVal = document.getElementById("verifyPages").value;
-    var startIdx = (pageVal === "all") ? 0 : Math.max(0, pages.length - (parseInt(pageVal)||4));
-    var pageIndices = [];
-    for (var i = startIdx; i < pages.length; i++) pageIndices.push(i);
-    vStatus("Starting verification — " + pageIndices.length + " pages · type: " + pdfType);
-    if (pdfType === "injection") await runInjectionVerification(pageIndices);
-    else if (pdfType === "workout") await runWorkoutVerification(pageIndices);
-    else vStatus("Select a PDF type (injection/workout) from Settings", "err");
-  } catch(e) {
-    vStatus("Error: " + e.message, "err");
-    console.error(e);
-  }
-  btn.disabled = false; btn.textContent = "⚡ Run Verify";
-}
-
-
-
-
-
-
-
-function drawLine(canvasId, labels, data1, label1, color1, data2, label2, color2) {
-  const canvas = document.getElementById(canvasId);
-  if (!canvas) return;
-  const ctx = canvas.getContext('2d');
-  const W = canvas.offsetWidth; canvas.width = W; canvas.height = canvas.height || 80;
-  const H = canvas.height;
-  const pad = {t:20,r:20,b:30,l:45};
-  const valid1 = data1.map((v,i)=>v!==null?{x:i,v:v}:null).filter(Boolean);
-  if (!valid1.length) return;
-  const allVals = [...valid1.map(p=>p.v), ...(data2||[]).filter(v=>v!==null)];
-  const minV = Math.min(...allVals)*0.98, maxV = Math.max(...allVals)*1.02;
-  const xScale = n => pad.l + (n/(labels.length-1||1))*(W-pad.l-pad.r);
-  const yScale = v => pad.t + (1-(v-minV)/(maxV-minV||1))*(H-pad.t-pad.b);
-  ctx.clearRect(0,0,W,H);
-  ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--surface') || '#fff';
-  ctx.fillRect(0,0,W,H);
-  // Grid
-  ctx.strokeStyle = '#e5e7eb'; ctx.lineWidth = 0.5;
-  [0,0.25,0.5,0.75,1].forEach(t => {
-    const y = pad.t + t*(H-pad.t-pad.b);
-    ctx.beginPath(); ctx.moveTo(pad.l,y); ctx.lineTo(W-pad.r,y); ctx.stroke();
-    const val = maxV - t*(maxV-minV);
-    ctx.fillStyle = '#9ca3af'; ctx.font = '10px sans-serif'; ctx.textAlign='right';
-    ctx.fillText(val.toFixed(1), pad.l-4, y+3);
-  });
-  // Line 1
-  ctx.strokeStyle = color1; ctx.lineWidth = 2; ctx.beginPath();
-  valid1.forEach((p,i) => i===0 ? ctx.moveTo(xScale(p.x),yScale(p.v)) : ctx.lineTo(xScale(p.x),yScale(p.v)));
-  ctx.stroke();
-  // Dots
-  valid1.forEach(p => { ctx.fillStyle=color1; ctx.beginPath(); ctx.arc(xScale(p.x),yScale(p.v),3,0,Math.PI*2); ctx.fill(); });
-  // Line 2
-  if (data2) {
-    const valid2 = data2.map((v,i)=>v!==null?{x:i,v:v}:null).filter(Boolean);
-    if (valid2.length) {
-      ctx.strokeStyle = color2; ctx.lineWidth = 2; ctx.setLineDash([4,3]); ctx.beginPath();
-      valid2.forEach((p,i) => i===0 ? ctx.moveTo(xScale(p.x),yScale(p.v)) : ctx.lineTo(xScale(p.x),yScale(p.v)));
-      ctx.stroke(); ctx.setLineDash([]);
-      valid2.forEach(p => { ctx.fillStyle=color2; ctx.beginPath(); ctx.arc(xScale(p.x),yScale(p.v),3,0,Math.PI*2); ctx.fill(); });
-    }
-  }
-  // Label
-  ctx.fillStyle = '#374151'; ctx.font = 'bold 11px sans-serif'; ctx.textAlign='left';
-  ctx.fillText(label1, pad.l, pad.t-5);
-  if (label2) { ctx.fillStyle=color2; ctx.fillText(' / '+label2, pad.l+ctx.measureText(label1).width+2, pad.t-5); }
-  // X axis dates - show every Nth
-  const step = Math.ceil(labels.length/8);
-  ctx.fillStyle = '#9ca3af'; ctx.font = '9px sans-serif'; ctx.textAlign='center';
-  labels.forEach((l,i) => { if(i%step===0) ctx.fillText(l.slice(5), xScale(i), H-5); });
-}
-
 // ── BODY & VITALS ──────────────────────────────────────────────
 let bcAllRecords = [], bcDays = 30;
 
