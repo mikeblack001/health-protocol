@@ -530,7 +530,7 @@
 <button class="drop-item" onclick="navDrop('peptides','nav-pep')">Peptides</button>
         <button class="drop-item" onclick="navDrop('tracker','nav-pep')">Peptide Tracker</button>
         <button class="drop-item" onclick="navDrop('changes','nav-pep')">Peptide Changes</button>
-        <button class="drop-item" onclick="navDrop('schedule','nav-pep')">📅 Protocol Schedule</button>
+        <button class="drop-item" onclick="navDrop('schedule','nav-pep')">📅 Peptide Schedule</button>
         <div class="drop-divider"></div>
         <button class="drop-item" onclick="navDrop('pricing','nav-pep')">Pricing</button>
         <button class="drop-item" onclick="navDrop('purchases','nav-pep')">Purchases</button>
@@ -1481,6 +1481,9 @@ function renderPeptides(filter) {
   let records = data.peptides;
   if (filter !== 'all') records = records.filter(r => getField(r,'Status') === filter);
   records = [...records].sort((a,b) => {
+    const ro_a = a.fields['Row Order'] ?? 99999;
+    const ro_b = b.fields['Row Order'] ?? 99999;
+    if(ro_a !== ro_b) return ro_a - ro_b;
     const av = getField(a, pepSort.col) || '';
     const bv = getField(b, pepSort.col) || '';
     return av.localeCompare(bv) * pepSort.dir;
@@ -2719,7 +2722,7 @@ async function loadSchedule() {
 
   let h = `<div style="padding:16px 20px">
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:4px">
-      <h2 style="margin:0;font-size:18px;font-weight:700">Protocol Schedule</h2>
+      <h2 style="margin:0;font-size:18px;font-weight:700">Peptide Schedule</h2>
       <span style="font-size:11px;color:var(--muted);border:1px solid var(--border);border-radius:4px;padding:2px 8px">Drag to reorder · changes auto-logged</span>
     </div>
     <p style="font-size:11px;color:var(--muted);margin:0 0 16px">Changes save to Airtable instantly and are logged to Protocol Changes</p>
