@@ -2637,91 +2637,127 @@ async function loadSchedule() {
   const STATUS_OPTS = ['Active','Paused','Discontinued','On Order'];
 
   const res = await fetch(`https://api.airtable.com/v0/${BASE}/tblMs6YRdP4wkndUp?fields[]=Compound&fields[]=Status&fields[]=Dose&fields[]=Schedule&fields[]=Timing&fields[]=Frequency&fields[]=Row%20Order&sort[0][field]=Row%20Order&sort[0][direction]=asc&pageSize=100`, {headers:{Authorization:`Bearer ${TOKEN}`}});
-  const data = await res.json();
-  const recs = (data.records||[]).sort((a,b) => ((a.fields['Row Order']??99999)-(b.fields['Row Order']??99999)));
+  const json = await res.json();
+  const recs = (json.records||[]).sort((a,b)=>((a.fields['Row Order']??99999)-(b.fields['Row Order']??99999)));
 
-  const active = recs.filter(r => r.fields['Status'] === 'Active');
-  const inactive = recs.filter(r => r.fields['Status'] !== 'Active').sort((a,b)=>(a.fields['Compound']||'').localeCompare(b.fields['Compound']||''));
+  const active = recs.filter(r=>r.fields['Status']==='Active');
+  const inactive = recs.filter(r=>r.fields['Status']!=='Active').sort((a,b)=>(a.fields['Compound']||'').localeCompare(b.fields['Compound']||''));
+  const morn = active.filter(r=>!(r.fields['Timing']||'').toLowerCase().includes('night'));
+  const night = active.filter(r=>(r.fields['Timing']||'').toLowerCase().includes('night'));
 
-  const MORN_BG = '#FFF8E7', NIGHT_BG = '#EEF4FB';
+  const MORN_BG='#FFF8E7', NIGHT_BG='#EEF4FB';
 
-  function makeRow(r, bg) {
+  const dayHeader = DAYS.map(d=>`<th style="text-align:center;min-width:38px">${d}</th>`).join('');
+
+  function makeActiveRow(r, bg) {
     const f = r.fields;
     const name = f['Compound']||'';
     const status = f['Status']||'Active';
     const dose = f['Dose']||'';
     const freq = f['Frequency']||'';
     const sched = (f['Schedule']||'').split(',').map(s=>parseInt(s.trim())).filter(n=>!isNaN(n));
-    const statusOpts = STATUS_OPTS.map(s=>`<option value="${s}"${s===status?' selected':''}>${s}</option>`).join('');
-    const dayCells = DAYS.map((day,i) => `<td style="text-align:center;padding:6px 3px">
-      <label style="cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10px;color:var(--muted)">
-        <input type="checkbox" ${sched.includes(i)?'checked':''} data-rec="${r.id}" data-day="${i}" data-name="${name}" onchange="schedDayToggle(this)" style="cursor:pointer;width:14px;height:14px">
-        <span>${day}</span>
-      </label>
+    const dayCells = DAYS.map((_,i)=>`<td style="text-align:center;padding:6px 3px;background:${bg}">
+      <input type="checkbox" ${sched.includes(i)?'checked':''} data-rec="${r.id}" data-day="${i}" data-name="${name}"
+        onchange="schedDayToggle(this)" style="cursor:pointer;width:15px;height:15px">
     </td>`).join('');
-
-    return `<tr draggable="${status==='Active'}" data-rec="${r.id}" style="border-bottom:1px solid var(--border);background:${bg}" id="sched-row-${r.id}">
-      <td style="padding:4px 6px;color:#d1d5db;font-size:18px;cursor:grab;user-select:none;vertical-align:middle">⠿</td>
-      <td style="padding:8px 10px;vertical-align:middle;min-width:160px">
-        <div style="font-weight:700;font-size:13px;line-height:1.3">${name}</div>
-        <div style="font-size:10px;color:var(--muted);margin-top:2px">${dose}${freq?' · '+freq:''}</div>
+    const statusOpts = STATUS_OPTS.map(s=>`<option value="${s}"${s===status?' selected':''}>${s}</option>`).join('');
+    return `<tr draggable="true" data-rec="${r.id}" id="sched-row-${r.id}" style="background:${bg}">
+      <td style="padding:6px 8px;color:#d1d5db;font-size:18px;cursor:grab;user-select:none">⠿</td>
+      <td class="compound-name" style="padding:10px 14px;font-weight:600">
+        ${name}
+        <div style="font-size:10px;color:var(--muted);font-weight:400;margin-top:1px">${dose}${freq?' · '+freq:''}</div>
       </td>
-      <td style="padding:8px 6px;vertical-align:middle">
-        <select onchange="schedStatusChange(this,'${r.id}','${name}')" style="font-size:11px;padding:2px 4px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text)">
+      <td style="padding:6px 8px;background:${bg}">
+        <select onchange="schedStatusChange(this,'${r.id}','${name}')" style="font-size:11px;padding:2px 5px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text)">
           ${statusOpts}
         </select>
       </td>
-      <td style="padding:8px 6px;vertical-align:middle">
+      <td style="padding:6px 8px;background:${bg}">
         <input type="text" value="${dose}" data-rec="${r.id}" data-name="${name}" onblur="schedDoseChange(this)"
           style="font-size:11px;padding:2px 6px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text);width:75px">
       </td>
       ${dayCells}
-      <td style="padding:8px 4px;vertical-align:middle"><span id="sched-status-${r.id}" style="font-size:11px"></span></td>
+      <td style="padding:6px 4px;background:${bg}"><span id="sched-status-${r.id}" style="font-size:11px"></span></td>
     </tr>`;
   }
 
-  const colHeaders = `<tr style="background:var(--surface);border-bottom:2px solid var(--border)">
-    <th style="width:20px;padding:6px"></th>
-    <th style="text-align:left;padding:6px 10px;font-weight:600;font-size:12px">Compound</th>
-    <th style="text-align:left;padding:6px 10px;font-weight:600;font-size:12px">Status</th>
-    <th style="text-align:left;padding:6px 10px;font-weight:600;font-size:12px">Dose</th>
-    ${DAYS.map(d=>`<th style="text-align:center;padding:6px 3px;font-weight:600;font-size:11px;min-width:38px">${d}</th>`).join('')}
+  function makeInactiveRow(r) {
+    const f = r.fields;
+    const name = f['Compound']||'';
+    const status = f['Status']||'';
+    const dose = f['Dose']||'';
+    const freq = f['Frequency']||'';
+    const statusOpts = STATUS_OPTS.map(s=>`<option value="${s}"${s===status?' selected':''}>${s}</option>`).join('');
+    return `<tr data-rec="${r.id}" id="sched-row-${r.id}" style="opacity:0.6">
+      <td class="compound-name" style="padding:10px 14px;font-weight:600">
+        ${name}
+        <div style="font-size:10px;color:var(--muted);font-weight:400;margin-top:1px">${dose}${freq?' · '+freq:''}</div>
+      </td>
+      <td style="padding:6px 8px">
+        <select onchange="schedStatusChange(this,'${r.id}','${name}')" style="font-size:11px;padding:2px 5px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text)">
+          ${statusOpts}
+        </select>
+      </td>
+      <td style="padding:6px 8px">
+        <input type="text" value="${dose}" data-rec="${r.id}" data-name="${name}" onblur="schedDoseChange(this)"
+          style="font-size:11px;padding:2px 6px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text);width:75px">
+      </td>
+      <td style="padding:6px 4px"><span id="sched-status-${r.id}" style="font-size:11px"></span></td>
+    </tr>`;
+  }
+
+  const activeHeader = `<thead><tr style="background:var(--surface2)">
+    <th style="width:24px"></th>
+    <th style="text-align:left">Compound</th>
+    <th style="text-align:left;min-width:90px">Status</th>
+    <th style="text-align:left;min-width:90px">Dose</th>
+    ${dayHeader}
     <th></th>
-  </tr>`;
+  </tr></thead>`;
 
-  const morn = active.filter(r=>!(r.fields['Timing']||'').toLowerCase().includes('night'));
-  const night = active.filter(r=>(r.fields['Timing']||'').toLowerCase().includes('night'));
+  const inactiveHeader = `<thead><tr style="background:var(--surface2)">
+    <th style="text-align:left">Compound</th>
+    <th style="text-align:left;min-width:90px">Status</th>
+    <th style="text-align:left;min-width:90px">Dose</th>
+    <th></th>
+  </tr></thead>`;
 
-  let h = `<div style="padding:20px;max-width:1100px">
+  let h = `<div style="padding:20px;max-width:1200px">
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px">
       <h2 style="margin:0;font-size:18px;font-weight:700">Protocol Schedule</h2>
       <span style="font-size:11px;color:var(--muted);border:1px solid var(--border);border-radius:4px;padding:2px 8px">As of 5/25/26 · drag to reorder · auto-logged</span>
     </div>
-    <div style="font-size:11px;color:var(--muted);margin-bottom:20px">Changes save to Airtable and are logged to Protocol Changes with today's date</div>
+    <p style="font-size:11px;color:var(--muted);margin:0 0 20px">Changes save instantly to Airtable and are logged to Protocol Changes</p>
 
-    <div style="background:#FFF8E7;border:1px solid #fde68a;border-radius:6px 6px 0 0;padding:6px 12px;font-weight:700;font-size:13px;color:#d97706">☀️ Morning</div>
-    <table style="width:100%;border-collapse:collapse;font-size:12px;border:1px solid #fde68a;border-top:none;border-radius:0 0 6px 6px;margin-bottom:20px">
-      <thead>${colHeaders}</thead>
-      <tbody id="sched-tbody-morn">${morn.map(r=>makeRow(r,MORN_BG)).join('')}</tbody>
-    </table>
+    <div class="table-wrap" style="margin-bottom:20px">
+      <div class="timing-header">☀️ Morning</div>
+      <table class="data-table">
+        ${activeHeader}
+        <tbody id="sched-tbody-morn">${morn.map(r=>makeActiveRow(r,MORN_BG)).join('')}</tbody>
+      </table>
+    </div>
 
-    <div style="background:#EEF4FB;border:1px solid #bfdbfe;border-radius:6px 6px 0 0;padding:6px 12px;font-weight:700;font-size:13px;color:#2563eb">🌙 Night</div>
-    <table style="width:100%;border-collapse:collapse;font-size:12px;border:1px solid #bfdbfe;border-top:none;border-radius:0 0 6px 6px;margin-bottom:28px">
-      <thead>${colHeaders}</thead>
-      <tbody id="sched-tbody-night">${night.map(r=>makeRow(r,NIGHT_BG)).join('')}</tbody>
-    </table>`;
+    <div class="table-wrap" style="margin-bottom:28px">
+      <div class="timing-header" style="background:#EEF4FB;color:#2563eb;border-color:#bfdbfe">🌙 Night</div>
+      <table class="data-table">
+        ${activeHeader}
+        <tbody id="sched-tbody-night">${night.map(r=>makeActiveRow(r,NIGHT_BG)).join('')}</tbody>
+      </table>
+    </div>`;
 
   if (inactive.length) {
-    h += `<div style="font-weight:700;font-size:13px;color:var(--muted);margin-bottom:6px">Inactive (A–Z)</div>
-    <table style="width:100%;border-collapse:collapse;font-size:12px;border:1px solid var(--border);border-radius:6px">
-      <thead>${colHeaders}</thead>
-      <tbody>${inactive.map(r=>makeRow(r,'#f9fafb')).join('')}</tbody>
-    </table>`;
+    h += `<div class="table-wrap">
+      <div class="timing-header">Inactive (A–Z)</div>
+      <table class="data-table">
+        ${inactiveHeader}
+        <tbody>${inactive.map(r=>makeInactiveRow(r)).join('')}</tbody>
+      </table>
+    </div>`;
   }
 
   h += '</div>';
   el.innerHTML = h;
-  ['sched-tbody-morn','sched-tbody-night'].forEach(id => initSchedDrag(id));
+  ['sched-tbody-morn','sched-tbody-night'].forEach(id=>initSchedDrag(id));
 }
 
 function initSchedDrag(tbodyId) {
@@ -2754,24 +2790,22 @@ async function saveSchedOrder() {
     const tbody = document.getElementById(id);
     if (!tbody) return;
     [...tbody.querySelectorAll('tr[data-rec]')].forEach((r,i) => {
-      allUpdates.push({id: r.dataset.rec, fields: {'fldA9yLhudZkO1CjS': i+1}});
+      allUpdates.push({id:r.dataset.rec, fields:{'fldA9yLhudZkO1CjS':i+1}});
     });
   });
-  for (let i=0; i<allUpdates.length; i+=10) {
-    await fetch(`https://api.airtable.com/v0/${BASE}/tblMs6YRdP4wkndUp`, {
-      method:'PATCH',
-      headers:{Authorization:`Bearer ${TOKEN}`,'Content-Type':'application/json'},
+  for (let i=0;i<allUpdates.length;i+=10) {
+    await fetch(`https://api.airtable.com/v0/${BASE}/tblMs6YRdP4wkndUp`,{
+      method:'PATCH',headers:{Authorization:`Bearer ${TOKEN}`,'Content-Type':'application/json'},
       body:JSON.stringify({records:allUpdates.slice(i,i+10)})
     });
   }
-  // Sync to mba_row_order for tracker + PDF Verify
   const rowOrder = ['sched-tbody-morn','sched-tbody-night'].flatMap(id => {
     const tb = document.getElementById(id);
     if (!tb) return [];
     return [...tb.querySelectorAll('tr[data-rec]')].map(r => {
-      const name = r.querySelector('td:nth-child(2) div')?.textContent?.trim()||'';
-      const timing = id.includes('night') ? 'Night' : 'Morning';
-      return name + '||' + timing;
+      const nameEl = r.querySelector('.compound-name');
+      const name = (nameEl?.childNodes[0]?.textContent||'').trim();
+      return name + '||' + (id.includes('night')?'Night':'Morning');
     });
   });
   localStorage.setItem('mba_row_order', JSON.stringify(rowOrder));
@@ -2779,38 +2813,38 @@ async function saveSchedOrder() {
 
 async function schedSave(recId, fields, name, changeDesc) {
   const statusEl = document.getElementById(`sched-status-${recId}`);
-  if (statusEl) { statusEl.textContent = '...'; statusEl.style.color = 'var(--muted)'; }
+  if (statusEl) { statusEl.textContent='...'; statusEl.style.color='var(--muted)'; }
   try {
-    await fetch(`https://api.airtable.com/v0/${BASE}/tblMs6YRdP4wkndUp/${recId}`, {
-      method:'PATCH', headers:{Authorization:`Bearer ${TOKEN}`,'Content-Type':'application/json'},
+    await fetch(`https://api.airtable.com/v0/${BASE}/tblMs6YRdP4wkndUp/${recId}`,{
+      method:'PATCH',headers:{Authorization:`Bearer ${TOKEN}`,'Content-Type':'application/json'},
       body:JSON.stringify({fields})
     });
     const today = new Date().toISOString().split('T')[0];
-    await fetch(`https://api.airtable.com/v0/${BASE}/tblolVx7YwO5cJhsE`, {
-      method:'POST', headers:{Authorization:`Bearer ${TOKEN}`,'Content-Type':'application/json'},
+    await fetch(`https://api.airtable.com/v0/${BASE}/tblolVx7YwO5cJhsE`,{
+      method:'POST',headers:{Authorization:`Bearer ${TOKEN}`,'Content-Type':'application/json'},
       body:JSON.stringify({records:[{fields:{'Change Date':today,'Compound':name,'Description of Change':changeDesc}}],typecast:true})
     });
-    if (statusEl) { statusEl.textContent = '✓'; statusEl.style.color = '#16a34a'; setTimeout(()=>{if(statusEl)statusEl.textContent='';},2000); }
+    if (statusEl) { statusEl.textContent='✓'; statusEl.style.color='#16a34a'; setTimeout(()=>{if(statusEl)statusEl.textContent='';},2000); }
   } catch(e) {
-    if (statusEl) { statusEl.textContent = '✗'; statusEl.style.color = '#dc2626'; }
+    if (statusEl) { statusEl.textContent='✗'; statusEl.style.color='#dc2626'; }
   }
 }
 
 function schedDayToggle(cb) {
-  const recId = cb.dataset.rec, name = cb.dataset.name;
-  const row = document.getElementById(`sched-row-${recId}`);
-  const days = [...row.querySelectorAll('input[type=checkbox]')].map((c,i)=>c.checked?i:null).filter(i=>i!==null);
-  schedSave(recId, {'fldU6gCdrblypWiPo': days.join(',')}, name, `Schedule: ${days.map(d=>['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][d]).join('/')}`);
+  const recId=cb.dataset.rec, name=cb.dataset.name;
+  const row=document.getElementById(`sched-row-${recId}`);
+  const days=[...row.querySelectorAll('input[type=checkbox]')].map((c,i)=>c.checked?i:null).filter(i=>i!==null);
+  schedSave(recId,{'fldU6gCdrblypWiPo':days.join(',')},name,`Schedule: ${days.map(d=>['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][d]).join('/')}`);
 }
 
-function schedStatusChange(sel, recId, name) {
-  schedSave(recId, {'Status': sel.value}, name, `Status → ${sel.value}`);
+function schedStatusChange(sel,recId,name) {
+  schedSave(recId,{'Status':sel.value},name,`Status → ${sel.value}`);
 }
 
 function schedDoseChange(input) {
-  const v = input.value.trim();
+  const v=input.value.trim();
   if (!v) return;
-  schedSave(input.dataset.rec, {'Dose': v}, input.dataset.name, `Dose → ${v}`);
+  schedSave(input.dataset.rec,{'Dose':v},input.dataset.name,`Dose → ${v}`);
 }
 
 
