@@ -3,269 +3,527 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AT vs PDF Verification</title>
+<title>MB Workout Verify</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: system-ui, sans-serif; background: #0f1117; color: #e2e8f0; font-size: 13px; }
-#header { background: #1a1d2e; padding: 12px 16px; border-bottom: 1px solid #2d3148; display: flex; align-items: center; gap: 12px; }
-#header h1 { font-size: 15px; font-weight: 600; }
-#status { margin-left: auto; font-size: 12px; color: #94a3b8; }
-#summary { display: flex; gap: 10px; padding: 12px 16px; background: #13151f; border-bottom: 1px solid #2d3148; flex-wrap: wrap; }
-.stat { background: #1e2235; border-radius: 6px; padding: 8px 14px; text-align: center; min-width: 100px; }
-.stat .val { font-size: 20px; font-weight: 700; }
-.stat .lbl { font-size: 10px; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 2px; }
-.val.ok { color: #22c55e; }
-.val.warn { color: #f59e0b; }
-.val.err { color: #ef4444; }
-#filter-bar { padding: 8px 16px; background: #0f1117; display: flex; gap: 8px; align-items: center; border-bottom: 1px solid #2d3148; flex-wrap: wrap; }
-#filter-bar select, #filter-bar input { background: #1e2235; border: 1px solid #2d3148; color: #e2e8f0; padding: 4px 8px; border-radius: 4px; font-size: 12px; }
-#filter-bar button { background: #3b82f6; color: white; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; }
-#table-wrap { overflow-y: auto; height: calc(100vh - 165px); }
-table { width: 100%; border-collapse: collapse; }
-thead th { position: sticky; top: 0; background: #1a1d2e; padding: 6px 8px; text-align: left; font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #2d3148; z-index: 10; }
-tbody tr { border-bottom: 1px solid #1e2235; }
-tbody tr:hover { background: #1a1d2e; }
-td { padding: 5px 8px; }
-.row-match { } 
-.row-mismatch { background: rgba(239,68,68,0.04); }
-.row-missing-at { background: rgba(245,158,11,0.04); }
-.row-missing-pdf { background: rgba(167,139,250,0.04); }
-.badge { display: inline-block; font-size: 10px; padding: 1px 5px; border-radius: 3px; font-weight: 600; }
-.badge-ok { background: #14532d; color: #4ade80; }
-.badge-warn { background: #451a03; color: #fb923c; }
-.badge-err { background: #450a0a; color: #f87171; }
-.badge-purple { background: #2e1065; color: #c4b5fd; }
-.detail-row { background: #12141e !important; }
-.detail-inner { padding: 10px 16px 14px; }
-.detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-.detail-col h4 { font-size: 11px; font-weight: 600; color: #94a3b8; margin-bottom: 6px; }
-.detail-table { width: 100%; border-collapse: collapse; }
-.detail-table th { font-size: 10px; color: #64748b; padding: 3px 6px; text-align: left; border-bottom: 1px solid #2d3148; }
-.detail-table td { font-size: 11px; padding: 3px 6px; }
-.detail-table tr.diff-row td { color: #ef4444; }
-.expand-btn { cursor: pointer; color: #3b82f6; font-size: 11px; }
-.expand-btn:hover { text-decoration: underline; }
-#loading { text-align: center; padding: 60px; color: #64748b; }
-.progress-bar { height: 3px; background: #1e2235; border-radius: 2px; overflow: hidden; margin: 8px auto; width: 200px; }
-.progress-fill { height: 100%; background: #3b82f6; transition: width 0.3s; }
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;background:#f0f2f5;color:#1a1a2e;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+#hdr{background:#1e2433;padding:0 14px;height:44px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+#hdr h1{font-size:14px;font-weight:800;color:#fff;white-space:nowrap}
+#drive-btn{padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;cursor:pointer;border:none}
+#drive-btn.ok{background:#16a34a;color:#fff}
+#drive-btn.no{background:#dc2626;color:#fff}
+#st{font-size:11px;color:#9ca3af;margin-left:4px}
+#hdr-r{margin-left:auto;display:flex;align-items:center;gap:6px}
+.hbtn{padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid #374151;background:#374151;color:#d1d5db}
+.hbtn:hover{background:#4b5563}
+#body{display:flex;flex:1;overflow:hidden}
+#pp{width:520px;flex-shrink:0;background:#fff;border-right:2px solid #e2e5ea;display:flex;flex-direction:column;overflow:hidden}
+#pp-top{padding:14px;border-bottom:1px solid #e2e5ea;flex-shrink:0;background:#fafafa}
+#pp-top label{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#9ca3af;display:block;margin-bottom:6px}
+#pp-id-row{display:flex;gap:6px;margin-bottom:10px}
+#pp-id{flex:1;padding:7px 10px;border:1px solid #d1d5db;border-radius:5px;font-size:13px;min-width:0}
+.pb{padding:4px 8px;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;border:none;background:#2563eb;color:#fff}
+.pb:hover{background:#1d4ed8}
+.pg{background:#374151;color:#fff}.pg:hover{background:#1f2937}
+#pp-msg{font-size:12px;color:#9ca3af;margin-top:4px}
+#pp-area{flex:1;overflow:auto;background:#cbd5e1;padding:6px;min-height:0;contain:strict}
+#pp-canvas{display:block;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+#pp-nav{display:flex;align-items:center;padding:6px 8px;border-top:2px solid #2563eb;background:#fff;flex-shrink:0;gap:4px}
+#pp-nav button{padding:6px 14px;border:none;border-radius:5px;cursor:pointer;font-size:13px;font-weight:700;background:#2563eb;color:#fff}
+#pp-nav button:hover{background:#1d4ed8}
+#pp-nav button:disabled{background:#e2e5ea;color:#9ca3af;cursor:default}
+#pp-pg{flex:1;text-align:center;font-size:12px;font-weight:700;color:#374151}
+#pp-jp{width:46px;padding:4px 6px;border:1px solid #d1d5db;border-radius:4px;font-size:12px;text-align:center;font-weight:700}
+#main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+#dnav{background:#fff;border-bottom:2px solid #e2e5ea;padding:8px 14px;display:flex;align-items:center;gap:8px;flex-shrink:0}
+#dnav button{padding:6px 14px;border:1px solid #d1d5db;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700;background:#fff}
+#dnav button:hover{background:#f3f4f6}
+#d-sel{padding:5px 9px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;font-weight:700;flex:1;max-width:220px}
+#d-cnt{font-size:11px;color:#9ca3af}
+#dnav-r{margin-left:auto;display:flex;gap:6px;align-items:center}
+#summary{background:#f8fafc;border-bottom:2px solid #e2e5ea;padding:6px 14px;display:flex;gap:16px;align-items:center;flex-shrink:0;font-size:11px;font-weight:700}
+.s-ok{color:#16a34a}.s-warn{color:#d97706}.s-err{color:#dc2626}.s-ext{color:#7c3aed}
+#fbar{background:#fff;border-bottom:1px solid #e2e5ea;padding:6px 14px;display:flex;gap:8px;align-items:center;flex-shrink:0}
+.fbtn{padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid #d1d5db;background:#fff;color:#374151}
+.fbtn.on{background:#1e2433;border-color:#1e2433;color:#fff}
+.fbtn:hover:not(.on){background:#f3f4f6}
+#fbar-r{margin-left:auto;font-size:11px;color:#9ca3af}
+#records{flex:1;overflow-y:auto;padding:10px 14px}
+.scard{background:#fff;border:1px solid #e2e5ea;border-radius:8px;padding:0;margin-bottom:6px;display:flex;align-items:stretch;overflow:hidden}
+.scard.ok{border-left:4px solid #4ade80}
+.scard.missing{border-left:4px solid #fca5a5;background:#fff7f7}
+.scard.extra{border-left:4px solid #c4b5fd;background:#faf7ff}
+.scard.wrong{border-left:4px solid #fcd34d;background:#fffbf0}
+.sb{flex:1;padding:8px 12px;display:flex;align-items:center;gap:8px;min-width:0;flex-wrap:wrap}
+.sa{display:flex;flex-direction:column;justify-content:center;gap:4px;padding:6px 8px;border-left:1px solid #f3f4f6;background:#fafafa;flex-shrink:0}
+.sc-ex{font-size:13px;font-weight:800;color:#1e2433}
+.sc-n{font-size:11px;font-weight:700;color:#9ca3af;min-width:26px}
+.sc-r{background:#dbeafe;color:#1d4ed8;font-size:12px;font-weight:700;padding:2px 8px;border-radius:4px}
+.sc-w{background:#fef3c7;color:#92400e;font-size:12px;font-weight:700;padding:2px 8px;border-radius:4px}
+.sc-v{font-size:11px;color:#6b7280;font-style:italic}
+.sc-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:12px}
+.sc-badge.ok{background:#dcfce7;color:#16a34a}
+.sc-badge.missing{background:#fee2e2;color:#dc2626}
+.sc-badge.extra{background:#ede9fe;color:#7c3aed}
+.sc-badge.wrong{background:#fef9c3;color:#92400e}
+.abtn{padding:3px 8px;border-radius:4px;font-size:10px;font-weight:700;cursor:pointer;border:1px solid;white-space:nowrap}
+.a-add{background:#dcfce7;border-color:#86efac;color:#166534}.a-add:hover{background:#bbf7d0}
+.a-del{background:#fff1f2;border-color:#fecdd3;color:#9f1239}.a-del:hover{background:#fecdd3}
+.a-fix{background:#fef9c3;border-color:#fde047;color:#713f12}.a-fix:hover{background:#fde047}
+.ex-hdr{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#374151;padding:10px 0 5px;border-bottom:2px solid #e2e5ea;margin-bottom:6px;margin-top:12px;display:flex;align-items:center;justify-content:space-between}
+.ex-hdr:first-child{margin-top:0}
+.empty{color:#9ca3af;text-align:center;padding:40px;font-style:italic;line-height:1.8}
+#dpbg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;align-items:center;justify-content:center}
+#dpbg.open{display:flex}
+#dp{background:#fff;border-radius:10px;width:500px;max-width:96vw;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 12px 40px rgba(0,0,0,.25)}
 </style>
 </head>
 <body>
-<div id="header">
-  <h1>🔍 AT vs PDF Verification</h1>
-  <div id="status">Loading...</div>
-</div>
-<div id="summary">
-  <div class="stat"><div class="val ok" id="s-match">—</div><div class="lbl">Exact Match</div></div>
-  <div class="stat"><div class="val warn" id="s-count-diff">—</div><div class="lbl">Count Mismatch</div></div>
-  <div class="stat"><div class="val err" id="s-missing-at">—</div><div class="lbl">In PDF, Not AT</div></div>
-  <div class="stat"><div class="val" style="color:#a78bfa" id="s-missing-pdf">—</div><div class="lbl">In AT, Not PDF</div></div>
-  <div class="stat"><div class="val" id="s-at-total">—</div><div class="lbl">AT Total</div></div>
-  <div class="stat"><div class="val" id="s-pdf-total">—</div><div class="lbl">PDF Total</div></div>
-</div>
-<div id="filter-bar">
-  <select id="filter-type" onchange="renderTable()">
-    <option value="all">All dates</option>
-    <option value="issues">Issues only</option>
-    <option value="match">✅ Match</option>
-    <option value="mismatch">⚠️ Count diff</option>
-    <option value="missing-at">🔴 Missing in AT</option>
-    <option value="missing-pdf">🟣 Extra in AT</option>
-  </select>
-  <input type="text" id="filter-date" placeholder="Filter date..." style="width:110px" oninput="renderTable()">
-  <span style="margin-left:auto;color:#64748b;font-size:11px" id="row-count"></span>
-</div>
-<div id="table-wrap">
-  <div id="loading">
-    <div style="font-size:14px;margin-bottom:6px">Loading data...</div>
-    <div class="progress-bar"><div class="progress-fill" id="prog" style="width:0%"></div></div>
-    <div id="prog-label" style="font-size:11px;margin-top:4px;color:#94a3b8"></div>
+<div id="hdr">
+  <h1>🏋️ Workout Verify</h1>
+  <button id="drive-btn" class="no" onclick="signIn()">🔴 Drive</button>
+  <span id="st"></span>
+  <div id="hdr-r">
+    <span id="b-total" style="font-size:11px;color:#9ca3af"></span>
+    <button class="hbtn" onclick="reloadDate()">↻ Reload</button>
+    <button class="hbtn" style="background:#dc2626;border-color:#dc2626;color:#fff" onclick="runScan()">⚡ Scan Page</button>
   </div>
-  <table id="main-table" style="display:none">
-    <thead>
-      <tr>
-        <th style="width:100px">Date</th>
-        <th style="width:80px">Day</th>
-        <th style="width:70px">PDF Sets</th>
-        <th style="width:70px">AT Sets</th>
-        <th style="width:60px">Diff</th>
-        <th style="width:110px">Status</th>
-        <th style="width:70px"></th>
-      </tr>
-    </thead>
-    <tbody id="tbody"></tbody>
-  </table>
 </div>
-
+<div id="body">
+  <div id="pp">
+    <div id="pp-top">
+      <label>Local PDF</label>
+      <input type="file" id="pp-file" accept=".pdf" style="width:100%;padding:5px 8px;border:1px solid #d1d5db;border-radius:5px;font-size:12px;margin-bottom:10px" onchange="pdfLocal(this)">
+      <label>Drive File ID</label>
+      <div id="pp-id-row">
+        <input id="pp-id" type="text" placeholder="Drive file ID">
+        <button class="pb" onclick="pdfLoad()">Load</button>
+        <button class="pb pg" onclick="openPicker()" title="Browse">📂</button>
+      </div>
+      <div id="pp-msg"></div>
+    </div>
+    <div id="pp-area"><canvas id="pp-canvas"></canvas></div>
+    <div id="pp-nav">
+      <button id="btn-prev" onclick="pdfPrev()" disabled>◀</button>
+      <div id="pp-pg">—</div>
+      <button id="btn-next" onclick="pdfNext()" disabled>▶</button>
+      <input id="pp-jp" type="number" min="1" placeholder="pg" onkeydown="if(event.key==='Enter'){pdfPage(parseInt(this.value));this.blur()}">
+      <button onclick="pdfZoom(-1)" style="padding:4px 8px;font-size:13px;font-weight:700;background:#e2e5ea;color:#374151;border:none;border-radius:4px;cursor:pointer">−</button>
+      <button onclick="pdfZoom(1)" style="padding:4px 8px;font-size:13px;font-weight:700;background:#e2e5ea;color:#374151;border:none;border-radius:4px;cursor:pointer">+</button>
+      <button onclick="pdfZoom(0)" style="padding:4px 7px;font-size:11px;background:#e2e5ea;color:#374151;border:none;border-radius:4px;cursor:pointer">⊡</button>
+    </div>
+  </div>
+  <div id="main">
+    <div id="dnav">
+      <button onclick="navD(-1)">◀ Prev</button>
+      <select id="d-sel" onchange="selDate()"><option value="">— Select Date —</option></select>
+      <button onclick="navD(1)">Next ▶</button>
+      <span id="d-cnt"></span>
+      <div id="dnav-r">
+        <button class="hbtn" onclick="addAllMissing()" style="background:#16a34a;border-color:#16a34a;color:#fff">+ Add Missing</button>
+        <button class="hbtn" onclick="deleteAllExtra()" style="background:#7c3aed;border-color:#7c3aed;color:#fff">✕ Del Extra</button>
+      </div>
+    </div>
+    <div id="summary">
+      <span style="color:#9ca3af;font-weight:400">Summary:</span>
+      <span class="s-ok">✓ <b id="cnt-ok">0</b> match</span>
+      <span class="s-warn">⚠ <b id="cnt-wrong">0</b> wrong</span>
+      <span class="s-err">✕ <b id="cnt-missing">0</b> missing</span>
+      <span class="s-ext">+ <b id="cnt-extra">0</b> extra</span>
+      <span id="sum-r" style="margin-left:auto;font-size:11px;color:#9ca3af"></span>
+    </div>
+    <div id="fbar">
+      <button class="fbtn on" onclick="setFilter('all',this)">All</button>
+      <button class="fbtn" onclick="setFilter('issues',this)">Issues</button>
+      <button class="fbtn" onclick="setFilter('missing',this)">Missing</button>
+      <button class="fbtn" onclick="setFilter('extra',this)">Extra</button>
+      <button class="fbtn" onclick="setFilter('wrong',this)">Wrong</button>
+      <button class="fbtn" onclick="setFilter('ok',this)">✓ Match</button>
+      <span id="fbar-r"></span>
+    </div>
+    <div id="records"><div class="empty">Load a PDF and click ⚡ Scan Page to extract sets.<br>Then use the date selector to compare against Airtable.</div></div>
+  </div>
+</div>
+<div id="dpbg" onclick="if(event.target===this)closePicker()">
+  <div id="dp">
+    <div style="padding:12px 16px;border-bottom:1px solid #e2e5ea;display:flex;align-items:center;justify-content:space-between">
+      <b>Select PDF from Drive</b>
+      <button onclick="closePicker()" style="padding:3px 10px;border:1px solid #d1d5db;border-radius:5px;cursor:pointer;background:#fff">✕</button>
+    </div>
+    <div id="dp-bc" style="padding:5px 14px;border-bottom:1px solid #e2e5ea;background:#f8f9fa;font-size:11px;min-height:28px;display:flex;align-items:center;gap:4px;flex-wrap:wrap"></div>
+    <div style="padding:6px 14px;border-bottom:1px solid #e2e5ea">
+      <input id="dp-q" type="text" placeholder="Search…" style="width:100%;padding:5px 8px;border:1px solid #d1d5db;border-radius:4px;font-size:12px" oninput="dpFilter()">
+    </div>
+    <div id="dp-list" style="flex:1;overflow-y:auto;padding:8px;min-height:200px;max-height:360px"></div>
+  </div>
+</div>
 <script>
-const AT_TOKEN = 'pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
-const AT_BASE = 'appmHDG4TGT1xy6R6';
-const SETS_TABLE = 'tblKDqjy5RzqaJvjr';
-const PDF_URL = 'https://raw.githubusercontent.com/mikeblack001/health-protocol/main/extract_progress.json';
+pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+const AT_TOK='pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
+const AT_BASE='appmHDG4TGT1xy6R6';
+const SETS_TBL='tblKDqjy5RzqaJvjr';
+const WORKER='https://anthropic-proxy.mikeblack01.workers.dev';
+const GCL_ID='478191426516-94rflpalsl5ev56ptck62k5imes6jk8l.apps.googleusercontent.com';
+const REDIRECT='https://mikeblack001.github.io/health-protocol/pdf_qa.html';
+const GSCOPE='https://www.googleapis.com/auth/drive.readonly';
+const S={date:'fld75zYXknF0RtCWH',session:'fldBChNmPkNg61oTN',ex:'fldZ93A1t7fGjjsSS',var:'fld2TZdmCOloH0gAK',setN:'fldNm9Ao0rmcwwDXo',reps:'fldelUngWHRTm48m1',wt:'fldmrbBmfgSMtREMt',day:'fldypzlwqw9AzWrEE'};
+const PROMPT=`Extract ALL workout sets from this handwritten gym log page. Multiple sessions may appear separated by day headers.
 
-let pdfByDate = {}, atByDate = {}, allDates = [], atRawByDate = {}, pdfRawByDate = {};
+RULES:
+- date: YYYY-MM-DD from page header
+- session: 'YYYY-MM-DD Day' e.g. '2025-01-15 Push'
+- day: session type (Push/Pull/Legs/Arms/Shoulders/Cardio or Mon/Tue/etc)
+- exercise: exact canonical exercise name
+- variation: implement (Rope 1/2, DBs, EZ-Bar, Cable - 2 Hand, V-Bar, Bar, Lat Machine) — omit if none
+- set_number: 1,2,3...
+- reps: integer
+- weight: RIGHT column number always — use as-is, never override
+- Cable/pulley: divide stack by 2 UNLESS right column already shows stored value
+- Smith machine: add 35 lbs to plate weight
+- Olympic bar no plates: 45 lbs
+- Pages in strict calendar order — derive unknown dates from neighboring dates
+- Extract EVERY set
 
-function setStatus(m) { document.getElementById('status').textContent = m; }
-function setProg(p, l) {
-  document.getElementById('prog').style.width = p + '%';
-  document.getElementById('prog-label').textContent = l;
+Return ONLY a JSON array. No markdown.`;
+
+let gTok=null,pdfDoc=null,pg=1,pdfScale=1.4,scanInProgress=false;
+let allDates=[],curDate=null,diffRows=[],filterMode='all';
+let pickerStack=[{id:'root',name:'My Drive'}],pickerItems=[];
+const LS={get:k=>localStorage.getItem(k),set:(k,v)=>localStorage.setItem(k,v)};
+function setSt(m){document.getElementById('st').textContent=m;}
+function pmsg(m){document.getElementById('pp-msg').textContent=m;}
+function esc(v){if(v==null)return'';return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+// AUTH
+function initAuth(){
+  const h=location.hash;
+  if(h.includes('access_token')){
+    const p=new URLSearchParams(h.slice(1));
+    const tok=p.get('access_token'),exp=parseInt(p.get('expires_in')||3600);
+    if(tok){gTok=tok;LS.set('mb_wv_tok',tok);LS.set('mb_wv_exp',Date.now()+(exp-60)*1000);history.replaceState(null,'',location.pathname);setDriveOK();return;}
+  }
+  const t=LS.get('mb_wv_tok'),e=parseInt(LS.get('mb_wv_exp')||0);
+  if(t&&Date.now()<e){gTok=t;setDriveOK();return;}
+  setDriveNo();
+}
+function signIn(){location.href='https://accounts.google.com/o/oauth2/v2/auth?client_id='+encodeURIComponent(GCL_ID)+'&redirect_uri='+encodeURIComponent(REDIRECT)+'&response_type=token&scope='+encodeURIComponent(GSCOPE);}
+function setDriveOK(){const b=document.getElementById('drive-btn');b.textContent='🟢 Drive';b.className='ok';b.onclick=null;}
+function setDriveNo(){const b=document.getElementById('drive-btn');b.textContent='🔴 Drive';b.className='no';b.onclick=signIn;}
+
+// PDF
+function pdfLocal(inp){if(!inp.files[0])return;pmsg('Loading…');inp.files[0].arrayBuffer().then(b=>pdfRender(b));}
+async function pdfLoad(){
+  const id=document.getElementById('pp-id').value.trim();
+  if(!id){pmsg('Enter a Drive file ID');return;}
+  if(!gTok){signIn();return;}
+  pmsg('Downloading…');LS.set('mb_wv_pdf',id);
+  try{
+    const r=await fetch('https://www.googleapis.com/drive/v3/files/'+id+'?alt=media',{headers:{Authorization:'Bearer '+gTok}});
+    if(!r.ok){if(r.status===401||r.status===403){LS.removeItem('mb_wv_tok');gTok=null;setDriveNo();signIn();}else pmsg('Drive '+r.status);return;}
+    pdfRender(await r.arrayBuffer());
+  }catch(e){pmsg('Error: '+e.message);}
+}
+async function pdfRender(buf){
+  try{
+    pdfDoc=await pdfjsLib.getDocument({data:new Uint8Array(buf)}).promise;
+    pg=1;
+    document.getElementById('btn-prev').disabled=true;
+    document.getElementById('btn-next').disabled=pdfDoc.numPages<=1;
+    pmsg('');await pdfRenderPage();
+    setSt('📄 '+pdfDoc.numPages+' pages');loadDates();
+  }catch(e){pmsg('PDF error: '+e.message);}
+}
+async function pdfRenderPage(){
+  if(!pdfDoc)return;
+  const page=await pdfDoc.getPage(pg);
+  const vp=page.getViewport({scale:pdfScale});
+  const canvas=document.getElementById('pp-canvas');
+  canvas.width=vp.width;canvas.height=vp.height;
+  await page.render({canvasContext:canvas.getContext('2d'),viewport:vp}).promise;
+  document.getElementById('pp-pg').textContent='Page '+pg+' / '+pdfDoc.numPages;
+  document.getElementById('pp-jp').value='';
+  document.getElementById('btn-prev').disabled=pg<=1;
+  document.getElementById('btn-next').disabled=pg>=pdfDoc.numPages;
+  if(!scanInProgress)setTimeout(()=>runScan(),400);
+}
+function pdfPrev(){if(pg>1){pg--;pdfRenderPage();}}
+function pdfNext(){if(pdfDoc&&pg<pdfDoc.numPages){pg++;pdfRenderPage();}}
+function pdfPage(n){if(n>=1&&pdfDoc&&n<=pdfDoc.numPages){pg=n;pdfRenderPage();}}
+function pdfZoom(dir){if(dir===0)pdfScale=1.4;else pdfScale=Math.max(0.5,Math.min(4,pdfScale+(dir*0.3)));if(pdfDoc)pdfRenderPage();}
+
+// SCAN
+async function runScan(){
+  if(!pdfDoc){setSt('Load a PDF first');return;}
+  if(scanInProgress)return;
+  scanInProgress=true;
+  setSt('⚡ Scanning page '+pg+'…');
+  try{
+    const canvas=document.getElementById('pp-canvas');
+    const b64=canvas.toDataURL('image/jpeg',0.9).split(',')[1];
+    const resp=await fetch(WORKER,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:8192,
+        messages:[{role:'user',content:[{type:'image',source:{type:'base64',media_type:'image/jpeg',data:b64}},{type:'text',text:PROMPT}]}]})});
+    if(!resp.ok)throw new Error('Worker HTTP '+resp.status);
+    const data=await resp.json();
+    if(data.error)throw new Error(data.error.message||JSON.stringify(data.error));
+    let raw=((data.content||[]).find(x=>x.type==='text')||{text:'[]'}).text.replace(/```json\n?|```\n?/g,'').trim();
+    let sets=[];
+    try{sets=JSON.parse(raw);}catch(e){try{const t=raw.replace(/,\s*$/,'').replace(/^\s*\[?/,'[');sets=JSON.parse(t.endsWith(']')?t:t+']');}catch(e2){sets=[];}}
+    if(!Array.isArray(sets)||!sets.length){setSt('No sets found on page '+pg);scanInProgress=false;return;}
+    sets=sets.filter(s=>s.date&&/^\d{4}-\d{2}-\d{2}$/.test(s.date)&&s.exercise&&parseInt(s.reps||0)>0);
+    if(!sets.length){setSt('No valid sets');scanInProgress=false;return;}
+    setSt('Found '+sets.length+' sets, fetching AT…');
+    const dates=[...new Set(sets.map(s=>s.date))].sort();
+    const atSets=await fetchAtSets(dates[0],dates[dates.length-1]);
+    const newRows=buildDiff(sets,atSets);
+    // Merge into diffRows — replace any dates covered by this scan
+    const scanDates=new Set(dates);
+    diffRows=diffRows.filter(r=>!scanDates.has(r.date)).concat(newRows);
+    diffRows.sort((a,b)=>(a.date+a.exercise+String(a.set)).localeCompare(b.date+b.exercise+String(b.set)));
+    // Add new dates to allDates
+    dates.forEach(d=>{if(!allDates.includes(d))allDates.push(d);});
+    allDates.sort();buildDateSel();
+    updateSummary();
+    const issues=newRows.filter(r=>r.status!=='ok').length;
+    setSt('✓ '+sets.length+' PDF · '+atSets.length+' AT · '+issues+' issues on page '+pg);
+    if(dates[0]&&curDate!==dates[0])setDate(dates[0],false);
+    else renderRecords();
+  }catch(e){setSt('Scan error: '+e.message);}
+  scanInProgress=false;
 }
 
-async function fetchAT() {
-  let all = [], offset = null, page = 0;
-  const fields = 'fields[]=fld75zYXknF0RtCWH&fields[]=fldZ93A1t7fGjjsSS&fields[]=fld2TZdmCOloH0gAK&fields[]=fldNm9Ao0rmcwwDXo&fields[]=fldelUngWHRTm48m1&fields[]=fldmrbBmfgSMtREMt&fields[]=fldypzlwqw9AzWrEE';
-  do {
-    page++;
-    setStatus('Fetching AT page ' + page + '...');
-    const url = `https://api.airtable.com/v0/${AT_BASE}/${SETS_TABLE}?${fields}&returnFieldsByFieldId=true&pageSize=100${offset ? '&offset=' + encodeURIComponent(offset) : ''}`;
-    const r = await fetch(url, { headers: { Authorization: 'Bearer ' + AT_TOKEN } });
-    const d = await r.json();
-    if (d.error) throw new Error(d.error.message || JSON.stringify(d.error));
-    all = all.concat(d.records);
-    offset = d.offset;
-    setProg(Math.min(55, page * 2.5), all.length + ' AT records...');
-  } while (offset);
-  return all;
+// AT
+async function atFetch(path,opts={}){
+  const r=await fetch('https://api.airtable.com/v0/'+AT_BASE+'/'+path,{...opts,headers:{Authorization:'Bearer '+AT_TOK,'Content-Type':'application/json',...(opts.headers||{})}});
+  if(!r.ok){const e=await r.json().catch(()=>({error:{message:r.status}}));throw new Error(e.error?.message||r.status);}
+  return r.json();
+}
+async function fetchAtSets(s,e){
+  const f=encodeURIComponent('AND({'+S.date+'}>=\''+s+'\',{'+S.date+'}<=\''+e+'\')');
+  const flds=Object.values(S).map(f=>'fields%5B%5D='+f).join('&');
+  let recs=[],off=null;
+  do{const d=await atFetch(SETS_TBL+'?returnFieldsByFieldId=true&filterByFormula='+f+'&'+flds+'&pageSize=100'+(off?'&offset='+off:''));recs=recs.concat(d.records);off=d.offset;}while(off);
+  return recs;
+}
+async function loadDates(){
+  try{
+    setSt('Loading AT dates…');
+    let recs=[],off=null;
+    do{const d=await atFetch(SETS_TBL+'?fields%5B%5D='+S.date+'&returnFieldsByFieldId=true&pageSize=100'+(off?'&offset='+off:''));recs=recs.concat(d.records);off=d.offset;}while(off);
+    allDates=[...new Set(recs.map(r=>r.fields[S.date]).filter(Boolean))].sort();
+    document.getElementById('d-cnt').textContent=allDates.length+' dates in AT';
+    buildDateSel();setSt('');
+  }catch(e){setSt('AT error: '+e.message);}
 }
 
-async function fetchPDF() {
-  setStatus('Loading PDF data...');
-  const r = await fetch(PDF_URL + '?cb=' + Date.now());
-  const d = await r.json();
-  const sets = Array.isArray(d) ? d : (d.all_sets || []);
-  return sets.filter(s => {
-    const date = s.date || s.Date || '';
-    const reps = parseInt(s.reps || s.Reps || 0);
-    return date >= '2024-10-28' && reps > 0;
+// DIFF
+function buildDiff(pdfSets,atRecs){
+  const atMap={};
+  atRecs.forEach(rec=>{
+    const f=rec.fields;
+    const k=(f[S.date]||'')+'|'+(f[S.ex]||'').toLowerCase().trim()+'|'+String(f[S.setN]||'');
+    atMap[k]=rec;
   });
-}
-
-function group(sets, isAT) {
-  const byDate = {}, rawByDate = {};
-  for (const s of sets) {
-    let date, dayType, exercise, variation, setNum, reps, weight;
-    if (isAT) {
-      date = s.fields['fld75zYXknF0RtCWH'] || '';
-      dayType = s.fields['fldypzlwqw9AzWrEE'] || '';
-      exercise = s.fields['fldZ93A1t7fGjjsSS'] || '';
-      variation = s.fields['fld2TZdmCOloH0gAK'] || '';
-      setNum = s.fields['fldNm9Ao0rmcwwDXo'];
-      reps = s.fields['fldelUngWHRTm48m1'];
-      weight = s.fields['fldmrbBmfgSMtREMt'];
-    } else {
-      date = s.date || s.Date || '';
-      dayType = s.day_type || s.Day || '';
-      exercise = s.exercise || s.Exercise || '';
-      variation = s.variation || s.Variation || '';
-      setNum = s.set_number || s['set#'];
-      reps = s.reps || s.Reps;
-      weight = s.weight || s.Weight;
+  const usedIds={};const rows=[];
+  pdfSets.forEach(p=>{
+    if(!p.date||!p.exercise)return;
+    const k=p.date+'|'+(p.exercise||'').toLowerCase().trim()+'|'+String(p.set_number||'');
+    const at=atMap[k];
+    if(!at){
+      rows.push({status:'missing',date:p.date,exercise:p.exercise,set:p.set_number,
+        pdf:{reps:p.reps,weight:p.weight,variation:p.variation,day:p.day,session:p.session},at:null});
+    }else{
+      usedIds[at.id]=true;
+      const pW=parseFloat(p.weight)||0,aW=parseFloat(at.fields[S.wt]||0);
+      const pR=parseInt(p.reps)||0,aR=parseInt(at.fields[S.reps]||0);
+      const issues=[];
+      if(Math.abs(pW-aW)>0.5&&pW>0&&aW>0)issues.push('Wt: PDF='+pW+' AT='+aW);
+      if(pR!==aR&&pR>0&&aR>0)issues.push('Reps: PDF='+pR+' AT='+aR);
+      rows.push({status:issues.length?'wrong':'ok',date:p.date,exercise:p.exercise,set:p.set_number,
+        pdf:{reps:pR,weight:pW,variation:p.variation,day:p.day,session:p.session},
+        at:{id:at.id,reps:aR,weight:aW,variation:at.fields[S.var]||''},issues});
     }
-    if (!date) continue;
-    if (!byDate[date]) { byDate[date] = 0; rawByDate[date] = []; }
-    byDate[date]++;
-    rawByDate[date].push({ exercise, variation, setNum, reps, weight, dayType });
-  }
-  return { byDate, rawByDate };
-}
-
-function renderTable() {
-  const ft = document.getElementById('filter-type').value;
-  const fd = document.getElementById('filter-date').value.trim();
-  const tbody = document.getElementById('tbody');
-  tbody.innerHTML = '';
-  let shown = 0;
-  for (const date of allDates) {
-    const pc = pdfByDate[date] || 0;
-    const ac = atByDate[date] || 0;
-    const diff = ac - pc;
-    let statusClass, statusText, badgeCls;
-    if (pc === 0 && ac > 0) { statusClass = 'missing-pdf'; statusText = 'Extra in AT'; badgeCls = 'badge-purple'; }
-    else if (ac === 0 && pc > 0) { statusClass = 'missing-at'; statusText = 'Missing in AT'; badgeCls = 'badge-err'; }
-    else if (diff !== 0) { statusClass = 'mismatch'; statusText = diff > 0 ? 'AT +' + diff : 'AT ' + diff; badgeCls = 'badge-warn'; }
-    else { statusClass = 'match'; statusText = 'Match'; badgeCls = 'badge-ok'; }
-    if (ft !== 'all' && ft !== statusClass) continue;
-    if (ft === 'issues' && statusClass === 'match') continue;
-    if (fd && !date.includes(fd)) continue;
-    const pdfSets = pdfRawByDate[date] || [];
-    const atSets = atRawByDate[date] || [];
-    const dayType = (atSets[0] || pdfSets[0] || {}).dayType || '—';
-    const diffColor = diff === 0 ? '#22c55e' : diff > 0 ? '#a78bfa' : '#ef4444';
-    const tr = document.createElement('tr');
-    tr.className = 'row-' + statusClass;
-    tr.innerHTML = `<td style="color:#94a3b8;font-weight:600">${date}</td><td>${dayType}</td><td>${pc}</td><td>${ac}</td><td style="color:${diffColor};font-weight:600">${diff===0?'0':diff>0?'+'+diff:diff}</td><td><span class="badge ${badgeCls}">${statusText}</span></td><td><span class="expand-btn" onclick="toggleDetail(this,'${date}')">▼ Detail</span></td>`;
-    tbody.appendChild(tr);
-    const dtr = document.createElement('tr');
-    dtr.className = 'detail-row';
-    dtr.style.display = 'none';
-    dtr.dataset.date = date;
-    dtr.innerHTML = `<td colspan="7"><div class="detail-inner" id="d-${date}"></div></td>`;
-    tbody.appendChild(dtr);
-    shown++;
-  }
-  document.getElementById('row-count').textContent = shown + ' dates';
-}
-
-function toggleDetail(btn, date) {
-  const dtr = [...document.querySelectorAll('tr.detail-row')].find(r => r.dataset.date === date);
-  if (!dtr) return;
-  if (dtr.style.display === 'none') {
-    dtr.style.display = '';
-    btn.textContent = '▲ Detail';
-    buildDetail(date);
-  } else { dtr.style.display = 'none'; btn.textContent = '▼ Detail'; }
-}
-
-function buildDetail(date) {
-  const el = document.getElementById('d-' + date);
-  const pdf = (pdfRawByDate[date] || []).slice().sort((a,b) => a.exercise < b.exercise ? -1 : a.exercise > b.exercise ? 1 : (a.setNum||0)-(b.setNum||0));
-  const at = (atRawByDate[date] || []).slice().sort((a,b) => a.exercise < b.exercise ? -1 : a.exercise > b.exercise ? 1 : (a.setNum||0)-(b.setNum||0));
-  const row = r => `<tr><td>${r.exercise||'—'}</td><td>${r.variation||''}</td><td>${r.setNum||'?'}</td><td>${r.reps||0}</td><td>${r.weight||0}</td></tr>`;
-  const atRow = r => {
-    const m = pdf.find(p => p.exercise===r.exercise && p.setNum==r.setNum && p.reps==r.reps && p.weight==r.weight);
-    return `<tr${m?'':' class="diff-row"'}><td>${r.exercise||'—'}</td><td>${r.variation||''}</td><td>${r.setNum||'?'}</td><td>${r.reps||0}</td><td>${r.weight||0}</td></tr>`;
-  };
-  const th = '<tr><th>Exercise</th><th>Var</th><th>#</th><th>Reps</th><th>Wt</th></tr>';
-  el.innerHTML = `<div class="detail-grid">
-    <div class="detail-col"><h4>📄 PDF (${pdf.length} sets)</h4><table class="detail-table">${th}<tbody>${pdf.map(row).join('')||'<tr><td colspan="5" style="color:#64748b;text-align:center">No data</td></tr>'}</tbody></table></div>
-    <div class="detail-col"><h4>🗄️ Airtable (${at.length} sets) <span style="color:#ef4444;font-size:10px">(red = no PDF match)</span></h4><table class="detail-table">${th}<tbody>${at.map(atRow).join('')||'<tr><td colspan="5" style="color:#64748b;text-align:center">No data</td></tr>'}</tbody></table></div>
-  </div>`;
-}
-
-async function run() {
-  try {
-    const [atRecs, pdfSets] = await Promise.all([fetchAT(), fetchPDF()]);
-    setProg(80, 'Processing...');
-    const ag = group(atRecs, true);
-    atByDate = ag.byDate; atRawByDate = ag.rawByDate;
-    const pg = group(pdfSets, false);
-    pdfByDate = pg.byDate; pdfRawByDate = pg.rawByDate;
-    allDates = [...new Set([...Object.keys(pdfByDate),...Object.keys(atByDate)])].sort();
-    let matchC=0, countDiff=0, missingAT=0, missingPDF=0;
-    for (const d of allDates) {
-      const pc=pdfByDate[d]||0, ac=atByDate[d]||0;
-      if (pc===0&&ac>0) missingPDF++;
-      else if (ac===0&&pc>0) missingAT++;
-      else if (pc!==ac) countDiff++;
-      else matchC++;
+  });
+  atRecs.forEach(rec=>{
+    if(!usedIds[rec.id]){
+      const f=rec.fields;
+      rows.push({status:'extra',date:f[S.date]||'',exercise:f[S.ex]||'',set:f[S.setN]||'',
+        pdf:null,at:{id:rec.id,reps:f[S.reps]||'',weight:f[S.wt]||'',variation:f[S.var]||''}});
     }
-    document.getElementById('s-match').textContent = matchC;
-    document.getElementById('s-count-diff').textContent = countDiff;
-    document.getElementById('s-missing-at').textContent = missingAT;
-    document.getElementById('s-missing-pdf').textContent = missingPDF;
-    document.getElementById('s-at-total').textContent = atRecs.length.toLocaleString();
-    document.getElementById('s-pdf-total').textContent = pdfSets.length.toLocaleString();
-    setProg(100,'Done');
-    setStatus(atRecs.length.toLocaleString() + ' AT · ' + pdfSets.length.toLocaleString() + ' PDF · ' + allDates.length + ' dates');
-    document.getElementById('loading').style.display='none';
-    document.getElementById('main-table').style.display='';
-    renderTable();
-  } catch(e) {
-    document.getElementById('loading').innerHTML = `<div style="color:#ef4444;padding:20px">Error: ${e.message}</div>`;
-    setStatus('Error');
-  }
+  });
+  return rows;
 }
-run();
+
+// RENDER
+function updateSummary(){
+  document.getElementById('cnt-ok').textContent=diffRows.filter(r=>r.status==='ok').length;
+  document.getElementById('cnt-wrong').textContent=diffRows.filter(r=>r.status==='wrong').length;
+  document.getElementById('cnt-missing').textContent=diffRows.filter(r=>r.status==='missing').length;
+  document.getElementById('cnt-extra').textContent=diffRows.filter(r=>r.status==='extra').length;
+  document.getElementById('sum-r').textContent=diffRows.length+' total';
+}
+function setFilter(f,btn){filterMode=f;document.querySelectorAll('.fbtn').forEach(b=>b.classList.remove('on'));btn.classList.add('on');renderRecords();}
+function buildDateSel(){
+  const sel=document.getElementById('d-sel'),cur=sel.value;
+  sel.innerHTML='<option value="">— Select Date —</option>';
+  allDates.forEach(d=>{const o=document.createElement('option');o.value=d;o.textContent=d;sel.appendChild(o);});
+  if(cur)sel.value=cur;
+}
+function selDate(){const d=document.getElementById('d-sel').value;if(d)setDate(d);}
+function navD(dir){if(!allDates.length)return;const i=curDate?allDates.indexOf(curDate):-1;const d=allDates[Math.max(0,Math.min(allDates.length-1,i+dir))];if(d)setDate(d);}
+function setDate(date,reload){curDate=date;document.getElementById('d-sel').value=date;renderRecords();if(reload!==false)reloadDate();}
+async function reloadDate(){
+  if(!curDate)return;
+  setSt('Loading '+curDate+'…');
+  try{
+    const atSets=await fetchAtSets(curDate,curDate);
+    const pdfRows=diffRows.filter(r=>r.date===curDate&&r.pdf);
+    const pdfSets=pdfRows.map(r=>({date:r.date,exercise:r.exercise,set_number:r.set,reps:r.pdf.reps,weight:r.pdf.weight,variation:r.pdf.variation,day:r.pdf.day,session:r.pdf.session}));
+    if(pdfSets.length){
+      const newRows=buildDiff(pdfSets,atSets);
+      diffRows=diffRows.filter(r=>r.date!==curDate).concat(newRows);
+      diffRows.sort((a,b)=>(a.date+a.exercise+String(a.set)).localeCompare(b.date+b.exercise+String(b.set)));
+    }
+    updateSummary();renderRecords();setSt('');
+  }catch(e){setSt('Error: '+e.message);}
+}
+function renderRecords(){
+  const el=document.getElementById('records');
+  const dateRows=diffRows.filter(r=>r.date===curDate);
+  if(!dateRows.length){
+    el.innerHTML='<div class="empty">'+(curDate?'No diff data for '+curDate+'.<br>Scan a PDF page containing this date.':'Select a date or scan a page.')+'</div>';
+    document.getElementById('b-total').textContent='';return;
+  }
+  let filtered=dateRows;
+  if(filterMode==='issues')filtered=dateRows.filter(r=>r.status!=='ok');
+  else if(filterMode!=='all')filtered=dateRows.filter(r=>r.status===filterMode);
+  document.getElementById('fbar-r').textContent=filtered.length+' / '+dateRows.length;
+  document.getElementById('b-total').textContent=dateRows.length+' sets';
+  if(!filtered.length){el.innerHTML='<div class="empty">No '+filterMode+' sets for '+curDate+'</div>';return;}
+  const exMap={};
+  filtered.forEach(r=>{if(!exMap[r.exercise])exMap[r.exercise]=[];exMap[r.exercise].push(r);});
+  let html='';
+  Object.keys(exMap).sort().forEach(ex=>{
+    const sets=exMap[ex],issues=sets.filter(r=>r.status!=='ok').length;
+    html+=`<div class="ex-hdr">${esc(ex)}<span style="font-size:11px;font-weight:400;color:${issues?'#dc2626':'#16a34a'}">${issues?issues+' issue'+(issues>1?'s':''):'✓ match'}</span></div>`;
+    sets.forEach(r=>html+=cardHTML(r,diffRows.indexOf(r)));
+  });
+  el.innerHTML=html;
+}
+function cardHTML(r,idx){
+  const badge=`<span class="sc-badge ${r.status}">${r.status==='ok'?'✓':r.status}</span>`;
+  let body='';
+  if(r.status==='missing'){
+    body=`<span class="sc-n">S${r.set}</span><span class="sc-r">${r.pdf.reps}r</span><span class="sc-w">${r.pdf.weight}lbs</span>${r.pdf.variation?`<span class="sc-v">${esc(r.pdf.variation)}</span>`:''}<span style="font-size:10px;color:#dc2626;margin-left:4px">PDF only</span>`;
+  }else if(r.status==='extra'){
+    body=`<span class="sc-n">S${r.set}</span><span class="sc-r">${r.at.reps}r</span><span class="sc-w">${r.at.weight}lbs</span>${r.at.variation?`<span class="sc-v">${esc(r.at.variation)}</span>`:''}<span style="font-size:10px;color:#7c3aed;margin-left:4px">AT only</span>`;
+  }else{
+    const wOk=!r.issues||!r.issues.find(i=>i.startsWith('Wt'));
+    const rOk=!r.issues||!r.issues.find(i=>i.startsWith('Reps'));
+    const rDiff=r.pdf&&r.at&&r.pdf.reps!==r.at.reps?` →${r.at.reps}r`:'';
+    const wDiff=r.pdf&&r.at&&Math.abs(r.pdf.weight-r.at.weight)>0.5?` →${r.at.weight}lbs`:'';
+    body=`<span class="sc-n">S${r.set}</span>
+      <span class="sc-r" style="${rOk?'':'background:#fef3c7;color:#92400e'}">${r.pdf?r.pdf.reps:r.at.reps}r${rDiff}</span>
+      <span class="sc-w" style="${wOk?'':'background:#fef3c7;color:#92400e'}">${r.pdf?r.pdf.weight:r.at.weight}lbs${wDiff}</span>
+      ${(r.pdf&&r.pdf.variation)?`<span class="sc-v">${esc(r.pdf.variation)}</span>`:''}
+      ${r.issues&&r.issues.length?`<span style="font-size:10px;color:#d97706;font-weight:700">⚠ ${esc(r.issues.join(' | '))}</span>`:''}`;
+  }
+  const actions=r.status==='missing'?`<button class="abtn a-add" onclick="addSet(${idx})">+ Add</button>`:r.status==='extra'?`<button class="abtn a-del" onclick="delSet(${idx})">✕ Del</button>`:r.status==='wrong'?`<button class="abtn a-fix" onclick="fixSet(${idx})">Fix</button>`:'';
+  return`<div class="scard ${r.status}"><div class="sb">${body}${badge}</div><div class="sa">${actions}</div></div>`;
+}
+
+// PUSH / FIX
+async function addSet(idx){
+  const r=diffRows[idx];if(!r||r.status!=='missing')return;
+  setSt('Adding…');
+  try{
+    const f={};f[S.date]=r.date;f[S.ex]=r.exercise;f[S.setN]=r.set;f[S.reps]=parseInt(r.pdf.reps)||0;f[S.wt]=parseFloat(r.pdf.weight)||0;
+    if(r.pdf.variation)f[S.var]=r.pdf.variation;if(r.pdf.day)f[S.day]=r.pdf.day;if(r.pdf.session)f[S.session]=r.pdf.session;
+    await atFetch(SETS_TBL,{method:'POST',body:JSON.stringify({fields:f,typecast:true})});
+    diffRows[idx]={...r,status:'ok'};updateSummary();renderRecords();setSt('✓ Added');
+  }catch(e){setSt('Error: '+e.message);}
+}
+async function delSet(idx){
+  const r=diffRows[idx];if(!r||r.status!=='extra'||!r.at?.id)return;
+  if(!confirm('Delete: '+r.exercise+' S'+r.set+' on '+r.date+'?'))return;
+  setSt('Deleting…');
+  try{await atFetch(SETS_TBL+'/'+r.at.id,{method:'DELETE'});diffRows.splice(idx,1);updateSummary();renderRecords();setSt('✓ Deleted');}
+  catch(e){setSt('Error: '+e.message);}
+}
+async function fixSet(idx){
+  const r=diffRows[idx];if(!r||r.status!=='wrong'||!r.at?.id)return;
+  setSt('Fixing…');
+  try{
+    const f={};
+    if(r.issues.find(i=>i.startsWith('Wt')))f[S.wt]=parseFloat(r.pdf.weight)||0;
+    if(r.issues.find(i=>i.startsWith('Reps')))f[S.reps]=parseInt(r.pdf.reps)||0;
+    await atFetch(SETS_TBL+'/'+r.at.id,{method:'PATCH',body:JSON.stringify({fields:f})});
+    diffRows[idx]={...r,status:'ok',issues:[]};updateSummary();renderRecords();setSt('✓ Fixed');
+  }catch(e){setSt('Error: '+e.message);}
+}
+async function addAllMissing(){
+  const missing=diffRows.filter(r=>r.status==='missing'&&r.date===curDate);
+  if(!missing.length){setSt('No missing sets for '+curDate);return;}
+  setSt('Adding '+missing.length+'…');
+  const recs=missing.map(r=>{const f={};f[S.date]=r.date;f[S.ex]=r.exercise;f[S.setN]=r.set;f[S.reps]=parseInt(r.pdf.reps)||0;f[S.wt]=parseFloat(r.pdf.weight)||0;if(r.pdf.variation)f[S.var]=r.pdf.variation;if(r.pdf.day)f[S.day]=r.pdf.day;if(r.pdf.session)f[S.session]=r.pdf.session;return{fields:f};});
+  try{
+    let added=0;
+    for(let i=0;i<recs.length;i+=10){await atFetch(SETS_TBL,{method:'POST',body:JSON.stringify({records:recs.slice(i,i+10),typecast:true})});added+=Math.min(10,recs.length-i);setSt('Added '+added+'/'+recs.length+'…');if(i+10<recs.length)await new Promise(r=>setTimeout(r,150));}
+    missing.forEach(r=>{const i=diffRows.indexOf(r);if(i>=0)diffRows[i]={...r,status:'ok'};});
+    updateSummary();renderRecords();setSt('✓ Added '+added+' sets');
+  }catch(e){setSt('Error: '+e.message);}
+}
+async function deleteAllExtra(){
+  const extra=diffRows.filter(r=>r.status==='extra'&&r.date===curDate&&r.at?.id);
+  if(!extra.length){setSt('No extra sets for '+curDate);return;}
+  if(!confirm('Delete '+extra.length+' AT-only sets for '+curDate+'?'))return;
+  setSt('Deleting '+extra.length+'…');
+  try{
+    const ids=extra.map(r=>r.at.id);
+    for(let i=0;i<ids.length;i+=10){await atFetch(SETS_TBL+'?'+ids.slice(i,i+10).map(id=>'records[]='+id).join('&'),{method:'DELETE'});if(i+10<ids.length)await new Promise(r=>setTimeout(r,150));}
+    extra.forEach(r=>{const i=diffRows.indexOf(r);if(i>=0)diffRows.splice(i,1);});
+    updateSummary();renderRecords();setSt('✓ Deleted');
+  }catch(e){setSt('Error: '+e.message);}
+}
+
+// DRIVE PICKER
+function openPicker(){if(!gTok){signIn();return;}pickerStack=[{id:'root',name:'My Drive'}];document.getElementById('dpbg').classList.add('open');dpNav('root','My Drive');}
+function closePicker(){document.getElementById('dpbg').classList.remove('open');}
+async function dpNav(id,name){
+  if(!pickerStack.find(s=>s.id===id))pickerStack.push({id,name});
+  const bc=document.getElementById('dp-bc');
+  bc.innerHTML=pickerStack.map((s,i)=>`<span onclick="dpNavBack(${i})" style="cursor:pointer;color:#2563eb;font-size:11px">${esc(s.name)}</span>${i<pickerStack.length-1?' › ':''}`).join('');
+  const li=document.getElementById('dp-list');
+  li.innerHTML='<div style="padding:20px;text-align:center;color:#9ca3af;font-size:12px">Loading…</div>';
+  try{
+    const q=encodeURIComponent('"'+id+'" in parents and trashed=false');
+    const r=await fetch('https://www.googleapis.com/drive/v3/files?q='+q+'&fields=files(id,name,mimeType,size)&pageSize=200&orderBy=folder,name',{headers:{Authorization:'Bearer '+gTok}});
+    const d=await r.json();pickerItems=d.files||[];dpRender(document.getElementById('dp-q').value);
+  }catch(e){li.innerHTML='<div style="padding:20px;color:#dc2626;font-size:12px">Error: '+esc(e.message)+'</div>';}
+}
+function dpNavBack(i){pickerStack=pickerStack.slice(0,i+1);dpNav(pickerStack[i].id,pickerStack[i].name);}
+function dpFilter(){dpRender(document.getElementById('dp-q').value);}
+function dpRender(q){
+  const li=document.getElementById('dp-list');
+  const items=q?pickerItems.filter(f=>f.name.toLowerCase().includes(q.toLowerCase())):pickerItems;
+  if(!items.length){li.innerHTML='<div style="padding:20px;text-align:center;color:#9ca3af;font-size:12px">No files</div>';return;}
+  li.innerHTML=items.map(f=>{
+    const isF=f.mimeType==='application/vnd.google-apps.folder',isPdf=f.name.toLowerCase().endsWith('.pdf');
+    const icon=isF?'📁':isPdf?'📄':'📎';
+    const sz=f.size?Math.round(parseInt(f.size)/1024)+'KB':'';
+    return`<div onclick="${isF?'dpNav(\''+f.id+'\',\''+f.name.replace(/'/g,"\\'")+'\')':isPdf?'dpSelect(\''+f.id+'\',\''+f.name.replace(/'/g,"\\'")+'\')':''}" style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;cursor:${isF||isPdf?'pointer':'default'};opacity:${isPdf||isF?1:.5}" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background=''">
+      <span style="font-size:18px">${icon}</span>
+      <span style="flex:1;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(f.name)}</span>
+      <span style="font-size:10px;color:#9ca3af">${sz}</span>
+    </div>`;
+  }).join('');
+}
+function dpSelect(id,name){closePicker();document.getElementById('pp-id').value=id;setSt('Loading '+name+'…');pdfLoad();}
+
+initAuth();loadDates();
+const lastId=LS.get('mb_wv_pdf');if(lastId)document.getElementById('pp-id').value=lastId;
 </script>
 </body>
 </html>
