@@ -2127,19 +2127,11 @@ async function loadTrackerWeekData(mondayISO) {
     const records = json.records || [];
     const allBoxes = Array.from(document.querySelectorAll('.check-box[data-compound]'));
 
-    // Build dynamic schedule: fetch last 8 weeks of InjectionLog to determine active days per compound
+    // Build schedule map from THIS week's actual logged records only
+    // This ensures historical weeks reflect what was actually injected, not current AT Schedule
     try {
-      const histStart = new Date(mon); histStart.setDate(histStart.getDate() - 56); // 8 weeks back
-      const histFormula = `AND(IS_AFTER({Date},"${histStart.toISOString().split('T')[0]}"),IS_BEFORE({Date},"${nextISO}"))`;
-      const histBaseUrl = `https://api.airtable.com/v0/${BASE}/tblBvEaLkGGipnOFc?filterByFormula=${encodeURIComponent(histFormula)}&fields[]=Date&fields[]=Compound&pageSize=100`;
       const schedMap = {};
-      let histOffset = null;
-      do {
-        const histUrl = histOffset ? histBaseUrl + '&offset=' + encodeURIComponent(histOffset) : histBaseUrl;
-        const histResp = await fetch(histUrl, { headers: { Authorization: `Bearer ${TOKEN}` } });
-        const histJson = await histResp.json();
-        histOffset = histJson.offset || null;
-        (histJson.records || []).forEach(r => {
+      records.forEach(r => {
         const raw = Array.isArray(r.fields['Compound']) ? r.fields['Compound'][0] : (r.fields['Compound']||'');
         const date = r.fields['Date'];
         if (!raw || !date || raw.toLowerCase().trim() === 'week note') return;
@@ -2148,8 +2140,7 @@ async function loadTrackerWeekData(mondayISO) {
         const d = new Date(date + 'T12:00:00');
         const dow = (d.getDay() + 6) % 7; // 0=Mon, 6=Sun
         schedMap[key].add(dow);
-        });
-      } while (histOffset);
+      });
       window._compoundSchedule = schedMap;
       // Apply greying to existing cells without full re-render
       // Use injection history to determine active days; fall back to AT Schedule for weeks with no history
