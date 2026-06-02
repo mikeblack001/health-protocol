@@ -4858,12 +4858,12 @@ async function printPeptideWeekly() {
       <td style="background:${WEEK_BLUE}!important;color:#fff!important;font-weight:700;font-size:8.5pt;padding:2px 6px;border:1px solid #000">Week ${weekOffset+1}</td>
       <td colspan="8" style="background:#fff!important;border:1px solid #000;font-size:8.5pt;padding:2px 6px;color:#000">Monday: <b>${mondayStr}</b></td>
     </tr>
+    ${noteRow}
     <tr style="background:#D9D9D9!important">
       <th style="border:1px solid #000;padding:2px 4px;text-align:left;font-size:7.5pt">Medication</th>
       ${DAYS.map(d=>`<th style="border:1px solid #000;padding:2px 1px;text-align:center;font-size:7.5pt">${d}</th>`).join('')}
       <th style="border:1px solid #000;padding:2px 4px;text-align:left;font-size:7.5pt">Notes</th>
     </tr>
-    ${noteRow}
     <tr><td colspan="9" style="background:${MORN_HDR}!important;color:#fff!important;font-weight:700;padding:2px 5px;font-size:7.5pt">☀ Morning</td></tr>
     ${rows(morningOrder, '#ffffff')}
     <tr><td colspan="9" style="height:4px;background:#ddd!important;border:1px solid #000"></td></tr>
