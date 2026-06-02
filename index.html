@@ -2744,7 +2744,9 @@ async function loadSchedule() {
       </div>
       <table style="width:100%;border-collapse:collapse;font-size:12px">
         <thead><tr style="background:var(--surface2);border-bottom:2px solid var(--border)">
-          <th style="text-align:left;padding:6px 12px;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.5px">Compound</th>
+          <th onclick="sortInactive()" style="text-align:left;padding:6px 12px;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;cursor:pointer;user-select:none">
+            Compound <span id="inactive-sort-icon">↑</span>
+          </th>
           <th style="padding:6px 8px;font-size:11px;font-weight:600">Status / Dose</th>
         </tr></thead>
         <tbody id="inactive-tbody">${inactive.map(r=>makeInactiveRow(r)).join('')}</tbody>
@@ -2835,6 +2837,21 @@ function schedDayToggle(cb) {
   const rowBg = row.querySelector('td:nth-child(2)')?.style.background || '#FFF8E7';
   if (td) td.style.background = cb.checked ? rowBg : '#DEDEDE';
   schedSave(recId,{'fldU6gCdrblypWiPo':days.join(',')},name,`Schedule: ${days.map(d=>['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][d]).join('/')}`);
+}
+
+let _inactiveSortAsc = true;
+function sortInactive() {
+  const tbody = document.getElementById('inactive-tbody');
+  if (!tbody) return;
+  const rows = [...tbody.querySelectorAll('tr')];
+  rows.sort((a, b) => {
+    const na = (a.querySelector('td:first-child div')?.textContent||'').trim().toLowerCase();
+    const nb = (b.querySelector('td:first-child div')?.textContent||'').trim().toLowerCase();
+    return _inactiveSortAsc ? na.localeCompare(nb) : nb.localeCompare(na);
+  });
+  _inactiveSortAsc = !_inactiveSortAsc;
+  document.getElementById('inactive-sort-icon').textContent = _inactiveSortAsc ? '↑' : '↓';
+  rows.forEach(r => tbody.appendChild(r));
 }
 
 function filterInactive() {
