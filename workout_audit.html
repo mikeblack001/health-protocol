@@ -686,8 +686,14 @@ function renderGroupedTable(sorted){
   });
   const maxSets=Math.max(1,...Object.values(groups).map(g=>g.length));
 
+  // Day + date header
+  const _dt=new Date(curDate+'T12:00:00');
+  const _DN=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const _mo=(_dt.getMonth()+1);const _dy=_dt.getDate();const _yr=_dt.getFullYear();
+  const _dayLabel=_DN[_dt.getDay()]+' '+_mo+'/'+_dy+'/'+String(_yr).slice(2);
   // Layout matching PDF: ⠿ | Exercise | Variant | S1 Reps | S1 Wt | S2 Reps | S2 Wt | ...| ✓
-  let html='<div style="overflow-x:auto"><table id="pdf-table" style="border-collapse:collapse;width:100%;font-size:12px">';
+  let html='<div style="font-size:14px;font-weight:800;color:#1e2433;padding:6px 4px 8px">'+_dayLabel+'</div>';
+  html+='<div style="overflow-x:auto"><table id="pdf-table" style="border-collapse:collapse;width:100%;font-size:12px">';
   html+='<thead><tr style="background:#1e2433;color:#fff">';
   html+='<th style="padding:4px 6px;width:24px"></th>'; // drag handle
   html+='<th style="padding:6px 10px;text-align:left;font-size:11px;min-width:150px">Exercise</th>';
