@@ -679,6 +679,7 @@ function renderGroupedTable(sorted){
     html+=`<th style="padding:4px 8px;text-align:center;font-size:10px;font-weight:700;border-left:2px solid #374151;white-space:nowrap">S${i+1}</th>`;
     html+=`<th style="padding:4px 6px;text-align:center;font-size:10px;color:#93c5fd">Reps</th>`;
     html+=`<th style="padding:4px 6px;text-align:center;font-size:10px;color:#fcd34d">Wt</th>`;
+    html+=`<th style="padding:4px 6px;text-align:center;font-size:10px;color:#d1d5db">Var</th>`;
   }
   html+='<th style="padding:4px 8px;font-size:10px">✓</th>';
   html+='</tr></thead><tbody>';
@@ -692,7 +693,7 @@ function renderGroupedTable(sorted){
     for(let i=0;i<maxSets;i++){
       const r=recs[i];
       if(!r){
-        html+=`<td colspan="3" style="border-left:2px solid #f3f4f6"></td>`;
+        html+=`<td colspan="4" style="border-left:2px solid #f3f4f6"></td>`;
       } else {
         const f=r.fields;
         const reps=f[LOG.reps]||'';
@@ -708,6 +709,12 @@ function renderGroupedTable(sorted){
         html+=`<td style="padding:2px 3px;text-align:center">
           <input value="${esc(wt)}" placeholder="—" type="number" style="width:54px;padding:2px 4px;border:1px solid #fde68a;border-radius:4px;font-size:12px;font-weight:700;background:#fef3c7;color:#92400e;text-align:center"
             onblur="saveField('${r.id}','${LOG.wt}',parseFloat(this.value)||null)"
+            onkeydown="if(event.key==='Enter')this.blur()">
+        </td>`;
+        const variation=r.fields[LOG.var]||'';
+        html+=`<td style="padding:2px 3px;text-align:center">
+          <input value="${esc(variation)}" placeholder="—" style="width:70px;padding:2px 4px;border:1px solid #e5e7eb;border-radius:4px;font-size:11px;background:#f9fafb;text-align:center"
+            onblur="saveField('${r.id}','${LOG.var}',this.value||null)"
             onkeydown="if(event.key==='Enter')this.blur()">
         </td>`;
       }
