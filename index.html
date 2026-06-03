@@ -4126,81 +4126,100 @@ async function loadWkAudit() {
 
 function showWkAuditWeek(mon, weekData, DAYS) {
   const el = document.getElementById('wkaudit-content');
+  // Build date buttons for this week that have data
   const monDate = new Date(mon + 'T12:00:00');
   const dates = [];
   for (let i = 0; i < 7; i++) {
     const d = new Date(monDate); d.setDate(monDate.getDate() + i);
     dates.push(d.toISOString().split('T')[0]);
   }
+  const datesWithData = dates.filter(d => weekData[d] && Object.keys(weekData[d]).length);
+  if (!datesWithData.length) { el.innerHTML = '<div style="padding:20px;color:var(--muted)">No data this week</div>'; return; }
 
-  // Build ordered exercise list from WORKOUT_DAYS, then append any unlisted ones
-  const WD_SECTIONS = [
-    { label: '☀ Mon — Push',         key: 'Monday - Push',           bg: '#FFF8E7', sbg: '#E8A838' },
-    { label: '☀ Tue — Pull',         key: 'Tuesday - Pull',          bg: '#EEF4FB', sbg: '#4A6FA5' },
-    { label: '☀ Wed — Legs / Core',  key: 'Wednesday - Legs / Core', bg: '#F0FDF4', sbg: '#15803d' },
-    { label: '☀ Thu — Arms / Chest', key: 'Thursday - Arms / Chest', bg: '#FDF4FF', sbg: '#7c3aed' },
-  ];
-  const allExSet = new Set();
-  Object.values(weekData).forEach(dateObj => Object.keys(dateObj).forEach(ex => allExSet.add(ex)));
-
-  let html = '<table style="border-collapse:collapse;font-size:12px;width:100%"><thead><tr>';
-  html += '<th style="text-align:left;padding:6px 12px;border:1px solid #999;min-width:180px;background:#e5e7eb;font-size:12px">Exercise</th>';
-  DAYS.forEach((d,i) => {
-    const [y,m,dy2] = dates[i].split('-');
-    html += `<th style="padding:4px 6px;border:1px solid #999;text-align:center;background:#e5e7eb;font-size:10px;min-width:52px">${d}<br><span style="font-weight:400;font-size:9px">${m}/${dy2}/${y.slice(2)}</span></th>`;
+  // Day buttons
+  const DN2 = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  let btnHtml = '<div style="display:flex;gap:6px;flex-wrap:wrap;padding:8px 0 12px">';
+  datesWithData.forEach(d => {
+    const dt = new Date(d + 'T12:00:00');
+    const label = DN2[dt.getDay()] + ' ' + d.slice(5);
+    btnHtml += `<button onclick="wkAuditShowDate('${d}',wkAuditCurrentData)" style="padding:4px 12px;border:1px solid var(--border);border-radius:6px;cursor:pointer;font-size:11px;font-weight:700;background:var(--surface);color:var(--text)" id="wkabtn_${d}">${label}</button>`;
   });
-  html += '<th style="border:1px solid #999;background:#e5e7eb;padding:4px 8px;font-size:10px;min-width:120px">Best Set</th></tr></thead><tbody>';
+  btnHtml += '</div><div id="wkaudit-day-table"></div>';
+  el.innerHTML = btnHtml;
 
-  const rendered = new Set();
-  function renderExRow(ex, bg) {
-    if (rendered.has(ex)) return '';
-    rendered.add(ex);
-    if (!allExSet.has(ex)) return ''; // not in this week's data
-    let row = `<tr><td style="padding:5px 12px;border:1px solid #ccc;font-size:12px;font-weight:500;background:${bg};white-space:nowrap">${ex}</td>`;
-    let bestWt = 0, bestReps = 0;
-    dates.forEach(date => {
-      const recs = weekData[date] && weekData[date][ex];
-      if (!recs || !recs.length) {
-        row += '<td style="border:1px solid #ccc;min-width:52px"></td>';
+  // Store data for onclick
+  window.wkAuditCurrentData = weekData;
+
+  // Auto-show first date
+  wkAuditShowDate(datesWithData[0], weekData);
+  document.getElementById('wkabtn_'+datesWithData[0]).style.background = 'var(--accent)';
+  document.getElementById('wkabtn_'+datesWithData[0]).style.color = '#000';
+}
+
+function wkAuditShowDate(date, weekData) {
+  // Highlight selected button
+  document.querySelectorAll('[id^="wkabtn_"]').forEach(b => { b.style.background='var(--surface)'; b.style.color='var(--text)'; });
+  const btn = document.getElementById('wkabtn_'+date);
+  if (btn) { btn.style.background='var(--accent)'; btn.style.color='#000'; }
+
+  const dayData = weekData[date] || {};
+  const dt = new Date(date + 'T12:00:00');
+  const DN2 = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const dayLabel = DN2[dt.getDay()] + ' ' + date;
+
+  // Sort exercises by first set number (matches log/PDF order)
+  const exFirstSet = {};
+  Object.entries(dayData).forEach(([ex, recs]) => {
+    const minN = Math.min(...recs.map(r => r.fields[WKT.setN] || 999));
+    exFirstSet[ex] = minN;
+  });
+  const exercises = Object.keys(dayData).sort((a,b) => (exFirstSet[a]||999)-(exFirstSet[b]||999));
+
+  if (!exercises.length) {
+    document.getElementById('wkaudit-day-table').innerHTML = '<div style="padding:16px;color:var(--muted)">No sets</div>';
+    return;
+  }
+
+  const maxSets = Math.max(...exercises.map(ex => dayData[ex].length));
+
+  let html = `<div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px">${dayLabel}</div>`;
+  html += '<div style="overflow-x:auto"><table style="border-collapse:collapse;font-size:12px;width:100%"><thead>';
+  html += '<tr style="background:#1e2433;color:#fff">';
+  html += '<th style="padding:6px 10px;text-align:left;min-width:160px">Exercise</th>';
+  for (let i = 0; i < maxSets; i++) {
+    html += `<th style="padding:4px 8px;text-align:center;font-size:10px;font-weight:700;border-left:2px solid #374151;white-space:nowrap">S${i+1}</th>`;
+    html += `<th style="padding:4px 6px;text-align:center;font-size:10px;color:#93c5fd">Reps</th>`;
+    html += `<th style="padding:4px 6px;text-align:center;font-size:10px;color:#fcd34d">Wt</th>`;
+    html += `<th style="padding:4px 6px;text-align:center;font-size:10px;color:#d1d5db">Var</th>`;
+  }
+  html += '</tr></thead><tbody>';
+
+  exercises.forEach(ex => {
+    const recs = [...dayData[ex]].sort((a,b) => (a.fields[WKT.setN]||0)-(b.fields[WKT.setN]||0));
+    const allV = recs.every(r => r.fields[WKT.verified] === true);
+    html += `<tr style="background:${allV?'#f0fdf4':'#fff'};border-bottom:1px solid #e5e7eb">`;
+    html += `<td style="padding:5px 10px;font-weight:700;font-size:12px;border-right:2px solid #e2e5ea;background:${allV?'#dcfce7':'#f8fafc'}">${ex}</td>`;
+    for (let i = 0; i < maxSets; i++) {
+      const r = recs[i];
+      if (!r) {
+        html += `<td colspan="4" style="border-left:2px solid #f3f4f6"></td>`;
       } else {
-        let topWt = 0, topReps = 0;
-        recs.forEach(r => {
-          const w = r.fields[WKT.wt] || 0;
-          const rp = r.fields[WKT.reps] || 0;
-          if (w > topWt) { topWt = w; topReps = rp; }
-          else if (w === topWt && rp > topReps) topReps = rp;
-          if (w > bestWt) { bestWt = w; bestReps = rp; }
-          else if (w === bestWt && rp > bestReps) bestReps = rp;
-        });
-        const cellLabel = topWt
-          ? `<div style="font-size:10px;font-weight:800;line-height:1.2">${recs.length}s</div><div style="font-size:9px;line-height:1.2">${topWt}lbs</div>`
-          : `<div style="font-size:11px;font-weight:800">${recs.length}s</div>`;
-        row += `<td style="border:1px solid #ccc;text-align:center;background:#dbeafe;color:#1e40af;min-width:52px;padding:3px 2px">${cellLabel}</td>`;
+        const f = r.fields;
+        const setN = f[WKT.setN] || i+1;
+        const reps = f[WKT.reps] || '';
+        const wt = f[WKT.wt] || '';
+        const varVal = f[WKT.var] || '';
+        html += `<td style="padding:3px 4px;text-align:center;border-left:2px solid #e5e7eb;font-size:10px;color:#6b7280">S${setN}</td>`;
+        html += `<td style="padding:2px 3px;text-align:center"><span style="display:inline-block;min-width:36px;padding:2px 4px;background:#dbeafe;color:#1d4ed8;border-radius:4px;font-size:12px;font-weight:700">${reps||'—'}</span></td>`;
+        html += `<td style="padding:2px 3px;text-align:center"><span style="display:inline-block;min-width:42px;padding:2px 4px;background:#fef3c7;color:#92400e;border-radius:4px;font-size:12px;font-weight:700">${wt||'—'}</span></td>`;
+        html += `<td style="padding:2px 3px;text-align:center;font-size:11px;color:#374151">${varVal||''}</td>`;
       }
-    });
-    const bestLabel = bestWt ? bestReps + ' × ' + bestWt + ' lbs' : bestReps ? bestReps + ' reps' : '—';
-    row += `<td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#374151;white-space:nowrap">${bestLabel}</td></tr>`;
-    return row;
-  }
-
-  WD_SECTIONS.forEach(sec => {
-    const secExercises = (WORKOUT_DAYS[sec.key] || []).map(e => e.name);
-    const secRows = secExercises.map(ex => renderExRow(ex, sec.bg)).filter(Boolean).join('');
-    if (secRows) {
-      html += `<tr><td colspan="9" style="background:${sec.sbg};color:#fff;font-weight:700;padding:4px 10px;font-size:12px">${sec.label}</td></tr>`;
-      html += secRows;
     }
+    html += '</tr>';
   });
 
-  // Any exercises not in WORKOUT_DAYS (e.g. old names, unlisted)
-  const unlisted = [...allExSet].filter(ex => !rendered.has(ex)).sort();
-  if (unlisted.length) {
-    html += `<tr><td colspan="9" style="background:#6b7280;color:#fff;font-weight:700;padding:4px 10px;font-size:12px">Other</td></tr>`;
-    unlisted.forEach(ex => { html += renderExRow(ex, '#f9fafb'); });
-  }
-
-  html += '</tbody></table>';
-  el.innerHTML = html;
+  html += '</tbody></table></div>';
+  document.getElementById('wkaudit-day-table').innerHTML = html;
 }
 
 
