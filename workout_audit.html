@@ -256,7 +256,14 @@ let curDate=null,logRecs=[],allDates=[],gTok=null;
 window.pg=1;window.pdfDoc=null;window.pdfInitLoad=true;let pickerFiles=[],pickerStack=[{id:'root',name:'My Drive'}];
 
 // ── AUTH ──────────────────────────────────────────────────────────────
-function initAuth(){setDriveBtn();}
+function initAuth(){
+  // Restore saved token
+  const saved=localStorage.getItem('mba_vs_gTok');
+  if(saved){gTok=saved;}
+  setDriveBtn();
+  // Auto-load PDF if token already exists
+  if(gTok){autoLoadPdf();}
+}
 function setDriveBtn(){
   const b=document.getElementById('drive-btn');
   if(gTok){b.textContent='🟢 Drive';b.className='ok';}
@@ -276,13 +283,37 @@ function getGoogleToken(cb){
       if(hash&&hash.includes('access_token')){
         clearInterval(chk);w.close();
         gTok=new URLSearchParams(hash.substring(1)).get('access_token');
+        localStorage.setItem('mba_vs_gTok',gTok);
         cb(gTok);
         setDriveBtn();
+        autoLoadPdf();
       }
     }catch(e){}
   },300);
 }
 function signIn(){getGoogleToken(()=>{setSt('Drive connected');});}
+function autoLoadPdf(){
+  // Auto-load Workouts 2024-25 PDF (first in QUICK_PDF list)
+  const defaultPdf=QUICK_PDF[0];
+  const idEl=document.getElementById('pp-id');
+  if(idEl&&!idEl.value){idEl.value=defaultPdf.id;}
+  // Only load if no PDF already loaded
+  if(!window.pdfDoc){
+    const id=defaultPdf.id;
+    const url=`https://www.googleapis.com/drive/v3/files/${id}?alt=media`;
+    pdfjsLib.getDocument({url,httpHeaders:{Authorization:'Bearer '+gTok}}).promise.then(doc=>{
+      window.pdfDoc=doc;window.pg=1;
+      document.getElementById('btn-prev').disabled=true;
+      document.getElementById('btn-next').disabled=doc.numPages<=1;
+      renderPg(1);
+    }).catch(e=>{
+      // Token expired — clear and prompt re-auth
+      if(e.message&&(e.message.includes('401')||e.message.includes('403'))){
+        gTok=null;localStorage.removeItem('mba_vs_gTok');setDriveBtn();
+      }
+    });
+  }
+}
 
 // ── UTILITIES ─────────────────────────────────────────────────────────
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
