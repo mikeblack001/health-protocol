@@ -3874,9 +3874,20 @@ function wktRender(monday) {
         const count = dayRecs.length;
         const onclick = `onclick="wktCellClick('${date}','${exName.replace(/'/g,"\\'")}',this)"`;
         if (!count) {
-          html += `<td ${onclick} style="border:1px solid #ccc;text-align:center;cursor:pointer;background:${bg};min-width:52px;padding:6px 2px"></td>`;
+          html += `<td ${onclick} style="border:1px solid #ccc;text-align:center;cursor:pointer;background:${bg};min-width:52px;padding:4px 2px"></td>`;
         } else {
-          html += `<td ${onclick} style="border:1px solid #ccc;text-align:center;cursor:pointer;background:#dbeafe;color:#1e40af;font-weight:800;font-size:12px;min-width:52px;padding:6px 2px">${count}</td>`;
+          // Find top weight for display
+          let topWt = 0, topReps = 0;
+          dayRecs.forEach(r => {
+            const w = r.fields[WKT.wt] || 0;
+            const rp = r.fields[WKT.reps] || 0;
+            if (w > topWt) { topWt = w; topReps = rp; }
+            else if (w === topWt && rp > topReps) topReps = rp;
+          });
+          const label = topWt
+            ? `<div style="font-size:10px;font-weight:800;line-height:1.1">${count}s</div><div style="font-size:9px;font-weight:600;line-height:1.1">${topWt}lbs</div>`
+            : `<div style="font-size:11px;font-weight:800">${count}s</div>`;
+          html += `<td ${onclick} style="border:1px solid #ccc;text-align:center;cursor:pointer;background:#dbeafe;color:#1e40af;min-width:52px;padding:3px 2px">${label}</td>`;
         }
       });
       html += `</tr>`;
@@ -3947,11 +3958,15 @@ async function wktCellClick(date, exName, cell) {
       if (!_wktWeekData[date]) _wktWeekData[date] = {};
       if (!_wktWeekData[date][exName]) _wktWeekData[date][exName] = [];
       _wktWeekData[date][exName].push(newRec);
-      const count = _wktWeekData[date][exName].length;
-      cell.textContent = count;
+      const recs2 = _wktWeekData[date][exName];
+      const count = recs2.length;
+      let topWt2 = 0;
+      recs2.forEach(r => { const w = r.fields[WKT.wt]||0; if(w>topWt2) topWt2=w; });
+      cell.innerHTML = topWt2
+        ? `<div style="font-size:10px;font-weight:800;line-height:1.1">${count}s</div><div style="font-size:9px;font-weight:600;line-height:1.1">${topWt2}lbs</div>`
+        : `<div style="font-size:11px;font-weight:800">${count}s</div>`;
       cell.style.background = '#dbeafe';
       cell.style.color = '#1e40af';
-      cell.style.fontWeight = '800';
       // Update total count
       const totalSets = Object.values(_wktWeekData).reduce((sum, dayObj) =>
         sum + Object.values(dayObj).reduce((s2, recs) => s2 + recs.length, 0), 0);
@@ -4117,10 +4132,15 @@ function showWkAuditWeek(mon, weekData, DAYS) {
     dates.push(d.toISOString().split('T')[0]);
   }
 
-  // Collect all unique exercises this week, sorted
-  const allExercises = new Set();
-  Object.values(weekData).forEach(dateObj => Object.keys(dateObj).forEach(ex => allExercises.add(ex)));
-  const exercises = [...allExercises].sort();
+  // Build ordered exercise list from WORKOUT_DAYS, then append any unlisted ones
+  const WD_SECTIONS = [
+    { label: '☀ Mon — Push',         key: 'Monday - Push',           bg: '#FFF8E7', sbg: '#E8A838' },
+    { label: '☀ Tue — Pull',         key: 'Tuesday - Pull',          bg: '#EEF4FB', sbg: '#4A6FA5' },
+    { label: '☀ Wed — Legs / Core',  key: 'Wednesday - Legs / Core', bg: '#F0FDF4', sbg: '#15803d' },
+    { label: '☀ Thu — Arms / Chest', key: 'Thursday - Arms / Chest', bg: '#FDF4FF', sbg: '#7c3aed' },
+  ];
+  const allExSet = new Set();
+  Object.values(weekData).forEach(dateObj => Object.keys(dateObj).forEach(ex => allExSet.add(ex)));
 
   let html = '<table style="border-collapse:collapse;font-size:12px;width:100%"><thead><tr>';
   html += '<th style="text-align:left;padding:6px 12px;border:1px solid #999;min-width:180px;background:#e5e7eb;font-size:12px">Exercise</th>';
@@ -4128,29 +4148,55 @@ function showWkAuditWeek(mon, weekData, DAYS) {
     const [y,m,dy2] = dates[i].split('-');
     html += `<th style="padding:4px 6px;border:1px solid #999;text-align:center;background:#e5e7eb;font-size:10px;min-width:52px">${d}<br><span style="font-weight:400;font-size:9px">${m}/${dy2}/${y.slice(2)}</span></th>`;
   });
-  html += '<th style="border:1px solid #999;background:#e5e7eb;padding:4px 8px;font-size:10px;min-width:100px">Best Set</th></tr></thead><tbody>';
+  html += '<th style="border:1px solid #999;background:#e5e7eb;padding:4px 8px;font-size:10px;min-width:120px">Best Set</th></tr></thead><tbody>';
 
-  exercises.forEach(ex => {
-    html += `<tr><td style="padding:5px 12px;border:1px solid #ccc;font-size:12px;font-weight:500;background:#f9fafb;white-space:nowrap">${ex}</td>`;
+  const rendered = new Set();
+  function renderExRow(ex, bg) {
+    if (rendered.has(ex)) return '';
+    rendered.add(ex);
+    if (!allExSet.has(ex)) return ''; // not in this week's data
+    let row = `<tr><td style="padding:5px 12px;border:1px solid #ccc;font-size:12px;font-weight:500;background:${bg};white-space:nowrap">${ex}</td>`;
     let bestWt = 0, bestReps = 0;
     dates.forEach(date => {
       const recs = weekData[date] && weekData[date][ex];
       if (!recs || !recs.length) {
-        html += '<td style="border:1px solid #ccc;min-width:52px"></td>';
+        row += '<td style="border:1px solid #ccc;min-width:52px"></td>';
       } else {
-        const count = recs.length;
-        // Find top weight
+        let topWt = 0, topReps = 0;
         recs.forEach(r => {
           const w = r.fields[WKT.wt] || 0;
           const rp = r.fields[WKT.reps] || 0;
-          if (w > bestWt || (w === bestWt && rp > bestReps)) { bestWt = w; bestReps = rp; }
+          if (w > topWt) { topWt = w; topReps = rp; }
+          else if (w === topWt && rp > topReps) topReps = rp;
+          if (w > bestWt) { bestWt = w; bestReps = rp; }
+          else if (w === bestWt && rp > bestReps) bestReps = rp;
         });
-        html += `<td style="border:1px solid #ccc;text-align:center;background:#dbeafe;color:#1e40af;font-weight:700;font-size:11px">${count}</td>`;
+        const cellLabel = topWt
+          ? `<div style="font-size:10px;font-weight:800;line-height:1.2">${recs.length}s</div><div style="font-size:9px;line-height:1.2">${topWt}lbs</div>`
+          : `<div style="font-size:11px;font-weight:800">${recs.length}s</div>`;
+        row += `<td style="border:1px solid #ccc;text-align:center;background:#dbeafe;color:#1e40af;min-width:52px;padding:3px 2px">${cellLabel}</td>`;
       }
     });
     const bestLabel = bestWt ? bestReps + ' × ' + bestWt + ' lbs' : bestReps ? bestReps + ' reps' : '—';
-    html += `<td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#374151;white-space:nowrap">${bestLabel}</td></tr>`;
+    row += `<td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#374151;white-space:nowrap">${bestLabel}</td></tr>`;
+    return row;
+  }
+
+  WD_SECTIONS.forEach(sec => {
+    const secExercises = (WORKOUT_DAYS[sec.key] || []).map(e => e.name);
+    const secRows = secExercises.map(ex => renderExRow(ex, sec.bg)).filter(Boolean).join('');
+    if (secRows) {
+      html += `<tr><td colspan="9" style="background:${sec.sbg};color:#fff;font-weight:700;padding:4px 10px;font-size:12px">${sec.label}</td></tr>`;
+      html += secRows;
+    }
   });
+
+  // Any exercises not in WORKOUT_DAYS (e.g. old names, unlisted)
+  const unlisted = [...allExSet].filter(ex => !rendered.has(ex)).sort();
+  if (unlisted.length) {
+    html += `<tr><td colspan="9" style="background:#6b7280;color:#fff;font-weight:700;padding:4px 10px;font-size:12px">Other</td></tr>`;
+    unlisted.forEach(ex => { html += renderExRow(ex, '#f9fafb'); });
+  }
 
   html += '</tbody></table>';
   el.innerHTML = html;
