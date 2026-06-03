@@ -166,16 +166,10 @@ select.fe{cursor:pointer}
       <span style="font-size:10px;color:#9ca3af">Quick add for current date</span>
     </div>
 
-    <!-- WEEK GRID -->
-    <div id="wgrid-wrap">
-      <div id="wgrid-hdr">
-        <b>📅 Week Overview</b>
-        <span id="wg-status"></span>
-        <button id="wg-tog" onclick="toggleWGrid()">▲ Hide</button>
-      </div>
-      <div id="wgrid-body">
-        <table id="wgrid"><tr><td class="empty" style="padding:12px 14px;font-size:11px">Select a date to load week</td></tr></table>
-      </div>
+    <!-- WEEK GRID HIDDEN -->
+    <div id="wgrid-wrap" style="display:none">
+      <div id="wgrid-hdr"><b>Week Overview</b><span id="wg-status"></span><button id="wg-tog" onclick="toggleWGrid()">▲ Hide</button></div>
+      <div id="wgrid-body"><table id="wgrid"></table></div>
     </div>
 
     <!-- RECORDS -->
