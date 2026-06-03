@@ -3886,12 +3886,18 @@ function wktShowDay(date) {
   });
   const exercises = Object.keys(dayData).sort(function(a,b) { return (exFirstSet[a]||999)-(exFirstSet[b]||999); });
 
-  if (!exercises.length) {
-    detail.innerHTML = '<div style="padding:20px;color:var(--muted);font-size:13px">No sets logged for ' + dayLabel + '.</div>';
-    return;
-  }
+  // Always show WORKOUT_DAYS exercises for this day, even if no sets logged
+  const dt2 = new Date(date + 'T12:00:00');
+  const dowKey = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][dt2.getDay()];
+  const dayKeyMap = {Monday:'mon',Tuesday:'tue',Wednesday:'wed',Thursday:'thu',Friday:'fri',Saturday:'sat',Sunday:'sun'};
+  const schedExercises = (WORKOUT_DAYS[dayKeyMap[dowKey]] || []).map(function(e) { return e.name || e; });
+  // Merge scheduled + any logged exercises not in schedule
+  const allEx = schedExercises.slice();
+  Object.keys(dayData).forEach(function(ex) { if (allEx.indexOf(ex) === -1) allEx.push(ex); });
 
-  const maxSets = Math.max.apply(null, exercises.map(function(ex) { return dayData[ex].length; }));
+  const maxLogged = allEx.length ? Math.max.apply(null, allEx.map(function(ex) { return (dayData[ex]||[]).length; })) : 0;
+  const maxSets = Math.min(3, Math.max(3, maxLogged)); // always show at least S1-S3
+
   let html = '<div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:8px">' + dayLabel + '</div>';
   html += '<div style="overflow-x:auto"><table style="border-collapse:collapse;width:100%;font-size:12px">';
   html += '<thead><tr style="background:#1e2433;color:#fff">';
@@ -3903,16 +3909,18 @@ function wktShowDay(date) {
   }
   html += '</tr></thead><tbody>';
 
-  exercises.forEach(function(ex) {
-    const recs = dayData[ex].slice().sort(function(a,b) { return (a.fields[WKT.setN]||0)-(b.fields[WKT.setN]||0); });
-    const variation = recs[0] ? recs[0].fields[WKT.var] || '' : '';
+  allEx.forEach(function(ex) {
+    const recs = (dayData[ex]||[]).slice().sort(function(a,b) { return (a.fields[WKT.setN]||0)-(b.fields[WKT.setN]||0); });
+    const variation = recs[0] ? (Array.isArray(recs[0].fields[WKT.var]) ? recs[0].fields[WKT.var][0] : recs[0].fields[WKT.var]) || '' : '';
     html += '<tr style="border-bottom:1px solid #e5e7eb">';
     html += '<td style="padding:5px 10px;font-weight:700;font-size:13px;border-right:2px solid #e2e5ea">' + ex + '</td>';
     html += '<td style="padding:3px 6px;text-align:center;font-size:12px;color:#374151">' + (variation||'—') + '</td>';
     for (let i = 0; i < maxSets; i++) {
       const r = recs[i];
+      const cellId = 'wktcell_' + date + '_' + encodeURIComponent(ex) + '_' + i;
       if (!r) {
-        html += '<td colspan="2" style="border-left:2px solid #f3f4f6"></td>';
+        // Empty tappable cell — tap to add next set
+        html += '<td colspan="2" id="' + cellId + '" onclick="wktCellClick(\'' + date + '\',\'' + ex.replace(/'/g,"\\'") + '\',document.getElementById(\'' + cellId + '\'))" style="border-left:2px solid #f3f4f6;cursor:pointer;text-align:center;color:#d1d5db;font-size:18px;padding:4px 0" title="Tap to add set">+</td>';
       } else {
         const reps = r.fields[WKT.reps] || '';
         const wt = r.fields[WKT.wt] || '';
