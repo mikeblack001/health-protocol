@@ -500,7 +500,10 @@ async function loadWeekGrid(date){
   // Find max sets across all exercises for column count
   const maxSets=Math.max(1,...Object.values(data).map(d=>d.sets.length));
 
-  let h='<thead><tr><th style="min-width:160px">Exercise</th>';
+  const curDt=new Date(date+'T12:00:00');
+  const DN2=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const dayLabel=DN2[curDt.getDay()]+' '+date.slice(5);
+  let h='<thead><tr><th style="min-width:160px">Exercise<br><span style="font-size:10px;font-weight:400;color:#9ca3af">'+dayLabel+'</span></th>';
   for(let i=0;i<maxSets;i++){
     h+=`<th style="text-align:center;min-width:90px;font-size:10px">S${i+1}</th>`;
   }
@@ -606,17 +609,10 @@ function renderRecordsOrdered(order){
     if(aPos!==bPos)return(aPos===-1?999:aPos)-(bPos===-1?999:bPos);
     return(a.fields[LOG.setN]||0)-(b.fields[LOG.setN]||0);
   });
-  document.getElementById('records').innerHTML=sorted.map(r=>cardHTML(r)).join('');
+  renderGroupedTable(sorted);
   if(window._highlightedCard){
-    const {ex}=window._highlightedCard;
-    const cards=[...document.querySelectorAll('.card')];
-    const card=cards.find(c=>{const s=c.querySelector('select.fe-ex');return s&&s.value===ex;});
-    if(card){
-      card.style.outline='3px solid #2563eb';
-      const rect=card.getBoundingClientRect();
-      const inView=rect.top>=0&&rect.bottom<=(window.innerHeight||document.documentElement.clientHeight);
-      if(!inView)card.scrollIntoView({behavior:'smooth',block:'center'});
-    }
+    const el=document.getElementById('card_'+window._highlightedCard.id);
+    if(el){el.style.outline='3px solid #2563eb';el.scrollIntoView({behavior:'smooth',block:'center'});}
   }
 }
 function renderRecords(){
@@ -626,39 +622,100 @@ function renderRecords(){
     if(ea!==eb)return ea.localeCompare(eb);
     return(a.fields[LOG.setN]||0)-(b.fields[LOG.setN]||0);
   });
-  document.getElementById('records').innerHTML=sorted.map(r=>cardHTML(r)).join('');
+  renderGroupedTable(sorted);
+}
+function renderGroupedTable(sorted){
+  // Group sets by exercise
+  const groups={};const groupOrder=[];
+  sorted.forEach(r=>{
+    const ex=r.fields[LOG.ex]||'?';
+    if(!groups[ex]){groups[ex]=[];groupOrder.push(ex);}
+    groups[ex].push(r);
+  });
+  let html='<table style="border-collapse:collapse;width:100%;font-size:13px">';
+  html+='<thead><tr style="background:#f1f5f9;border-bottom:2px solid #e2e5ea">';
+  html+='<th style="padding:6px 10px;text-align:left;font-size:11px;font-weight:700;color:#374151;min-width:180px">Exercise</th>';
+  html+='<th style="padding:6px 8px;text-align:center;font-size:11px;font-weight:700;color:#374151;width:40px">Set</th>';
+  html+='<th style="padding:6px 8px;text-align:center;font-size:11px;font-weight:700;color:#1d4ed8;width:70px">Reps</th>';
+  html+='<th style="padding:6px 8px;text-align:center;font-size:11px;font-weight:700;color:#92400e;width:80px">Weight</th>';
+  html+='<th style="padding:6px 8px;text-align:left;font-size:11px;font-weight:700;color:#374151">Variation</th>';
+  html+='<th style="padding:6px 8px;width:70px"></th>';
+  html+='</tr></thead><tbody>';
+  groupOrder.forEach(ex=>{
+    const recs=groups[ex];
+    const allVerified=recs.every(r=>r.fields[LOG.verified]===true);
+    recs.forEach((r,i)=>{
+      const f=r.fields;
+      const setN=f[LOG.setN]||'';
+      const reps=f[LOG.reps]||'';
+      const wt=f[LOG.wt]||'';
+      const variation=f[LOG.var]||'';
+      const verified=f[LOG.verified]===true;
+      const rowBg=verified?'#f0fdf4':'#fff';
+      const borderTop=i===0?'border-top:2px solid #e2e5ea':'border-top:1px solid #f3f4f6';
+      html+=`<tr id="card_${r.id}" style="background:${rowBg};${borderTop}">`;
+      // Exercise name only on first row of group
+      if(i===0){
+        html+=`<td rowspan="${recs.length}" style="padding:6px 10px;font-weight:700;font-size:13px;vertical-align:top;border-right:2px solid #e2e5ea;background:${allVerified?'#dcfce7':'#f8fafc'}">${esc(ex)}</td>`;
+      }
+      html+=`<td style="padding:4px 8px;text-align:center;font-size:11px;font-weight:600;color:#6b7280">S${esc(setN)}</td>`;
+      html+=`<td style="padding:3px 6px;text-align:center">
+        <input value="${esc(reps)}" placeholder="—" type="number" style="width:52px;padding:3px 6px;border:1px solid #bfdbfe;border-radius:4px;font-size:13px;font-weight:700;background:#dbeafe;color:#1d4ed8;text-align:center"
+          onblur="saveField('${r.id}','${LOG.reps}',parseFloat(this.value)||null)"
+          onkeydown="if(event.key==='Enter')this.blur()">
+      </td>`;
+      html+=`<td style="padding:3px 6px;text-align:center">
+        <input value="${esc(wt)}" placeholder="—" type="number" style="width:62px;padding:3px 6px;border:1px solid #fde68a;border-radius:4px;font-size:13px;font-weight:700;background:#fef3c7;color:#92400e;text-align:center"
+          onblur="saveField('${r.id}','${LOG.wt}',parseFloat(this.value)||null)"
+          onkeydown="if(event.key==='Enter')this.blur()">
+      </td>`;
+      html+=`<td style="padding:3px 6px">
+        <input value="${esc(variation)}" placeholder="Variation" style="width:100%;min-width:100px;padding:3px 6px;border:1px solid #e5e7eb;border-radius:4px;font-size:12px;background:#f9fafb"
+          onblur="saveField('${r.id}','${LOG.var}',this.value||null)"
+          onkeydown="if(event.key==='Enter')this.blur()">
+      </td>`;
+      html+=`<td style="padding:3px 6px;text-align:center;white-space:nowrap">
+        <button class="abtn ${verified?'a-verified':'a-verify'}" onclick="toggleVerify('${r.id}',${verified})">${verified?'✓':'○'}</button>
+        <button class="abtn a-del" onclick="delRec('${r.id}')" style="margin-left:2px">✕</button>
+      </td>`;
+      html+='</tr>';
+    });
+  });
+  html+='</tbody></table>';
+  document.getElementById('records').innerHTML=html;
 }
 
 function cardHTML(r){
+  // Returns a table row — used inside renderRecordsOrdered which wraps in grouped table
   const f=r.fields;
-  const ex=f[LOG.ex]||'';
   const setN=f[LOG.setN]||'';
   const reps=f[LOG.reps]||'';
   const wt=f[LOG.wt]||'';
   const variation=f[LOG.var]||'';
   const verified=f[LOG.verified]===true;
-  const exOpts=CMPS.map(c=>`<option ${c===ex?'selected':''}>${c}</option>`).join('');
-  return`<div class="card ${verified?'verified':'unverified'}" id="card_${r.id}">
-    <div class="card-body">
-      <select class="fe fe-ex" onchange="saveField('${r.id}','${LOG.ex}',this.value)" title="Exercise">
-        <option value=""></option>${exOpts}
-      </select>
-      <span style="font-size:10px;color:#9ca3af;font-weight:600;flex-shrink:0">S${esc(setN)}</span>
-      <input class="fe fe-reps" value="${esc(reps)}" placeholder="Reps" title="Reps" type="number"
+  const bg=verified?'#f0fdf4':'#fff';
+  return`<tr id="card_${r.id}" style="background:${bg}">
+    <td style="padding:3px 8px;font-size:12px;font-weight:600;color:#6b7280;white-space:nowrap">S${esc(setN)}</td>
+    <td style="padding:3px 6px">
+      <input class="fe fe-reps" value="${esc(reps)}" placeholder="—" title="Reps" type="number" style="width:56px;padding:3px 6px;border:1px solid #e5e7eb;border-radius:4px;font-size:13px;font-weight:700;background:#dbeafe;color:#1d4ed8;text-align:center"
         onblur="saveField('${r.id}','${LOG.reps}',parseFloat(this.value)||null)"
         onkeydown="if(event.key==='Enter')this.blur()">
-      <input class="fe fe-wt" value="${esc(wt)}" placeholder="lbs" title="Weight lbs" type="number"
+    </td>
+    <td style="padding:3px 6px">
+      <input class="fe fe-wt" value="${esc(wt)}" placeholder="—" title="Weight lbs" type="number" style="width:68px;padding:3px 6px;border:1px solid #e5e7eb;border-radius:4px;font-size:13px;font-weight:700;background:#fef3c7;color:#92400e;text-align:center"
         onblur="saveField('${r.id}','${LOG.wt}',parseFloat(this.value)||null)"
         onkeydown="if(event.key==='Enter')this.blur()">
-      <input class="fe fe-var" value="${esc(variation)}" placeholder="Variation" title="Variation"
+    </td>
+    <td style="padding:3px 6px">
+      <input class="fe fe-var" value="${esc(variation)}" placeholder="Variation" title="Variation" style="width:120px;padding:3px 6px;border:1px solid #e5e7eb;border-radius:4px;font-size:12px;background:#f9fafb"
         onblur="saveField('${r.id}','${LOG.var}',this.value||null)"
         onkeydown="if(event.key==='Enter')this.blur()">
-    </div>
-    <div class="card-actions">
+    </td>
+    <td style="padding:3px 6px;white-space:nowrap">
       <button class="abtn ${verified?'a-verified':'a-verify'}" onclick="toggleVerify('${r.id}',${verified})">${verified?'✓':'○'}</button>
-      <button class="abtn a-del" onclick="delRec('${r.id}')">✕</button>
-    </div>
-  </div>`;
+      <button class="abtn a-del" onclick="delRec('${r.id}')" style="margin-left:3px">✕</button>
+    </td>
+  </tr>`;
 }
 
 // ── INLINE SAVE ───────────────────────────────────────────────────────
