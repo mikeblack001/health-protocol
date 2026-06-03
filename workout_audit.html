@@ -755,7 +755,7 @@ function renderGroupedTable(sorted){
     if(!groups[ex]){groups[ex]=[];groupOrder.push(ex);}
     groups[ex].push(r);
   });
-  const maxSets=Math.max(1,...Object.values(groups).map(g=>g.length));
+  const maxSets=Math.min(3,Math.max(1,...Object.values(groups).map(g=>g.length)));
 
   // Day + date header
   const _dt=new Date(curDate+'T12:00:00');
