@@ -677,9 +677,9 @@ function renderGroupedTable(sorted){
   html+='<th style="padding:6px 10px;text-align:left;font-size:11px;min-width:160px;position:sticky;left:0;background:#1e2433">Exercise</th>';
   for(let i=0;i<maxSets;i++){
     html+=`<th style="padding:4px 8px;text-align:center;font-size:10px;font-weight:700;border-left:2px solid #374151;white-space:nowrap">S${i+1}</th>`;
-    html+=`<th style="padding:4px 6px;text-align:center;font-size:10px;color:#93c5fd">Reps</th>`;
-    html+=`<th style="padding:4px 6px;text-align:center;font-size:10px;color:#fcd34d">Wt</th>`;
-    html+=`<th style="padding:4px 6px;text-align:center;font-size:10px;color:#d1d5db">Var</th>`;
+    html+=`<th style="padding:4px 6px;text-align:center;font-size:10px;color:#d1d5db;min-width:90px">Var</th>`;
+    html+=`<th style="padding:4px 6px;text-align:center;font-size:10px;color:#93c5fd;min-width:52px">Reps</th>`;
+    html+=`<th style="padding:4px 6px;text-align:center;font-size:10px;color:#fcd34d;min-width:58px">Wt</th>`;
   }
   html+='<th style="padding:4px 8px;font-size:10px">✓</th>';
   html+='</tr></thead><tbody>';
@@ -700,21 +700,21 @@ function renderGroupedTable(sorted){
         const wt=f[LOG.wt]||'';
         const verified=f[LOG.verified]===true;
         const setN=f[LOG.setN]||i+1;
-        html+=`<td style="padding:3px 4px;text-align:center;border-left:2px solid #e5e7eb;font-size:10px;color:#6b7280">S${esc(setN)}</td>`;
+        const variation=r.fields[LOG.var]||'';
+        html+=`<td style="padding:3px 4px;text-align:center;border-left:2px solid #e5e7eb;font-size:10px;color:#6b7280;white-space:nowrap">S${esc(setN)}</td>`;
         html+=`<td id="card_${r.id}" style="padding:2px 3px;text-align:center">
-          <input value="${esc(reps)}" placeholder="—" type="number" style="width:48px;padding:2px 4px;border:1px solid #bfdbfe;border-radius:4px;font-size:12px;font-weight:700;background:#dbeafe;color:#1d4ed8;text-align:center"
+          <input value="${esc(variation)}" placeholder="—" style="width:90px;padding:3px 5px;border:1px solid #e5e7eb;border-radius:4px;font-size:12px;background:#f9fafb;text-align:center"
+            onblur="saveField('${r.id}','${LOG.var}',this.value||null)"
+            onkeydown="if(event.key==='Enter')this.blur()">
+        </td>`;
+        html+=`<td style="padding:2px 3px;text-align:center">
+          <input value="${esc(reps)}" placeholder="—" type="number" style="width:52px;padding:3px 5px;border:1px solid #bfdbfe;border-radius:4px;font-size:15px;font-weight:700;background:#dbeafe;color:#1d4ed8;text-align:center"
             onblur="saveField('${r.id}','${LOG.reps}',parseFloat(this.value)||null)"
             onkeydown="if(event.key==='Enter')this.blur()">
         </td>`;
         html+=`<td style="padding:2px 3px;text-align:center">
-          <input value="${esc(wt)}" placeholder="—" type="number" style="width:54px;padding:2px 4px;border:1px solid #fde68a;border-radius:4px;font-size:12px;font-weight:700;background:#fef3c7;color:#92400e;text-align:center"
+          <input value="${esc(wt)}" placeholder="—" type="number" style="width:58px;padding:3px 5px;border:1px solid #fde68a;border-radius:4px;font-size:15px;font-weight:700;background:#fef3c7;color:#92400e;text-align:center"
             onblur="saveField('${r.id}','${LOG.wt}',parseFloat(this.value)||null)"
-            onkeydown="if(event.key==='Enter')this.blur()">
-        </td>`;
-        const variation=r.fields[LOG.var]||'';
-        html+=`<td style="padding:2px 3px;text-align:center">
-          <input value="${esc(variation)}" placeholder="—" style="width:70px;padding:2px 4px;border:1px solid #e5e7eb;border-radius:4px;font-size:11px;background:#f9fafb;text-align:center"
-            onblur="saveField('${r.id}','${LOG.var}',this.value||null)"
             onkeydown="if(event.key==='Enter')this.blur()">
         </td>`;
       }
