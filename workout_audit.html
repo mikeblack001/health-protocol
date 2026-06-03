@@ -291,7 +291,16 @@ function getWkDates(dateStr){
 function getRowOrder(dateStr){
   const mon=getWkDates(dateStr)[0];
   const raw=LS.get('row_order_'+mon);
-  try{return raw?JSON.parse(raw):[];}catch{return[];}
+  if(raw){try{return JSON.parse(raw);}catch{}}
+  // No saved order — look back up to 8 weeks for same day-of-week
+  const dt=new Date(dateStr+'T12:00:00');
+  for(let w=1;w<=8;w++){
+    const prev=new Date(dt);prev.setDate(dt.getDate()-(w*7));
+    const prevMon=getWkDates(prev.toISOString().split('T')[0])[0];
+    const prevRaw=LS.get('row_order_'+prevMon);
+    if(prevRaw){try{const o=JSON.parse(prevRaw);if(o.length)return o;}catch{}}
+  }
+  return[];
 }
 function saveRowOrder(arr,dateStr){
   const mon=getWkDates(dateStr)[0];
