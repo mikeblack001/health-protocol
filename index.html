@@ -3378,47 +3378,47 @@ function vendorSortIcon(col) {
 // ===== WORKOUT DATA =====
 const WORKOUT_DAYS = {
   'Monday - Push': [
-    { name: 'Wrist Twist', variations: [] },
-    { name: 'Bench Press', variations: [] },
-    { name: 'Incline Press', variations: [] },
-    { name: 'Incline Fly', variations: [] },
-    { name: 'High Cable Fly 1/2 ea', variations: [] },
-    { name: 'Tricep Pushdowns 1/2', variations: [] },
-    { name: 'Overhead Tricep Ext', variations: [] },
-    { name: 'Lateral Raises', variations: [] },
-    { name: 'Seated Shoulder Press', variations: [] },
+    { name: 'Wrist Twist', variations: ['DBs'] },
+    { name: 'Bench Press', variations: ['35lbs Smith Machine', '45lb Olympic', 'DBs', 'Cables'] },
+    { name: 'Incline Press', variations: ['35lbs Smith Machine', '45lb Olympic', 'DBs', 'Cables'] },
+    { name: 'Incline Fly', variations: ['DBs', 'Cables (2:1)'] },
+    { name: 'High Cable Fly', variations: [], note: '(2:1)' },
+    { name: 'Tricep Pushdowns', variations: ['V-Bar', 'Straight Bar', 'Rope'], note: '1/2' },
+    { name: 'Overhead Tricep Ext', variations: ['EZ-Bar', 'DBs', 'Rope'] },
+    { name: 'Lateral Raises', variations: ['DBs', 'Cables', 'EZ Bar'] },
+    { name: 'Seated Shoulder Press', variations: ['45lb Olympic', 'Smith 35lb', 'DBs', 'Cables'] },
   ],
   'Tuesday - Pull': [
-    { name: 'Wrist Twist', variations: [] },
-    { name: 'Lat Pulldown', variations: [] },
-    { name: 'Cable Rows', variations: [] },
-    { name: 'Hammer Curls', variations: [] },
-    { name: 'Face Pulls 1/2', variations: [] },
-    { name: 'Rear Delt Raises', variations: [] },
-    { name: 'Cable Curls 1/2 ea', variations: [] },
-    { name: 'Barbell Shrugs', variations: [] },
+    { name: 'Wrist Twist', variations: ['DBs'] },
+    { name: 'Lat Pulldown', variations: ['Lat Machine', 'High Cable', '2 Hand Cables'] },
+    { name: 'Cable Rows', variations: ['Lat Machine'] },
+    { name: 'Hammer Curls', variations: ['Rope 1/2', 'DBs'] },
+    { name: 'Face Pulls', variations: ['Rope'], note: '1/2' },
+    { name: 'Rear Delt Raises', variations: ['DBs'] },
+    { name: 'Cable Curls', variations: [], note: '1/2 ea' },
+    { name: 'Barbell Shrugs', variations: ['45lb Olympic'] },
   ],
   'Wednesday - Legs / Core': [
     { name: 'Forward Back Stretch', variations: [] },
-    { name: 'Leg Press', variations: [] },
-    { name: 'Leg Extensions', variations: [] },
-    { name: 'Leg Curls', variations: [] },
-    { name: 'Hip Thrust', variations: [] },
-    { name: 'Back Extension', variations: [] },
+    { name: 'Leg Press', variations: ['35lbs'] },
+    { name: 'Leg Extensions', variations: ['45lbs', 'Cable 1/2'] },
+    { name: 'Leg Curls', variations: ['45lbs', 'Cable 1/2'] },
+    { name: 'Hip Thrust', variations: ['DBs', 'Smith 35lb'] },
+    { name: 'Back Extension', variations: ['Bodyweight', 'Sit Up'] },
     { name: 'DB Calf Raises', variations: [] },
-    { name: 'Smith Mach Calf Raises', variations: [] },
+    { name: 'Smith Mach Calf Raises', variations: ['35lbs'] },
   ],
   'Thursday - Arms / Chest': [
-    { name: 'Wrist Twist', variations: [] },
-    { name: 'Cable Press 1/2 ea', variations: [] },
-    { name: 'High Cable Fly 1/2 ea', variations: [] },
-    { name: 'Low Cable Fly 1/2 ea', variations: [] },
-    { name: 'Cable Cross Overs 1/2 ea', variations: [] },
-    { name: 'Tricep Ext Down 1/2', variations: [] },
-    { name: 'Incline Curls', variations: [] },
-    { name: 'Tricep Ext Up', variations: [] },
-    { name: 'Bicep Curls-Preacher', variations: [] },
-    { name: 'Forearm Raise - Cable 1/2', variations: [] },
+    { name: 'Wrist Twist', variations: ['DBs'] },
+    { name: 'Cable Press', variations: [], note: '1/2 ea' },
+    { name: 'High Cable Fly', variations: [], note: '(2:1)' },
+    { name: 'Low Cable Fly', variations: [], note: '1/2 ea' },
+    { name: 'Cable Cross Overs', variations: [], note: '1/2 ea' },
+    { name: 'Tricep Ext Down', variations: ['Rope', 'Bar'], note: '1/2' },
+    { name: 'Incline Curls', variations: ['DBs'] },
+    { name: 'Tricep Ext Up', variations: ['Rope', 'Bar'] },
+    { name: 'Bicep Curls - Preacher', variations: ['DBs', 'EZ Bar (15lbs)'] },
+    { name: 'Forearm Raise - Cable', variations: [], note: '1/2' },
   ],
 };
 
@@ -3766,16 +3766,11 @@ async function loadWkTracker() {
   const el = document.getElementById('wkt-content');
   if (!el) return;
   el.innerHTML = '<div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div>';
-  try {
-    const monday = wktGetMonday();
-    const mondayISO = monday.toISOString().split('T')[0];
-    await wktLoadWeekData(mondayISO);
-    wktRender(monday);
-    wktPopulateDropdown();
-  } catch(e) {
-    el.innerHTML = '<div style="padding:20px;color:red;font-weight:700">Error: ' + e.message + '</div>';
-    console.error('loadWkTracker:', e);
-  }
+  const monday = wktGetMonday();
+  const mondayISO = monday.toISOString().split('T')[0];
+  await wktLoadWeekData(mondayISO);
+  wktRender(monday);
+  wktPopulateDropdown();
 }
 
 async function wktLoadWeekData(mondayISO) {
@@ -3831,28 +3826,30 @@ function wktRender(monday) {
   const totalSets = Object.values(_wktWeekData).reduce((sum, dayObj) =>
     sum + Object.values(dayObj).reduce((s2, recs) => s2 + recs.length, 0), 0);
 
-  const todayISO = new Date().toISOString().split('T')[0];
-  let html = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">'
-    + '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'
-    + '<button onclick="wktShiftWeek(-1)" style="padding:4px 10px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:var(--surface);font-size:13px">‹ Prev</button>'
-    + '<span style="font-family:DM Mono,monospace;font-size:13px;font-weight:600">' + weekLabel + '</span>'
-    + '<button onclick="wktShiftWeek(1)" style="padding:4px 10px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:var(--surface);font-size:13px">Next ›</button>'
-    + '<select id="wkt-week-jump" onchange="wktJumpToWeek(this.value)" style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;color:var(--text);background:var(--surface);cursor:pointer;min-width:100px">'
-    + '<option value="">Jump to week…</option></select>'
-    + '</div>'
-    + '<span style="font-size:11px;color:var(--muted)">' + totalSets + ' sets this week</span>'
-    + '</div>'
-    + '<div style="border:3px solid #000;border-radius:8px;overflow-x:auto">'
-    + '<table style="border-collapse:collapse;width:100%;font-size:12px">'
-    + '<thead><tr>'
-    + '<th style="text-align:left;padding:4px 8px;background:#D9D9D9;border:1px solid #999;min-width:160px">Exercise</th>';
-  dates.forEach(function(d, i) {
-    const bg = d === todayISO ? '#bfdbfe' : '#D9D9D9';
-    html += '<th style="text-align:center;padding:2px 1px;background:' + bg + ';border:1px solid #999;min-width:52px">'
-      + '<div style="font-weight:700;font-size:11px">' + DN[i] + '</div>'
-      + '<div style="font-size:9px;color:#555;font-weight:400">' + d.slice(5) + '</div></th>';
-  });
-  html += '</tr></thead><tbody>';
+  let html = `
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <button onclick="wktShiftWeek(-1)" style="padding:4px 10px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:var(--surface);font-size:13px">‹ Prev</button>
+      <span style="font-family:'DM Mono',monospace;font-size:13px;font-weight:600">${weekLabel}</span>
+      <button onclick="wktShiftWeek(1)" style="padding:4px 10px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:var(--surface);font-size:13px">Next ›</button>
+      <select id="wkt-week-jump" onchange="wktJumpToWeek(this.value)" style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:'DM Mono',monospace;color:var(--text);background:var(--surface);cursor:pointer;min-width:100px">
+        <option value="">Jump to week…</option>
+      </select>
+    </div>
+    <span style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace">${totalSets} sets this week</span>
+  </div>
+  <div style="border:3px solid #000;border-radius:8px;overflow-x:auto">
+  <table style="border-collapse:collapse;width:100%;font-size:12px">
+  <thead><tr>
+    <th style="text-align:left;padding:4px 8px;background:#D9D9D9;border:1px solid #999;min-width:160px">Exercise</th>
+    ${dates.map((d,i) => {
+      const today = d === new Date().toISOString().split('T')[0];
+      return `<th style="text-align:center;padding:2px 1px;background:${today?'#bfdbfe':'#D9D9D9'};border:1px solid #999;min-width:52px">
+        <div style="font-weight:700;font-size:11px">${DN[i]}</div>
+        <div style="font-size:9px;color:#555;font-weight:400">${d.slice(5)}</div>
+      </th>`;
+    }).join('')}
+  </tr></thead><tbody>`;
 
   // Group exercises by day section
   const sections = [
@@ -3876,8 +3873,7 @@ function wktRender(monday) {
       dates.forEach((date, di) => {
         const dayRecs = (_wktWeekData[date] && _wktWeekData[date][exName]) || [];
         const count = dayRecs.length;
-        const safeEx = exName.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-        const onclick = `onclick="wktCellClick('${date}','${safeEx}',this)"`;
+        const onclick = `onclick="wktCellClick('${date}','${exName.replace(/'/g,"\\'")}',this)"`;
         if (!count) {
           html += `<td ${onclick} style="border:1px solid #ccc;text-align:center;cursor:pointer;background:${bg};min-width:52px;padding:4px 2px"></td>`;
         } else {
@@ -4079,11 +4075,7 @@ async function loadWkAudit() {
   try {
     let records = [], offset = null;
     do {
-      const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 365);
-      const cutoffISO = cutoff.toISOString().split('T')[0];
-      const auditFilter = encodeURIComponent(`IS_AFTER({${WKT.date}},"${cutoffISO}")`);
       let url = `https://api.airtable.com/v0/${BASE}/${WKT.tbl}?returnFieldsByFieldId=true&pageSize=100`
-        + `&filterByFormula=${auditFilter}`
         + `&fields[]=${WKT.date}&fields[]=${WKT.ex}&fields[]=${WKT.setN}&fields[]=${WKT.reps}&fields[]=${WKT.wt}&fields[]=${WKT.var}&fields[]=${WKT.day}`
         + `&sort[0][field]=${WKT.date}&sort[0][direction]=asc`;
       if (offset) url += '&offset=' + encodeURIComponent(offset);
