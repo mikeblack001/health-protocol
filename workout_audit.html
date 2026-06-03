@@ -262,7 +262,7 @@ function setDriveBtn(){
 function getGoogleToken(cb){
   if(gTok){cb(gTok);return;}
   const scope=encodeURIComponent('https://www.googleapis.com/auth/drive.readonly');
-  const redirect=encodeURIComponent(location.origin+'/health-protocol/audit.html');
+  const redirect=encodeURIComponent(location.origin+location.pathname);
   const url=`https://accounts.google.com/o/oauth2/v2/auth?client_id=${GCL_ID}&redirect_uri=${redirect}&response_type=token&scope=${scope}`;
   const w=window.open(url,'gauth','width=500,height=600');
   if(!w){alert('Pop-up blocked — allow pop-ups for this site');return;}
