@@ -3766,11 +3766,16 @@ async function loadWkTracker() {
   const el = document.getElementById('wkt-content');
   if (!el) return;
   el.innerHTML = '<div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div>';
-  const monday = wktGetMonday();
-  const mondayISO = monday.toISOString().split('T')[0];
-  await wktLoadWeekData(mondayISO);
-  wktRender(monday);
-  wktPopulateDropdown();
+  try {
+    const monday = wktGetMonday();
+    const mondayISO = monday.toISOString().split('T')[0];
+    await wktLoadWeekData(mondayISO);
+    wktRender(monday);
+    wktPopulateDropdown();
+  } catch(e) {
+    el.innerHTML = '<div style="padding:20px;color:red;font-weight:700">Error: ' + e.message + '</div>';
+    console.error('loadWkTracker:', e);
+  }
 }
 
 async function wktLoadWeekData(mondayISO) {
