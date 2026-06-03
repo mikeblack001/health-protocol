@@ -180,8 +180,8 @@ select.fe{cursor:pointer}
       <option value="Rope– Bar"><option value="Rope — Bar"><option value="UCLIO">
     </datalist>
     <div id="records" style="flex:1;overflow-y:auto;overflow-x:auto;padding:10px 14px">
-      <div class="empty">Select a date to load records</div>
-      <div id="cards-section" style="padding-top:16px"></div>
+      <div id="table-section"><div class="empty">Select a date to load records</div></div>
+      <div id="cards-section" style="padding-top:8px"></div>
     </div>
   </div>
 </div>
@@ -646,7 +646,7 @@ function initGridDrag(){
 
 // ── RENDER RECORDS ────────────────────────────────────────────────────
 function renderRecordsOrdered(order){
-  if(!logRecs.length){document.getElementById('records').innerHTML='<div class="empty">No sets for this date</div>';return;}
+  if(!logRecs.length){document.getElementById('table-section').innerHTML='<div class="empty">No sets for this date</div>';document.getElementById('cards-section').innerHTML='';return;}
   const sorted=[...logRecs].filter(r=>r.fields[LOG.ex]).sort((a,b)=>{
     const ak=(a.fields[LOG.ex]||'')+'||';
     const bk=(b.fields[LOG.ex]||'')+'||';
@@ -663,7 +663,7 @@ function renderRecordsOrdered(order){
   }
 }
 function renderRecords(){
-  if(!logRecs.length){document.getElementById('records').innerHTML='<div class="empty">No sets for this date</div>';return;}
+  if(!logRecs.length){document.getElementById('table-section').innerHTML='<div class="empty">No sets for this date</div>';document.getElementById('cards-section').innerHTML='';return;}
   // Sort by minimum set# per exercise — preserves original log order (matches PDF order)
   const exFirstSet={};
   logRecs.forEach(r=>{
@@ -786,7 +786,7 @@ function renderGroupedTable(sorted){
     html+='</tr>';
   });
   html+='</tbody></table></div>';
-  document.getElementById('records').innerHTML=html;
+  document.getElementById('table-section').innerHTML=html;
   initTableDrag();
 }
 
