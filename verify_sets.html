@@ -516,7 +516,7 @@ async function loadWeekGrid(date){
   ws.textContent='Loading…';
   const orParts=days.map(d=>`IS_SAME({${LOG.date}},"${d}","day")`).join(',');
   const q=encodeURIComponent(`OR(${orParts})`);
-  const flds=[LOG.date,LOG.compound,LOG.site,LOG.timing,LOG.dose,LOG.verified].map(f=>'fields%5B%5D='+f).join('&');
+  const flds=[LOG.date,LOG.ex,LOG.setN,LOG.reps,LOG.wt].map(f=>'fields%5B%5D='+f).join('&');
   let recs=[],off=null;
   try{
     do{
@@ -636,38 +636,7 @@ function initGridDrag(){
 }
 
 
-async function saveRowOrderToAT(orderedKeys, weekDate) {
-  const useDate = weekDate || curDate;
-  if (!useDate) return;
-  try {
-    const compoundOrder = {};
-    orderedKeys.forEach((key, idx) => {
-      const compound = key.split('||')[0];
-      if (compound && compound !== 'Week Note' && (!compoundOrder[compound] || idx < compoundOrder[compound])) {
-        compoundOrder[compound] = idx + 1;
-      }
-    });
-    const days = getWkDates(useDate);
-    const orParts = days.map(d => `IS_SAME({${LOG.date}},"${d}","day")`).join(',');
-    const url = `https://api.airtable.com/v0/${AT_BASE}/${LOG.tbl}?filterByFormula=OR(${encodeURIComponent(orParts)})&fields[]=Compound&fields[]=fldoGvhlbs8oHCRjP&pageSize=100`;
-    const resp = await fetch(url, { headers: { Authorization: `Bearer ${AT_TOK}` } });
-    const data = await resp.json();
-    const updates = [];
-    (data.records || []).forEach(r => {
-      const c = Array.isArray(r.fields['Compound']) ? r.fields['Compound'][0] : r.fields['Compound'];
-      if (c && compoundOrder[c] !== undefined) {
-        updates.push({ id: r.id, fields: { 'fldoGvhlbs8oHCRjP': compoundOrder[c] } });
-      }
-    });
-    for (let i = 0; i < updates.length; i += 10) {
-      await fetch(`https://api.airtable.com/v0/${AT_BASE}/${LOG.tbl}`, {
-        method: 'PATCH',
-        headers: { Authorization: `Bearer ${AT_TOK}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ records: updates.slice(i, i + 10) })
-      });
-    }
-  } catch(e) { console.error('saveRowOrderToAT failed:', e); }
-}
+async function saveRowOrderToAT(orderedKeys, weekDate) { /* not used for workout sets */ }
 
 async function verifyWeek(){
   if(!curDate){setSt('Select a date first');return;}
@@ -1281,7 +1250,7 @@ window.onload=()=>{
   document.getElementById('pp-id').value=LS.get('pdf')||'1eYtQT3c14psKbxRkKtbLoNtiLFEnOFhF';
   // Populate quickAdd compound dropdown from CMPS (A-Z)
   const qCmp=document.getElementById('q-cmp');
-  qCmp.innerHTML='<option value="">Compound…</option>'+CMPS.map(c=>`<option>${c}</option>`).join('');
+  qCmp.innerHTML='<option value="">Exercise…</option>'+CMPS.map(c=>`<option>${c}</option>`).join('');
   qCmp.onchange=qCmpChange;
   loadDates();
 
