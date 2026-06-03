@@ -4629,14 +4629,14 @@ function renderPurchases() {
     ${filtered.map(r => {
       const f = r.fields;
       const total = f['Total'] || f['Price Paid'] || 0;
-      const pricePerItem = f['Qty'] ? (total / f['Qty']) : total;
+      const pricePerItem = (f['Qty'] && f['Qty'] > 1) ? (total / f['Qty']) : total;
       return `<tr>
         <td style="font-family:'DM Mono',monospace;font-size:12px">${f['Date'] || '—'}</td>
         <td style="font-weight:500">${f['Vendor'] || '—'}</td>
         <td>${f['Compound'] || '—'}</td>
         <td style="font-family:'DM Mono',monospace;font-size:12px;text-align:center">${f['Qty'] || '—'}</td>
         <td style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)">${f['Vial Size'] || '—'}</td>
-        <td style="font-family:'DM Mono',monospace;font-size:12px">${f['Qty'] && f['Price Paid'] ? '$' + (f['Price Paid'] / f['Qty']).toFixed(2) : f['Price Paid'] ? '$' + f['Price Paid'].toFixed(2) : '—'}</td>
+        <td style="font-family:'DM Mono',monospace;font-size:12px">${pricePerItem ? '$' + pricePerItem.toFixed(2) : '—'}</td>
         <td style="font-family:'DM Mono',monospace;font-size:12px;font-weight:500;color:var(--accent)">${total ? '$' + total.toFixed(2) : '—'}</td>
         <td style="font-size:11px;color:var(--muted)">${f['Order ID'] || '—'}</td>
         <td style="font-size:12px;color:var(--muted)">${f['Notes'] || ''}</td>
