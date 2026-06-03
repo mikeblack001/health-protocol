@@ -180,6 +180,7 @@ select.fe{cursor:pointer}
       <option value="Rope– Bar"><option value="Rope — Bar"><option value="UCLIO">
     </datalist>
     <div id="records"><div class="empty">Select a date to load records</div></div>
+    <div id="cards-section" style="padding:0 14px 30px"></div>
   </div>
 </div>
 
@@ -676,6 +677,41 @@ function renderRecords(){
   renderGroupedTable(sorted);
   renderCards(sorted);
 }
+function renderCards(sorted){
+  const el=document.getElementById('cards-section');
+  if(!el)return;
+  if(!sorted.length){el.innerHTML='';return;}
+  const exOpts=CMPS.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('');
+  el.innerHTML=sorted.map(r=>{
+    const f=r.fields;
+    const ex=f[LOG.ex]||'';
+    const setN=f[LOG.setN]||'';
+    const reps=f[LOG.reps]||'';
+    const wt=f[LOG.wt]||'';
+    const variation=f[LOG.var]||'';
+    const verified=f[LOG.verified]===true;
+    return`<div class="card ${verified?'verified':'unverified'}" id="card_${r.id}" style="margin-bottom:6px">
+      <div class="card-body">
+        <span style="font-size:13px;font-weight:800;color:#1e2433;min-width:140px">${esc(ex)}</span>
+        <span style="font-size:10px;color:#9ca3af;font-weight:600;flex-shrink:0">S${esc(setN)}</span>
+        <input list="var-list" value="${esc(variation)}" placeholder="Variation" style="width:110px;padding:3px 6px;border:1px solid #d1d5db;border-radius:4px;font-size:12px;background:#f9fafb"
+          onblur="saveField('${r.id}','${LOG.var}',this.value||null)"
+          onkeydown="if(event.key==='Enter')this.blur()">
+        <input value="${esc(reps)}" placeholder="Reps" type="number" style="width:56px;padding:3px 6px;border:1px solid #bfdbfe;border-radius:4px;font-size:14px;font-weight:700;background:#dbeafe;color:#1d4ed8;text-align:center"
+          onblur="saveField('${r.id}','${LOG.reps}',parseFloat(this.value)||null)"
+          onkeydown="if(event.key==='Enter')this.blur()">
+        <input value="${esc(wt)}" placeholder="lbs" type="number" style="width:64px;padding:3px 6px;border:1px solid #fde68a;border-radius:4px;font-size:14px;font-weight:700;background:#fef3c7;color:#92400e;text-align:center"
+          onblur="saveField('${r.id}','${LOG.wt}',parseFloat(this.value)||null)"
+          onkeydown="if(event.key==='Enter')this.blur()">
+      </div>
+      <div class="card-actions">
+        <button class="abtn ${verified?'a-verified':'a-verify'}" onclick="toggleVerify('${r.id}',${verified})">${verified?'✓':'○'}</button>
+        <button class="abtn a-del" onclick="delRec('${r.id}')">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
 function renderGroupedTable(sorted){
   // Group by exercise, preserve order
   const groups={};const groupOrder=[];
