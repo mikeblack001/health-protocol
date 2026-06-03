@@ -625,64 +625,84 @@ function renderRecords(){
   renderGroupedTable(sorted);
 }
 function renderGroupedTable(sorted){
-  // Group sets by exercise
+  // Group by exercise, preserve order
   const groups={};const groupOrder=[];
   sorted.forEach(r=>{
     const ex=r.fields[LOG.ex]||'?';
     if(!groups[ex]){groups[ex]=[];groupOrder.push(ex);}
     groups[ex].push(r);
   });
-  let html='<table style="border-collapse:collapse;width:100%;font-size:13px">';
-  html+='<thead><tr style="background:#f1f5f9;border-bottom:2px solid #e2e5ea">';
-  html+='<th style="padding:6px 10px;text-align:left;font-size:11px;font-weight:700;color:#374151;min-width:180px">Exercise</th>';
-  html+='<th style="padding:6px 8px;text-align:center;font-size:11px;font-weight:700;color:#374151;width:40px">Set</th>';
-  html+='<th style="padding:6px 8px;text-align:center;font-size:11px;font-weight:700;color:#1d4ed8;width:70px">Reps</th>';
-  html+='<th style="padding:6px 8px;text-align:center;font-size:11px;font-weight:700;color:#92400e;width:80px">Weight</th>';
-  html+='<th style="padding:6px 8px;text-align:left;font-size:11px;font-weight:700;color:#374151">Variation</th>';
-  html+='<th style="padding:6px 8px;width:70px"></th>';
+  // Max sets across all exercises
+  const maxSets=Math.max(1,...Object.values(groups).map(g=>g.length));
+
+  // Header: Exercise | S1 | Reps | Weight | S2 | Reps | Weight | ...
+  let html='<table style="border-collapse:collapse;width:100%;font-size:12px">';
+  html+='<thead><tr style="background:#1e2433;color:#fff">';
+  html+='<th style="padding:6px 10px;text-align:left;font-size:11px;min-width:160px;position:sticky;left:0;background:#1e2433">Exercise</th>';
+  for(let i=0;i<maxSets;i++){
+    html+=`<th style="padding:4px 8px;text-align:center;font-size:10px;font-weight:700;border-left:2px solid #374151;white-space:nowrap">S${i+1}</th>`;
+    html+=`<th style="padding:4px 6px;text-align:center;font-size:10px;color:#93c5fd">Reps</th>`;
+    html+=`<th style="padding:4px 6px;text-align:center;font-size:10px;color:#fcd34d">Wt</th>`;
+  }
+  html+='<th style="padding:4px 8px;font-size:10px">✓</th>';
   html+='</tr></thead><tbody>';
+
   groupOrder.forEach(ex=>{
     const recs=groups[ex];
     const allVerified=recs.every(r=>r.fields[LOG.verified]===true);
-    recs.forEach((r,i)=>{
-      const f=r.fields;
-      const setN=f[LOG.setN]||'';
-      const reps=f[LOG.reps]||'';
-      const wt=f[LOG.wt]||'';
-      const variation=f[LOG.var]||'';
-      const verified=f[LOG.verified]===true;
-      const rowBg=verified?'#f0fdf4':'#fff';
-      const borderTop=i===0?'border-top:2px solid #e2e5ea':'border-top:1px solid #f3f4f6';
-      html+=`<tr id="card_${r.id}" style="background:${rowBg};${borderTop}">`;
-      // Exercise name only on first row of group
-      if(i===0){
-        html+=`<td rowspan="${recs.length}" style="padding:6px 10px;font-weight:700;font-size:13px;vertical-align:top;border-right:2px solid #e2e5ea;background:${allVerified?'#dcfce7':'#f8fafc'}">${esc(ex)}</td>`;
+    const rowBg=allVerified?'#f0fdf4':'#fff';
+    html+=`<tr style="background:${rowBg};border-bottom:1px solid #e5e7eb">`;
+    html+=`<td style="padding:5px 10px;font-weight:700;font-size:12px;border-right:2px solid #e2e5ea;background:${allVerified?'#dcfce7':'#f8fafc'};position:sticky;left:0">${esc(ex)}</td>`;
+    for(let i=0;i<maxSets;i++){
+      const r=recs[i];
+      if(!r){
+        html+=`<td colspan="3" style="border-left:2px solid #f3f4f6"></td>`;
+      } else {
+        const f=r.fields;
+        const reps=f[LOG.reps]||'';
+        const wt=f[LOG.wt]||'';
+        const verified=f[LOG.verified]===true;
+        const setN=f[LOG.setN]||i+1;
+        html+=`<td style="padding:3px 4px;text-align:center;border-left:2px solid #e5e7eb;font-size:10px;color:#6b7280">S${esc(setN)}</td>`;
+        html+=`<td id="card_${r.id}" style="padding:2px 3px;text-align:center">
+          <input value="${esc(reps)}" placeholder="—" type="number" style="width:48px;padding:2px 4px;border:1px solid #bfdbfe;border-radius:4px;font-size:12px;font-weight:700;background:#dbeafe;color:#1d4ed8;text-align:center"
+            onblur="saveField('${r.id}','${LOG.reps}',parseFloat(this.value)||null)"
+            onkeydown="if(event.key==='Enter')this.blur()">
+        </td>`;
+        html+=`<td style="padding:2px 3px;text-align:center">
+          <input value="${esc(wt)}" placeholder="—" type="number" style="width:54px;padding:2px 4px;border:1px solid #fde68a;border-radius:4px;font-size:12px;font-weight:700;background:#fef3c7;color:#92400e;text-align:center"
+            onblur="saveField('${r.id}','${LOG.wt}',parseFloat(this.value)||null)"
+            onkeydown="if(event.key==='Enter')this.blur()">
+        </td>`;
       }
-      html+=`<td style="padding:4px 8px;text-align:center;font-size:11px;font-weight:600;color:#6b7280">S${esc(setN)}</td>`;
-      html+=`<td style="padding:3px 6px;text-align:center">
-        <input value="${esc(reps)}" placeholder="—" type="number" style="width:52px;padding:3px 6px;border:1px solid #bfdbfe;border-radius:4px;font-size:13px;font-weight:700;background:#dbeafe;color:#1d4ed8;text-align:center"
-          onblur="saveField('${r.id}','${LOG.reps}',parseFloat(this.value)||null)"
-          onkeydown="if(event.key==='Enter')this.blur()">
-      </td>`;
-      html+=`<td style="padding:3px 6px;text-align:center">
-        <input value="${esc(wt)}" placeholder="—" type="number" style="width:62px;padding:3px 6px;border:1px solid #fde68a;border-radius:4px;font-size:13px;font-weight:700;background:#fef3c7;color:#92400e;text-align:center"
-          onblur="saveField('${r.id}','${LOG.wt}',parseFloat(this.value)||null)"
-          onkeydown="if(event.key==='Enter')this.blur()">
-      </td>`;
-      html+=`<td style="padding:3px 6px">
-        <input value="${esc(variation)}" placeholder="Variation" style="width:100%;min-width:100px;padding:3px 6px;border:1px solid #e5e7eb;border-radius:4px;font-size:12px;background:#f9fafb"
-          onblur="saveField('${r.id}','${LOG.var}',this.value||null)"
-          onkeydown="if(event.key==='Enter')this.blur()">
-      </td>`;
-      html+=`<td style="padding:3px 6px;text-align:center;white-space:nowrap">
-        <button class="abtn ${verified?'a-verified':'a-verify'}" onclick="toggleVerify('${r.id}',${verified})">${verified?'✓':'○'}</button>
-        <button class="abtn a-del" onclick="delRec('${r.id}')" style="margin-left:2px">✕</button>
-      </td>`;
-      html+='</tr>';
-    });
+    }
+    // Verify button — one per exercise row
+    const anyId=recs[0]?.id;
+    const allV=recs.every(r=>r.fields[LOG.verified]===true);
+    html+=`<td style="padding:3px 6px;text-align:center;white-space:nowrap">
+      <button class="abtn ${allV?'a-verified':'a-verify'}" onclick="toggleExVerify('${ex}',${allV})" title="${allV?'Unverify all':'Verify all'}">${allV?'✓':'○'}</button>
+    </td>`;
+    html+='</tr>';
   });
   html+='</tbody></table>';
   document.getElementById('records').innerHTML=html;
+}
+
+async function toggleExVerify(ex, currentVerified){
+  const newVal=!currentVerified;
+  const recs=logRecs.filter(r=>r.fields[LOG.ex]===ex);
+  setSt('Saving…');
+  try{
+    for(let i=0;i<recs.length;i+=10){
+      const batch=recs.slice(i,i+10).map(r=>({id:r.id,fields:{[LOG.verified]:newVal}}));
+      await atFetch(LOG.tbl,{method:'PATCH',body:JSON.stringify({records:batch,returnFieldsByFieldId:true})});
+    }
+    recs.forEach(r=>r.fields[LOG.verified]=newVal);
+    const allV2=logRecs.every(r=>r.fields[LOG.verified]===true);
+    updateVerifyBtn(allV2);
+    loadWeekGrid(curDate);
+    setSt(newVal?'✓ Verified':'✓ Unverified');
+  }catch(e){setSt('Error: '+e.message);}
 }
 
 function cardHTML(r){
