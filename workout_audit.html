@@ -669,47 +669,47 @@ function renderGroupedTable(sorted){
     if(!groups[ex]){groups[ex]=[];groupOrder.push(ex);}
     groups[ex].push(r);
   });
-  // Max sets across all exercises
   const maxSets=Math.max(1,...Object.values(groups).map(g=>g.length));
 
-  // Header: Exercise | S1 | Reps | Weight | S2 | Reps | Weight | ...
-  let html='<table style="border-collapse:collapse;width:100%;font-size:12px">';
+  // Layout matching PDF: ⠿ | Exercise | Variant | S1 Reps | S1 Wt | S2 Reps | S2 Wt | ...| ✓
+  let html='<div style="overflow-x:auto"><table id="pdf-table" style="border-collapse:collapse;width:100%;font-size:12px">';
   html+='<thead><tr style="background:#1e2433;color:#fff">';
-  html+='<th style="padding:6px 10px;text-align:left;font-size:11px;min-width:160px;position:sticky;left:0;background:#1e2433">Exercise</th>';
+  html+='<th style="padding:4px 6px;width:24px"></th>'; // drag handle
+  html+='<th style="padding:6px 10px;text-align:left;font-size:11px;min-width:150px">Exercise</th>';
+  html+='<th style="padding:4px 8px;text-align:center;font-size:10px;color:#d1d5db;min-width:90px">Variation</th>';
   for(let i=0;i<maxSets;i++){
-    html+=`<th style="padding:4px 8px;text-align:center;font-size:10px;font-weight:700;border-left:2px solid #374151;white-space:nowrap">S${i+1}</th>`;
-    html+=`<th style="padding:4px 6px;text-align:center;font-size:10px;color:#d1d5db;min-width:90px">Var</th>`;
-    html+=`<th style="padding:4px 6px;text-align:center;font-size:10px;color:#93c5fd;min-width:52px">Reps</th>`;
-    html+=`<th style="padding:4px 6px;text-align:center;font-size:10px;color:#fcd34d;min-width:58px">Wt</th>`;
+    html+=`<th style="padding:4px 6px;text-align:center;font-size:10px;color:#93c5fd;border-left:2px solid #374151;min-width:52px">S${i+1} Reps</th>`;
+    html+=`<th style="padding:4px 6px;text-align:center;font-size:10px;color:#fcd34d;min-width:56px">S${i+1} Wt</th>`;
   }
-  html+='<th style="padding:4px 8px;font-size:10px">✓</th>';
-  html+='</tr></thead><tbody>';
+  html+='<th style="padding:4px 8px;font-size:10px;width:32px">✓</th>';
+  html+='</tr></thead><tbody id="pdf-tbody">';
 
   groupOrder.forEach(ex=>{
     const recs=groups[ex];
-    const allVerified=recs.every(r=>r.fields[LOG.verified]===true);
-    const rowBg=allVerified?'#f0fdf4':'#fff';
-    html+=`<tr style="background:${rowBg};border-bottom:1px solid #e5e7eb">`;
-    html+=`<td style="padding:5px 10px;font-weight:700;font-size:12px;border-right:2px solid #e2e5ea;background:${allVerified?'#dcfce7':'#f8fafc'};position:sticky;left:0">${esc(ex)}</td>`;
+    const allV=recs.every(r=>r.fields[LOG.verified]===true);
+    const rowBg=allV?'#f0fdf4':'#fff';
+    const firstRec=recs[0];
+    const variation=firstRec?firstRec.fields[LOG.var]||'':'';
+    const firstId=firstRec?firstRec.id:'';
+    const exKey=ex+'||';
+    html+=`<tr data-key="${esc(exKey)}" data-cmp="${esc(ex)}" style="background:${rowBg};border-bottom:1px solid #e5e7eb">`;
+    html+=`<td style="padding:3px 4px;text-align:center;color:#9ca3af;cursor:grab;font-size:14px;user-select:none">⠿</td>`;
+    html+=`<td style="padding:5px 10px;font-weight:700;font-size:13px;border-right:1px solid #e2e5ea;background:${allV?'#dcfce7':'#f8fafc'}">${esc(ex)}</td>`;
+    html+=`<td style="padding:2px 4px;text-align:center">
+      <input value="${esc(variation)}" placeholder="—" style="width:90px;padding:3px 5px;border:1px solid #e5e7eb;border-radius:4px;font-size:12px;background:#f9fafb;text-align:center"
+        onblur="saveExVar('${esc(ex)}',this.value)"
+        onkeydown="if(event.key==='Enter')this.blur()">
+    </td>`;
     for(let i=0;i<maxSets;i++){
       const r=recs[i];
       if(!r){
-        html+=`<td colspan="4" style="border-left:2px solid #f3f4f6"></td>`;
+        html+=`<td style="border-left:2px solid #f3f4f6"></td><td></td>`;
       } else {
         const f=r.fields;
         const reps=f[LOG.reps]||'';
         const wt=f[LOG.wt]||'';
-        const verified=f[LOG.verified]===true;
-        const setN=f[LOG.setN]||i+1;
-        const variation=r.fields[LOG.var]||'';
-        html+=`<td style="padding:3px 4px;text-align:center;border-left:2px solid #e5e7eb;font-size:10px;color:#6b7280;white-space:nowrap">S${esc(setN)}</td>`;
-        html+=`<td id="card_${r.id}" style="padding:2px 3px;text-align:center">
-          <input value="${esc(variation)}" placeholder="—" style="width:90px;padding:3px 5px;border:1px solid #e5e7eb;border-radius:4px;font-size:12px;background:#f9fafb;text-align:center"
-            onblur="saveField('${r.id}','${LOG.var}',this.value||null)"
-            onkeydown="if(event.key==='Enter')this.blur()">
-        </td>`;
-        html+=`<td style="padding:2px 3px;text-align:center">
-          <input value="${esc(reps)}" placeholder="—" type="number" style="width:52px;padding:3px 5px;border:1px solid #bfdbfe;border-radius:4px;font-size:15px;font-weight:700;background:#dbeafe;color:#1d4ed8;text-align:center"
+        html+=`<td style="padding:2px 3px;text-align:center;border-left:2px solid #e5e7eb">
+          <input value="${esc(reps)}" placeholder="—" type="number" id="card_${r.id}" style="width:52px;padding:3px 5px;border:1px solid #bfdbfe;border-radius:4px;font-size:15px;font-weight:700;background:#dbeafe;color:#1d4ed8;text-align:center"
             onblur="saveField('${r.id}','${LOG.reps}',parseFloat(this.value)||null)"
             onkeydown="if(event.key==='Enter')this.blur()">
         </td>`;
@@ -720,16 +720,64 @@ function renderGroupedTable(sorted){
         </td>`;
       }
     }
-    // Verify button — one per exercise row
-    const anyId=recs[0]?.id;
-    const allV=recs.every(r=>r.fields[LOG.verified]===true);
-    html+=`<td style="padding:3px 6px;text-align:center;white-space:nowrap">
-      <button class="abtn ${allV?'a-verified':'a-verify'}" onclick="toggleExVerify('${ex}',${allV})" title="${allV?'Unverify all':'Verify all'}">${allV?'✓':'○'}</button>
+    html+=`<td style="padding:3px 6px;text-align:center">
+      <button class="abtn ${allV?'a-verified':'a-verify'}" onclick="toggleExVerify('${esc(ex)}',${allV})">${allV?'✓':'○'}</button>
     </td>`;
     html+='</tr>';
   });
-  html+='</tbody></table>';
+  html+='</tbody></table></div>';
   document.getElementById('records').innerHTML=html;
+  initTableDrag();
+}
+
+// Save variation to all sets of an exercise
+async function saveExVar(ex, value){
+  const recs=logRecs.filter(r=>r.fields[LOG.ex]===ex);
+  if(!recs.length)return;
+  setSt('Saving…');
+  try{
+    for(let i=0;i<recs.length;i+=10){
+      const batch=recs.slice(i,i+10).map(r=>({id:r.id,fields:{[LOG.var]:value||null}}));
+      await atFetch(LOG.tbl,{method:'PATCH',body:JSON.stringify({records:batch,returnFieldsByFieldId:true})});
+    }
+    recs.forEach(r=>r.fields[LOG.var]=value||null);
+    setSt('✓ Saved');
+  }catch(e){setSt('Error: '+e.message);}
+}
+
+function initTableDrag(){
+  const tbody=document.getElementById('pdf-tbody');
+  if(!tbody)return;
+  let src=null,lastOver=null;
+  const onStart=(e,row)=>{src=row;row.style.opacity='0.5';document.body.style.userSelect='none';};
+  const onOver=(target)=>{
+    if(!src||!target||target===src)return;
+    if(target===lastOver)return;
+    if(lastOver)lastOver.style.borderTop='';
+    target.style.borderTop='3px solid #2563eb';lastOver=target;
+  };
+  const onEnd=(target)=>{
+    if(!src)return;
+    if(src.style)src.style.opacity='';
+    if(lastOver)lastOver.style.borderTop='';
+    document.body.style.userSelect='';
+    if(target&&target!==src){
+      const rows=[...tbody.querySelectorAll('tr[data-key]')];
+      if(rows.indexOf(target)>rows.indexOf(src))tbody.insertBefore(src,target.nextSibling);
+      else tbody.insertBefore(src,target);
+      const order=[...tbody.querySelectorAll('tr[data-key]')].map(r=>r.dataset.key);
+      saveRowOrder(order,curDate);
+      setSt('✓ Order saved');
+    }
+    src=null;lastOver=null;
+  };
+  tbody.addEventListener('mousedown',e=>{const r=e.target.closest('tr[data-key]');if(r)onStart(e,r);});
+  tbody.addEventListener('mouseover',e=>{if(src)onOver(e.target.closest('tr[data-key]'));});
+  document.addEventListener('mouseup',e=>{if(src)onEnd(e.target.closest('tr[data-key]'));});
+  // Touch
+  tbody.addEventListener('touchstart',e=>{const r=e.target.closest('tr[data-key]');if(r){onStart(e,r);e.preventDefault();}},{passive:false});
+  tbody.addEventListener('touchmove',e=>{if(!src)return;e.preventDefault();const t=e.touches[0];onOver(document.elementFromPoint(t.clientX,t.clientY)?.closest('tr[data-key]'));},{passive:false});
+  tbody.addEventListener('touchend',e=>{if(!src)return;const t=e.changedTouches[0];onEnd(document.elementFromPoint(t.clientX,t.clientY)?.closest('tr[data-key]'));});
 }
 
 async function toggleExVerify(ex, currentVerified){
