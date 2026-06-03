@@ -269,7 +269,7 @@ function setDriveBtn(){
   else{b.textContent='🔴 Drive';b.className='no';}
 }
 function signIn(){
-  const redirect=location.origin+location.pathname;
+  const redirect=location.origin+'/health-protocol/injection_audit.html';
   location.href=`https://accounts.google.com/o/oauth2/v2/auth?client_id=${GCL_ID}&redirect_uri=${encodeURIComponent(redirect)}&response_type=token&scope=${encodeURIComponent(GSCOPE)}`;
 }
 
