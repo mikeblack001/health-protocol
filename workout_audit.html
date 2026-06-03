@@ -254,13 +254,6 @@ window.pg=1;window.pdfDoc=null;window.pdfInitLoad=true;let pickerFiles=[],picker
 
 // ── AUTH ──────────────────────────────────────────────────────────────
 function initAuth(){
-  if(location.hash&&location.hash.includes('access_token')){
-    const p=new URLSearchParams(location.hash.slice(1));
-    const tok=p.get('access_token'),exp=parseInt(p.get('expires_in')||3600);
-    if(tok){LS.set('gtok',tok);LS.set('gexp',Date.now()+exp*1000);gTok=tok;history.replaceState(null,'',location.pathname);setDriveBtn();}
-  }
-  const saved=LS.get('gtok'),exp=parseInt(LS.get('gexp')||0);
-  if(saved&&Date.now()<exp){gTok=saved;}
   setDriveBtn();
 }
 function setDriveBtn(){
@@ -269,8 +262,22 @@ function setDriveBtn(){
   else{b.textContent='🔴 Drive';b.className='no';}
 }
 function signIn(){
-  const redirect=location.origin+'/health-protocol/injection_audit.html';
-  location.href=`https://accounts.google.com/o/oauth2/v2/auth?client_id=${GCL_ID}&redirect_uri=${encodeURIComponent(redirect)}&response_type=token&scope=${encodeURIComponent(GSCOPE)}`;
+  const scope=encodeURIComponent(GSCOPE);
+  const redirect=encodeURIComponent(location.origin+location.pathname);
+  const url=`https://accounts.google.com/o/oauth2/v2/auth?client_id=${GCL_ID}&redirect_uri=${redirect}&response_type=token&scope=${scope}`;
+  const w=window.open(url,'gauth','width=500,height=600');
+  if(!w){alert('Pop-up blocked — allow pop-ups for this site');return;}
+  const chk=setInterval(()=>{
+    try{
+      if(w.closed){clearInterval(chk);return;}
+      const hash=w.location.hash;
+      if(hash&&hash.includes('access_token')){
+        clearInterval(chk);w.close();
+        gTok=new URLSearchParams(hash.substring(1)).get('access_token');
+        setDriveBtn();
+      }
+    }catch(e){}
+  },300);
 }
 
 // ── UTILITIES ─────────────────────────────────────────────────────────
