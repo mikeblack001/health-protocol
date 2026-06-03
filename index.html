@@ -3873,7 +3873,8 @@ function wktRender(monday) {
       dates.forEach((date, di) => {
         const dayRecs = (_wktWeekData[date] && _wktWeekData[date][exName]) || [];
         const count = dayRecs.length;
-        const onclick = `onclick="wktCellClick('${date}','${exName.replace(/'/g,"\\'")}',this)"`;
+        const safeEx = exName.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+        const onclick = `onclick="wktCellClick('${date}','${safeEx}',this)"`;
         if (!count) {
           html += `<td ${onclick} style="border:1px solid #ccc;text-align:center;cursor:pointer;background:${bg};min-width:52px;padding:4px 2px"></td>`;
         } else {
@@ -4075,7 +4076,11 @@ async function loadWkAudit() {
   try {
     let records = [], offset = null;
     do {
+      const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 365);
+      const cutoffISO = cutoff.toISOString().split('T')[0];
+      const auditFilter = encodeURIComponent(`IS_AFTER({${WKT.date}},"${cutoffISO}")`);
       let url = `https://api.airtable.com/v0/${BASE}/${WKT.tbl}?returnFieldsByFieldId=true&pageSize=100`
+        + `&filterByFormula=${auditFilter}`
         + `&fields[]=${WKT.date}&fields[]=${WKT.ex}&fields[]=${WKT.setN}&fields[]=${WKT.reps}&fields[]=${WKT.wt}&fields[]=${WKT.var}&fields[]=${WKT.day}`
         + `&sort[0][field]=${WKT.date}&sort[0][direction]=asc`;
       if (offset) url += '&offset=' + encodeURIComponent(offset);
