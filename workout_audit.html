@@ -659,6 +659,7 @@ function renderRecords(){
     return(a.fields[LOG.setN]||0)-(b.fields[LOG.setN]||0);
   });
   renderGroupedTable(sorted);
+  renderCards(sorted);
 }
 function renderGroupedTable(sorted){
   // Group by exercise, preserve order
