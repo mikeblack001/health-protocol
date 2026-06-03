@@ -253,21 +253,20 @@ let curDate=null,logRecs=[],allDates=[],gTok=null;
 window.pg=1;window.pdfDoc=null;window.pdfInitLoad=true;let pickerFiles=[],pickerStack=[{id:'root',name:'My Drive'}];
 
 // ── AUTH ──────────────────────────────────────────────────────────────
-function initAuth(){
-  setDriveBtn();
-}
+function initAuth(){setDriveBtn();}
 function setDriveBtn(){
   const b=document.getElementById('drive-btn');
   if(gTok){b.textContent='🟢 Drive';b.className='ok';}
   else{b.textContent='🔴 Drive';b.className='no';}
 }
 function signIn(){
+  if(gTok){setSt('Already signed in');return;}
   const scope=encodeURIComponent(GSCOPE);
   const redirect=encodeURIComponent(location.origin+location.pathname);
-  const url=`https://accounts.google.com/o/oauth2/v2/auth?client_id=${GCL_ID}&redirect_uri=${redirect}&response_type=token&scope=${scope}`;
+  const url='https://accounts.google.com/o/oauth2/v2/auth?client_id='+GCL_ID+'&redirect_uri='+redirect+'&response_type=token&scope='+scope;
   const w=window.open(url,'gauth','width=500,height=600');
   if(!w){alert('Pop-up blocked — allow pop-ups for this site');return;}
-  const chk=setInterval(()=>{
+  const chk=setInterval(function(){
     try{
       if(w.closed){clearInterval(chk);return;}
       const hash=w.location.hash;
@@ -275,6 +274,7 @@ function signIn(){
         clearInterval(chk);w.close();
         gTok=new URLSearchParams(hash.substring(1)).get('access_token');
         setDriveBtn();
+        setSt('Drive connected');
       }
     }catch(e){}
   },300);
