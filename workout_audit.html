@@ -173,6 +173,12 @@ select.fe{cursor:pointer}
     </div>
 
     <!-- RECORDS -->
+    <datalist id="var-list">
+      <option value="Rope 1/2"><option value="DBs"><option value="EZ-Bar"><option value="Bar">
+      <option value="V-Bar"><option value="Rope"><option value="Cable - 2 Hand"><option value="UClip">
+      <option value="Lat Machine"><option value="Smith Machine"><option value="Cables">
+      <option value="Rope– Bar"><option value="Rope — Bar"><option value="UCLIO">
+    </datalist>
     <div id="records"><div class="empty">Select a date to load records</div></div>
   </div>
 </div>
@@ -333,10 +339,19 @@ async function loadDates(){
     byDate[dt].total++;
     if(r.fields[LOG.verified]===true)byDate[dt].verified++;
   });
-  const firstUnverified=allDates.slice().reverse().find(d=>byDate[d]&&byDate[d].verified<byDate[d].total);
-  if(firstUnverified)setDate(firstUnverified);
-  else if(allDates.length)setDate(allDates[allDates.length-1]);
+  // Find first unverified date (oldest first — same as injection audit)
+  let target=allDates[0];
+  for(let i=0;i<allDates.length;i++){
+    const s=byDate[allDates[i]];
+    if(s&&s.total>0&&s.verified===s.total){
+      if(i+1<allDates.length)target=allDates[i+1];
+      else target=allDates[i];
+    } else {
+      target=allDates[i];break;
+    }
+  }
   setSt('');
+  setDate(target);
 }
 
 function buildDateSel(){
@@ -676,7 +691,7 @@ function renderGroupedTable(sorted){
   html+='<thead><tr style="background:#1e2433;color:#fff">';
   html+='<th style="padding:4px 6px;width:24px"></th>'; // drag handle
   html+='<th style="padding:6px 10px;text-align:left;font-size:11px;min-width:150px">Exercise</th>';
-  html+='<th style="padding:4px 8px;text-align:center;font-size:10px;color:#d1d5db;min-width:90px">Variation</th>';
+  html+='<th style="padding:4px 8px;text-align:center;font-size:10px;color:#d1d5db;min-width:150px">Variation</th>';
   for(let i=0;i<maxSets;i++){
     html+=`<th style="padding:4px 6px;text-align:center;font-size:10px;color:#93c5fd;border-left:2px solid #374151;min-width:52px">S${i+1} Reps</th>`;
     html+=`<th style="padding:4px 6px;text-align:center;font-size:10px;color:#fcd34d;min-width:56px">S${i+1} Wt</th>`;
@@ -696,7 +711,7 @@ function renderGroupedTable(sorted){
     html+=`<td style="padding:3px 4px;text-align:center;color:#9ca3af;cursor:grab;font-size:14px;user-select:none">⠿</td>`;
     html+=`<td style="padding:5px 10px;font-weight:700;font-size:13px;border-right:1px solid #e2e5ea;background:${allV?'#dcfce7':'#f8fafc'}">${esc(ex)}</td>`;
     html+=`<td style="padding:2px 4px;text-align:center">
-      <input value="${esc(variation)}" placeholder="—" style="width:90px;padding:3px 5px;border:1px solid #e5e7eb;border-radius:4px;font-size:12px;background:#f9fafb;text-align:center"
+      <input list="var-list" value="${esc(variation)}" placeholder="—" style="width:140px;padding:4px 6px;border:1px solid #d1d5db;border-radius:4px;font-size:13px;background:#fff"
         onblur="saveExVar('${esc(ex)}',this.value)"
         onkeydown="if(event.key==='Enter')this.blur()">
     </td>`;
