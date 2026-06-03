@@ -567,9 +567,7 @@ async function loadWeekGrid(date){
       const onclick=`onclick="gridCellClick('${d}','${esc(cmp)}','${esc(timing)}')"`;
       if(!cell||!cell.n){h+=`<td ${onclick} style="cursor:pointer"></td>`;}
       else{
-        const siteVal=cell.sites.length?cell.sites[0]:'X';
-        const sc=siteColor(siteVal);
-        h+=`<td ${onclick} style="cursor:pointer;background:${sc.bg};color:${sc.fg};font-weight:800;font-size:11px">${esc(siteVal)}</td>`;
+        h+=`<td ${onclick} style="cursor:pointer;background:#dbeafe;color:#1e40af;font-weight:800;font-size:11px">${cell.n}</td>`;
       }
     });
     h+=`</tr>`;
@@ -577,16 +575,9 @@ async function loadWeekGrid(date){
   h+=`</tbody>`;
   wg.innerHTML=h;
   ws.textContent=orderedKeys.length+' compounds';
-  // Update Verify Week button color based on week verification status
+  // Show set count in week status
   const wBtn=document.getElementById('verify-week-btn');
-  if(wBtn){
-    const totalRecs=recs.length;
-    const verifiedRecs=recs.filter(r=>r.fields[LOG.verified]===true).length;
-    const weekDone=totalRecs>0&&verifiedRecs===totalRecs;
-    wBtn.style.background=weekDone?'#16a34a':'#eab308';
-    wBtn.style.borderColor=weekDone?'#16a34a':'#eab308';
-    wBtn.textContent=weekDone?'✓ Week Verified':'✓ Verify Week';
-  }
+  if(wBtn){wBtn.style.background=recs.length>0?'#16a34a':'#9ca3af';wBtn.textContent=recs.length>0?'✓ Week Logged':'— No Sets';}
   initGridDrag();
   renderRecordsOrdered(orderedKeys);
 }
@@ -640,36 +631,12 @@ async function saveRowOrderToAT(orderedKeys, weekDate) { /* not used for workout
 
 async function verifyWeek(){
   if(!curDate){setSt('Select a date first');return;}
+  setSt('Week of '+curDate+' — '+logRecs.length+' sets logged');
+  // Jump to next week that has records
   const days=getWkDates(curDate);
-  setSt('Verifying week…');
-  // Fetch all unverified records for the week
-  const orParts=days.map(d=>`IS_SAME({${LOG.date}},"${d}","day")`).join(',');
-  const q=encodeURIComponent(`AND(OR(${orParts}),{${LOG.verified}}=FALSE())`);
-  let recs=[],off=null;
-  try{
-    do{
-      const d=await atFetch(LOG.tbl+'?filterByFormula='+q+'&returnFieldsByFieldId=true&pageSize=100'+(off?'&offset='+off:''));
-      recs=recs.concat(d.records);off=d.offset;
-    }while(off);
-    if(!recs.length){setSt('Week already verified');return;}
-    // Patch in batches of 10
-    for(let i=0;i<recs.length;i+=10){
-      const batch=recs.slice(i,i+10).map(r=>({id:r.id,fields:{[LOG.verified]:true}}));
-      await atFetch(LOG.tbl,{method:'PATCH',body:JSON.stringify({records:batch,returnFieldsByFieldId:true})});
-    }
-    setSt('✓ Week verified ('+recs.length+' records)');
-    // Save current row order to AT before navigating away
-    const visibleKeys=[...document.querySelectorAll('#wgrid tbody tr[data-key]')].map(r=>r.dataset.key);
-    if(visibleKeys.length)await saveRowOrderToAT(visibleKeys,curDate);
-    // Flash verify week button green then back to yellow
-    const wBtn=document.getElementById('verify-week-btn');
-    if(wBtn){wBtn.style.background='#16a34a';wBtn.style.borderColor='#16a34a';wBtn.textContent='✓ Verified!';}
-    // Jump to first date after this week that has unverified records
-    const lastDayOfWeek=days[days.length-1];
-    const nextDate=allDates.find(d=>d>lastDayOfWeek);
-    if(nextDate)setTimeout(()=>setDate(nextDate),1200);
-    else await setDate(curDate);
-  }catch(e){setSt('Error: '+e.message);}
+  const lastDayOfWeek=days[days.length-1];
+  const nextDate=allDates.find(d=>d>lastDayOfWeek);
+  if(nextDate)setTimeout(()=>setDate(nextDate),800);
 }
 
 let cmDate=null,cmCmp=null;
@@ -696,43 +663,32 @@ async function gridCellClick(date,cmp,timing=''){
     cmDate=date;cmCmp=cmp;
     document.getElementById('cm-title').textContent=cmp+' — '+date;
     document.getElementById('cm-dose').value='';
-    document.getElementById('cm-site').selectedIndex=0;
-    document.getElementById('cm-timing').selectedIndex=0;
-    document.getElementById('cm-existing').innerHTML='<i>Loading…</i>';
+    document.getElementById('cm-site').value='';
+    document.getElementById('cm-existing').innerHTML='<i>Loading last set…</i>';
     document.getElementById('cm').style.display='flex';
-    // Fetch most recent record specifically for this compound
+    // Fetch most recent set for this exercise
     try{
-      // Use {Compound}="name" — standard AT formula with actual field name
-      // Filter to records BEFORE curDate so we get the last used dose for this date context
-      const beforeFilter=encodeURIComponent('AND({Compound}="'+cmp+'",IS_BEFORE({Date},"'+cmDate+'"))');
+      const beforeFilter=encodeURIComponent('AND({Exercise}="'+cmp+'",IS_BEFORE({Date},"'+cmDate+'"))');
       const d=await atFetch(LOG.tbl+'?filterByFormula='+beforeFilter+'&sort%5B0%5D%5Bfield%5D='+LOG.date+'&sort%5B0%5D%5Bdirection%5D=desc&returnFieldsByFieldId=true&pageSize=1');
       const rec=d.records?.[0];
       if(rec){
         const f=rec.fields;
         const fromDate=(f[LOG.date]||'').slice(0,10);
-        if(f[LOG.dose])document.getElementById('cm-dose').value=f[LOG.dose];
-        const site=f[LOG.site]||'';
-        const siteEl=document.getElementById('cm-site');
-        [...siteEl.options].forEach((o,i)=>{if(o.value===site||o.text===site)siteEl.selectedIndex=i;});
-        const timing=f[LOG.timing]||'';
-        const timingEl=document.getElementById('cm-timing');
-        [...timingEl.options].forEach((o,i)=>{if(o.value===timing||o.text===timing)timingEl.selectedIndex=i;});
-        document.getElementById('cm-existing').innerHTML=`<i>From ${fromDate} — update if dose changed</i>`;
+        if(f[LOG.wt])document.getElementById('cm-site').value=f[LOG.wt];
+        document.getElementById('cm-existing').innerHTML=`<i>Last set ${fromDate}: ${f[LOG.reps]||'?'} reps @ ${f[LOG.wt]||'?'} lbs</i>`;
       } else {
-        document.getElementById('cm-existing').innerHTML='<i>No prior records found</i>';
+        document.getElementById('cm-existing').innerHTML='<i>No prior sets found</i>';
       }
-    }catch(e){document.getElementById('cm-existing').innerHTML='<i>No records for this compound on this date</i>';}
+    }catch(e){document.getElementById('cm-existing').innerHTML='<i>Could not load prior sets</i>';}
   }
 }
 function closeCM(){document.getElementById('cm').style.display='none';}
 async function cmSave(){
   const fields={};
   fields[LOG.date]=cmDate;
-  fields[LOG.compound]=cmCmp;
-  fields[LOG.name]=cmCmp;
-  const dose=document.getElementById('cm-dose').value;if(dose)fields[LOG.dose]=dose;
-  const site=document.getElementById('cm-site').value;if(site)fields[LOG.site]=site;
-  const timing=document.getElementById('cm-timing').value;if(timing)fields[LOG.timing]=timing;
+  fields[LOG.ex]=cmCmp;
+  const reps=document.getElementById('cm-dose').value;if(reps)fields[LOG.reps]=parseInt(reps)||0;
+  const wt=document.getElementById('cm-site').value;if(wt)fields[LOG.wt]=parseFloat(wt)||0;
   try{
     const res=await atFetch(LOG.tbl+'?returnFieldsByFieldId=true',{method:'POST',body:JSON.stringify({fields,typecast:true})});
     setSt('✓ Added '+cmCmp+' to '+cmDate);
@@ -863,50 +819,20 @@ async function reloadLog(){if(curDate)await setDate(curDate);}
 
 // Date-level verification — stores one checkbox per date using Injection Verified field
 // We mark ALL records for the date as verified (or unverified) at once
-let dateVerified=false;
-
-function updateVerifyBtn(verified){
-  dateVerified=verified;
-  const btn=document.getElementById('verify-date-btn');
-  if(!btn)return;
-  if(verified){btn.textContent='✓ Date Verified';btn.style.background='#15803d';btn.style.borderColor='#15803d';}
-  else{btn.textContent='○ Mark Date Verified';btn.style.background='#eab308';btn.style.borderColor='#eab308';}
-}
-
-async function toggleDateVerified(){
-  if(!logRecs.length){setSt('No records to verify');return;}
-  const newVal=!dateVerified;
-  setSt('Saving…');
-  try{
-    // Update all records for this date
-    for(let i=0;i<logRecs.length;i+=10){
-      const batch=logRecs.slice(i,i+10);
-      const records=batch.map(r=>({id:r.id,fields:{[LOG.verified]:newVal}}));
-      await atFetch(LOG.tbl,{method:'PATCH',body:JSON.stringify({records,returnFieldsByFieldId:true})});
-    }
-    logRecs.forEach(r=>r.fields[LOG.verified]=newVal);
-    updateVerifyBtn(newVal);
-    setSt(newVal?'✓ Date verified':'✓ Date unverified');
-    // Auto-advance to next date when marking verified
-    if(newVal){
-      const i=allDates.indexOf(curDate);
-      if(i>=0&&i+1<allDates.length)setTimeout(()=>setDate(allDates[i+1]),400);
-    }
-  }catch(e){setSt('Error: '+e.message);}
-}
+// toggleDateVerified removed — Sets table has no verified field
 
 // ── RENDER ────────────────────────────────────────────────────────────
 function renderRecordsOrdered(order){
   if(!logRecs.length)return;
-  // Sort cards by compound||timing key to match grid order exactly
-  const sorted=[...logRecs].filter(r=>r.fields[LOG.compound]).sort((a,b)=>{
-    const ak=(a.fields[LOG.compound]||'')+'||'+(a.fields[LOG.timing]||'');
-    const bk=(b.fields[LOG.compound]||'')+'||'+(b.fields[LOG.timing]||'');
+  // Sort cards by exercise key to match grid order
+  const sorted=[...logRecs].filter(r=>r.fields[LOG.ex]).sort((a,b)=>{
+    const ak=(a.fields[LOG.ex]||'')+'||';
+    const bk=(b.fields[LOG.ex]||'')+'||';
     const ai=order.indexOf(ak), bi=order.indexOf(bk);
-    // Fall back to compound-only position for unmatched keys
-    const aFallback=ai===-1?order.findIndex(k=>k.split('||')[0]===(a.fields[LOG.compound]||'')):ai;
-    const bFallback=bi===-1?order.findIndex(k=>k.split('||')[0]===(b.fields[LOG.compound]||'')):bi;
-    return (aFallback===-1?999:aFallback)-(bFallback===-1?999:bFallback);
+    const aFallback=ai===-1?order.findIndex(k=>k.split('||')[0]===(a.fields[LOG.ex]||'')):ai;
+    const bFallback=bi===-1?order.findIndex(k=>k.split('||')[0]===(b.fields[LOG.ex]||'')):bi;
+    if(aFallback!==bFallback)return (aFallback===-1?999:aFallback)-(bFallback===-1?999:bFallback);
+    return (a.fields[LOG.setN]||0)-(b.fields[LOG.setN]||0);
   });
   document.getElementById('records').innerHTML=sorted.map(r=>cardHTML(r)).join('');
   if(window._highlightedCard){
@@ -986,16 +912,7 @@ async function saveField(id,field,value){
     if(i>=0){logRecs[i]={...logRecs[i],fields:{...logRecs[i].fields,...res.fields}};refreshCard(logRecs[i]);}
     flashSaved(id);
     updateGridCell(id);
-    const allV2=logRecs.length>0&&logRecs.every(r=>r.fields[LOG.verified]===true);
-    updateVerifyBtn(allV2);
     loadWeekGrid(curDate);
-    // Auto-log to ProtocolChanges when a note is saved
-    if(field===LOG.notes&&value&&value.trim()){
-      const rec=logRecs.find(r=>r.id===id);
-      const compound=rec?rec.fields[LOG.compound]:'';
-      const date=rec?rec.fields[LOG.date]:curDate;
-      logProtocolChange(compound,date,value.trim());
-    }
   }catch(e){setSt('Save error: '+e.message);}
 }
 
@@ -1024,48 +941,13 @@ async function logProtocolChange(compound,date,note){
 function updateGridCell(recId){
   const rec=logRecs.find(r=>r.id===recId);
   if(!rec)return;
-  const cmp=rec.fields[LOG.compound]||'';
-  const site=rec.fields[LOG.site]||'';
-  const dose=rec.fields[LOG.dose]||'';
-  const timing=rec.fields[LOG.timing]||'';
-  // Match by compound+timing key to handle duplicates like BPC-157 MOR/NIG
-  const key=cmp+'||'+timing;
+  const cmp=rec.fields[LOG.ex]||'';
+  const key=cmp+'||';
   let row=document.querySelector(`#wgrid tbody tr[data-key="${CSS.escape(key)}"]`);
-  // Fallback to compound-only if key not found
   if(!row)row=document.querySelector(`#wgrid tbody tr[data-cmp="${CSS.escape(cmp)}"]`);
   if(!row)return;
-  const label=row.querySelector('td');
-  if(label){
-    const handle=label.querySelector('.drag-handle');
-    const badge=label.querySelector('span:last-child');
-    // Rebuild inner content preserving drag handle and timing badge
-    const timingBadge=badge&&badge!==handle?badge.outerHTML:'';
-    const doseBadge=dose?`<span style="font-size:9px;font-weight:600;color:#2563eb;margin-left:4px">${esc(dose)}</span>`:'';
-    label.innerHTML=`<span class="drag-handle">⠿</span>${esc(cmp)}${doseBadge}${timingBadge}`;
-  }
-  // Update the cell for curDate
-  const days=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-  const hdr=[...document.querySelectorAll('#wgrid thead th')];
-  const colIdx=hdr.findIndex(th=>{
-    const d=th.querySelector('span');
-    if(!d)return false;
-    const txt=d.textContent.trim(); // MM-DD
-    const full='2025-'+txt; // approximate — use full date match
-    return curDate.endsWith(txt.replace('-','-'));
-  });
-  if(colIdx>0){
-    const cells=[...row.querySelectorAll('td')];
-    const cell=cells[colIdx];
-    if(cell){
-      if(!site&&!rec.fields[LOG.dose]){cell.textContent='';cell.style.background='';cell.style.color='';}
-      else{
-        const sc=siteColor(site||'X');
-        cell.style.background=sc.bg;cell.style.color=sc.fg;
-        cell.style.fontWeight='800';cell.style.fontSize='11px';
-        cell.textContent=site||'X';
-      }
-    }
-  }
+  // Reload grid to reflect updated count
+  loadWeekGrid(curDate);
 }
 function flashSaved(id){
   const card=document.getElementById('card_'+id);
@@ -1082,19 +964,13 @@ function refreshCard(r){
   const siteEl=el.querySelector('.fe-site');
   const timingEl=el.querySelector('.fe-timing');
   const cmpEl=el.querySelector('.fe-compound');
-  if(doseEl)doseEl.value=f[LOG.dose]||'';
-  if(siteEl)siteEl.value=f[LOG.site]||'';
-  if(timingEl)timingEl.value=f[LOG.timing]||'';
-  if(cmpEl)cmpEl.value=f[LOG.compound]||'';
-  const verified=f[LOG.verified]===true;
-  el.className='card '+(verified?'verified':'unverified');
-  const vBtn=el.querySelector('.abtn');
-  if(vBtn){vBtn.className='abtn '+(verified?'a-verified':'a-verify');vBtn.textContent=verified?'✓':'○';}
+  if(doseEl)doseEl.value=f[LOG.reps]||'';
+  if(siteEl)siteEl.value=f[LOG.wt]||'';
+  if(timingEl)timingEl.value=f[LOG.var]||'';
+  if(cmpEl)cmpEl.value=f[LOG.ex]||'';
 }
 
-async function toggleVerify(id,currentVerified){
-  await saveField(id,LOG.verified,currentVerified!==true);
-}
+// toggleVerify removed — Sets table has no verified field
 
 async function delRec(id){
   const card=document.getElementById('card_'+id);
@@ -1124,23 +1000,15 @@ function undoDel(e,id){
 async function qCmpChange(){
   const cmp=document.getElementById('q-cmp').value;
   if(!cmp)return;
-  // Clear fields while loading
-  document.getElementById('q-dose').value='';
-  document.getElementById('q-site').selectedIndex=0;
-  document.getElementById('q-timing').selectedIndex=0;
+  // Pre-fill last weight for this exercise
   try{
-    const beforeFilter=encodeURIComponent('AND({Compound}="'+cmp+'"'+(curDate?',IS_BEFORE({Date},"'+curDate+'")':'')+')');
+    const beforeFilter=encodeURIComponent('AND({Exercise}="'+cmp+'"'+(curDate?',IS_BEFORE({Date},"'+curDate+'")':'')+')');
     const d=await atFetch(LOG.tbl+'?filterByFormula='+beforeFilter+'&sort%5B0%5D%5Bfield%5D='+LOG.date+'&sort%5B0%5D%5Bdirection%5D=desc&returnFieldsByFieldId=true&pageSize=1');
     const rec=d.records?.[0];
     if(rec){
       const f=rec.fields;
-      if(f[LOG.dose])document.getElementById('q-dose').value=f[LOG.dose];
-      const site=f[LOG.site]||'';
-      const siteEl=document.getElementById('q-site');
-      [...siteEl.options].forEach((o,i)=>{if(o.text===site)siteEl.selectedIndex=i;});
-      const timing=f[LOG.timing]||'';
-      const timingEl=document.getElementById('q-timing');
-      [...timingEl.options].forEach((o,i)=>{if(o.text===timing)timingEl.selectedIndex=i;});
+      if(f[LOG.wt])document.getElementById('q-wt').value=f[LOG.wt];
+      if(f[LOG.reps])document.getElementById('q-reps').value=f[LOG.reps];
     }
   }catch(e){/* silent fail */}
 }
@@ -1266,13 +1134,8 @@ window.onload=()=>{
       </div>
       <div style="padding:14px;display:flex;flex-direction:column;gap:10px">
         <div style="display:flex;gap:8px">
-          <input id="cm-dose" placeholder="Reps" style="flex:1;padding:7px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px">
-          <input id="cm-site" placeholder="Weight lbs" style="width:80px;padding:7px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px"><select id="cm-site-hidden" style="display:none" style="padding:7px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:13px">
-            <option value="">Site</option><option>L</option><option>R</option><option>X</option><option>S</option>
-          </select>
-          <select id="cm-timing" style="padding:7px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:13px">
-            <option value="">Timing</option><option>Morning</option><option>Night</option><option>Evening</option><option>Daily</option>
-          </select>
+          <input id="cm-dose" type="number" placeholder="Reps" style="width:70px;padding:7px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px">
+          <input id="cm-site" type="number" placeholder="Weight lbs" style="flex:1;padding:7px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px">
         </div>
         <div id="cm-existing" style="font-size:11px;color:#6b7280;max-height:80px;overflow-y:auto"></div>
         <button onclick="cmSave()" style="background:#2563eb;color:#fff;border:none;border-radius:6px;padding:9px;font-size:13px;font-weight:700;cursor:pointer">+ Add Record</button>
