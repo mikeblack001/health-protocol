@@ -746,19 +746,26 @@ function renderGroupedTable(sorted){
   html+='</tr></thead><tbody id="pdf-tbody">';
 
   groupOrder.forEach(ex=>{
-    const recs=groups[ex];
+    const allRecs=groups[ex];
+    // Sub-group by variation
+    const varGroups={};const varOrder=[];
+    allRecs.forEach(r=>{
+      const v=(Array.isArray(r.fields[LOG.var])?r.fields[LOG.var][0]:r.fields[LOG.var])||'';
+      if(!varGroups[v]){varGroups[v]=[];varOrder.push(v);}
+      varGroups[v].push(r);
+    });
+    varOrder.forEach(variation=>{
+    const recs=varGroups[variation];
     const allV=recs.every(r=>r.fields[LOG.verified]===true);
     const rowBg=allV?'#f0fdf4':'#fff';
     const firstRec=recs[0];
-    const variation=firstRec?firstRec.fields[LOG.var]||'':'';
-    const firstId=firstRec?firstRec.id:'';
-    const exKey=ex+'||';
+    const exKey=ex+'||'+variation;
     html+=`<tr data-key="${esc(exKey)}" data-cmp="${esc(ex)}" style="background:${rowBg};border-bottom:1px solid #e5e7eb">`;
     html+=`<td style="padding:3px 4px;text-align:center;color:#9ca3af;cursor:grab;font-size:14px;user-select:none">⠿</td>`;
     html+=`<td style="padding:5px 10px;font-weight:700;font-size:13px;border-right:1px solid #e2e5ea;background:${allV?'#dcfce7':'#f8fafc'}">${esc(ex)}</td>`;
     html+=`<td style="padding:2px 4px;text-align:center">
       <input list="var-list" value="${esc(variation)}" placeholder="—" style="width:140px;padding:4px 6px;border:1px solid #d1d5db;border-radius:4px;font-size:13px;background:#fff"
-        onblur="saveExVar('${esc(ex)}',this.value)"
+        onblur="saveVarGroup('${esc(ex)}','${esc(variation)}',this.value)"
         onkeydown="if(event.key==='Enter')this.blur()">
     </td>`;
     for(let i=0;i<maxSets;i++){
@@ -785,7 +792,8 @@ function renderGroupedTable(sorted){
       <button class="abtn ${allV?'a-verified':'a-verify'}" onclick="toggleExVerify('${esc(ex)}',${allV})">${allV?'✓':'○'}</button>
     </td>`;
     html+='</tr>';
-  });
+    }); // end varOrder
+  }); // end groupOrder (replaced below)
   html+='</tbody></table></div>';
   document.getElementById('table-section').innerHTML=html;
   initTableDrag();
@@ -803,6 +811,24 @@ async function saveExVar(ex, value){
     }
     recs.forEach(r=>r.fields[LOG.var]=value||null);
     setSt('✓ Saved');
+  }catch(e){setSt('Error: '+e.message);}
+}
+
+async function saveVarGroup(ex, oldVar, newVal){
+  const recs=logRecs.filter(r=>{
+    const v=(Array.isArray(r.fields[LOG.var])?r.fields[LOG.var][0]:r.fields[LOG.var])||'';
+    return r.fields[LOG.ex]===ex&&v===oldVar;
+  });
+  if(!recs.length)return;
+  setSt('Saving…');
+  try{
+    for(let i=0;i<recs.length;i+=10){
+      const batch=recs.slice(i,i+10).map(r=>({id:r.id,fields:{[LOG.var]:newVal||null}}));
+      await atFetch(LOG.tbl,{method:'PATCH',body:JSON.stringify({records:batch,returnFieldsByFieldId:true})});
+    }
+    recs.forEach(r=>r.fields[LOG.var]=newVal||null);
+    setSt('✓ Saved');
+    loadWeekGrid(curDate);
   }catch(e){setSt('Error: '+e.message);}
 }
 
