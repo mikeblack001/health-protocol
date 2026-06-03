@@ -611,9 +611,16 @@ function renderRecordsOrdered(order){
 }
 function renderRecords(){
   if(!logRecs.length){document.getElementById('records').innerHTML='<div class="empty">No sets for this date</div>';return;}
+  // Sort by minimum set# per exercise — preserves original log order (matches PDF order)
+  const exFirstSet={};
+  logRecs.forEach(r=>{
+    const ex=r.fields[LOG.ex]||'';
+    const n=r.fields[LOG.setN]||999;
+    if(!exFirstSet[ex]||n<exFirstSet[ex])exFirstSet[ex]=n;
+  });
   const sorted=[...logRecs].filter(r=>r.fields[LOG.ex]).sort((a,b)=>{
     const ea=a.fields[LOG.ex]||'',eb=b.fields[LOG.ex]||'';
-    if(ea!==eb)return ea.localeCompare(eb);
+    if(ea!==eb)return (exFirstSet[ea]||999)-(exFirstSet[eb]||999);
     return(a.fields[LOG.setN]||0)-(b.fields[LOG.setN]||0);
   });
   renderGroupedTable(sorted);
