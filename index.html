@@ -3807,167 +3807,146 @@ async function wktLoadWeekData(mondayISO) {
   });
 }
 
+function wktGetRowOrder(mondayISO) {
+  try { return JSON.parse(localStorage.getItem('wkt_ro_' + mondayISO) || '[]'); } catch(e) { return []; }
+}
+function wktSaveRowOrder(mondayISO, arr) {
+  try { localStorage.setItem('wkt_ro_' + mondayISO, JSON.stringify(arr)); } catch(e) {}
+}
+function wktJumpToDate(date) {}
+
 function wktRender(monday) {
   const el = document.getElementById('wkt-content');
   if (!el) return;
   const mondayISO = monday.toISOString().split('T')[0];
   const dates = [];
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(monday); d.setDate(monday.getDate() + i);
-    dates.push(d.toISOString().split('T')[0]);
-  }
+  for (let i = 0; i < 7; i++) { const d = new Date(monday); d.setDate(monday.getDate() + i); dates.push(d.toISOString().split('T')[0]); }
   const DN = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
   const sunday = new Date(monday); sunday.setDate(monday.getDate() + 6);
-  const fmt = d => d.toLocaleDateString('en-US', {month:'short', day:'numeric'});
-  const weekLabel = fmt(monday) + ' – ' + fmt(sunday) + ', ' + monday.getFullYear();
+  const fmt = d => (d.getMonth()+1) + '/' + d.getDate();
+  const weekLabel = fmt(monday) + ' \u2013 ' + fmt(sunday) + ', ' + monday.getFullYear();
   const todayISO = new Date().toISOString().split('T')[0];
-  const totalSets = Object.values(_wktWeekData).reduce((sum, dayObj) =>
-    sum + Object.values(dayObj).reduce((s2, recs) => s2 + recs.length, 0), 0);
+  const totalSets = Object.values(_wktWeekData).reduce((s, dayObj) => s + Object.values(dayObj).reduce((s2, r) => s2 + r.length, 0), 0);
 
+  // Build exercise list from WORKOUT_DAYS for each day + any logged
+  const allEx = [];
+  dates.forEach(function(date) {
+    const dt = new Date(date + 'T12:00:00');
+    const dow = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][dt.getDay()];
+    const wdKey = Object.keys(WORKOUT_DAYS).find(k => k.indexOf(dow) === 0) || null;
+    (wdKey ? WORKOUT_DAYS[wdKey] : []).forEach(function(e) {
+      const n = e.name || e; if (!allEx.includes(n)) allEx.push(n);
+    });
+    Object.keys(_wktWeekData[date] || {}).forEach(function(ex) { if (!allEx.includes(ex)) allEx.push(ex); });
+  });
+
+  // Apply saved row order
+  const savedOrder = wktGetRowOrder(mondayISO);
+  if (savedOrder.length) {
+    allEx.sort(function(a,b) {
+      const ai = savedOrder.indexOf(a), bi = savedOrder.indexOf(b);
+      if (ai === -1 && bi === -1) return 0; if (ai === -1) return 1; if (bi === -1) return -1; return ai - bi;
+    });
+  }
+
+  // Header nav
   let html = '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px">'
-    + '<button onclick="wktShiftWeek(-1)" style="padding:4px 10px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:var(--surface);font-size:13px">‹ Prev</button>'
+    + '<button onclick="wktShiftWeek(-1)" style="padding:4px 10px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:var(--surface);font-size:13px">\u2039 Prev</button>'
     + '<span style="font-size:13px;font-weight:600">' + weekLabel + '</span>'
-    + '<button onclick="wktShiftWeek(1)" style="padding:4px 10px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:var(--surface);font-size:13px">Next ›</button>'
-    + '<select id="wkt-week-jump" onchange="wktJumpToWeek(this.value)" style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;color:var(--text);background:var(--surface);cursor:pointer;min-width:100px"><option value="">Jump to week…</option></select>'
-    + '<span style="font-size:11px;color:var(--muted);margin-left:auto">' + totalSets + ' sets this week</span>'
+    + '<button onclick="wktShiftWeek(1)" style="padding:4px 10px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:var(--surface);font-size:13px">Next \u203a</button>'
+    + '<select id="wkt-week-jump" onchange="wktJumpToWeek(this.value)" style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;color:var(--text);background:var(--surface);cursor:pointer;min-width:100px"><option value="">Jump to week\u2026</option></select>'
+    + '<span style="font-size:11px;color:var(--muted);margin-left:auto">' + totalSets + ' sets</span>'
     + '</div>';
 
-  html += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">';
+  // Week grid table
+  html += '<div style="overflow-x:auto"><table id="wkt-grid" style="border-collapse:collapse;font-size:12px;width:100%">';
+  html += '<thead><tr style="background:#1e2433;color:#fff">';
+  html += '<th style="padding:3px 6px;width:20px"></th>';
+  html += '<th style="padding:6px 10px;text-align:left;min-width:160px">Exercise</th>';
   dates.forEach(function(date, i) {
-    const dayData = _wktWeekData[date] || {};
-    const count = Object.values(dayData).reduce(function(s, r) { return s + r.length; }, 0);
     const isToday = date === todayISO;
-    const hasData = count > 0;
-    const bg = isToday ? 'var(--accent)' : hasData ? '#dbeafe' : 'var(--surface)';
-    const fg = isToday ? '#000' : hasData ? '#1e40af' : 'var(--muted)';
-    html += '<button onclick="wktShowDay(\'' + date + '\')" id="wktdaybtn_' + date + '" style="padding:5px 12px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:' + bg + ';color:' + fg + ';font-weight:' + (hasData||isToday?'700':'400') + ';font-size:12px">'
-      + DN[i] + '<br><span style="font-size:10px;font-weight:400">' + date.slice(5) + (count ? ' (' + count + 's)' : '') + '</span>'
-      + '</button>';
+    const bg = isToday ? 'background:#2563eb;' : '';
+    html += '<th style="padding:4px 8px;text-align:center;min-width:80px;' + bg + '">'
+      + DN[i] + '<br><span style="font-size:9px;opacity:.8">' + date.slice(5) + '</span></th>';
   });
-  html += '</div><div id="wkt-day-detail"></div>';
+  html += '</tr></thead><tbody id="wkt-grid-body">';
+
+  allEx.forEach(function(ex) {
+    const exSafe = ex.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    html += '<tr data-ex="' + ex.replace(/"/g,'&quot;') + '" style="border-bottom:1px solid #e5e7eb">';
+    html += '<td style="padding:3px 4px;text-align:center;color:#9ca3af;cursor:grab;font-size:14px;user-select:none">\u2840</td>';
+    html += '<td style="padding:5px 10px;font-weight:700;font-size:13px;border-right:2px solid #e2e5ea">' + ex + '</td>';
+    dates.forEach(function(date) {
+      const dayRecs = (_wktWeekData[date] && _wktWeekData[date][ex]) || [];
+      const setCount = dayRecs.length;
+      const topWt = dayRecs.reduce(function(m, r) { return Math.max(m, r.fields[WKT.wt] || 0); }, 0);
+      const isToday = date === todayISO;
+      const cellId = 'wktc_' + date + '_' + i;
+      if (setCount > 0) {
+        html += '<td id="' + cellId + '" onclick="wktCellClick(\'' + date + '\',\'' + exSafe + '\',this)" '
+          + 'style="padding:4px 6px;text-align:center;cursor:pointer;background:#dbeafe;color:#1e40af;font-weight:800;font-size:11px">'
+          + setCount + 's' + (topWt ? '<br>' + topWt + 'lb' : '') + '</td>';
+      } else {
+        const bg2 = isToday ? 'background:#f0f9ff;' : '';
+        html += '<td id="' + cellId + '" onclick="wktCellClick(\'' + date + '\',\'' + exSafe + '\',this)" '
+          + 'style="padding:4px 6px;text-align:center;cursor:pointer;color:#d1d5db;font-size:18px;' + bg2 + '">+</td>';
+      }
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table></div>';
   el.innerHTML = html;
 
+  // Populate week jump dropdown
   const sel = document.getElementById('wkt-week-jump');
   if (sel && _wktWeekList.length) {
-    sel.innerHTML = '<option value="">Jump to week…</option>';
     _wktWeekList.forEach(function(iso) {
       const d = new Date(iso + 'T12:00:00');
       const opt = document.createElement('option');
-      opt.value = iso; opt.textContent = (d.getMonth()+1)+'/'+d.getDate()+'/'+String(d.getFullYear()).slice(2);
+      opt.value = iso; opt.textContent = (d.getMonth()+1) + '/' + d.getDate() + '/' + String(d.getFullYear()).slice(2);
       sel.appendChild(opt);
     });
     sel.value = mondayISO;
   }
 
-  const autoDate = dates.find(function(d) { return d === todayISO; })
-    || dates.find(function(d) { return Object.keys(_wktWeekData[d]||{}).length > 0; })
-    || dates[0];
-  wktShowDay(autoDate);
-}
-
-function wktShowDay(date) {
-  document.querySelectorAll('[id^="wktdaybtn_"]').forEach(function(b) {
-    b.style.borderWidth = '1px'; b.style.borderColor = 'var(--border)';
-  });
-  const btn = document.getElementById('wktdaybtn_' + date);
-  if (btn) { btn.style.borderWidth = '2px'; btn.style.borderColor = '#2563eb'; }
-
-  const detail = document.getElementById('wkt-day-detail');
-  if (!detail) return;
-
-  const dayData = _wktWeekData[date] || {};
-  const dt = new Date(date + 'T12:00:00');
-  const DN2 = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-  const dayLabel = DN2[dt.getDay()] + ' ' + (dt.getMonth()+1) + '/' + dt.getDate() + '/' + String(dt.getFullYear()).slice(2);
-
-  const exFirstSet = {};
-  Object.entries(dayData).forEach(function([ex, recs]) {
-    exFirstSet[ex] = Math.min.apply(null, recs.map(function(r) { return r.fields[WKT.setN] || 999; }));
-  });
-  const exercises = Object.keys(dayData).sort(function(a,b) { return (exFirstSet[a]||999)-(exFirstSet[b]||999); });
-
-  // Always show WORKOUT_DAYS exercises for this day, even if no sets logged
-  const dt2 = new Date(date + 'T12:00:00');
-  const dowKey = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][dt2.getDay()];
-  const wdKey = Object.keys(WORKOUT_DAYS).find(function(k){return k.indexOf(dowKey)===0;})||null;
-  const schedExercises = (wdKey?WORKOUT_DAYS[wdKey]:[]).map(function(e){return e.name||e;});
-  // Merge scheduled + any logged exercises not in schedule
-  const allEx = schedExercises.slice();
-  Object.keys(dayData).forEach(function(ex) { if (allEx.indexOf(ex) === -1) allEx.push(ex); });
-  // Apply saved row order from localStorage
-  const wktRowKey = 'wkt_row_' + date.slice(0,7); // per month-week key
-  const savedOrder = (function(){try{const s=localStorage.getItem(wktRowKey);return s?JSON.parse(s):[];}catch(e){return [];}})();
-  if (savedOrder.length) {
-    allEx.sort(function(a,b){
-      const ai=savedOrder.indexOf(a),bi=savedOrder.indexOf(b);
-      if(ai===-1&&bi===-1)return 0;if(ai===-1)return 1;if(bi===-1)return -1;return ai-bi;
-    });
-  }
-
-  const maxLogged = allEx.length ? Math.max.apply(null, allEx.map(function(ex) { return (dayData[ex]||[]).length; })) : 0;
-  const maxSets = Math.min(3, Math.max(3, maxLogged)); // always show at least S1-S3
-
-  let html = '<div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:8px">' + dayLabel + '</div>';
-  html += '<div style="overflow-x:auto"><table id="wkt-grid-table" style="border-collapse:collapse;width:100%;font-size:12px">';
-  html += '<thead><tr style="background:#1e2433;color:#fff">';
-  html += '<th style="padding:4px 6px;width:20px"></th>'; // drag handle col
-  html += '<th style="padding:6px 10px;text-align:left;min-width:150px">Exercise</th>';
-  html += '<th style="padding:4px 8px;text-align:center;font-size:10px;color:#d1d5db;min-width:100px">Variation</th>';
-  for (let i = 0; i < maxSets; i++) {
-    html += '<th style="padding:4px 6px;text-align:center;font-size:10px;color:#93c5fd;border-left:2px solid #374151;min-width:52px">S' + (i+1) + ' Reps</th>';
-    html += '<th style="padding:4px 6px;text-align:center;font-size:10px;color:#fcd34d;min-width:56px">S' + (i+1) + ' Wt</th>';
-  }
-  html += '</tr></thead><tbody>';
-
-  allEx.forEach(function(ex) {
-    const recs = (dayData[ex]||[]).slice().sort(function(a,b) { return (a.fields[WKT.setN]||0)-(b.fields[WKT.setN]||0); });
-    const variation = recs[0] ? (Array.isArray(recs[0].fields[WKT.var]) ? recs[0].fields[WKT.var][0] : recs[0].fields[WKT.var]) || '' : '';
-    html += '<tr draggable="true" data-ex="' + ex.replace(/"/g,'&quot;') + '" style="border-bottom:1px solid #e5e7eb">';
-    html += '<td style="padding:3px 4px;text-align:center;color:#9ca3af;cursor:grab;font-size:14px;user-select:none">⠿</td>';
-    html += '<td style="padding:5px 10px;font-weight:700;font-size:13px;border-right:2px solid #e2e5ea">' + ex + '</td>';
-    html += '<td style="padding:3px 6px;text-align:center;font-size:12px;color:#374151">' + (variation||'—') + '</td>';
-    for (let i = 0; i < maxSets; i++) {
-      const r = recs[i];
-      const cellId = 'wktcell_' + date + '_' + encodeURIComponent(ex) + '_' + i;
-      if (!r) {
-        // Empty tappable cell — tap to add next set
-        html += '<td colspan="2" id="' + cellId + '" onclick="wktCellClick(\'' + date + '\',\'' + ex.replace(/'/g,"\\'") + '\',document.getElementById(\'' + cellId + '\'))" style="border-left:2px solid #f3f4f6;cursor:pointer;text-align:center;color:#d1d5db;font-size:18px;padding:4px 0" title="Tap to add set">+</td>';
-      } else {
-        const reps = r.fields[WKT.reps] || '';
-        const wt = r.fields[WKT.wt] || '';
-        html += '<td style="padding:3px 4px;text-align:center;border-left:2px solid #e5e7eb"><span style="display:inline-block;min-width:36px;padding:2px 4px;background:#dbeafe;color:#1d4ed8;border-radius:4px;font-size:13px;font-weight:700">' + (reps||'—') + '</span></td>';
-        html += '<td style="padding:3px 4px;text-align:center"><span style="display:inline-block;min-width:42px;padding:2px 4px;background:#fef3c7;color:#92400e;border-radius:4px;font-size:13px;font-weight:700">' + (wt||'—') + '</span></td>';
-      }
-    }
-    html += '</tr>';
-  });
-  html += '</tbody></table></div>';
-  detail.innerHTML = html;
-
-  // Wire drag-to-reorder on grid rows
-  (function(){
-    const tbody = document.querySelector('#wkt-grid-table tbody');
+  // Drag-to-reorder rows (mousedown/mouseover/mouseup — mirrors injection audit)
+  (function() {
+    const tbody = document.getElementById('wkt-grid-body');
     if (!tbody) return;
-    let dragSrc = null;
-    tbody.querySelectorAll('tr').forEach(function(row) {
-      row.addEventListener('dragstart', function(e) { dragSrc = row; row.style.opacity = '0.4'; e.dataTransfer.effectAllowed = 'move'; });
-      row.addEventListener('dragend', function() { row.style.opacity = ''; });
-      row.addEventListener('dragover', function(e) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; });
-      row.addEventListener('drop', function(e) {
-        e.preventDefault();
-        if (dragSrc && dragSrc !== row) {
-          const rows = Array.from(tbody.querySelectorAll('tr'));
-          const srcIdx = rows.indexOf(dragSrc), tgtIdx = rows.indexOf(row);
-          if (srcIdx < tgtIdx) tbody.insertBefore(dragSrc, row.nextSibling);
-          else tbody.insertBefore(dragSrc, row);
-          // Save new order
-          const newOrder = Array.from(tbody.querySelectorAll('tr')).map(function(r){return r.getAttribute('data-ex');});
-          try { localStorage.setItem(wktRowKey, JSON.stringify(newOrder)); } catch(e) {}
-        }
-      });
+    let src = null, lastOver = null;
+    tbody.addEventListener('mousedown', function(e) {
+      const row = e.target.closest('tr[data-ex]');
+      if (!row) return;
+      const col = e.target.closest('td');
+      if (col && col.cellIndex > 1) return; // only drag from handle (col 0) or name (col 1)
+      src = row; row.style.opacity = '0.4'; document.body.style.userSelect = 'none';
+    });
+    tbody.addEventListener('mouseover', function(e) {
+      if (!src) return;
+      const target = e.target.closest('tr[data-ex]');
+      if (target === lastOver) return;
+      if (lastOver) lastOver.style.borderTop = '';
+      lastOver = null;
+      if (!target || target === src) return;
+      target.style.borderTop = '2px solid #2563eb'; lastOver = target;
+    });
+    document.addEventListener('mouseup', function(e) {
+      if (!src) return;
+      const target = e.target.closest('tr[data-ex]');
+      if (lastOver) lastOver.style.borderTop = '';
+      src.style.opacity = ''; document.body.style.userSelect = ''; lastOver = null;
+      if (target && target !== src) {
+        const rows = Array.from(tbody.querySelectorAll('tr[data-ex]'));
+        if (rows.indexOf(target) > rows.indexOf(src)) tbody.insertBefore(src, target.nextSibling);
+        else tbody.insertBefore(src, target);
+        const newOrder = Array.from(tbody.querySelectorAll('tr[data-ex]')).map(function(r) { return r.getAttribute('data-ex'); });
+        wktSaveRowOrder(mondayISO, newOrder);
+      }
+      src = null;
     });
   })();
 }
+
 
 
 async function wktCellClick(date, exName, cell) {
