@@ -4612,7 +4612,7 @@ function renderPurchases() {
   const byVendor = {};
   filtered.forEach(r => { const v = r.fields['Vendor'] || 'Unknown'; if (!byVendor[v]) byVendor[v] = []; byVendor[v].push(r.fields); });
 
-  const totalSpent = filtered.reduce((s, r) => s + (r.fields['Total'] || (r.fields['Price Paid'] * (r.fields['Qty'] || 1)) || 0), 0);
+  const totalSpent = filtered.reduce((s, r) => s + (r.fields['Total'] || r.fields['Price Paid'] || 0), 0);
   const vendorCount = Object.keys(byVendor).length;
 
   let html = `<div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap">
@@ -4624,11 +4624,11 @@ function renderPurchases() {
   if (!filtered.length) { el.innerHTML = html + '<p style="color:var(--muted);padding:16px">No results match filters.</p>'; return; }
 
   html += `<div class="table-wrap"><table class="data-table">
-    <thead><tr><th>Date</th><th>Vendor</th><th>Compound</th><th>Qty</th><th>Vial</th><th>Price/Item</th><th>Total</th><th>Order ID</th><th>Notes</th></tr></thead>
+    <thead><tr><th>Date</th><th>Vendor</th><th>Compound</th><th>Qty</th><th>Vial</th><th>Price Paid</th><th>Total</th><th>Order ID</th><th>Notes</th></tr></thead>
     <tbody>
     ${filtered.map(r => {
       const f = r.fields;
-      const total = f['Total'] || ((f['Price Paid'] || 0) * (f['Qty'] || 1));
+      const total = f['Total'] || f['Price Paid'] || 0;
       return `<tr>
         <td style="font-family:'DM Mono',monospace;font-size:12px">${f['Date'] || '—'}</td>
         <td style="font-weight:500">${f['Vendor'] || '—'}</td>
