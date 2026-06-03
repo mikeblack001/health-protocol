@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html><head><title>Auth</title></head>
+<body>
+<script>
+// OAuth redirect stub - captures token from hash and passes to opener
+if (window.opener && location.hash && location.hash.includes('access_token')) {
+  window.opener.postMessage(location.hash, 'https://mikeblack001.github.io');
+}
+// Also works for popup polling pattern - just keep the hash available
+// The parent polls window.location.hash every 300ms
+</script>
+<p>Authenticating...</p>
+</body></html>
