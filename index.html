@@ -3811,8 +3811,6 @@ function wktRender(monday) {
   const el = document.getElementById('wkt-content');
   if (!el) return;
   const mondayISO = monday.toISOString().split('T')[0];
-
-  // Build week dates
   const dates = [];
   for (let i = 0; i < 7; i++) {
     const d = new Date(monday); d.setDate(monday.getDate() + i);
@@ -3821,88 +3819,38 @@ function wktRender(monday) {
   const DN = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
   const sunday = new Date(monday); sunday.setDate(monday.getDate() + 6);
   const fmt = d => d.toLocaleDateString('en-US', {month:'short', day:'numeric'});
-  const weekLabel = `${fmt(monday)} – ${fmt(sunday)}, ${monday.getFullYear()}`;
-
+  const weekLabel = fmt(monday) + ' – ' + fmt(sunday) + ', ' + monday.getFullYear();
+  const todayISO = new Date().toISOString().split('T')[0];
   const totalSets = Object.values(_wktWeekData).reduce((sum, dayObj) =>
     sum + Object.values(dayObj).reduce((s2, recs) => s2 + recs.length, 0), 0);
 
-  let html = `
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
-    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-      <button onclick="wktShiftWeek(-1)" style="padding:4px 10px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:var(--surface);font-size:13px">‹ Prev</button>
-      <span style="font-family:'DM Mono',monospace;font-size:13px;font-weight:600">${weekLabel}</span>
-      <button onclick="wktShiftWeek(1)" style="padding:4px 10px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:var(--surface);font-size:13px">Next ›</button>
-      <select id="wkt-week-jump" onchange="wktJumpToWeek(this.value)" style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:'DM Mono',monospace;color:var(--text);background:var(--surface);cursor:pointer;min-width:100px">
-        <option value="">Jump to week…</option>
-      </select>
-    </div>
-    <span style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace">${totalSets} sets this week</span>
-  </div>
-  <div style="border:3px solid #000;border-radius:8px;overflow-x:auto">
-  <table style="border-collapse:collapse;width:100%;font-size:12px">
-  <thead><tr>
-    <th style="text-align:left;padding:4px 8px;background:#D9D9D9;border:1px solid #999;min-width:160px">Exercise</th>
-    ${dates.map((d,i) => {
-      const today = d === new Date().toISOString().split('T')[0];
-      return `<th style="text-align:center;padding:2px 1px;background:${today?'#bfdbfe':'#D9D9D9'};border:1px solid #999;min-width:52px">
-        <div style="font-weight:700;font-size:11px">${DN[i]}</div>
-        <div style="font-size:9px;color:#555;font-weight:400">${d.slice(5)}</div>
-      </th>`;
-    }).join('')}
-  </tr></thead><tbody>`;
+  let html = '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px">'
+    + '<button onclick="wktShiftWeek(-1)" style="padding:4px 10px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:var(--surface);font-size:13px">‹ Prev</button>'
+    + '<span style="font-size:13px;font-weight:600">' + weekLabel + '</span>'
+    + '<button onclick="wktShiftWeek(1)" style="padding:4px 10px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:var(--surface);font-size:13px">Next ›</button>'
+    + '<select id="wkt-week-jump" onchange="wktJumpToWeek(this.value)" style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;color:var(--text);background:var(--surface);cursor:pointer;min-width:100px"><option value="">Jump to week…</option></select>'
+    + '<span style="font-size:11px;color:var(--muted);margin-left:auto">' + totalSets + ' sets this week</span>'
+    + '</div>';
 
-  // Group exercises by day section
-  const sections = [
-    { label: '☀ Mon — Push', dayIdx: 0, key: 'Monday - Push' },
-    { label: '☀ Tue — Pull', dayIdx: 1, key: 'Tuesday - Pull' },
-    { label: '☀ Wed — Legs / Core', dayIdx: 2, key: 'Wednesday - Legs / Core' },
-    { label: '☀ Thu — Arms / Chest', dayIdx: 3, key: 'Thursday - Arms / Chest' },
-  ];
-  const BG = ['#FFF8E7','#EEF4FB','#F0FDF4','#FDF4FF'];
-  const SEC_BG = ['#E8A838','#4A6FA5','#15803d','#7c3aed'];
-
-  sections.forEach((sec, si) => {
-    const exercises = (WORKOUT_DAYS[sec.key] || []);
-    if (!exercises.length) return;
-    const bg = BG[si];
-    const sbg = SEC_BG[si];
-    html += `<tr><td colspan="8" style="background:${sbg};color:#fff;font-weight:700;padding:4px 10px;font-size:12px">${sec.label}</td></tr>`;
-    exercises.forEach(exObj => {
-      const exName = exObj.name;
-      html += `<tr><td style="padding:4px 8px;border:1px solid #ccc;background:${bg};font-size:11px;font-weight:600;white-space:nowrap">${exName}${exObj.note ? '<span style="font-size:9px;color:#9ca3af;margin-left:3px">'+exObj.note+'</span>' : ''}</td>`;
-      dates.forEach((date, di) => {
-        const dayRecs = (_wktWeekData[date] && _wktWeekData[date][exName]) || [];
-        const count = dayRecs.length;
-        const onclick = `onclick="wktCellClick('${date}','${exName.replace(/'/g,"\\'")}',this)"`;
-        if (!count) {
-          html += `<td ${onclick} style="border:1px solid #ccc;text-align:center;cursor:pointer;background:${bg};min-width:52px;padding:4px 2px"></td>`;
-        } else {
-          // Find top weight for display
-          let topWt = 0, topReps = 0;
-          dayRecs.forEach(r => {
-            const w = r.fields[WKT.wt] || 0;
-            const rp = r.fields[WKT.reps] || 0;
-            if (w > topWt) { topWt = w; topReps = rp; }
-            else if (w === topWt && rp > topReps) topReps = rp;
-          });
-          const label = topWt
-            ? `<div style="font-size:10px;font-weight:800;line-height:1.1">${count}s</div><div style="font-size:9px;font-weight:600;line-height:1.1">${topWt}lbs</div>`
-            : `<div style="font-size:11px;font-weight:800">${count}s</div>`;
-          html += `<td ${onclick} style="border:1px solid #ccc;text-align:center;cursor:pointer;background:#dbeafe;color:#1e40af;min-width:52px;padding:3px 2px">${label}</td>`;
-        }
-      });
-      html += `</tr>`;
-    });
+  html += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">';
+  dates.forEach(function(date, i) {
+    const dayData = _wktWeekData[date] || {};
+    const count = Object.values(dayData).reduce(function(s, r) { return s + r.length; }, 0);
+    const isToday = date === todayISO;
+    const hasData = count > 0;
+    const bg = isToday ? 'var(--accent)' : hasData ? '#dbeafe' : 'var(--surface)';
+    const fg = isToday ? '#000' : hasData ? '#1e40af' : 'var(--muted)';
+    html += '<button onclick="wktShowDay(\'' + date + '\')" id="wktdaybtn_' + date + '" style="padding:5px 12px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:' + bg + ';color:' + fg + ';font-weight:' + (hasData||isToday?'700':'400') + ';font-size:12px">'
+      + DN[i] + '<br><span style="font-size:10px;font-weight:400">' + date.slice(5) + (count ? ' (' + count + 's)' : '') + '</span>'
+      + '</button>';
   });
-
-  html += `</tbody></table></div>`;
+  html += '</div><div id="wkt-day-detail"></div>';
   el.innerHTML = html;
 
-  // Restore dropdown options after re-render
   const sel = document.getElementById('wkt-week-jump');
   if (sel && _wktWeekList.length) {
     sel.innerHTML = '<option value="">Jump to week…</option>';
-    _wktWeekList.forEach(iso => {
+    _wktWeekList.forEach(function(iso) {
       const d = new Date(iso + 'T12:00:00');
       const opt = document.createElement('option');
       opt.value = iso; opt.textContent = (d.getMonth()+1)+'/'+d.getDate()+'/'+String(d.getFullYear()).slice(2);
@@ -3910,7 +3858,74 @@ function wktRender(monday) {
     });
     sel.value = mondayISO;
   }
+
+  const autoDate = dates.find(function(d) { return d === todayISO; })
+    || dates.find(function(d) { return Object.keys(_wktWeekData[d]||{}).length > 0; })
+    || dates[0];
+  wktShowDay(autoDate);
 }
+
+function wktShowDay(date) {
+  document.querySelectorAll('[id^="wktdaybtn_"]').forEach(function(b) {
+    b.style.borderWidth = '1px'; b.style.borderColor = 'var(--border)';
+  });
+  const btn = document.getElementById('wktdaybtn_' + date);
+  if (btn) { btn.style.borderWidth = '2px'; btn.style.borderColor = '#2563eb'; }
+
+  const detail = document.getElementById('wkt-day-detail');
+  if (!detail) return;
+
+  const dayData = _wktWeekData[date] || {};
+  const dt = new Date(date + 'T12:00:00');
+  const DN2 = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const dayLabel = DN2[dt.getDay()] + ' ' + (dt.getMonth()+1) + '/' + dt.getDate() + '/' + String(dt.getFullYear()).slice(2);
+
+  const exFirstSet = {};
+  Object.entries(dayData).forEach(function([ex, recs]) {
+    exFirstSet[ex] = Math.min.apply(null, recs.map(function(r) { return r.fields[WKT.setN] || 999; }));
+  });
+  const exercises = Object.keys(dayData).sort(function(a,b) { return (exFirstSet[a]||999)-(exFirstSet[b]||999); });
+
+  if (!exercises.length) {
+    detail.innerHTML = '<div style="padding:20px;color:var(--muted);font-size:13px">No sets logged for ' + dayLabel + '.</div>';
+    return;
+  }
+
+  const maxSets = Math.max.apply(null, exercises.map(function(ex) { return dayData[ex].length; }));
+  let html = '<div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:8px">' + dayLabel + '</div>';
+  html += '<div style="overflow-x:auto"><table style="border-collapse:collapse;width:100%;font-size:12px">';
+  html += '<thead><tr style="background:#1e2433;color:#fff">';
+  html += '<th style="padding:6px 10px;text-align:left;min-width:150px">Exercise</th>';
+  html += '<th style="padding:4px 8px;text-align:center;font-size:10px;color:#d1d5db;min-width:100px">Variation</th>';
+  for (let i = 0; i < maxSets; i++) {
+    html += '<th style="padding:4px 6px;text-align:center;font-size:10px;color:#93c5fd;border-left:2px solid #374151;min-width:52px">S' + (i+1) + ' Reps</th>';
+    html += '<th style="padding:4px 6px;text-align:center;font-size:10px;color:#fcd34d;min-width:56px">S' + (i+1) + ' Wt</th>';
+  }
+  html += '</tr></thead><tbody>';
+
+  exercises.forEach(function(ex) {
+    const recs = dayData[ex].slice().sort(function(a,b) { return (a.fields[WKT.setN]||0)-(b.fields[WKT.setN]||0); });
+    const variation = recs[0] ? recs[0].fields[WKT.var] || '' : '';
+    html += '<tr style="border-bottom:1px solid #e5e7eb">';
+    html += '<td style="padding:5px 10px;font-weight:700;font-size:13px;border-right:2px solid #e2e5ea">' + ex + '</td>';
+    html += '<td style="padding:3px 6px;text-align:center;font-size:12px;color:#374151">' + (variation||'—') + '</td>';
+    for (let i = 0; i < maxSets; i++) {
+      const r = recs[i];
+      if (!r) {
+        html += '<td colspan="2" style="border-left:2px solid #f3f4f6"></td>';
+      } else {
+        const reps = r.fields[WKT.reps] || '';
+        const wt = r.fields[WKT.wt] || '';
+        html += '<td style="padding:3px 4px;text-align:center;border-left:2px solid #e5e7eb"><span style="display:inline-block;min-width:36px;padding:2px 4px;background:#dbeafe;color:#1d4ed8;border-radius:4px;font-size:13px;font-weight:700">' + (reps||'—') + '</span></td>';
+        html += '<td style="padding:3px 4px;text-align:center"><span style="display:inline-block;min-width:42px;padding:2px 4px;background:#fef3c7;color:#92400e;border-radius:4px;font-size:13px;font-weight:700">' + (wt||'—') + '</span></td>';
+      }
+    }
+    html += '</tr>';
+  });
+  html += '</tbody></table></div>';
+  detail.innerHTML = html;
+}
+
 
 async function wktCellClick(date, exName, cell) {
   // Tap = add one set for this exercise on this date
