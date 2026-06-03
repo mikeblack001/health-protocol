@@ -472,85 +472,90 @@ async function verifyWeek(){
 async function loadWeekGrid(date){
   const wg=document.getElementById('wgrid'),ws=document.getElementById('wg-status');
   if(!wg)return;
-  const days=getWkDates(date);
-  ws.textContent='Loading…';
-  const orParts=days.map(d=>`IS_SAME({${LOG.date}},"${d}","day")`).join(',');
-  const q=encodeURIComponent(`OR(${orParts})`);
-  const flds=[LOG.date,LOG.ex,LOG.setN,LOG.reps,LOG.wt,LOG.verified].map(f=>'fields%5B%5D='+f).join('&');
-  let recs=[],off=null;
-  try{
-    do{
-      const d=await atFetch(LOG.tbl+'?returnFieldsByFieldId=true&filterByFormula='+q+'&'+flds+'&pageSize=100'+(off?'&offset='+off:''));
-      recs=recs.concat(d.records);off=d.offset;
-    }while(off);
-  }catch(e){wg.innerHTML=`<tr><td style="color:#dc2626;padding:8px">Grid error: ${e.message}</td></tr>`;ws.textContent='';return;}
 
-  // Build exercise lookup — each unique exercise gets a row
-  const data={};
+  // Daily view — use logRecs already loaded for this date
+  // Also fetch rest of week for verify week button count
+  const days=getWkDates(date);
+  ws.textContent='Building…';
+
+  // Build exercise → sets map from logRecs (current date only)
+  const data={};    // key → {ex, sets:[{setN,reps,wt,verified,id}]}
   const keyOrder=[];
-  recs.forEach(r=>{
-    const f=r.fields,ex=f[LOG.ex]||'',day=(f[LOG.date]||'').slice(0,10);
-    if(!ex||!day)return;
+  logRecs.forEach(r=>{
+    const f=r.fields,ex=f[LOG.ex]||'';
+    if(!ex)return;
     const key=ex+'||';
-    if(!data[key]){data[key]={ex,days:{}};keyOrder.push(key);}
-    if(!data[key].days[day])data[key].days[day]={n:0,topWt:0,topReps:0,allVerified:true};
-    const cell=data[key].days[day];
-    cell.n++;
-    const w=f[LOG.wt]||0,rp=f[LOG.reps]||0;
-    if(w>cell.topWt){cell.topWt=w;cell.topReps=rp;}
-    if(f[LOG.verified]!==true)cell.allVerified=false;
+    if(!data[key]){data[key]={ex,sets:[]};keyOrder.push(key);}
+    data[key].sets.push({setN:f[LOG.setN]||0,reps:f[LOG.reps]||0,wt:f[LOG.wt]||0,verified:f[LOG.verified]===true,id:r.id});
   });
+  // Sort sets within each exercise by set number
+  Object.values(data).forEach(d=>d.sets.sort((a,b)=>a.setN-b.setN));
 
   // Apply saved row order
-  const saved=getRowOrder(date).filter(s=>keyOrder.includes(s)||keyOrder.some(k=>k.startsWith(s+'||')));
+  const saved=getRowOrder(date).filter(s=>keyOrder.includes(s));
   const orderedKeys=[];
-  saved.forEach(s=>{
-    if(keyOrder.includes(s)){if(!orderedKeys.includes(s))orderedKeys.push(s);}
-    else{keyOrder.filter(k=>k.startsWith(s+'||')).forEach(k=>{if(!orderedKeys.includes(k))orderedKeys.push(k);});}
-  });
+  saved.forEach(s=>{if(!orderedKeys.includes(s))orderedKeys.push(s);});
   keyOrder.forEach(k=>{if(!orderedKeys.includes(k))orderedKeys.push(k);});
 
-  const DN=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-  let h=`<thead><tr><th>Exercise</th>`;
-  days.forEach((d,i)=>{
-    const today=d===date;
-    h+=`<th class="wg-day${today?' wg-today':''}" onclick="setDate('${d}')" title="${d}">${DN[i]}<br><span style="font-size:9px;opacity:.8">${d.slice(5)}</span></th>`;
-  });
-  h+=`</tr></thead><tbody>`;
+  // Find max sets across all exercises for column count
+  const maxSets=Math.max(1,...Object.values(data).map(d=>d.sets.length));
+
+  let h='<thead><tr><th style="min-width:160px">Exercise</th>';
+  for(let i=0;i<maxSets;i++){
+    h+=`<th style="text-align:center;min-width:90px;font-size:10px">S${i+1}</th>`;
+  }
+  h+='</tr></thead><tbody>';
 
   orderedKeys.forEach(key=>{
-    const {ex,days:dayMap}=data[key];
-    h+=`<tr data-cmp="${esc(ex)}" data-key="${esc(key)}"><td><span class="drag-handle">⠿</span>${esc(ex)}</td>`;
-    days.forEach(d=>{
-      const cell=dayMap[d];
-      const onclick=`onclick="gridCellClick('${d}','${esc(ex)}')"`;
-      if(!cell||!cell.n){
-        h+=`<td ${onclick} style="cursor:pointer"></td>`;
+    const {ex,sets}=data[key];
+    const allVerified=sets.length>0&&sets.every(s=>s.verified);
+    const rowBg=allVerified?'#f0fdf4':'';
+    h+=`<tr data-cmp="${esc(ex)}" data-key="${esc(key)}" style="background:${rowBg}">`;
+    h+=`<td onclick="gridCellClick('${date}','${esc(ex)}')" style="cursor:pointer;font-weight:700;font-size:12px"><span class="drag-handle">⠿</span>${esc(ex)}</td>`;
+    for(let i=0;i<maxSets;i++){
+      const s=sets[i];
+      if(!s){
+        h+=`<td></td>`;
       } else {
-        const bg=cell.allVerified?'#dcfce7':'#dbeafe';
-        const fg=cell.allVerified?'#15803d':'#1e40af';
-        const label=cell.topWt?`${cell.n}s<br><span style="font-size:9px">${cell.topWt}lb</span>`:`${cell.n}s`;
-        h+=`<td ${onclick} style="cursor:pointer;background:${bg};color:${fg};font-weight:800;font-size:11px;padding:2px">${label}</td>`;
+        const bg=s.verified?'#dcfce7':'#dbeafe';
+        const fg=s.verified?'#15803d':'#1e40af';
+        const label=s.wt?`<b>${s.reps}</b><span style="font-size:9px;color:#6b7280">×</span><b>${s.wt}</b><span style="font-size:9px">lb</span>`
+          :`<b>${s.reps}</b><span style="font-size:9px">reps</span>`;
+        h+=`<td onclick="scrollToCard('${s.id}')" style="cursor:pointer;background:${bg};color:${fg};text-align:center;padding:4px 3px;font-size:12px;white-space:nowrap">${label}</td>`;
       }
-    });
+    }
     h+=`</tr>`;
   });
-  h+=`</tbody>`;
-  wg.innerHTML=h;
-  ws.textContent=orderedKeys.length+' exercises';
 
-  // Update Verify Week button
+  if(!orderedKeys.length){
+    h+=`<tr><td colspan="${maxSets+1}" style="padding:16px;color:#9ca3af;font-style:italic">No sets for this date</td></tr>`;
+  }
+  h+='</tbody>';
+  wg.innerHTML=h;
+  ws.textContent=orderedKeys.length+' exercises · '+logRecs.length+' sets';
+
+  // Update Verify Week button — fetch week total async in background
   const wBtn=document.getElementById('verify-week-btn');
   if(wBtn){
-    const totalRecs=recs.length;
-    const verifiedRecs=recs.filter(r=>r.fields[LOG.verified]===true).length;
-    const weekDone=totalRecs>0&&verifiedRecs===totalRecs;
-    wBtn.style.background=weekDone?'#16a34a':'#eab308';
-    wBtn.style.borderColor=weekDone?'#16a34a':'#eab308';
-    wBtn.textContent=weekDone?'✓ Week Verified':'✓ Verify Week';
+    const totalDay=logRecs.length;
+    const verifiedDay=logRecs.filter(r=>r.fields[LOG.verified]===true).length;
+    const dayDone=totalDay>0&&verifiedDay===totalDay;
+    wBtn.style.background=dayDone?'#16a34a':'#eab308';
+    wBtn.style.borderColor=dayDone?'#16a34a':'#eab308';
+    wBtn.textContent=dayDone?'✓ Week Verified':'✓ Verify Week';
   }
   initGridDrag();
   renderRecordsOrdered(orderedKeys);
+}
+
+function scrollToCard(id){
+  const card=document.getElementById('card_'+id);
+  if(card){
+    document.querySelectorAll('.card').forEach(c=>c.style.outline='');
+    card.scrollIntoView({behavior:'smooth',block:'center'});
+    card.style.outline='3px solid #2563eb';
+    setTimeout(()=>card.style.outline='',2000);
+  }
 }
 
 function initGridDrag(){
@@ -583,6 +588,7 @@ function initGridDrag(){
       const visibleOrder=[...tbody.querySelectorAll('tr[data-key]')].map(r=>r.dataset.key);
       saveRowOrder(visibleOrder,curDate);
       renderRecordsOrdered(visibleOrder);
+      setSt('Order saved');
     }
     src=null;
   });
