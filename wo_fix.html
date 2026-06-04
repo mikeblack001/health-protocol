@@ -176,6 +176,7 @@ async function processDate(date, dayName, exercises) {
       toCreate.push({
         [F.date]: date,
         [F.ex]: ex.name,
+        [F.var]: ex.variation || null,
         [F.setN]: i+1,
         [F.reps]: s.reps || 0,
         [F.wt]: s.wt || 0,
@@ -253,7 +254,40 @@ JSON format:
   ]
 }`;
 
-const PROMPT_PDF3 = PROMPT_PDF2; // Will update after seeing PDF 3
+const PROMPT_PDF3 = `Extract ALL workout sessions from this PDF. Return ONLY valid JSON, no markdown, no explanation.
+
+FORMAT RULES for this PDF (printed table with Variation column, handwritten values):
+- Each session has a printed header like "Monday - Push" and a Date field (written as M/D, e.g. "1/5" = January 5)
+- Year is 2026 throughout this PDF
+- Table columns are: Exercise | Variation | Set | Reps | Weight | Set | Reps | Weight | Set | Reps | Weight
+- Column order per set: Set# | Reps | Weight (reps comes BEFORE weight)
+- The Variation column contains the implement used (e.g. "DBs", "Cable", "Rope 1/2", "EZ-Bar", "V-Bar", etc.)
+- Extract variation exactly as written — store in the variation field
+- Exercise names: store EXACTLY as written — no changes, no translation
+- Weights are actual stored values — no division needed
+- Blank cells or dashes = no data — skip that set
+- If a session note says "FRIDAY" next to a Thursday header, the day is Friday
+- Sessions appear in strict calendar order. Derive missing dates from surrounding sessions.
+- Ignore Sleep, Deep Sleep, Workout Duration fields in the header row
+- Zero-rep sets: omit entirely
+- Include ALL sets that have actual reps and weight data
+
+JSON format:
+{
+  "sessions": [
+    {
+      "date": "YYYY-MM-DD",
+      "day": "Monday",
+      "exercises": [
+        {
+          "name": "exact name as written",
+          "variation": "exact variation as written or empty string",
+          "sets": [{"wt": 125, "reps": 20}, {"wt": 125, "reps": 14}]
+        }
+      ]
+    }
+  ]
+}`;
 
 async function processPdf(n, base64) {
   log(`\n=== PDF ${n} ===`, 'info');
