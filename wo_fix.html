@@ -286,18 +286,19 @@ JSON format:
 
 const PROMPT_PDF2 = `Extract ALL workout sessions from this PDF. Return ONLY valid JSON, no markdown, no explanation.
 
-FORMAT RULES for this PDF (printed table format):
-- Each session has a printed header like "Monday - Push" and a date field
-- Table columns are in this exact order per set: S# | Reps | Weight (reps comes BEFORE weight)
-- So if a row shows S1=1, Reps=15, Weight=125 — store as reps=15, wt=125
-- G20 notation means cable machine. Weight written as "80/2" means store 40 (divide by 2)
-- Exercise names: store EXACTLY as printed — no changes, no translation
-- Blank rows (no reps/weight filled in) = exercise not done that day — skip entirely
+This PDF is a printed table format. Columns per set are in this exact order: Set# | Reps | Weight (reps comes BEFORE weight).
+
+WEIGHT RULE (critical): If a weight is written with a slash like "35/2", store ONLY the number before the slash (35). Ignore the slash and everything after it. If there is no slash, store the number exactly as written (e.g. "70" stores as 70, "120" stores as 120, "150" stores as 150). NEVER divide, multiply, or alter any weight value.
+
+OTHER RULES:
+- Store exercise names EXACTLY as printed — no changes, no translation
+- Read handwritten numbers carefully — distinguish 45 vs 65, 35 vs 55, etc.
+- Blank rows (no reps or weight filled in) = exercise not done — skip entirely
 - Sessions appear in strict calendar order. If a session has no date written, derive it from surrounding sessions
-- Dashes or lines in cells = no data, skip that set
-- Include ALL sets that have actual data (reps and weight both present)
-- Up to S4 exists on some pages — include S4 if data present
-- Zero-rep sets: omit entirely
+- Year is 2025
+- Up to S4 exists on some pages — include S4 if it has data
+- Zero-rep sets: omit
+- Include ALL sets that have both reps and weight
 
 JSON format:
 {
@@ -308,7 +309,7 @@ JSON format:
       "exercises": [
         {
           "name": "exact name as printed",
-          "sets": [{"wt": 125, "reps": 15}, {"wt": 125, "reps": 10}]
+          "sets": [{"wt": 115, "reps": 15}, {"wt": 115, "reps": 11}]
         }
       ]
     }
@@ -325,7 +326,7 @@ FORMAT RULES for this PDF (printed table with Variation column, handwritten valu
 - The Variation column contains the implement used (e.g. "DBs", "Cable", "Rope 1/2", "EZ-Bar", "V-Bar", etc.)
 - Extract variation exactly as written — store in the variation field
 - Exercise names: store EXACTLY as written — no changes, no translation
-- Weights are actual stored values — no division needed
+- Weights: if written with a slash like "35/2", store ONLY the number before the slash (35). If no slash, store as written. NEVER divide or multiply.
 - Blank cells or dashes = no data — skip that set
 - If a session note says "FRIDAY" next to a Thursday header, the day is Friday
 - Sessions appear in strict calendar order. Derive missing dates from surrounding sessions.
