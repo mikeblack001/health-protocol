@@ -21,6 +21,13 @@ progress{width:100%;height:8px;margin:8px 0;border-radius:4px}
 <body>
 <h1>Workout Data Fix — All PDFs</h1>
 <div id="status">Load PDFs then click Run.</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+if (window.pdfjsLib) {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
+</script>
 
 <div class="pdf-row">
   <span class="pdf-label">PDF 1</span>
@@ -78,18 +85,57 @@ function status(msg) { document.getElementById('status').textContent = msg; }
 function prog(val, max) { const p=document.getElementById('prog'); p.style.display='block'; p.value=val; p.max=max; }
 function sleep(ms) { return new Promise(r=>setTimeout(r,ms)); }
 
+async function compressPdf(file) {
+  // Render every page at 100 DPI via PDF.js, rebuild as PDF via jsPDF
+  const buf = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({data: buf}).promise;
+  const { jsPDF } = window.jspdf;
+  let doc = null;
+  const scale = 100 / 72; // 100 DPI
+
+  for (let i=1; i<=pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const viewport = page.getViewport({scale});
+    const canvas = document.createElement('canvas');
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    const ctx = canvas.getContext('2d');
+    await page.render({canvasContext: ctx, viewport}).promise;
+    const jpg = canvas.toDataURL('image/jpeg', 0.82);
+
+    if (!doc) {
+      doc = new jsPDF({orientation: viewport.width>viewport.height?'l':'p', unit:'pt', format:[viewport.width, viewport.height]});
+    } else {
+      doc.addPage([viewport.width, viewport.height], viewport.width>viewport.height?'l':'p');
+    }
+    doc.addImage(jpg, 'JPEG', 0, 0, viewport.width, viewport.height);
+  }
+
+  const blob = doc.output('blob');
+  const reader = new FileReader();
+  return await new Promise((res,rej)=>{
+    reader.onload = ()=>res(reader.result.split(',')[1]);
+    reader.onerror = ()=>rej(new Error('Read failed'));
+    reader.readAsDataURL(blob);
+  });
+}
+
 async function onPdf(input, n) {
   const file = input.files[0];
   if (!file) return;
-  pdfs[n] = await new Promise((res,rej)=>{
-    const r=new FileReader();
-    r.onload=()=>res(r.result.split(',')[1]);
-    r.onerror=()=>rej(new Error('Read failed'));
-    r.readAsDataURL(file);
-  });
-  document.getElementById('pdf'+n+'-name').textContent = file.name + ' ✓';
-  if (Object.values(pdfs).some(v=>v!==null)) document.getElementById('run-btn').disabled = false;
-  status('PDF '+n+' loaded.');
+  document.getElementById('pdf'+n+'-name').textContent = file.name + ' — compressing...';
+  status('PDF '+n+': compressing ('+Math.round(file.size/1024/1024)+'MB)...');
+  try {
+    pdfs[n] = await compressPdf(file);
+    const compressedKB = Math.round(pdfs[n].length * 0.75 / 1024);
+    document.getElementById('pdf'+n+'-name').textContent = file.name + ' ✓ ('+(compressedKB<1024?compressedKB+'KB':Math.round(compressedKB/1024)+'MB')+')';
+    if (Object.values(pdfs).some(v=>v!==null)) document.getElementById('run-btn').disabled = false;
+    status('PDF '+n+' compressed and loaded.');
+  } catch(e) {
+    document.getElementById('pdf'+n+'-name').textContent = file.name + ' ✗ compression failed';
+    status('PDF '+n+' error: '+e.message);
+    log('compression failed: '+e.message,'err');
+  }
 }
 
 async function atFetch(path, opts={}) {
