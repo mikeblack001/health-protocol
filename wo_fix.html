@@ -13,97 +13,118 @@ button{padding:8px 18px;border:none;border-radius:6px;cursor:pointer;font-size:1
 button:disabled{background:#9ca3af;cursor:default}
 .err{color:#dc2626}.ok{color:#16a34a}.warn{color:#d97706}.info{color:#6b7280}
 progress{width:100%;height:8px;margin:8px 0;border-radius:4px}
+.pdf-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.pdf-label{font-size:12px;font-weight:700;color:#374151;min-width:60px}
+.pdf-status{font-size:11px;color:#6b7280}
 </style>
 </head>
 <body>
-<h1>Workout Data Correction Tool</h1>
-<div id="status">Ready. Upload the workout PDF then click Run.</div>
-<div style="margin-bottom:12px;display:flex;align-items:center;gap:8px">
+<h1>Workout Data Fix — All PDFs</h1>
+<div id="status">Load all 3 PDFs then click Run All.</div>
+
+<div class="pdf-row">
+  <span class="pdf-label">PDF 1</span>
   <label style="padding:6px 14px;background:#374151;color:#fff;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700">
-    📄 Upload PDF<input type="file" accept=".pdf" id="pdf-input" style="display:none" onchange="onPdf(this)">
+    📄 Upload<input type="file" accept=".pdf" id="pdf1" style="display:none" onchange="onPdf(this,1)">
   </label>
-  <span id="pdf-name" style="font-size:12px;color:#6b7280">No file selected</span>
-  <button id="run-btn" onclick="runFix()" disabled>▶ Run Fix</button>
-  <button onclick="document.getElementById('log').textContent=''" style="background:#6b7280">Clear Log</button>
+  <span id="pdf1-name" class="pdf-status">No file</span>
 </div>
-<div style="margin-bottom:12px;display:flex;align-items:center;gap:8px">
-  <label style="font-size:12px;font-weight:700;color:#374151">Anthropic API Key:</label>
-  <input id="ant-key" type="password" placeholder="sk-ant-..." style="flex:1;max-width:400px;padding:6px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:12px" value="">
+<div class="pdf-row">
+  <span class="pdf-label">PDF 2</span>
+  <label style="padding:6px 14px;background:#374151;color:#fff;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700">
+    📄 Upload<input type="file" accept=".pdf" id="pdf2" style="display:none" onchange="onPdf(this,2)">
+  </label>
+  <span id="pdf2-name" class="pdf-status">No file</span>
+</div>
+<div class="pdf-row">
+  <span class="pdf-label">PDF 3</span>
+  <label style="padding:6px 14px;background:#374151;color:#fff;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700">
+    📄 Upload<input type="file" accept=".pdf" id="pdf3" style="display:none" onchange="onPdf(this,3)">
+  </label>
+  <span id="pdf3-name" class="pdf-status">No file</span>
+</div>
+
+<div style="margin:12px 0;display:flex;gap:8px">
+  <button id="run-btn" onclick="runAll()" disabled>▶ Run All PDFs</button>
+  <button onclick="document.getElementById('log').innerHTML=''" style="background:#6b7280">Clear Log</button>
 </div>
 <progress id="prog" value="0" max="100" style="display:none"></progress>
 <div id="log"></div>
 
 <script>
+const WORKER = 'https://little-hall-2cfc.mikeblack01.workers.dev';
+const ANT_KEY = (()=>{const p1='sk-ant-api03-jWnl5azwXKPce1ZVdPZ8_8edO87_hOD8uZpDX',p2='QFa4ByFkqqdJOzouZo6xiVwxykvwcp5MVNeYIaYn0dDE_dVAA-H3QK9wAA';return p1+p2;})();
 const AT_TOK = 'pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
 const AT_BASE = 'appmHDG4TGT1xy6R6';
 const AT_TBL = 'tblKDqjy5RzqaJvjr';
-let ANT_KEY = '';
-window.addEventListener('load',function(){const el=document.getElementById('ant-key');if(el&&!el.value){const p1='sk-ant-api03-jWnl5azwXKPce1ZVdPZ8_8edO87_hOD8uZpDX',p2='QFa4ByFkqqdJOzouZo6xiVwxykvwcp5MVNeYIaYn0dDE_dVAA-H3QK9wAA';el.value=p1+p2;}});
 
 const F = {
-  date: 'fld75zYXknF0RtCWH',
-  ex:   'fldZ93A1t7fGjjsSS',
-  var:  'fld2TZdmCOloH0gAK',
-  setN: 'fldNm9Ao0rmcwwDXo',
-  reps: 'fldelUngWHRTm48m1',
-  wt:   'fldmrbBmfgSMtREMt',
-  day:  'fldypzlwqw9AzWrEE',
-  sess: 'fldBChNmPkNg61oTN',
+  date:'fld75zYXknF0RtCWH', ex:'fldZ93A1t7fGjjsSS', var:'fld2TZdmCOloH0gAK',
+  setN:'fldNm9Ao0rmcwwDXo', reps:'fldelUngWHRTm48m1', wt:'fldmrbBmfgSMtREMt',
+  day:'fldypzlwqw9AzWrEE', sess:'fldBChNmPkNg61oTN'
 };
 
-// EXERCISE NAME MAPPING — PDF names → AT canonical names
 const EX_MAP = {
-  'incline db': 'Incline Press', 'inline db': 'Incline Press', 'incline press': 'Incline Press',
-  'tricep v': 'Tricep Pushdowns 1/2', 'tricep rope': 'Tricep Pushdowns 1/2', 'tricep pushdown': 'Tricep Pushdowns 1/2',
-  'tricep pushdowns': 'Tricep Pushdowns 1/2', 'trep v': 'Tricep Pushdowns 1/2',
-  'db fly': 'Incline Fly', 'incline fly': 'Incline Fly', 'db fly incline': 'Incline Fly',
-  'cable fly': 'High Cable Fly 1/2 ea', 'cable high fly': 'High Cable Fly 1/2 ea', 'high cable fly': 'High Cable Fly 1/2 ea',
-  'cable bench decline': 'Decline Press', 'cable press decline': 'Decline Press', 'decline press': 'Decline Press',
-  'cable bar press': 'Bench Press', 'cable bench press': 'Bench Press', 'bench press': 'Bench Press',
-  'cable incline press': 'Incline Press', 'cable inline press': 'Incline Press',
-  'incline cable bench': 'Incline Press', 'incline cable press': 'Incline Press',
-  'tricep straight bar': 'Tricep Pushdowns 1/2', 'trep straight bar': 'Tricep Pushdowns 1/2',
-  'wrist curl': 'Wrist Twist', 'wrist twist': 'Wrist Twist',
-  '1 hand tricep': 'Overhead Tricep Ext', 'ihand tricep': 'Overhead Tricep Ext', 'overhead tricep': 'Overhead Tricep Ext',
-  'incline cable bend': 'Incline Press',
-  'wide grip pulldown': 'Lat Pulldown', 'wide grp pulldown': 'Lat Pulldown', 'wide gip pulldown': 'Lat Pulldown',
-  'db curls': 'Bicep Curls-Preacher', 'db curl': 'Bicep Curls-Preacher',
-  'cable pulldown': 'Lat Pulldown', 'lat pulldown': 'Lat Pulldown',
-  'close grip pulldown': 'Lat Pulldown', 'closr grip pulldown': 'Lat Pulldown',
-  'db hammer': 'Hammer Curls', 'hammer curls': 'Hammer Curls',
-  'v pulldown': 'Lat Pulldown', 'v pull down': 'Lat Pulldown',
-  'cable mid row': 'Cable Rows', 'cable midrow': 'Cable Rows', 'cable rows': 'Cable Rows',
-  'cable curl': 'Cable Curls 1/2 ea', 'cable curls': 'Cable Curls 1/2 ea',
-  'cable forearm curl': 'Wrist Twist', 'cable forearm': 'Wrist Twist',
-  'double cable curls': 'Cable Curls 1/2 ea', '2 handle cable curls': 'Cable Curls 1/2 ea',
-  'leg side extension': 'Leg Extensions', 'leg extension': 'Leg Extensions', '1 leg side extension': 'Leg Extensions',
-  'leg kickback': 'Leg Curls', '1 leg kickback': 'Leg Curls',
-  'leg inner ext': 'Leg Extensions', '1 leg inner ext': 'Leg Extensions',
-  'leg curl': 'Leg Curls', '1 leg curl': 'Leg Curls',
-  'leg press': 'Leg Press', 'wide width leg press': 'Leg Press',
-  'db calf raises': 'DB Calf Raises', 'db calf': 'DB Calf Raises',
-  'cable calf raise': 'Smith Mach Calf Raises', 'smith calf': 'Smith Mach Calf Raises',
-  'cable shoulder press': 'Seated Shoulder Press', 'db shoulder press': 'Seated Shoulder Press',
-  'cable single arm raise': 'Lateral Raises', 'db shoulder raise': 'Lateral Raises', 'lateral raise': 'Lateral Raises',
-  'high cable crossover': 'Cable Cross Overs 1/2 ea', 'cable face pull': 'Face Pulls',
-  'cable raise up': 'Lateral Raises', 'cable pulldown': 'Lat Pulldown',
-  'wide cable pulldown': 'Lat Pulldown', 'db raise': 'Lateral Raises',
-  'shoulder shrug': 'Barbell Shrugs', 'db shoulder shrug': 'Barbell Shrugs', 'cable shoulder shrug': 'Cable Shrugs 1/2',
-  'hip thrust': 'Hip Thrust', 'back extension': 'Back Extension', 'reverse hyper': 'Reverse Hyper',
-  'nordic curl': 'Nordic Curl', 'forward back stretch': 'Forward Back Stretch',
+  'incline db':'Incline Press','inline db':'Incline Press','incline press':'Incline Press',
+  'tricep v':'Tricep Pushdowns 1/2','tricep rope':'Tricep Pushdowns 1/2','tricep pushdown':'Tricep Pushdowns 1/2',
+  'tricep pushdowns':'Tricep Pushdowns 1/2','trep v':'Tricep Pushdowns 1/2','tricep straight bar':'Tricep Pushdowns 1/2',
+  'trep straight bar':'Tricep Pushdowns 1/2','tricep bar':'Tricep Pushdowns 1/2',
+  'db fly':'Incline Fly','incline fly':'Incline Fly','db fly incline':'Incline Fly',
+  'cable fly':'High Cable Fly 1/2 ea','cable high fly':'High Cable Fly 1/2 ea','high cable fly':'High Cable Fly 1/2 ea',
+  'cable bench decline':'Decline Press','cable press decline':'Decline Press','decline press':'Decline Press',
+  'cable bar press':'Bench Press','cable bench press':'Bench Press','bench press':'Bench Press',
+  'cable incline press':'Incline Press','cable inline press':'Incline Press',
+  'incline cable bench':'Incline Press','incline cable press':'Incline Press','incline cable bend':'Incline Press',
+  'wrist curl':'Wrist Twist','wrist twist':'Wrist Twist','cable forearm curl':'Wrist Twist','cable forearm':'Wrist Twist','foream curl':'Wrist Twist',
+  '1 hand tricep':'Overhead Tricep Ext','ihand tricep':'Overhead Tricep Ext','overhead tricep':'Overhead Tricep Ext',
+  'wide grip pulldown':'Lat Pulldown','wide grp pulldown':'Lat Pulldown','wide gip pulldown':'Lat Pulldown',
+  'cable pulldown':'Lat Pulldown','lat pulldown':'Lat Pulldown','close grip pulldown':'Lat Pulldown',
+  'closr grip pulldown':'Lat Pulldown','v pulldown':'Lat Pulldown','v pull down':'Lat Pulldown',
+  'wide cable pulldown':'Lat Pulldown',
+  'db curls':'Bicep Curls-Preacher','db curl':'Bicep Curls-Preacher','preacher curl':'Bicep Curls-Preacher',
+  'db hammer':'Hammer Curls','hammer curls':'Hammer Curls','hammer curl':'Hammer Curls',
+  'cable mid row':'Cable Rows','cable midrow':'Cable Rows','cable rows':'Cable Rows','cable row':'Cable Rows',
+  'cable curl':'Cable Curls 1/2 ea','cable curls':'Cable Curls 1/2 ea','double cable curls':'Cable Curls 1/2 ea',
+  '2 handle cable curls':'Cable Curls 1/2 ea',
+  'db curls preacher':'Bicep Curls-Preacher','bicep curl':'Bicep Curls-Preacher','bicep curls':'Bicep Curls-Preacher',
+  'leg side extension':'Leg Extensions','leg extension':'Leg Extensions','1 leg side extension':'Leg Extensions',
+  'leg inner ext':'Leg Extensions','1 leg inner ext':'Leg Extensions','leg ext':'Leg Extensions',
+  'leg kickback':'Leg Curls','1 leg kickback':'Leg Curls','leg curl':'Leg Curls','1 leg curl':'Leg Curls',
+  'leg press':'Leg Press','wide width leg press':'Leg Press',
+  'db calf raises':'DB Calf Raises','db calf':'DB Calf Raises','db calf raise':'DB Calf Raises',
+  'cable calf raise':'Smith Mach Calf Raises','smith calf':'Smith Mach Calf Raises','smith calf raise':'Smith Mach Calf Raises',
+  'calf raise':'DB Calf Raises',
+  'cable shoulder press':'Seated Shoulder Press','db shoulder press':'Seated Shoulder Press','shoulder press':'Seated Shoulder Press',
+  'cable single arm raise':'Lateral Raises','db shoulder raise':'Lateral Raises','lateral raise':'Lateral Raises',
+  'lateral raises':'Lateral Raises','cable raise up':'Lateral Raises','db raise':'Lateral Raises',
+  'high cable crossover':'Cable Cross Overs 1/2 ea','cable crossover':'Cable Cross Overs 1/2 ea',
+  'cable face pull':'Face Pulls','face pull':'Face Pulls','face pulls':'Face Pulls',
+  'rear delt':'Rear Delt Raises','rear delt raise':'Rear Delt Raises','rear delt raises':'Rear Delt Raises',
+  'shoulder shrug':'Barbell Shrugs','db shoulder shrug':'Barbell Shrugs','barbell shrug':'Barbell Shrugs','barbell shrugs':'Barbell Shrugs',
+  'cable shoulder shrug':'Cable Shrugs 1/2','cable shrug':'Cable Shrugs 1/2',
+  'hip thrust':'Hip Thrust','back extension':'Back Extension','reverse hyper':'Reverse Hyper',
+  'nordic curl':'Nordic Curl','forward back stretch':'Forward Back Stretch',
+  'incline curls':'Incline Curls','incline curl':'Incline Curls',
+  'overhead tricep press':'Overhead Tricep Press','overhead tricep ext':'Overhead Tricep Ext',
+  'tricep ext down':'Tricep Ext Down 1/2','tricep ext up':'Tricep Ext Up',
+  'forearm raise':'Forearm Raise - Cable 1/2','forearm raise cable':'Forearm Raise - Cable 1/2',
+  'cable press':'Cable Press 1/2 ea','low cable fly':'Low Cable Fly 1/2 ea',
+  'bent over row':'Bent Over Rows','bent over rows':'Bent Over Rows',
+  'seated cable row':'Cable Rows','seated row':'Cable Rows',
+  'curls standing':'Curls (Standing)','standing curl':'Curls (Standing)','standing curls':'Curls (Standing)',
+  'smith calf raises':'Smith Mach Calf Raises','smith machine calf':'Smith Mach Calf Raises',
+  'leg press wide':'Leg Press','hip thrusts':'Hip Thrust',
 };
 
-// VARIATION MAPPING
 const VAR_MAP = {
-  'rope': 'Rope 1/2', 'rope 1/2': 'Rope 1/2', 'v': 'V-Bar', 'v-bar': 'V-Bar', 'vbar': 'V-Bar',
-  'bar': 'Bar', 'straight bar': 'Bar', 'uclip': 'UClip', 'u clip': 'UClip',
-  'dbs': 'DBs', 'db': 'DBs', 'cables': 'Cables', 'cable': 'Cables',
-  'cable - 2 hand': 'Cable - 2 Hand', '2 hand': 'Cable - 2 Hand',
-  'lat machine': 'Lat Machine', 'ez bar': 'EZ-Bar', 'ez-bar': 'EZ-Bar',
+  'rope':'Rope 1/2','rope 1/2':'Rope 1/2','v':'V-Bar','v-bar':'V-Bar','vbar':'V-Bar',
+  'bar':'Bar','straight bar':'Bar','uclip':'UClip','u clip':'UClip',
+  'dbs':'DBs','db':'DBs','cables':'Cables','cable':'Cables',
+  'cable - 2 hand':'Cable - 2 Hand','2 hand':'Cable - 2 Hand',
+  'lat machine':'Lat Machine','ez bar':'EZ-Bar','ez-bar':'EZ-Bar','ez':'EZ-Bar',
 };
 
-let pdfBase64 = null;
-let pdfPageCount = 0;
+const pdfs = {1:null, 2:null, 3:null};
 
 function log(msg, cls='') {
   const el = document.getElementById('log');
@@ -113,311 +134,175 @@ function log(msg, cls='') {
   el.appendChild(line);
   el.scrollTop = el.scrollHeight;
 }
+function status(msg) { document.getElementById('status').textContent = msg; }
+function prog(val, max) { const p=document.getElementById('prog'); p.style.display='block'; p.value=val; p.max=max; }
+function sleep(ms) { return new Promise(r=>setTimeout(r,ms)); }
 
-function status(msg) {
-  document.getElementById('status').textContent = msg;
-}
-
-function prog(val, max) {
-  const p = document.getElementById('prog');
-  p.style.display = 'block';
-  p.value = val; p.max = max;
-}
-
-async function onPdf(input) {
+async function onPdf(input, n) {
   const file = input.files[0];
   if (!file) return;
-  document.getElementById('pdf-name').textContent = file.name;
-  pdfBase64 = await new Promise((res, rej) => {
-    const r = new FileReader();
-    r.onload = () => res(r.result.split(',')[1]);
-    r.onerror = () => rej(new Error('Read failed'));
+  pdfs[n] = await new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onload=()=>res(r.result.split(',')[1]);
+    r.onerror=()=>rej(new Error('Read failed'));
     r.readAsDataURL(file);
   });
-  // Count pages using basic PDF parsing
-  const text = atob(pdfBase64.slice(0, 10000));
-  const match = text.match(/\/N\s+(\d+)/);
-  document.getElementById('pdf-name').textContent += ' (loaded)';
-  document.getElementById('run-btn').disabled = false;
-  status('PDF loaded. Click Run to start.');
+  document.getElementById('pdf'+n+'-name').textContent = file.name + ' ✓';
+  const allLoaded = Object.values(pdfs).some(v=>v!==null);
+  if (allLoaded) document.getElementById('run-btn').disabled = false;
+  status('PDF '+n+' loaded. Load remaining PDFs or click Run.');
 }
 
-async function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
-
 async function atFetch(path, opts={}) {
-  const r = await fetch('https://api.airtable.com/v0/' + AT_BASE + '/' + path, {
+  const r = await fetch('https://api.airtable.com/v0/'+AT_BASE+'/'+path, {
     ...opts,
-    headers: { Authorization: 'Bearer ' + AT_TOK, 'Content-Type': 'application/json', ...(opts.headers||{}) }
+    headers:{Authorization:'Bearer '+AT_TOK,'Content-Type':'application/json',...(opts.headers||{})}
   });
-  if (!r.ok) { const e = await r.json().catch(()=>({error:{message:r.status}})); throw new Error(e.error?.message||r.status); }
+  if (!r.ok) { const e=await r.json().catch(()=>({error:{message:r.status}})); throw new Error(e.error?.message||r.status); }
   return r.json();
 }
 
 async function claudeVision(base64, prompt) {
   const body = {
     model: 'claude-sonnet-4-20250514',
-    max_tokens: 2000,
+    max_tokens: 4000,
     messages: [{
       role: 'user',
       content: [
-        { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } },
-        { type: 'text', text: prompt }
+        {type:'document', source:{type:'base64', media_type:'application/pdf', data:base64}},
+        {type:'text', text:prompt}
       ]
     }]
   };
-  const r = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': ANT_KEY,
-      'anthropic-version': '2023-06-01',
-      'anthropic-beta': 'pdfs-2024-09-25',
-      'anthropic-dangerous-direct-browser-access': 'true'
-    },
-    body: JSON.stringify(body)
+  const r = await fetch(WORKER, {
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-api-key':ANT_KEY},
+    body:JSON.stringify(body)
   });
-  if (!r.ok) {
-    const e = await r.text();
-    throw new Error('Claude API ' + r.status + ': ' + e.slice(0,200));
-  }
+  if (!r.ok) { const e=await r.text(); throw new Error('Worker '+r.status+': '+e.slice(0,200)); }
   const d = await r.json();
+  if (d.type==='error') throw new Error(d.error?.message||JSON.stringify(d.error));
   return d.content?.[0]?.text || '';
 }
 
 function mapExercise(raw) {
+  if (!raw) return '';
   const k = raw.toLowerCase().trim().replace(/\s+/g,' ');
   if (EX_MAP[k]) return EX_MAP[k];
-  for (const [key, val] of Object.entries(EX_MAP)) {
+  for (const [key,val] of Object.entries(EX_MAP)) {
     if (k.includes(key) || key.includes(k)) return val;
   }
-  // Title case fallback
-  return raw.trim().replace(/\b\w/g, c => c.toUpperCase());
+  return raw.trim().replace(/\b\w/g,c=>c.toUpperCase());
 }
-
 function mapVariation(raw) {
   if (!raw) return '';
   const k = raw.toLowerCase().trim();
   return VAR_MAP[k] || raw.trim();
 }
 
-function parsePageData(text) {
-  // Returns array of {date, dayName, exercises:[{name, variation, sets:[{wt, reps}]}]}
-  const workouts = [];
-  let current = null;
-
-  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
-
-  for (const line of lines) {
-    // Date line: "2024-10-28 Monday" or "10/28/2024 Mon" or "Mon 10/28"
-    const dateMatch = line.match(/(\d{4}-\d{2}-\d{2})|(\d{1,2}\/\d{1,2}\/\d{4})|(\d{1,2}\/\d{1,2}\/\d{2})/);
-    const dayMatch = line.match(/\b(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|Mon|Tue|Wed|Thu|Fri|Sat|Sun)\b/i);
-
-    if (dateMatch && dayMatch) {
-      let dateStr = dateMatch[0];
-      if (dateStr.includes('/')) {
-        const parts = dateStr.split('/');
-        const yr = parts[2].length === 2 ? '20' + parts[2] : parts[2];
-        dateStr = yr + '-' + parts[0].padStart(2,'0') + '-' + parts[1].padStart(2,'0');
-      }
-      current = { date: dateStr, dayName: dayMatch[0], exercises: [] };
-      workouts.push(current);
-      continue;
-    }
-
-    if (!current) continue;
-
-    // Exercise line with sets: "Incline DB 35x20 40x20 50x12" or "Rope 1/2: 45x20 50x20 60x20"
-    const setMatches = [...line.matchAll(/(\d+(?:\.\d+)?)\s*[xX×]\s*(\d+)/g)];
-    if (setMatches.length > 0) {
-      // Extract exercise name (everything before first NNxNN)
-      const firstSetIdx = line.search(/\d+\s*[xX×]\s*\d+/);
-      let exPart = line.slice(0, firstSetIdx).trim().replace(/[:\-,]+$/, '').trim();
-
-      // Check for variation in parens or after colon
-      let variation = '';
-      const varMatch = exPart.match(/\(([^)]+)\)$/);
-      if (varMatch) { variation = varMatch[1]; exPart = exPart.replace(varMatch[0], '').trim(); }
-
-      const exName = mapExercise(exPart);
-      const sets = setMatches.map(m => ({ wt: parseFloat(m[1]), reps: parseInt(m[2]) }));
-
-      current.exercises.push({ name: exName, variation: mapVariation(variation), sets });
-    }
-  }
-
-  return workouts;
-}
-
-async function fetchATRecordsForDate(date) {
+async function fetchATForDate(date) {
   const formula = encodeURIComponent(`{Date}='${date}'`);
   const flds = `fields[]=${F.ex}&fields[]=${F.var}&fields[]=${F.setN}&fields[]=${F.reps}&fields[]=${F.wt}&fields[]=${F.date}`;
-  let recs = [], off = null;
+  let recs=[], off=null;
   do {
     const d = await atFetch(`${AT_TBL}?filterByFormula=${formula}&${flds}&returnFieldsByFieldId=true&pageSize=100${off?'&offset='+off:''}`);
     recs = recs.concat(d.records);
     off = d.offset;
-  } while (off);
+  } while(off);
   return recs;
 }
 
-async function patchRecord(id, fields) {
-  await atFetch(`${AT_TBL}/${id}`, {
-    method: 'PATCH',
-    body: JSON.stringify({ fields })
-  });
-}
-
 async function deleteRecords(ids) {
-  // Max 10 per request
-  for (let i = 0; i < ids.length; i += 10) {
-    const batch = ids.slice(i, i + 10);
-    const qs = batch.map(id => `records[]=${id}`).join('&');
-    await atFetch(`${AT_TBL}?${qs}`, { method: 'DELETE', headers: { 'Content-Type': '' } });
-    if (i + 10 < ids.length) await sleep(150);
+  for (let i=0; i<ids.length; i+=10) {
+    const qs = ids.slice(i,i+10).map(id=>`records[]=${id}`).join('&');
+    await atFetch(`${AT_TBL}?${qs}`, {method:'DELETE', headers:{'Content-Type':''}});
+    if (i+10<ids.length) await sleep(150);
   }
 }
 
 async function createRecords(records) {
-  // Max 10 per request
-  for (let i = 0; i < records.length; i += 10) {
-    const batch = records.slice(i, i + 10);
-    await atFetch(AT_TBL, {
-      method: 'POST',
-      body: JSON.stringify({ records: batch.map(r => ({ fields: r })), typecast: true })
-    });
-    if (i + 10 < records.length) await sleep(200);
+  for (let i=0; i<records.length; i+=10) {
+    await atFetch(AT_TBL, {method:'POST', body:JSON.stringify({records:records.slice(i,i+10).map(r=>({fields:r})),typecast:true})});
+    if (i+10<records.length) await sleep(200);
   }
+}
+
+async function patchRecord(id, fields) {
+  await atFetch(`${AT_TBL}/${id}`, {method:'PATCH', body:JSON.stringify({fields})});
 }
 
 async function reconcileDate(date, dayName, exercises) {
-  if (!exercises || exercises.length === 0) return;
-
-  // Fetch all AT records for this date
-  const atRecs = await fetchATRecordsForDate(date);
-  log(`  AT has ${atRecs.length} records for ${date}`, 'info');
-
-  // Build AT lookup: exercise → [records sorted by setN]
-  const atByEx = {};
-  atRecs.forEach(r => {
-    const ex = r.fields[F.ex] || '';
-    if (!atByEx[ex]) atByEx[ex] = [];
-    atByEx[ex].push(r);
-  });
-  Object.values(atByEx).forEach(arr => arr.sort((a,b) => (a.fields[F.setN]||0)-(b.fields[F.setN]||0)));
-
+  if (!exercises || exercises.length===0) return;
   const dowMap = {Monday:'Monday',Tuesday:'Tuesday',Wednesday:'Wednesday',Thursday:'Thursday',Friday:'Friday',Saturday:'Saturday',Sunday:'Sunday',Mon:'Monday',Tue:'Tuesday',Wed:'Wednesday',Thu:'Thursday',Fri:'Friday',Sat:'Saturday',Sun:'Sunday'};
   const dayFull = dowMap[dayName] || dayName;
-  const sessionId = date + ' ' + dayFull;
+  const sessionId = date+' '+dayFull;
 
-  let patched = 0, deleted = 0, created = 0;
-  const handledExercises = new Set();
+  const atRecs = await fetchATForDate(date);
+  log(`  AT: ${atRecs.length} records`, 'info');
+
+  // Group AT by exercise
+  const atByEx = {};
+  atRecs.forEach(r=>{ const ex=r.fields[F.ex]||''; if(!atByEx[ex])atByEx[ex]=[]; atByEx[ex].push(r); });
+  Object.values(atByEx).forEach(arr=>arr.sort((a,b)=>(a.fields[F.setN]||0)-(b.fields[F.setN]||0)));
+
+  let patched=0, deleted=0, created=0;
+  const handled = new Set();
 
   for (const exData of exercises) {
     const exName = exData.name;
-    handledExercises.add(exName);
-    const pdfSets = exData.sets; // [{wt, reps}, ...]
+    handled.add(exName);
+    const pdfSets = exData.sets;
     const atExRecs = atByEx[exName] || [];
 
-    if (atExRecs.length === 0 && pdfSets.length > 0) {
-      // All missing — create
-      const toCreate = pdfSets.map((s, i) => ({
-        [F.date]: date,
-        [F.ex]: exName,
-        [F.var]: exData.variation || null,
-        [F.setN]: i + 1,
-        [F.reps]: s.reps,
-        [F.wt]: s.wt,
-        [F.day]: dayFull,
-        [F.sess]: sessionId,
-      }));
-      await createRecords(toCreate);
-      created += toCreate.length;
-      log(`    CREATE ${exName}: ${pdfSets.map(s=>s.wt+'x'+s.reps).join(', ')}`, 'ok');
-    } else {
-      // Compare set by set
-      // Delete extra AT records beyond what PDF shows
-      if (atExRecs.length > pdfSets.length) {
-        const toDelete = atExRecs.slice(pdfSets.length).map(r => r.id);
-        await deleteRecords(toDelete);
-        deleted += toDelete.length;
-        log(`    DELETE ${exName} extra sets (${toDelete.length})`, 'warn');
-      }
+    // Delete extras
+    if (atExRecs.length > pdfSets.length) {
+      const toDelete = atExRecs.splice(pdfSets.length).map(r=>r.id);
+      await deleteRecords(toDelete);
+      deleted += toDelete.length;
+      log(`    DEL ${exName} extras (${toDelete.length})`, 'warn');
+    }
 
-      // Patch each set that exists
-      for (let i = 0; i < pdfSets.length; i++) {
-        const pdfSet = pdfSets[i];
-        const atRec = atExRecs[i];
-
-        if (!atRec) {
-          // Need to create this set
-          await createRecords([{
-            [F.date]: date,
-            [F.ex]: exName,
-            [F.var]: exData.variation || null,
-            [F.setN]: i + 1,
-            [F.reps]: pdfSet.reps,
-            [F.wt]: pdfSet.wt,
-            [F.day]: dayFull,
-            [F.sess]: sessionId,
-          }]);
-          created++;
-          log(`    CREATE ${exName} S${i+1}: ${pdfSet.wt}x${pdfSet.reps}`, 'ok');
-        } else {
-          const curWt = atRec.fields[F.wt] || 0;
-          const curReps = atRec.fields[F.reps] || 0;
-          const curSetN = atRec.fields[F.setN] || 0;
-
-          const needsPatch = Math.abs(curWt - pdfSet.wt) > 0.01 ||
-                            Math.abs(curReps - pdfSet.reps) > 0.01 ||
-                            curSetN !== i + 1;
-
-          if (needsPatch) {
-            await patchRecord(atRec.id, {
-              [F.reps]: pdfSet.reps,
-              [F.wt]: pdfSet.wt,
-              [F.setN]: i + 1,
-              [F.day]: dayFull,
-              [F.sess]: sessionId,
-            });
-            patched++;
-            log(`    PATCH ${exName} S${i+1}: AT=${curWt}x${curReps} → PDF=${pdfSet.wt}x${pdfSet.reps}`, 'warn');
-          }
+    for (let i=0; i<pdfSets.length; i++) {
+      const ps = pdfSets[i];
+      const ar = atExRecs[i];
+      if (!ar) {
+        await createRecords([{[F.date]:date,[F.ex]:exName,[F.var]:exData.variation||null,[F.setN]:i+1,[F.reps]:ps.reps,[F.wt]:ps.wt,[F.day]:dayFull,[F.sess]:sessionId}]);
+        created++;
+        log(`    CREATE ${exName} S${i+1}: ${ps.wt}x${ps.reps}`, 'ok');
+      } else {
+        const cw=ar.fields[F.wt]||0, cr=ar.fields[F.reps]||0, cs=ar.fields[F.setN]||0;
+        if (Math.abs(cw-ps.wt)>0.01 || Math.abs(cr-ps.reps)>0.01 || cs!==i+1) {
+          await patchRecord(ar.id,{[F.reps]:ps.reps,[F.wt]:ps.wt,[F.setN]:i+1,[F.day]:dayFull,[F.sess]:sessionId});
+          patched++;
+          log(`    PATCH ${exName} S${i+1}: ${cw}x${cr} → ${ps.wt}x${ps.reps}`, 'warn');
         }
       }
     }
-    await sleep(100);
+    await sleep(80);
   }
 
-  // Delete AT records for exercises NOT in PDF (genuinely removed/wrong)
-  // Only delete if exercise has zero PDF sets AND was in AT
+  // Flag AT exercises not in PDF
   for (const [exName, recs] of Object.entries(atByEx)) {
-    if (!handledExercises.has(exName) && recs.length > 0) {
-      // Don't auto-delete unknown exercises — flag them for review
-      log(`    REVIEW: "${exName}" in AT but not in PDF for ${date}`, 'err');
-    }
+    if (!handled.has(exName)) log(`    FLAG: "${exName}" in AT, not in PDF`, 'err');
   }
 
-  log(`  ${date} done: ${patched} patched, ${deleted} deleted, ${created} created`, 'ok');
+  log(`  ✓ ${date}: ${patched} patched, ${deleted} deleted, ${created} created`, 'ok');
 }
 
-async function runFix() {
-  ANT_KEY = document.getElementById('ant-key').value.trim();
-  if (!ANT_KEY) { alert('Enter Anthropic API key'); return; }
-  if (!pdfBase64) { alert('Upload PDF first'); return; }
-  document.getElementById('run-btn').disabled = true;
-  status('Starting...');
+const PROMPT = `Extract ALL workout sessions from this PDF. Return ONLY valid JSON, no markdown.
 
-  // Send full PDF to Claude with structured extraction prompt
-  const PROMPT = `You are extracting workout data from handwritten PDF pages.
+RULES:
+- Weight x Reps format: 35x20 = 35lbs, 20 reps. Weight is ALWAYS first.
+- RIGHT column number is the actual stored weight for cable exercises.
+- Use exact exercise names as written — do not translate or canonicalize.
+- Each session has a date and day label (Mon/Tue/Wed/Thu/Fri/Sat).
+- Sessions appear in strict calendar order throughout the PDF.
+- Crossed-out numbers: use the FINAL written correction.
+- If a date is unclear, derive it from surrounding dates (pages are sequential).
+- Zero-rep sets: omit entirely.
+- Include ALL sets listed for each exercise.
 
-CRITICAL RULES:
-- Format is always WEIGHT x REPS (e.g. 35x20 = 35 lbs, 20 reps)
-- Each page has one or more workout sessions labeled Mon/Tues/Wed/Thu/Fri/Sat
-- The notebook number and date appear at top of each session group (e.g. "1 - Oct 28" or "2 - Nov 4")
-- Crossed-out numbers: use the FINAL written number (the correction), not the crossed-out one
-- Small superscript numbers are corrections to the weight or reps
-
-Extract ALL sessions from ALL pages. Return ONLY valid JSON, no markdown, no explanation:
+JSON format:
 {
   "sessions": [
     {
@@ -425,83 +310,62 @@ Extract ALL sessions from ALL pages. Return ONLY valid JSON, no markdown, no exp
       "day": "Monday",
       "exercises": [
         {
-          "name": "exercise name exactly as written",
-          "variation": "rope/bar/dbs/cables/etc or empty string",
-          "sets": [
-            {"wt": 35, "reps": 20},
-            {"wt": 40, "reps": 20}
-          ]
+          "name": "exact name as written",
+          "variation": "rope/bar/dbs/cables/v-bar/etc or empty string",
+          "sets": [{"wt": 35, "reps": 20}, {"wt": 40, "reps": 18}]
         }
       ]
     }
   ]
+}`;
+
+async function processPdf(n, base64) {
+  log(`\n=== PDF ${n} ===`, 'info');
+  status(`PDF ${n}: Sending to Claude for extraction...`);
+  const raw = await claudeVision(base64, PROMPT);
+  log(`PDF ${n}: Claude response received`, 'info');
+
+  let jsonStr = raw.replace(/```json\n?/g,'').replace(/```\n?/g,'').trim();
+  let data;
+  try { data = JSON.parse(jsonStr); }
+  catch(e) {
+    log(`PDF ${n} parse error: ${e.message}`, 'err');
+    log('Raw (first 1000): '+raw.slice(0,1000), 'err');
+    return 0;
+  }
+
+  const sessions = data.sessions || [];
+  log(`PDF ${n}: ${sessions.length} sessions extracted`, 'ok');
+
+  for (let i=0; i<sessions.length; i++) {
+    const s = sessions[i];
+    prog(i+1, sessions.length);
+    status(`PDF ${n}: ${s.date} ${s.day} (${i+1}/${sessions.length})`);
+    log(`\n[${i+1}/${sessions.length}] ${s.date} ${s.day} — ${s.exercises?.length||0} exercises`);
+    if (!s.date || !s.exercises || s.exercises.length===0) { log('  skip — no data','warn'); continue; }
+    s.exercises.forEach(ex=>{ ex.name=mapExercise(ex.name); ex.variation=mapVariation(ex.variation); });
+    try { await reconcileDate(s.date, s.day, s.exercises); }
+    catch(e) { log('  ERROR: '+e.message,'err'); }
+    await sleep(300);
+  }
+  return sessions.length;
 }
 
-The first session starts Oct 28 2024. Sessions are sequential by week.
-Day order within each week: Mon, Tue, Wed, Thu, Fri (Sat/cardio sometimes).
-Week numbers increment sequentially — use this to derive dates for sessions without explicit dates.`;
+async function runAll() {
+  const loaded = Object.entries(pdfs).filter(([n,v])=>v!==null);
+  if (loaded.length===0) { alert('Upload at least one PDF'); return; }
+  document.getElementById('run-btn').disabled = true;
+  status('Starting...');
 
-  try {
-    log('Sending PDF to Claude for extraction...', 'info');
-    status('Extracting data from PDF via Claude vision...');
-
-    const raw = await claudeVision(pdfBase64, PROMPT);
-    log('Claude response received. Parsing...', 'info');
-
-    let jsonStr = raw;
-    // Strip markdown if present
-    jsonStr = jsonStr.replace(/```json\n?/g,'').replace(/```\n?/g,'').trim();
-
-    let data;
-    try {
-      data = JSON.parse(jsonStr);
-    } catch(e) {
-      log('JSON parse error: ' + e.message, 'err');
-      log('Raw response (first 2000 chars):', 'err');
-      log(raw.slice(0, 2000), 'err');
-      status('Parse error — see log');
-      document.getElementById('run-btn').disabled = false;
-      return;
-    }
-
-    const sessions = data.sessions || [];
-    log(`Extracted ${sessions.length} sessions from PDF`, 'ok');
-    status(`Processing ${sessions.length} sessions...`);
-    prog(0, sessions.length);
-
-    for (let i = 0; i < sessions.length; i++) {
-      const s = sessions[i];
-      log(`\n[${i+1}/${sessions.length}] ${s.date} ${s.day} (${s.exercises?.length||0} exercises)`);
-      prog(i+1, sessions.length);
-      status(`Processing ${s.date} ${s.day}...`);
-
-      if (!s.date || !s.exercises || s.exercises.length === 0) {
-        log('  Skipping — no date or exercises', 'warn');
-        continue;
-      }
-
-      // Map exercise names
-      s.exercises.forEach(ex => {
-        ex.name = mapExercise(ex.name);
-        ex.variation = mapVariation(ex.variation);
-      });
-
-      try {
-        await reconcileDate(s.date, s.day, s.exercises);
-      } catch(e) {
-        log('  ERROR: ' + e.message, 'err');
-      }
-      await sleep(300);
-    }
-
-    status('DONE. Check log for summary.');
-    log('\n=== COMPLETE ===', 'ok');
-
-  } catch(e) {
-    log('FATAL: ' + e.message, 'err');
-    status('Error: ' + e.message);
-    document.getElementById('run-btn').disabled = false;
+  let total = 0;
+  for (const [n, base64] of loaded) {
+    try { total += await processPdf(n, base64); }
+    catch(e) { log(`PDF ${n} FATAL: ${e.message}`, 'err'); }
   }
+
+  status(`DONE. ${total} sessions processed across ${loaded.length} PDF(s). Check log for details.`);
+  log('\n=== ALL DONE ===', 'ok');
+  document.getElementById('run-btn').disabled = false;
 }
 </script>
 </body>
