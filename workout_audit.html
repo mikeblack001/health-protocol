@@ -351,41 +351,73 @@ function saveRowOrder(arr,dateStr){
 async function atFetch(path,opts={}){
   const r=await fetch('https://api.airtable.com/v0/'+AT_BASE+'/'+path,{...opts,headers:{Authorization:'Bearer '+AT_TOK,'Content-Type':'application/json',...(opts.headers||{})}});
   if(!r.ok){const e=await r.json().catch(()=>({error:{message:r.status}}));throw new Error(e.error?.message||r.status);}
+  // Invalidate the date cache on any successful write so next open re-sweeps fresh
+  const m=(opts.method||'GET').toUpperCase();
+  if(m==='PATCH'||m==='POST'||m==='DELETE'){try{localStorage.removeItem('wkt_audit_datecache_v1');}catch(e){}}
   return r.json();
 }
 
 // ── DATE LOADING ──────────────────────────────────────────────────────
-async function loadDates(){
-  setSt('Loading dates…');
-  const flds='fields%5B%5D='+LOG.date+'&fields%5B%5D='+LOG.verified;
-  let recs=[],off=null;
-  do{const d=await atFetch(LOG.tbl+'?'+flds+'&returnFieldsByFieldId=true&pageSize=100'+(off?'&offset='+off:''));recs=recs.concat(d.records);off=d.offset;}while(off);
-  allDates=[...new Set(recs.map(r=>r.fields[LOG.date]).filter(Boolean))].sort();
+const DATECACHE_KEY='wkt_audit_datecache_v1';
+
+// Build date/week selectors + optionally auto-select target date from supplied data
+function buildFromDateData(allD,byDate,autoSelect){
+  allDates=allD;
   document.getElementById('d-cnt').textContent=allDates.length+' dates';
   buildDateSel();
   buildWeekSel();
-  // Auto-select most recent unverified date
+  if(autoSelect){
+    // Auto-select most recent unverified date (oldest first — same as injection audit)
+    let target=allDates[0];
+    for(let i=0;i<allDates.length;i++){
+      const s=byDate[allDates[i]];
+      if(s&&s.total>0&&s.verified===s.total){
+        if(i+1<allDates.length)target=allDates[i+1];
+        else target=allDates[i];
+      } else {
+        target=allDates[i];break;
+      }
+    }
+    if(target)setDate(target);
+  }
+}
+
+// Full lightweight sweep (Date + Verified only), caches result to localStorage
+async function sweepDates(){
+  const flds='fields%5B%5D='+LOG.date+'&fields%5B%5D='+LOG.verified;
+  let recs=[],off=null;
+  do{const d=await atFetch(LOG.tbl+'?'+flds+'&returnFieldsByFieldId=true&pageSize=100'+(off?'&offset='+off:''));recs=recs.concat(d.records);off=d.offset;}while(off);
+  const allD=[...new Set(recs.map(r=>r.fields[LOG.date]).filter(Boolean))].sort();
   const byDate={};
-  allDates.forEach(d=>{byDate[d]={total:0,verified:0};});
+  allD.forEach(d=>{byDate[d]={total:0,verified:0};});
   recs.forEach(r=>{
     const dt=(r.fields[LOG.date]||'').slice(0,10);
     if(!byDate[dt])return;
     byDate[dt].total++;
     if(r.fields[LOG.verified]===true)byDate[dt].verified++;
   });
-  // Find first unverified date (oldest first — same as injection audit)
-  let target=allDates[0];
-  for(let i=0;i<allDates.length;i++){
-    const s=byDate[allDates[i]];
-    if(s&&s.total>0&&s.verified===s.total){
-      if(i+1<allDates.length)target=allDates[i+1];
-      else target=allDates[i];
-    } else {
-      target=allDates[i];break;
-    }
+  try{localStorage.setItem(DATECACHE_KEY,JSON.stringify({allDates:allD,byDate:byDate,ts:Date.now()}));}catch(e){}
+  return {allDates:allD,byDate:byDate};
+}
+
+async function loadDates(){
+  // Instant load from cache if present, then refresh in background
+  let cached=null;
+  try{const raw=localStorage.getItem(DATECACHE_KEY);if(raw)cached=JSON.parse(raw);}catch(e){}
+  if(cached&&cached.allDates&&cached.allDates.length){
+    setSt('');
+    buildFromDateData(cached.allDates,cached.byDate,true);
+    // Background refresh — rebuild selectors but never yank the viewed date
+    sweepDates().then(fresh=>{
+      buildFromDateData(fresh.allDates,fresh.byDate,!curDate);
+    }).catch(()=>{});
+  } else {
+    // First-ever load — full sweep, then build
+    setSt('Loading dates…');
+    const fresh=await sweepDates();
+    setSt('');
+    buildFromDateData(fresh.allDates,fresh.byDate,true);
   }
-  setSt('');
-  setDate(target);
 }
 
 function buildDateSel(){
