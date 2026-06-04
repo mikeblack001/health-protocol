@@ -159,15 +159,30 @@ async function claudeVision(base64, prompt) {
       ]
     }]
   };
-  const r = await fetch(WORKER, {
-    method:'POST',
-    headers:{'Content-Type':'application/json','x-api-key':ANT_KEY},
-    body:JSON.stringify(body)
-  });
-  if (!r.ok) { const e=await r.text(); throw new Error('Worker '+r.status+': '+e.slice(0,200)); }
-  const d = await r.json();
-  if (d.type==='error') throw new Error(d.error?.message||JSON.stringify(d.error));
-  return d.content?.[0]?.text || '';
+
+  // Heartbeat status updates so user sees something is happening
+  let elapsed = 0;
+  const heartbeat = setInterval(()=>{
+    elapsed += 2;
+    status(`Claude is reading PDF... ${elapsed}s elapsed (typical: 60-180s)`);
+  }, 2000);
+
+  try {
+    const r = await fetch(WORKER, {
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':ANT_KEY},
+      body:JSON.stringify(body)
+    });
+    clearInterval(heartbeat);
+    if (!r.ok) { const e=await r.text(); throw new Error('Worker '+r.status+': '+e.slice(0,200)); }
+    const d = await r.json();
+    if (d.type==='error') throw new Error(d.error?.message||JSON.stringify(d.error));
+    status(`Claude done. Input tokens: ${d.usage?.input_tokens||'?'}, output: ${d.usage?.output_tokens||'?'}`);
+    return d.content?.[0]?.text || '';
+  } catch(e) {
+    clearInterval(heartbeat);
+    throw e;
+  }
 }
 
 async function fetchATForDate(date) {
