@@ -85,15 +85,18 @@ function status(msg) { document.getElementById('status').textContent = msg; }
 function prog(val, max) { const p=document.getElementById('prog'); p.style.display='block'; p.value=val; p.max=max; }
 function sleep(ms) { return new Promise(r=>setTimeout(r,ms)); }
 
-async function compressPdf(file) {
-  // Render every page at 100 DPI via PDF.js, rebuild as PDF via jsPDF
+const BATCH_PAGES = 16; // pages per API call
+
+async function compressPdfToBatches(file) {
+  // Render every page at 100 DPI, group into batches of BATCH_PAGES, each as its own PDF base64
   const buf = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({data: buf}).promise;
   const { jsPDF } = window.jspdf;
-  let doc = null;
-  const scale = 100 / 72; // 100 DPI
+  const scale = 100 / 72;
+  const pageImgs = [];
 
   for (let i=1; i<=pdf.numPages; i++) {
+    status(`Rendering page ${i}/${pdf.numPages}...`);
     const page = await pdf.getPage(i);
     const viewport = page.getViewport({scale});
     const canvas = document.createElement('canvas');
@@ -101,40 +104,45 @@ async function compressPdf(file) {
     canvas.height = viewport.height;
     const ctx = canvas.getContext('2d');
     await page.render({canvasContext: ctx, viewport}).promise;
-    const jpg = canvas.toDataURL('image/jpeg', 0.82);
-
-    if (!doc) {
-      doc = new jsPDF({orientation: viewport.width>viewport.height?'l':'p', unit:'pt', format:[viewport.width, viewport.height]});
-    } else {
-      doc.addPage([viewport.width, viewport.height], viewport.width>viewport.height?'l':'p');
-    }
-    doc.addImage(jpg, 'JPEG', 0, 0, viewport.width, viewport.height);
+    pageImgs.push({jpg: canvas.toDataURL('image/jpeg', 0.82), w: viewport.width, h: viewport.height});
   }
 
-  const blob = doc.output('blob');
-  const reader = new FileReader();
-  return await new Promise((res,rej)=>{
-    reader.onload = ()=>res(reader.result.split(',')[1]);
-    reader.onerror = ()=>rej(new Error('Read failed'));
-    reader.readAsDataURL(blob);
-  });
+  // Group into batch PDFs
+  const batches = [];
+  for (let start=0; start<pageImgs.length; start+=BATCH_PAGES) {
+    const group = pageImgs.slice(start, start+BATCH_PAGES);
+    let doc = null;
+    for (const pg of group) {
+      if (!doc) doc = new jsPDF({orientation: pg.w>pg.h?'l':'p', unit:'pt', format:[pg.w, pg.h]});
+      else doc.addPage([pg.w, pg.h], pg.w>pg.h?'l':'p');
+      doc.addImage(pg.jpg, 'JPEG', 0, 0, pg.w, pg.h);
+    }
+    const blob = doc.output('blob');
+    const b64 = await new Promise((res,rej)=>{
+      const r=new FileReader();
+      r.onload=()=>res(r.result.split(',')[1]);
+      r.onerror=()=>rej(new Error('Read failed'));
+      r.readAsDataURL(blob);
+    });
+    batches.push({b64, firstPage: start+1, lastPage: Math.min(start+BATCH_PAGES, pageImgs.length)});
+  }
+  return batches;
 }
 
 async function onPdf(input, n) {
   const file = input.files[0];
   if (!file) return;
-  document.getElementById('pdf'+n+'-name').textContent = file.name + ' — compressing...';
-  status('PDF '+n+': compressing ('+Math.round(file.size/1024/1024)+'MB)...');
+  document.getElementById('pdf'+n+'-name').textContent = file.name + ' — rendering...';
+  status('PDF '+n+': rendering ('+Math.round(file.size/1024/1024)+'MB)...');
   try {
-    pdfs[n] = await compressPdf(file);
-    const compressedKB = Math.round(pdfs[n].length * 0.75 / 1024);
-    document.getElementById('pdf'+n+'-name').textContent = file.name + ' ✓ ('+(compressedKB<1024?compressedKB+'KB':Math.round(compressedKB/1024)+'MB')+')';
+    pdfs[n] = await compressPdfToBatches(file);
+    document.getElementById('pdf'+n+'-name').textContent = file.name + ' ✓ ('+pdfs[n].length+' batches)';
     if (Object.values(pdfs).some(v=>v!==null)) document.getElementById('run-btn').disabled = false;
-    status('PDF '+n+' compressed and loaded.');
+    status('PDF '+n+' ready: '+pdfs[n].length+' batches of '+BATCH_PAGES+' pages.');
   } catch(e) {
-    document.getElementById('pdf'+n+'-name').textContent = file.name + ' ✗ compression failed';
+    document.getElementById('pdf'+n+'-name').textContent = file.name + ' ✗ failed';
     status('PDF '+n+' error: '+e.message);
-    log('compression failed: '+e.message,'err');
+    log('render failed: '+e.message,'err');
   }
 }
 
@@ -356,38 +364,44 @@ JSON format:
   ]
 }`;
 
-async function processPdf(n, base64) {
-  log(`\n=== PDF ${n} ===`, 'info');
-  status(`PDF ${n}: Sending to Claude for extraction...`);
+async function processPdf(n, batches) {
+  log(`\n=== PDF ${n} (${batches.length} batches) ===`, 'info');
+  const prompt = n===1 ? PROMPT_PDF1 : (n===2 ? PROMPT_PDF2 : PROMPT_PDF3);
+  let totalSessions = 0;
 
-  const prompt = n===1 ? PROMPT_PDF1 : PROMPT_PDF2;
-  const raw = await claudeVision(base64, prompt);
-  log(`PDF ${n}: response received`, 'info');
+  for (let b=0; b<batches.length; b++) {
+    const batch = batches[b];
+    log(`\n--- Batch ${b+1}/${batches.length} (pages ${batch.firstPage}-${batch.lastPage}) ---`, 'info');
+    status(`PDF ${n} batch ${b+1}/${batches.length}: sending to Claude...`);
 
-  let jsonStr = raw.replace(/```json\n?/g,'').replace(/```\n?/g,'').trim();
-  let data;
-  try { data = JSON.parse(jsonStr); }
-  catch(e) {
-    log(`PDF ${n} parse error: ${e.message}`, 'err');
-    log('Raw (first 2000): '+raw.slice(0,2000), 'err');
-    return 0;
+    let raw;
+    try { raw = await claudeVision(batch.b64, prompt); }
+    catch(e) { log(`  batch ${b+1} API error: ${e.message}`, 'err'); continue; }
+
+    let jsonStr = raw.replace(/```json\n?/g,'').replace(/```\n?/g,'').trim();
+    let data;
+    try { data = JSON.parse(jsonStr); }
+    catch(e) {
+      log(`  batch ${b+1} parse error: ${e.message}`, 'err');
+      log('  Raw tail: ...'+raw.slice(-300), 'err');
+      continue;
+    }
+
+    const sessions = data.sessions || [];
+    log(`  batch ${b+1}: ${sessions.length} sessions`, 'ok');
+
+    for (let i=0; i<sessions.length; i++) {
+      const s = sessions[i];
+      status(`PDF ${n} batch ${b+1}: ${s.date} ${s.day}`);
+      log(`  [${s.date} ${s.day}] ${s.exercises?.length||0} exercises`);
+      if (!s.date || !s.exercises || s.exercises.length===0) { log('    skip','warn'); continue; }
+      try { await processDate(s.date, s.day, s.exercises); }
+      catch(e) { log('    ERROR: '+e.message,'err'); }
+      await sleep(200);
+    }
+    totalSessions += sessions.length;
   }
-
-  const sessions = data.sessions || [];
-  log(`PDF ${n}: ${sessions.length} sessions extracted`, 'ok');
-  prog(0, sessions.length);
-
-  for (let i=0; i<sessions.length; i++) {
-    const s = sessions[i];
-    prog(i+1, sessions.length);
-    status(`PDF ${n}: ${s.date} ${s.day} (${i+1}/${sessions.length})`);
-    log(`\n[${i+1}/${sessions.length}] ${s.date} ${s.day} — ${s.exercises?.length||0} exercises`);
-    if (!s.date || !s.exercises || s.exercises.length===0) { log('  skip','warn'); continue; }
-    try { await processDate(s.date, s.day, s.exercises); }
-    catch(e) { log('  ERROR: '+e.message,'err'); }
-    await sleep(300);
-  }
-  return sessions.length;
+  return totalSessions;
 }
 
 async function runAll() {
@@ -395,8 +409,8 @@ async function runAll() {
   if (loaded.length===0) { alert('Upload at least one PDF'); return; }
   document.getElementById('run-btn').disabled = true;
   let total = 0;
-  for (const [n, base64] of loaded) {
-    try { total += await processPdf(parseInt(n), base64); }
+  for (const [n, batches] of loaded) {
+    try { total += await processPdf(parseInt(n), batches); }
     catch(e) { log(`PDF ${n} FATAL: ${e.message}`, 'err'); }
   }
   status(`DONE. ${total} sessions processed. Check log for details.`);
