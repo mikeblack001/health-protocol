@@ -3849,47 +3849,63 @@ function wktRender(monday) {
     });
   }
 
-  // Header nav
-  let html = '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px">'
-    + '<button onclick="wktShiftWeek(-1)" style="padding:4px 10px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:var(--surface);font-size:13px">\u2039 Prev</button>'
-    + '<span style="font-size:13px;font-weight:600">' + weekLabel + '</span>'
-    + '<button onclick="wktShiftWeek(1)" style="padding:4px 10px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:var(--surface);font-size:13px">Next \u203a</button>'
-    + '<select id="wkt-week-jump" onchange="wktJumpToWeek(this.value)" style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;color:var(--text);background:var(--surface);cursor:pointer;min-width:100px"><option value="">Jump to week\u2026</option></select>'
-    + '<span style="font-size:11px;color:var(--muted);margin-left:auto">' + totalSets + ' sets</span>'
+  // Dark header bar (audit-style)
+  let html = '<style>'
+    + '#wkt-hdr{background:#1e2433;color:#fff;padding:0 14px;height:44px;display:flex;align-items:center;gap:10px;margin:-24px -24px 0 -24px;flex-shrink:0}'
+    + '#wkt-hdr button{background:rgba(255,255,255,.12);border:none;color:#fff;padding:3px 10px;border-radius:4px;font-size:12px;cursor:pointer;font-weight:600}'
+    + '#wkt-hdr button:hover{background:rgba(255,255,255,.22)}'
+    + '#wkt-hdr select{background:#2d3748;border:1px solid rgba(255,255,255,.2);color:#fff;padding:3px 8px;border-radius:4px;font-size:12px;cursor:pointer}'
+    + '#wkt-hdr .wkt-week-label{font-size:13px;font-weight:700;min-width:140px}'
+    + '#wkt-hdr .wkt-sets{font-size:11px;color:rgba(255,255,255,.6);margin-left:auto}'
+    + '#wkt-grid-wrap{overflow-x:auto;margin-top:0}'
+    + '#wkt-grid{width:100%;border-collapse:collapse;font-size:11px}'
+    + '#wkt-grid thead th{background:#1e2433;color:#fff;padding:4px 6px;font-size:10px;font-weight:700;text-align:center;position:sticky;top:0;z-index:2;white-space:nowrap}'
+    + '#wkt-grid thead th:nth-child(2){text-align:left;min-width:160px;padding-left:8px}'
+    + '#wkt-grid thead th.wkt-today{background:#2563eb}'
+    + '#wkt-grid td{border:1px solid #e2e5ea;padding:3px 4px;text-align:center;white-space:nowrap}'
+    + '#wkt-grid td:first-child{color:#d1d5db;font-size:13px;padding:3px 4px;cursor:grab;user-select:none;width:18px}'
+    + '#wkt-grid td:nth-child(2){text-align:left;padding:3px 8px;font-weight:700;color:#1e2433;max-width:170px;overflow:hidden;text-overflow:ellipsis;border-right:2px solid #d1d5db}'
+    + '#wkt-grid tbody tr{cursor:default}'
+    + '#wkt-grid tbody tr.wkt-dragging{opacity:.4}'
+    + '#wkt-grid tbody tr.wkt-drop-above{border-top:2px solid #2563eb}'
+    + '#wkt-grid .wkt-cell-filled{cursor:pointer;background:#dbeafe;color:#1e40af;font-weight:800;font-size:10px;line-height:1.3}'
+    + '#wkt-grid .wkt-cell-empty{cursor:pointer;color:#d1d5db;font-size:18px}'
+    + '#wkt-grid .wkt-cell-empty.wkt-today-cell{background:#f0f9ff}'
+    + '</style>';
+
+  html += '<div id="wkt-hdr">'
+    + '<button onclick="wktShiftWeek(-1)">\u2039 Prev</button>'
+    + '<span class="wkt-week-label">' + weekLabel + '</span>'
+    + '<button onclick="wktShiftWeek(1)">Next \u203a</button>'
+    + '<select id="wkt-week-jump" onchange="wktJumpToWeek(this.value)"><option value="">Jump to week\u2026</option></select>'
+    + '<span class="wkt-sets">' + totalSets + ' sets</span>'
     + '</div>';
 
-  // Week grid table
-  html += '<div style="overflow-x:auto"><table id="wkt-grid" style="border-collapse:collapse;font-size:12px;width:100%">';
-  html += '<thead><tr style="background:#1e2433;color:#fff">';
-  html += '<th style="padding:3px 6px;width:20px"></th>';
-  html += '<th style="padding:6px 10px;text-align:left;min-width:160px">Exercise</th>';
+  html += '<div id="wkt-grid-wrap"><table id="wkt-grid"><thead><tr>';
+  html += '<th></th>';
+  html += '<th style="text-align:left;padding-left:8px">Exercise</th>';
   dates.forEach(function(date, i) {
-    const isToday = date === todayISO;
-    const bg = isToday ? 'background:#2563eb;' : '';
-    html += '<th style="padding:4px 8px;text-align:center;min-width:80px;' + bg + '">'
-      + DN[i] + '<br><span style="font-size:9px;opacity:.8">' + date.slice(5) + '</span></th>';
+    const cls = date === todayISO ? ' class="wkt-today"' : '';
+    html += '<th' + cls + ' style="min-width:72px">' + DN[i] + '<br><span style="font-size:9px;opacity:.7;font-weight:400">' + date.slice(5) + '</span></th>';
   });
   html += '</tr></thead><tbody id="wkt-grid-body">';
 
   allEx.forEach(function(ex) {
     const exSafe = ex.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-    html += '<tr data-ex="' + ex.replace(/"/g,'&quot;') + '" style="border-bottom:1px solid #e5e7eb">';
-    html += '<td style="padding:3px 4px;text-align:center;color:#9ca3af;cursor:grab;font-size:14px;user-select:none">\u2840</td>';
-    html += '<td style="padding:5px 10px;font-weight:700;font-size:13px;border-right:2px solid #e2e5ea">' + ex + '</td>';
+    html += '<tr data-ex="' + ex.replace(/"/g,'&quot;') + '">';
+    html += '<td>\u2840</td>';
+    html += '<td>' + ex + '</td>';
     dates.forEach(function(date, i) {
       const dayRecs = (_wktWeekData[date] && _wktWeekData[date][ex]) || [];
       const setCount = dayRecs.length;
       const topWt = dayRecs.reduce(function(m, r) { return Math.max(m, r.fields[WKT.wt] || 0); }, 0);
-      const isToday = date === todayISO;
       const cellId = 'wktc_' + date + '_' + i;
       if (setCount > 0) {
-        html += '<td id="' + cellId + '" onclick="wktCellClick(\'' + date + '\',\'' + exSafe + '\',this)" '
-          + 'style="padding:4px 6px;text-align:center;cursor:pointer;background:#dbeafe;color:#1e40af;font-weight:800;font-size:11px">'
+        html += '<td id="' + cellId + '" class="wkt-cell-filled" onclick="wktCellClick(\'' + date + '\',\'' + exSafe + '\',this)">'
           + setCount + 's' + (topWt ? '<br>' + topWt + 'lb' : '') + '</td>';
       } else {
-        const bg2 = isToday ? 'background:#f0f9ff;' : '';
-        html += '<td id="' + cellId + '" onclick="wktCellClick(\'' + date + '\',\'' + exSafe + '\',this)" '
-          + 'style="padding:4px 6px;text-align:center;cursor:pointer;color:#d1d5db;font-size:18px;' + bg2 + '">+</td>';
+        const todayCls = date === todayISO ? ' wkt-today-cell' : '';
+        html += '<td id="' + cellId + '" class="wkt-cell-empty' + todayCls + '" onclick="wktCellClick(\'' + date + '\',\'' + exSafe + '\',this)">+</td>';
       }
     });
     html += '</tr>';
@@ -3897,7 +3913,7 @@ function wktRender(monday) {
   html += '</tbody></table></div>';
   el.innerHTML = html;
 
-  // Populate week jump dropdown
+  // Populate jump dropdown — if week list already loaded, fill now; else wktPopulateDropdown will fill async
   const sel = document.getElementById('wkt-week-jump');
   if (sel && _wktWeekList.length) {
     _wktWeekList.forEach(function(iso) {
@@ -3909,7 +3925,7 @@ function wktRender(monday) {
     sel.value = mondayISO;
   }
 
-  // Drag-to-reorder rows (mousedown/mouseover/mouseup — mirrors injection audit)
+  // Drag-to-reorder rows
   (function() {
     const tbody = document.getElementById('wkt-grid-body');
     if (!tbody) return;
@@ -3918,23 +3934,23 @@ function wktRender(monday) {
       const row = e.target.closest('tr[data-ex]');
       if (!row) return;
       const col = e.target.closest('td');
-      if (col && col.cellIndex > 1) return; // only drag from handle (col 0) or name (col 1)
-      src = row; row.style.opacity = '0.4'; document.body.style.userSelect = 'none';
+      if (col && col.cellIndex > 1) return;
+      src = row; row.classList.add('wkt-dragging'); document.body.style.userSelect = 'none';
     });
     tbody.addEventListener('mouseover', function(e) {
       if (!src) return;
       const target = e.target.closest('tr[data-ex]');
       if (target === lastOver) return;
-      if (lastOver) lastOver.style.borderTop = '';
+      if (lastOver) lastOver.classList.remove('wkt-drop-above');
       lastOver = null;
       if (!target || target === src) return;
-      target.style.borderTop = '2px solid #2563eb'; lastOver = target;
+      target.classList.add('wkt-drop-above'); lastOver = target;
     });
     document.addEventListener('mouseup', function(e) {
       if (!src) return;
       const target = e.target.closest('tr[data-ex]');
-      if (lastOver) lastOver.style.borderTop = '';
-      src.style.opacity = ''; document.body.style.userSelect = ''; lastOver = null;
+      if (lastOver) lastOver.classList.remove('wkt-drop-above');
+      src.classList.remove('wkt-dragging'); document.body.style.userSelect = ''; lastOver = null;
       if (target && target !== src) {
         const rows = Array.from(tbody.querySelectorAll('tr[data-ex]'));
         if (rows.indexOf(target) > rows.indexOf(src)) tbody.insertBefore(src, target.nextSibling);
@@ -4026,16 +4042,25 @@ async function wktShiftWeek(dir) {
   if (el) el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);font-size:12px">Loading…</div>';
   await wktLoadWeekData(mondayISO);
   wktRender(monday);
+  await wktPopulateDropdown();
   const sel = document.getElementById('wkt-week-jump');
   if (sel) sel.value = mondayISO;
 }
 
-function wktJumpToWeek(iso) {
+async function wktJumpToWeek(iso) {
   if (!iso) return;
   const target = new Date(iso + 'T12:00:00');
   const currentMon = wktGetMonday();
   _wktMondayOffset += Math.round((target - currentMon) / (7 * 24 * 60 * 60 * 1000));
-  loadWkTracker();
+  const monday = wktGetMonday();
+  const mondayISO = monday.toISOString().split('T')[0];
+  const el = document.getElementById('wkt-content');
+  if (el) el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);font-size:12px">Loading…</div>';
+  await wktLoadWeekData(mondayISO);
+  wktRender(monday);
+  await wktPopulateDropdown();
+  const sel = document.getElementById('wkt-week-jump');
+  if (sel) sel.value = mondayISO;
 }
 
 async function wktPopulateDropdown() {
