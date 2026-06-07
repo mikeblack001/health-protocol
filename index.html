@@ -3782,7 +3782,7 @@ async function wktLoadDay(dateISO) {
   el.innerHTML = '<div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div>';
 
   // Fetch all records for this date
-  const formula = encodeURIComponent(`{Date}="${dateISO}"`);
+  const formula = encodeURIComponent(`IS_SAME({Date},"${dateISO}","day")`);
   const flds = [WKT.date,WKT.ex,WKT.var,WKT.setN,WKT.reps,WKT.wt,WKT.day,WKT.sess].map(f=>'fields[]='+f).join('&');
   let recs = [], off = null;
   try {
