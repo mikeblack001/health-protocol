@@ -3751,11 +3751,9 @@ const WKT_DAY_MAP = {
   'Thursday - Arms / Chest': 3,
 };
 
-let _wktMondayOffset = 0;
-let _wktWeekData = {}; // date → exercise → [records]
-let _wktPrevWt = {}; // exercise → last weight (cache)
-let _wktWeekDropDone = false;
-let _wktWeekList = [];
+let _wktCurDate = null;
+let _wktDateList = [];
+let _wktDropDone = false;
 
 function wktGetMonday() {
   const today = new Date();
@@ -3769,324 +3767,267 @@ async function loadWkTracker() {
   const el = document.getElementById('wkt-content');
   if (!el) return;
   el.innerHTML = '<div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div>';
-  const monday = wktGetMonday();
-  const mondayISO = monday.toISOString().split('T')[0];
-  await wktLoadWeekData(mondayISO);
-  wktRender(monday);
+  // Start on today's date
+  if (!_wktCurDate) {
+    _wktCurDate = new Date().toISOString().split('T')[0];
+  }
+  await wktLoadDay(_wktCurDate);
   wktPopulateDropdown();
 }
 
-async function wktLoadWeekData(mondayISO) {
-  const mon = new Date(mondayISO + 'T12:00:00');
-  const prev = new Date(mon); prev.setDate(mon.getDate() - 1);
-  const next = new Date(mon); next.setDate(mon.getDate() + 7);
-  const prevISO = prev.toISOString().split('T')[0];
-  const nextISO = next.toISOString().split('T')[0];
-  const formula = `AND(IS_AFTER({Date},"${prevISO}"),IS_BEFORE({Date},"${nextISO}"))`;
-  const flds = [WKT.date, WKT.ex, WKT.var, WKT.setN, WKT.reps, WKT.wt, WKT.day, WKT.sess]
-    .map(f => 'fields[]=' + f).join('&');
+async function wktLoadDay(dateISO) {
+  _wktCurDate = dateISO;
+  const el = document.getElementById('wkt-content');
+  if (!el) return;
+  el.innerHTML = '<div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div>';
+
+  // Fetch all records for this date
+  const formula = encodeURIComponent(`{Date}="${dateISO}"`);
+  const flds = [WKT.date,WKT.ex,WKT.var,WKT.setN,WKT.reps,WKT.wt,WKT.day,WKT.sess].map(f=>'fields[]='+f).join('&');
   let recs = [], off = null;
   try {
     do {
       const r = await fetch(
-        `https://api.airtable.com/v0/${BASE}/${WKT.tbl}?returnFieldsByFieldId=true&filterByFormula=${encodeURIComponent(formula)}&${flds}&pageSize=100${off ? '&offset=' + off : ''}`,
+        `https://api.airtable.com/v0/${BASE}/${WKT.tbl}?returnFieldsByFieldId=true&filterByFormula=${formula}&${flds}&sort[0][field]=${WKT.setN}&sort[0][direction]=asc&pageSize=100${off?'&offset='+off:''}`,
         { headers: { Authorization: 'Bearer ' + TOKEN } }
       );
       const d = await r.json();
       recs = recs.concat(d.records || []);
       off = d.offset || null;
     } while (off);
-  } catch(e) { console.error('wktLoadWeekData:', e); }
+  } catch(e) { console.error('wktLoadDay:', e); }
 
-  _wktWeekData = {};
-  recs.forEach(r => {
-    const f = r.fields;
-    const date = f[WKT.date];
-    const ex = f[WKT.ex] || '';
-    if (!date || !ex) return;
-    if (!_wktWeekData[date]) _wktWeekData[date] = {};
-    if (!_wktWeekData[date][ex]) _wktWeekData[date][ex] = [];
-    _wktWeekData[date][ex].push(r);
-  });
+  wktRenderDay(dateISO, recs);
 }
 
-function wktGetRowOrder(mondayISO) {
-  try { return JSON.parse(localStorage.getItem('wkt_ro_' + mondayISO) || '[]'); } catch(e) { return []; }
-}
-function wktSaveRowOrder(mondayISO, arr) {
-  try { localStorage.setItem('wkt_ro_' + mondayISO, JSON.stringify(arr)); } catch(e) {}
-}
-function wktJumpToDate(date) {}
-
-function wktRender(monday) {
+function wktRenderDay(dateISO, recs) {
   const el = document.getElementById('wkt-content');
   if (!el) return;
-  const mondayISO = monday.toISOString().split('T')[0];
-  const dates = [];
-  for (let i = 0; i < 7; i++) { const d = new Date(monday); d.setDate(monday.getDate() + i); dates.push(d.toISOString().split('T')[0]); }
-  const DN = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-  const sunday = new Date(monday); sunday.setDate(monday.getDate() + 6);
-  const fmt = d => (d.getMonth()+1) + '/' + d.getDate();
-  const weekLabel = fmt(monday) + ' \u2013 ' + fmt(sunday) + ', ' + monday.getFullYear();
-  const todayISO = new Date().toISOString().split('T')[0];
-  const totalSets = Object.values(_wktWeekData).reduce((s, dayObj) => s + Object.values(dayObj).reduce((s2, r) => s2 + r.length, 0), 0);
 
-  // Build exercise list from WORKOUT_DAYS for each day + any logged
-  const allEx = [];
-  dates.forEach(function(date) {
-    const dt = new Date(date + 'T12:00:00');
-    const dow = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][dt.getDay()];
-    const wdKey = Object.keys(WORKOUT_DAYS).find(k => k.indexOf(dow) === 0) || null;
-    (wdKey ? WORKOUT_DAYS[wdKey] : []).forEach(function(e) {
-      const n = e.name || e; if (!allEx.includes(n)) allEx.push(n);
-    });
-    Object.keys(_wktWeekData[date] || {}).forEach(function(ex) { if (!allEx.includes(ex)) allEx.push(ex); });
-  });
+  const dt = new Date(dateISO + 'T12:00:00');
+  const DN = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const dayName = DN[dt.getDay()];
+  const dayLabel = dayName + ' ' + (dt.getMonth()+1) + '/' + dt.getDate() + '/' + String(dt.getFullYear()).slice(2);
 
-  // Apply saved row order
-  const savedOrder = wktGetRowOrder(mondayISO);
-  if (savedOrder.length) {
-    allEx.sort(function(a,b) {
-      const ai = savedOrder.indexOf(a), bi = savedOrder.indexOf(b);
-      if (ai === -1 && bi === -1) return 0; if (ai === -1) return 1; if (bi === -1) return -1; return ai - bi;
+  // Group records by exercise → variation → sets
+  const groups = {}; // ex → {variation → [rec]}
+  const exOrder = [];
+  // Seed from WORKOUT_DAYS template
+  const wdKey = Object.keys(WORKOUT_DAYS).find(k => k.indexOf(dayName) === 0) || null;
+  if (wdKey) {
+    WORKOUT_DAYS[wdKey].forEach(function(e) {
+      const n = e.name || e;
+      if (!groups[n]) { groups[n] = {}; exOrder.push(n); }
     });
   }
+  // Add actual AT records
+  recs.forEach(function(r) {
+    const f = r.fields;
+    const ex = f[WKT.ex] || '';
+    const varRaw = f[WKT.var];
+    const variation = (Array.isArray(varRaw) ? varRaw[0] : varRaw) || '';
+    if (!ex) return;
+    if (!groups[ex]) { groups[ex] = {}; exOrder.push(ex); }
+    if (!groups[ex][variation]) groups[ex][variation] = [];
+    groups[ex][variation].push(r);
+  });
 
-  // Dark header bar (audit-style)
+  // Determine max sets across all rows
+  let maxSets = 1;
+  exOrder.forEach(function(ex) {
+    Object.values(groups[ex]).forEach(function(setArr) {
+      maxSets = Math.max(maxSets, setArr.length);
+    });
+  });
+  maxSets = Math.min(maxSets, 6);
+
+  const totalSets = recs.length;
+
+  // CSS
   let html = '<style>'
-    + '#wkt-hdr{background:#1e2433;color:#fff;padding:0 14px;height:44px;display:flex;align-items:center;gap:10px;margin:-24px -24px 0 -24px;flex-shrink:0}'
-    + '#wkt-hdr button{background:rgba(255,255,255,.12);border:none;color:#fff;padding:3px 10px;border-radius:4px;font-size:12px;cursor:pointer;font-weight:600}'
-    + '#wkt-hdr button:hover{background:rgba(255,255,255,.22)}'
-    + '#wkt-hdr select{background:#2d3748;border:1px solid rgba(255,255,255,.2);color:#fff;padding:3px 8px;border-radius:4px;font-size:12px;cursor:pointer}'
-    + '#wkt-hdr .wkt-week-label{font-size:13px;font-weight:700;min-width:140px}'
-    + '#wkt-hdr .wkt-sets{font-size:11px;color:rgba(255,255,255,.7);margin-left:auto;white-space:nowrap;padding-right:4px}'
-    + '#wkt-grid-wrap{overflow-x:auto;margin-top:0}'
-    + '#wkt-grid{width:100%;border-collapse:collapse;font-size:11px}'
-    + '#wkt-grid thead th{background:#1e2433;color:#fff;padding:4px 6px;font-size:10px;font-weight:700;text-align:center;position:sticky;top:0;z-index:2;white-space:nowrap}'
-    + '#wkt-grid thead th:nth-child(2){text-align:left;min-width:160px;padding-left:8px}'
-    + '#wkt-grid thead th.wkt-today{background:#2563eb}'
-    + '#wkt-grid td{border:1px solid #e2e5ea;padding:3px 4px;text-align:center;white-space:nowrap}'
-    + '#wkt-grid td:first-child{color:#d1d5db;font-size:13px;padding:3px 4px;cursor:grab;user-select:none;width:18px}'
-    + '#wkt-grid td:nth-child(2){text-align:left;padding:3px 8px;font-weight:700;color:#1e2433;max-width:170px;overflow:hidden;text-overflow:ellipsis;border-right:2px solid #d1d5db}'
-    + '#wkt-grid tbody tr{cursor:default}'
-    + '#wkt-grid tbody tr.wkt-dragging{opacity:.4}'
-    + '#wkt-grid tbody tr.wkt-drop-above{border-top:2px solid #2563eb}'
-    + '#wkt-grid .wkt-cell-filled{cursor:pointer;background:#dbeafe;color:#1e40af;font-weight:800;font-size:10px;line-height:1.3}'
-    + '#wkt-grid .wkt-cell-empty{cursor:pointer;color:#9ca3af;font-size:16px;font-weight:300}'
-    + '#wkt-grid .wkt-cell-empty:hover{background:#f0f9ff;color:#2563eb}'
-    + '#wkt-grid .wkt-cell-empty.wkt-today-cell{background:#f0f9ff;color:#6b7280}'
+    + '#wkt-hdr{background:#1e2433;color:#fff;padding:0 14px;height:44px;display:flex;align-items:center;gap:10px;margin:-24px -24px 0 -24px}'
+    + '#wkt-hdr button{background:rgba(255,255,255,.15);border:none;color:#fff;padding:4px 12px;border-radius:4px;font-size:12px;font-weight:700;cursor:pointer}'
+    + '#wkt-hdr button:hover{background:rgba(255,255,255,.28)}'
+    + '#wkt-hdr select{background:#2d3748;border:1px solid rgba(255,255,255,.25);color:#fff;padding:4px 8px;border-radius:4px;font-size:12px;cursor:pointer}'
+    + '#wkt-hdr .wkt-label{font-size:13px;font-weight:700}'
+    + '#wkt-hdr .wkt-sets{font-size:11px;color:rgba(255,255,255,.6);margin-left:auto;white-space:nowrap}'
+    + '#wkt-day-label{font-size:14px;font-weight:800;color:#1e2433;padding:10px 0 8px}'
+    + '#wkt-table-wrap{overflow-x:auto}'
+    + '#wkt-table{border-collapse:collapse;width:100%;font-size:12px}'
+    + '#wkt-table thead th{background:#1e2433;color:#fff;padding:4px 6px;font-size:10px;font-weight:700;text-align:center;white-space:nowrap}'
+    + '#wkt-table thead th.wkt-th-ex{text-align:left;min-width:150px;padding-left:10px}'
+    + '#wkt-table thead th.wkt-th-var{color:#d1d5db;min-width:130px}'
+    + '#wkt-table thead th.wkt-th-reps{color:#93c5fd;border-left:2px solid #374151;min-width:52px}'
+    + '#wkt-table thead th.wkt-th-wt{color:#fcd34d;min-width:56px}'
+    + '#wkt-table td{border:1px solid #e2e5ea;padding:3px 4px;text-align:center;white-space:nowrap}'
+    + '#wkt-table td.wkt-td-handle{color:#d1d5db;font-size:14px;cursor:grab;user-select:none;width:20px}'
+    + '#wkt-table td.wkt-td-ex{text-align:left;padding:5px 10px;font-weight:700;font-size:13px;color:#1e2433;border-right:1px solid #e2e5ea;background:#f8fafc}'
+    + '#wkt-table td.wkt-td-var{padding:2px 4px;text-align:center}'
+    + '#wkt-table td.wkt-td-var input{width:120px;padding:3px 6px;border:1px solid #d1d5db;border-radius:4px;font-size:12px}'
+    + '#wkt-table td.wkt-td-reps{border-left:2px solid #e5e7eb;padding:2px 3px}'
+    + '#wkt-table td.wkt-td-reps input{width:50px;padding:3px 4px;border:1px solid #bfdbfe;border-radius:4px;font-size:14px;font-weight:700;background:#dbeafe;color:#1d4ed8;text-align:center}'
+    + '#wkt-table td.wkt-td-wt input{width:54px;padding:3px 4px;border:1px solid #fde68a;border-radius:4px;font-size:14px;font-weight:700;background:#fef3c7;color:#92400e;text-align:center}'
+    + '#wkt-table td.wkt-td-add{padding:2px 6px}'
+    + '#wkt-table td.wkt-td-add button{background:#f3f4f6;border:1px solid #d1d5db;border-radius:4px;font-size:11px;cursor:pointer;padding:2px 6px;color:#374151}'
+    + '#wkt-table td.wkt-td-add button:hover{background:#e5e7eb}'
+    + '#wkt-table tr.wkt-tr:hover td.wkt-td-ex{background:#f0f9ff}'
     + '</style>';
 
+  // Header bar
   html += '<div id="wkt-hdr">'
-    + '<button onclick="wktShiftWeek(-1)">\u2039 Prev</button>'
-    + '<span class="wkt-week-label">' + weekLabel + '</span>'
-    + '<button onclick="wktShiftWeek(1)">Next \u203a</button>'
-    + '<select id="wkt-week-jump" onchange="wktJumpToWeek(this.value)"><option value="">Jump to week\u2026</option></select>'
+    + '<button onclick="wktPrevDay()">\u2039 Prev</button>'
+    + '<span class="wkt-label">' + dayLabel + '</span>'
+    + '<button onclick="wktNextDay()">Next \u203a</button>'
+    + '<select id="wkt-day-jump" onchange="wktJumpToDay(this.value)"><option value="">Jump to date\u2026</option></select>'
     + '<span class="wkt-sets">' + totalSets + ' sets</span>'
     + '</div>';
 
-  html += '<div id="wkt-grid-wrap"><table id="wkt-grid"><thead><tr>';
-  html += '<th></th>';
-  html += '<th style="text-align:left;padding-left:8px">Exercise</th>';
-  dates.forEach(function(date, i) {
-    const cls = date === todayISO ? ' class="wkt-today"' : '';
-    html += '<th' + cls + ' style="min-width:72px">' + DN[i] + '<br><span style="font-size:9px;opacity:.7;font-weight:400">' + date.slice(5) + '</span></th>';
-  });
-  html += '</tr></thead><tbody id="wkt-grid-body">';
+  // Day label
+  html += '<div id="wkt-day-label">' + dayLabel + '</div>';
 
-  allEx.forEach(function(ex) {
-    const exSafe = ex.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-    html += '<tr data-ex="' + ex.replace(/"/g,'&quot;') + '">';
-    html += '<td>\u2840</td>';
-    html += '<td>' + ex + '</td>';
-    dates.forEach(function(date, i) {
-      const dayRecs = (_wktWeekData[date] && _wktWeekData[date][ex]) || [];
-      const setCount = dayRecs.length;
-      const topWt = dayRecs.reduce(function(m, r) { return Math.max(m, r.fields[WKT.wt] || 0); }, 0);
-      const cellId = 'wktc_' + date + '_' + i;
-      if (setCount > 0) {
-        html += '<td id="' + cellId + '" class="wkt-cell-filled" onclick="wktCellClick(\'' + date + '\',\'' + exSafe + '\',this)">'
-          + setCount + 's' + (topWt ? '<br>' + topWt + 'lb' : '') + '</td>';
-      } else {
-        const todayCls = date === todayISO ? ' wkt-today-cell' : '';
-        html += '<td id="' + cellId + '" class="wkt-cell-empty' + todayCls + '" onclick="wktCellClick(\'' + date + '\',\'' + exSafe + '\',this)">+</td>';
+  // Table
+  html += '<div id="wkt-table-wrap"><table id="wkt-table"><thead><tr>'
+    + '<th style="width:20px"></th>'
+    + '<th class="wkt-th-ex">Exercise</th>'
+    + '<th class="wkt-th-var">Variation</th>';
+  for (let i = 0; i < maxSets; i++) {
+    html += '<th class="wkt-th-reps">S' + (i+1) + ' Reps</th>'
+          + '<th class="wkt-th-wt">S' + (i+1) + ' Wt</th>';
+  }
+  html += '<th style="width:50px"></th></tr></thead><tbody id="wkt-tbody">';
+
+  exOrder.forEach(function(ex) {
+    const varMap = groups[ex] || {};
+    const variations = Object.keys(varMap);
+    // If no AT records yet, show one empty row
+    if (variations.length === 0) {
+      html += '<tr class="wkt-tr" data-ex="' + esc(ex) + '" data-var="">'
+        + '<td class="wkt-td-handle">\u2840</td>'
+        + '<td class="wkt-td-ex">' + esc(ex) + '</td>'
+        + '<td class="wkt-td-var"><input value="" placeholder="\u2014" onblur="wktSaveVar(\'' + esc(ex) + '\',\'\',this.value)"></td>';
+      for (let i = 0; i < maxSets; i++) {
+        html += '<td class="wkt-td-reps"><input type="number" placeholder="\u2014" onblur="wktSaveSet(\'' + esc(ex) + '\',\'\','+i+',\'reps\',this)"></td>'
+              + '<td class="wkt-td-wt"><input type="number" placeholder="\u2014" onblur="wktSaveSet(\'' + esc(ex) + '\',\'\','+i+',\'wt\',this)"></td>';
       }
-    });
-    html += '</tr>';
+      html += '<td class="wkt-td-add"><button onclick="wktAddSet(\'' + esc(ex) + '\',\'\')">+ Set</button></td></tr>';
+    } else {
+      variations.forEach(function(variation) {
+        const setRecs = varMap[variation];
+        html += '<tr class="wkt-tr" data-ex="' + esc(ex) + '" data-var="' + esc(variation) + '">'
+          + '<td class="wkt-td-handle">\u2840</td>'
+          + '<td class="wkt-td-ex">' + esc(ex) + '</td>'
+          + '<td class="wkt-td-var"><input value="' + esc(variation) + '" placeholder="\u2014" onblur="wktSaveVar(\'' + esc(ex) + '\',\'' + esc(variation) + '\',this.value)"></td>';
+        for (let i = 0; i < maxSets; i++) {
+          const rec = setRecs[i];
+          if (rec) {
+            const repsVal = rec.fields[WKT.reps] || '';
+            const wtVal = rec.fields[WKT.wt] || '';
+            html += '<td class="wkt-td-reps"><input type="number" value="' + repsVal + '" placeholder="\u2014" data-id="' + rec.id + '" onblur="wktSaveField(\'' + rec.id + '\',\'reps\',this)"></td>'
+                  + '<td class="wkt-td-wt"><input type="number" value="' + wtVal + '" placeholder="\u2014" data-id="' + rec.id + '" onblur="wktSaveField(\'' + rec.id + '\',\'wt\',this)"></td>';
+          } else {
+            html += '<td class="wkt-td-reps"><input type="number" placeholder="\u2014" onblur="wktSaveSet(\'' + esc(ex) + '\',\'' + esc(variation) + '\',' + i + ',\'reps\',this)"></td>'
+                  + '<td class="wkt-td-wt"><input type="number" placeholder="\u2014" onblur="wktSaveSet(\'' + esc(ex) + '\',\'' + esc(variation) + '\',' + i + ',\'wt\',this)"></td>';
+          }
+        }
+        html += '<td class="wkt-td-add"><button onclick="wktAddSet(\'' + esc(ex) + '\',\'' + esc(variation) + '\')">+ Set</button></td></tr>';
+      });
+    }
   });
+
   html += '</tbody></table></div>';
   el.innerHTML = html;
 
-  // Populate jump dropdown — if week list already loaded, fill now; else wktPopulateDropdown will fill async
-  const sel = document.getElementById('wkt-week-jump');
-  if (sel && _wktWeekList.length) {
-    _wktWeekList.forEach(function(iso) {
+  // Populate date jump dropdown
+  const sel = document.getElementById('wkt-day-jump');
+  if (sel && _wktDateList.length) {
+    _wktDateList.forEach(function(iso) {
       const d = new Date(iso + 'T12:00:00');
       const opt = document.createElement('option');
-      opt.value = iso; opt.textContent = (d.getMonth()+1) + '/' + d.getDate() + '/' + String(d.getFullYear()).slice(2);
+      opt.value = iso;
+      opt.textContent = (d.getMonth()+1) + '/' + d.getDate() + '/' + String(d.getFullYear()).slice(2);
       sel.appendChild(opt);
     });
-    sel.value = mondayISO;
+    sel.value = dateISO;
   }
-
-  // Drag-to-reorder rows
-  (function() {
-    const tbody = document.getElementById('wkt-grid-body');
-    if (!tbody) return;
-    let src = null, lastOver = null;
-    tbody.addEventListener('mousedown', function(e) {
-      const row = e.target.closest('tr[data-ex]');
-      if (!row) return;
-      const col = e.target.closest('td');
-      if (col && col.cellIndex > 1) return;
-      src = row; row.classList.add('wkt-dragging'); document.body.style.userSelect = 'none';
-    });
-    tbody.addEventListener('mouseover', function(e) {
-      if (!src) return;
-      const target = e.target.closest('tr[data-ex]');
-      if (target === lastOver) return;
-      if (lastOver) lastOver.classList.remove('wkt-drop-above');
-      lastOver = null;
-      if (!target || target === src) return;
-      target.classList.add('wkt-drop-above'); lastOver = target;
-    });
-    document.addEventListener('mouseup', function(e) {
-      if (!src) return;
-      const target = e.target.closest('tr[data-ex]');
-      if (lastOver) lastOver.classList.remove('wkt-drop-above');
-      src.classList.remove('wkt-dragging'); document.body.style.userSelect = ''; lastOver = null;
-      if (target && target !== src) {
-        const rows = Array.from(tbody.querySelectorAll('tr[data-ex]'));
-        if (rows.indexOf(target) > rows.indexOf(src)) tbody.insertBefore(src, target.nextSibling);
-        else tbody.insertBefore(src, target);
-        const newOrder = Array.from(tbody.querySelectorAll('tr[data-ex]')).map(function(r) { return r.getAttribute('data-ex'); });
-        wktSaveRowOrder(mondayISO, newOrder);
-      }
-      src = null;
-    });
-  })();
 }
 
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;'); }
 
-
-async function wktCellClick(date, exName, cell) {
-  // Tap = add one set for this exercise on this date
-  const dayRecs = (_wktWeekData[date] && _wktWeekData[date][exName]) || [];
-  const setN = dayRecs.length + 1;
-
-  // Pre-fill last weight from cache or last AT record
-  let lastWt = _wktPrevWt[exName] || 0;
-  if (!lastWt) {
-    try {
-      const filter = encodeURIComponent('AND({Exercise}="' + exName + '",IS_BEFORE({Date},"' + date + '"))');
-      const r = await fetch(
-        `https://api.airtable.com/v0/${BASE}/${WKT.tbl}?returnFieldsByFieldId=true&filterByFormula=${filter}&sort[0][field]=${WKT.date}&sort[0][direction]=desc&fields[]=${WKT.wt}&pageSize=1`,
-        { headers: { Authorization: 'Bearer ' + TOKEN } }
-      );
-      const d = await r.json();
-      lastWt = d.records?.[0]?.fields?.[WKT.wt] || 0;
-      if (lastWt) _wktPrevWt[exName] = lastWt;
-    } catch(e) { /* silent */ }
+function wktPrevDay() {
+  const idx = _wktDateList.indexOf(_wktCurDate);
+  if (idx > 0) wktLoadDay(_wktDateList[idx - 1]);
+  else {
+    const d = new Date(_wktCurDate + 'T12:00:00');
+    d.setDate(d.getDate() - 1);
+    wktLoadDay(d.toISOString().split('T')[0]);
   }
+}
+function wktNextDay() {
+  const idx = _wktDateList.indexOf(_wktCurDate);
+  if (idx >= 0 && idx < _wktDateList.length - 1) wktLoadDay(_wktDateList[idx + 1]);
+  else {
+    const d = new Date(_wktCurDate + 'T12:00:00');
+    d.setDate(d.getDate() + 1);
+    wktLoadDay(d.toISOString().split('T')[0]);
+  }
+}
+function wktJumpToDay(iso) { if (iso) wktLoadDay(iso); }
 
-  // Day label from date
-  const dow = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'][(new Date(date + 'T12:00:00').getDay() + 6) % 7];
-  const dayLabel = dow;
-  const sessionId = date + ' ' + dayLabel;
-
-  const fields = {
-    [WKT.date]: date,
-    [WKT.ex]: exName,
-    [WKT.setN]: setN,
-    [WKT.day]: dayLabel,
-    [WKT.sess]: sessionId,
-  };
-  if (lastWt) fields[WKT.wt] = lastWt;
-
+async function wktSaveField(recId, field, input) {
+  const val = parseFloat(input.value) || null;
+  const fieldId = field === 'reps' ? WKT.reps : WKT.wt;
   try {
-    cell.textContent = '…';
-    const r = await fetch(
-      `https://api.airtable.com/v0/${BASE}/${WKT.tbl}?returnFieldsByFieldId=true`,
+    await fetch(`https://api.airtable.com/v0/${BASE}/${WKT.tbl}/${recId}?returnFieldsByFieldId=true`,
+      { method: 'PATCH', headers: { Authorization: 'Bearer ' + TOKEN, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fields: { [fieldId]: val } }) });
+  } catch(e) { console.error('wktSaveField:', e); }
+}
+
+async function wktAddSet(ex, variation) {
+  // Count existing sets for this ex+var on this date
+  const tbody = document.getElementById('wkt-tbody');
+  const rows = tbody ? Array.from(tbody.querySelectorAll('tr[data-ex]')) : [];
+  const matchRows = rows.filter(r => r.getAttribute('data-ex') === ex && r.getAttribute('data-var') === variation);
+  const filledInputs = matchRows.flatMap(r => Array.from(r.querySelectorAll('td.wkt-td-reps input[data-id]')));
+  const setN = filledInputs.length + 1;
+  const dow = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'][(new Date(_wktCurDate + 'T12:00:00').getDay() + 6) % 7];
+  const fields = {
+    [WKT.date]: _wktCurDate,
+    [WKT.ex]: ex,
+    [WKT.setN]: setN,
+    [WKT.day]: dow,
+    [WKT.sess]: _wktCurDate + ' ' + dow,
+  };
+  if (variation) fields[WKT.var] = variation;
+  try {
+    await fetch(`https://api.airtable.com/v0/${BASE}/${WKT.tbl}?returnFieldsByFieldId=true`,
       { method: 'POST', headers: { Authorization: 'Bearer ' + TOKEN, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ records: [{ fields }], typecast: true }) }
-    );
-    const d = await r.json();
-    const newRec = d.records?.[0];
-    if (newRec) {
-      if (!_wktWeekData[date]) _wktWeekData[date] = {};
-      if (!_wktWeekData[date][exName]) _wktWeekData[date][exName] = [];
-      _wktWeekData[date][exName].push(newRec);
-      const recs2 = _wktWeekData[date][exName];
-      const count = recs2.length;
-      let topWt2 = 0;
-      recs2.forEach(r => { const w = r.fields[WKT.wt]||0; if(w>topWt2) topWt2=w; });
-      cell.innerHTML = topWt2
-        ? `<div style="font-size:10px;font-weight:800;line-height:1.1">${count}s</div><div style="font-size:9px;font-weight:600;line-height:1.1">${topWt2}lbs</div>`
-        : `<div style="font-size:11px;font-weight:800">${count}s</div>`;
-      cell.style.background = '#dbeafe';
-      cell.style.color = '#1e40af';
-      // Update total count
-      const totalSets = Object.values(_wktWeekData).reduce((sum, dayObj) =>
-        sum + Object.values(dayObj).reduce((s2, recs) => s2 + recs.length, 0), 0);
-      const statusEl = document.querySelector('#wkt-content span[style*="muted"]');
-      if (statusEl) statusEl.textContent = totalSets + ' sets this week';
-    }
-  } catch(e) {
-    cell.textContent = '✗';
-    setTimeout(() => { cell.textContent = ''; cell.style.background = ''; }, 1500);
-    console.error('wktCellClick:', e);
-  }
+        body: JSON.stringify({ records: [{ fields }], typecast: true }) });
+    wktLoadDay(_wktCurDate);
+  } catch(e) { console.error('wktAddSet:', e); }
 }
 
-async function wktShiftWeek(dir) {
-  _wktMondayOffset += dir;
-  const monday = wktGetMonday();
-  const mondayISO = monday.toISOString().split('T')[0];
-  const el = document.getElementById('wkt-content');
-  if (el) el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);font-size:12px">Loading…</div>';
-  await wktLoadWeekData(mondayISO);
-  wktRender(monday);
-  await wktPopulateDropdown();
-  const sel = document.getElementById('wkt-week-jump');
-  if (sel) sel.value = mondayISO;
-}
-
-async function wktJumpToWeek(iso) {
-  if (!iso) return;
-  const target = new Date(iso + 'T12:00:00');
-  const currentMon = wktGetMonday();
-  _wktMondayOffset += Math.round((target - currentMon) / (7 * 24 * 60 * 60 * 1000));
-  const monday = wktGetMonday();
-  const mondayISO = monday.toISOString().split('T')[0];
-  const el = document.getElementById('wkt-content');
-  if (el) el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);font-size:12px">Loading…</div>';
-  await wktLoadWeekData(mondayISO);
-  wktRender(monday);
-  await wktPopulateDropdown();
-  const sel = document.getElementById('wkt-week-jump');
-  if (sel) sel.value = mondayISO;
-}
+async function wktSaveVar(ex, oldVar, newVar) { /* variation save — reload */ }
 
 async function wktPopulateDropdown() {
-  if (_wktWeekDropDone && _wktWeekList.length) {
-    const sel = document.getElementById('wkt-week-jump');
+  if (_wktDropDone && _wktDateList.length) {
+    const sel = document.getElementById('wkt-day-jump');
     if (!sel) return;
-    const mondayISO = wktGetMonday().toISOString().split('T')[0];
-    sel.innerHTML = '<option value="">Jump to week…</option>';
-    _wktWeekList.forEach(iso => {
+    sel.innerHTML = '<option value="">Jump to date\u2026</option>';
+    _wktDateList.forEach(function(iso) {
       const d = new Date(iso + 'T12:00:00');
       const opt = document.createElement('option');
       opt.value = iso; opt.textContent = (d.getMonth()+1)+'/'+d.getDate()+'/'+String(d.getFullYear()).slice(2);
       sel.appendChild(opt);
     });
-    sel.value = mondayISO;
+    sel.value = _wktCurDate;
     return;
   }
   let allDates = [], off = null;
   try {
     do {
       const r = await fetch(
-        `https://api.airtable.com/v0/${BASE}/${WKT.tbl}?returnFieldsByFieldId=true&fields[]=${WKT.date}&pageSize=100${off ? '&offset=' + off : ''}`,
+        `https://api.airtable.com/v0/${BASE}/${WKT.tbl}?returnFieldsByFieldId=true&fields[]=${WKT.date}&pageSize=100${off?'&offset='+off:''}`,
         { headers: { Authorization: 'Bearer ' + TOKEN } }
       );
       const d = await r.json();
@@ -4094,29 +4035,19 @@ async function wktPopulateDropdown() {
       off = d.offset || null;
     } while (off);
   } catch(e) { return; }
-
-  const mondaySet = new Set();
-  allDates.forEach(dateStr => {
-    const d = new Date(dateStr + 'T12:00:00');
-    d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
-    mondaySet.add(d.toISOString().split('T')[0]);
-  });
-  _wktWeekList = [...mondaySet].sort();
-  _wktWeekDropDone = true;
-
-  const sel = document.getElementById('wkt-week-jump');
+  _wktDateList = [...new Set(allDates)].sort();
+  _wktDropDone = true;
+  const sel = document.getElementById('wkt-day-jump');
   if (!sel) return;
-  const mondayISO = wktGetMonday().toISOString().split('T')[0];
-  sel.innerHTML = '<option value="">Jump to week…</option>';
-  _wktWeekList.forEach(iso => {
+  sel.innerHTML = '<option value="">Jump to date\u2026</option>';
+  _wktDateList.forEach(function(iso) {
     const d = new Date(iso + 'T12:00:00');
     const opt = document.createElement('option');
     opt.value = iso; opt.textContent = (d.getMonth()+1)+'/'+d.getDate()+'/'+String(d.getFullYear()).slice(2);
     sel.appendChild(opt);
   });
-  sel.value = mondayISO;
+  sel.value = _wktCurDate;
 }
-
 
 // ════════════════════════════════════════════════════════════════════════════
 // WORKOUT AUDIT
