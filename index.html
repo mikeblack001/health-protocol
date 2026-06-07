@@ -3876,7 +3876,7 @@ function wktRender(monday) {
     html += '<tr data-ex="' + ex.replace(/"/g,'&quot;') + '" style="border-bottom:1px solid #e5e7eb">';
     html += '<td style="padding:3px 4px;text-align:center;color:#9ca3af;cursor:grab;font-size:14px;user-select:none">\u2840</td>';
     html += '<td style="padding:5px 10px;font-weight:700;font-size:13px;border-right:2px solid #e2e5ea">' + ex + '</td>';
-    dates.forEach(function(date) {
+    dates.forEach(function(date, i) {
       const dayRecs = (_wktWeekData[date] && _wktWeekData[date][ex]) || [];
       const setCount = dayRecs.length;
       const topWt = dayRecs.reduce(function(m, r) { return Math.max(m, r.fields[WKT.wt] || 0); }, 0);
