@@ -3920,7 +3920,7 @@ function wktRenderDay(dateISO, recs) {
         html += '<td class="wkt-td-reps"><input type="number" placeholder="—" onblur="wktSaveSet(\'' + wktEsc(ex) + '\',\'\','+i+',\'reps\',this)"></td>'
               + '<td class="wkt-td-wt"><input type="number" placeholder="—" onblur="wktSaveSet(\'' + wktEsc(ex) + '\',\'\','+i+',\'wt\',this)"></td>';
       }
-      html += '<td class="wkt-td-add"><button onclick="wktAddSet(\'' + wktEsc(ex) + '\',\'\')">\+ Set</button></td></tr>';
+      html += '<td class="wkt-td-add"><button onclick="wktAddSet(\'' + wktEsc(ex) + '\',\'\')">+ Set</button></td></tr>';
     } else {
       variations.forEach(function(variation) {
         const setRecs = varMap[variation];
@@ -3941,9 +3941,11 @@ function wktRenderDay(dateISO, recs) {
                   + '<td class="wkt-td-wt"><input type="number" placeholder="—" onblur="wktSaveSet(\'' + wktEsc(ex) + '\',\'' + wktEsc(variation) + '\',' + i + ',\'wt\',this)"></td>';
           }
         }
-        html += '<td class="wkt-td-add"><button onclick="wktAddSet(\'' + wktEsc(ex) + '\',\'' + wktEsc(variation) + '\')">\+ Set</button></td></tr>';
+        html += '<td class="wkt-td-add"><button onclick="wktAddSet(\'' + wktEsc(ex) + '\',\'' + wktEsc(variation) + '\')">+ Set</button></td></tr>';
       });
     }
+  });
+
   html += '</tbody></table></div>';
   el.innerHTML = html;
 
