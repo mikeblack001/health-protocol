@@ -370,6 +370,7 @@ function saveRowOrder(arr,dateStr){
         const ex=key.split('||')[0];
         logRecs.filter(r=>r.fields[LOG.ex]===ex).forEach(r=>{
           updates.push({id:r.id,fields:{[LOG.exorder]:pos}});
+          r.fields[LOG.exorder]=pos; // update in memory so getRowOrder reads correctly
         });
       });
       for(let i=0;i<updates.length;i+=10){
@@ -984,6 +985,7 @@ function initTableDrag(){
       const order=[...tbody.querySelectorAll('tr[data-key]')].map(r=>r.dataset.key);
       saveRowOrder(order,curDate);
       setSt('✓ Order saved');
+      loadWeekGrid(curDate);
     }
     src=null;lastOver=null;
   };
