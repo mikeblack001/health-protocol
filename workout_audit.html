@@ -675,10 +675,8 @@ async function loadWeekGrid(date){
 
 function scrollToCard(id){ focusSetInput(id); }
 function focusSetInput(id){
-  // Find the reps input for this record in the grouped table
   const inp=document.getElementById('card_'+id);
   if(inp){
-    // Highlight parent row
     const row=inp.closest('tr');
     if(row){
       document.querySelectorAll('#pdf-tbody tr').forEach(r=>r.style.outline='');
@@ -686,7 +684,7 @@ function focusSetInput(id){
       setTimeout(()=>row.style.outline='',2500);
       row.scrollIntoView({behavior:'smooth',block:'center'});
     }
-    setTimeout(()=>{inp.focus();inp.select();},300);
+    setTimeout(()=>{inp.click();inp.select();},300);
   }
 }
 
@@ -1098,21 +1096,7 @@ async function toggleVerify(id,currentVerified){
 // ── GRID CELL CLICK ───────────────────────────────────────────────────
 async function gridCellClick(date,ex){
   if(date!==curDate)await setDate(date);
-  // Find matching row in grouped table
-  const rows=[...document.querySelectorAll('#pdf-tbody tr[data-cmp]')];
-  const found=rows.find(r=>r.dataset.cmp===ex);
-  if(found){
-    document.querySelectorAll('#pdf-tbody tr').forEach(r=>{r.style.outline='';r.style.background=r._origBg||r.style.background;});
-    found._origBg=found.style.background;
-    found.scrollIntoView({behavior:'smooth',block:'center'});
-    found.style.outline='3px solid #2563eb';
-    // Focus first reps input in row
-    const inp=found.querySelector('input[type="number"]');
-    if(inp)setTimeout(()=>inp.focus(),300);
-    setTimeout(()=>{found.style.outline='';},2500);
-  } else {
-    openAddModalForEx(date,ex);
-  }
+  openAddModalForEx(date,ex);
 }
 
 // ── ADD MODAL ─────────────────────────────────────────────────────────
