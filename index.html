@@ -3769,12 +3769,11 @@ async function loadWkTracker() {
   if (!el) return;
   el.innerHTML = '<div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div>';
   // Start on today's date
+  await wktPopulateDropdown();
   if (!_wktCurDate) {
-    // Use last date with data if available, else today
     _wktCurDate = _wktDateList.length ? _wktDateList[_wktDateList.length - 1] : new Date().toISOString().split('T')[0];
   }
   await wktLoadDay(_wktCurDate);
-  wktPopulateDropdown();
 }
 
 async function wktLoadDay(dateISO) {
@@ -3784,7 +3783,7 @@ async function wktLoadDay(dateISO) {
   el.innerHTML = '<div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div>';
 
   // Fetch all records for this date
-  const formula = encodeURIComponent(`IS_SAME({Date},"${dateISO}","day")`);
+  const formula = encodeURIComponent(`{${WKT.date}}="${dateISO}"`);
   const flds = [WKT.date,WKT.ex,WKT.var,WKT.setN,WKT.reps,WKT.wt,WKT.day,WKT.sess,WKT.canon].map(f=>'fields[]='+f).join('&');
   let recs = [], off = null;
   try {
@@ -3857,7 +3856,7 @@ function wktRenderDay(dateISO, recs) {
     + '#wkt-table-wrap{overflow-x:auto}'
     + '#wkt-table{border-collapse:collapse;width:100%;font-size:11px}'
     + '#wkt-table thead th{background:#1e2433;color:#fff;padding:3px 4px;font-size:9px;font-weight:700;text-align:center;white-space:nowrap;overflow:hidden}'
-    + '#wkt-table thead th.wkt-th-ex{text-align:left;width:140px;padding-left:6px}'
+    + '#wkt-table thead th.wkt-th-ex{text-align:left;width:180px;padding-left:6px}'
     + '#wkt-table thead th.wkt-th-canon{text-align:left;width:80px;color:#9ca3af}'
     + '#wkt-table thead th.wkt-th-var{color:#d1d5db;width:90px}'
     + '#wkt-table thead th.wkt-th-reps{color:#93c5fd;border-left:2px solid #374151;width:46px}'
@@ -3915,7 +3914,7 @@ function wktRenderDay(dateISO, recs) {
     if (variations.length === 0) {
       html += '<tr class="wkt-tr" data-ex="' + wktEsc(ex) + '" data-var="">'
         + '<td class="wkt-td-ex">' + wktEsc(ex) + '</td>'
-        + '<td class="wkt-td-canon"><input value="" placeholder="canonical" onblur="wktSaveCanon(\'' + wktEsc(ex) + '\',\'\',this.value)"></td>'
+        + '<td class="wkt-td-canon"><input value="" placeholder="" onblur="wktSaveCanon(\'' + wktEsc(ex) + '\',\'\',this.value)"></td>'
         + '<td class="wkt-td-var">' + varSelect('', ex, '') + '</td>';
       for (let i = 0; i < maxSets; i++) {
         html += '<td class="wkt-td-reps"><input type="number" placeholder="—" onblur="wktSaveSet(\'' + wktEsc(ex) + '\',\'\','+i+',\'reps\',this)"></td>'
@@ -3928,7 +3927,7 @@ function wktRenderDay(dateISO, recs) {
         const canonVal = (setRecs[0] && setRecs[0].fields[WKT.canon]) || '';
         html += '<tr class="wkt-tr" data-ex="' + wktEsc(ex) + '" data-var="' + wktEsc(variation) + '">'
           + '<td class="wkt-td-ex">' + wktEsc(ex) + '</td>'
-          + '<td class="wkt-td-canon"><input value="' + wktEsc(canonVal) + '" placeholder="canonical" onblur="wktSaveCanon(\'' + wktEsc(ex) + '\',\'' + wktEsc(variation) + '\',this.value)"></td>'
+          + '<td class="wkt-td-canon"><input value="' + wktEsc(canonVal) + '" placeholder="" onblur="wktSaveCanon(\'' + wktEsc(ex) + '\',\'' + wktEsc(variation) + '\',this.value)"></td>'
           + '<td class="wkt-td-var">' + varSelect(variation, ex, variation) + '</td>';
         for (let i = 0; i < maxSets; i++) {
           const rec = setRecs[i];
