@@ -240,7 +240,8 @@ const LOG={
   day:'fldypzlwqw9AzWrEE',
   sess:'fldBChNmPkNg61oTN',
   verified:'fldEks3PPooSZ1j38',
-  canon:'fldSxNKXflcFNvo21'
+  canon:'fldSxNKXflcFNvo21',
+  exorder:'flduLvz39Hpjadbzc'
 };
 
 const GCL_ID='478191426516-94rflpalsl5ev56ptck62k5imes6jk8l.apps.googleusercontent.com';
@@ -332,22 +333,50 @@ function getWkDates(dateStr){
 }
 
 function getRowOrder(dateStr){
+  // Primary: derive order from ExOrder field on AT records (already loaded in logRecs)
+  if(logRecs && logRecs.length){
+    const exMin={};
+    logRecs.forEach(r=>{
+      const ex=r.fields[LOG.ex];
+      const ord=r.fields[LOG.exorder];
+      if(ex && ord!=null && (exMin[ex]==null || ord<exMin[ex])) exMin[ex]=ord;
+    });
+    const exWithOrder=Object.keys(exMin).filter(ex=>exMin[ex]!=null);
+    if(exWithOrder.length){
+      const ordered=exWithOrder.sort((a,b)=>exMin[a]-exMin[b]);
+      // Build keys in same format as saveRowOrder
+      const allKeys=[...new Set(logRecs.map(r=>r.fields[LOG.ex]+'||'))].filter(k=>k!=='||');
+      const result=[];
+      ordered.forEach(ex=>{const k=ex+'||';if(allKeys.includes(k))result.push(k);});
+      allKeys.forEach(k=>{if(!result.includes(k))result.push(k);});
+      return result;
+    }
+  }
+  // Fallback: localStorage
   const mon=getWkDates(dateStr)[0];
   const raw=LS.get('row_order_'+mon);
   if(raw){try{return JSON.parse(raw);}catch{}}
-  // No saved order — look back up to 8 weeks for same day-of-week
-  const dt=new Date(dateStr+'T12:00:00');
-  for(let w=1;w<=8;w++){
-    const prev=new Date(dt);prev.setDate(dt.getDate()-(w*7));
-    const prevMon=getWkDates(prev.toISOString().split('T')[0])[0];
-    const prevRaw=LS.get('row_order_'+prevMon);
-    if(prevRaw){try{const o=JSON.parse(prevRaw);if(o.length)return o;}catch{}}
-  }
   return[];
 }
 function saveRowOrder(arr,dateStr){
+  // Still save to localStorage for instant reload
   const mon=getWkDates(dateStr)[0];
   LS.set('row_order_'+mon,JSON.stringify(arr));
+  // Also persist to AT: write ExOrder position to every set for each exercise on this date
+  (async()=>{
+    try{
+      const updates=[];
+      arr.forEach((key,pos)=>{
+        const ex=key.split('||')[0];
+        logRecs.filter(r=>r.fields[LOG.ex]===ex).forEach(r=>{
+          updates.push({id:r.id,fields:{[LOG.exorder]:pos}});
+        });
+      });
+      for(let i=0;i<updates.length;i+=10){
+        await atFetch(LOG.tbl,{method:'PATCH',body:JSON.stringify({records:updates.slice(i,i+10),returnFieldsByFieldId:true})});
+      }
+    }catch(e){console.error('saveRowOrder AT:',e);}
+  })();
 }
 
 // ── AIRTABLE ──────────────────────────────────────────────────────────
@@ -485,7 +514,7 @@ async function setDate(date){
   try{
     const q=encodeURIComponent('IS_SAME({'+LOG.date+'},"'+date+'","day")');
     let recs=[],off=null;
-    do{const d=await atFetch(LOG.tbl+'?returnFieldsByFieldId=true&filterByFormula='+q+'&fields[]='+LOG.date+'&fields[]='+LOG.ex+'&fields[]='+LOG.var+'&fields[]='+LOG.setN+'&fields[]='+LOG.reps+'&fields[]='+LOG.wt+'&fields[]='+LOG.day+'&fields[]='+LOG.sess+'&fields[]='+LOG.verified+'&fields[]='+LOG.canon+'&pageSize=100'+(off?'&offset='+off:''));recs=recs.concat(d.records);off=d.offset;}while(off);
+    do{const d=await atFetch(LOG.tbl+'?returnFieldsByFieldId=true&filterByFormula='+q+'&fields[]='+LOG.date+'&fields[]='+LOG.ex+'&fields[]='+LOG.var+'&fields[]='+LOG.setN+'&fields[]='+LOG.reps+'&fields[]='+LOG.wt+'&fields[]='+LOG.day+'&fields[]='+LOG.sess+'&fields[]='+LOG.verified+'&fields[]='+LOG.canon+'&fields[]='+LOG.exorder+'&pageSize=100'+(off?'&offset='+off:''));recs=recs.concat(d.records);off=d.offset;}while(off);
     logRecs=recs;
     document.getElementById('b-total').textContent=recs.length+' sets';
     loadWeekGrid(date);
