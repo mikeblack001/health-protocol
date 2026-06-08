@@ -201,7 +201,7 @@ select.fe{cursor:pointer}
         <input id="cm-var" type="text" placeholder="Variation" style="width:100%;padding:7px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px">
       </div>
       <div id="cm-existing" style="font-size:11px;color:#6b7280;max-height:80px;overflow-y:auto"></div>
-      <button onclick="cmSave()" style="background:#2563eb;color:#fff;border:none;border-radius:6px;padding:9px;font-size:13px;font-weight:700;cursor:pointer">+ Add Set</button>
+      <button onclick="cmSave()" id="cm-save-btn" style="background:#2563eb;color:#fff;border:none;border-radius:6px;padding:9px;font-size:13px;font-weight:700;cursor:pointer">+ Add Set</button>
     </div>
   </div>
 </div>
@@ -675,17 +675,26 @@ async function loadWeekGrid(date){
 
 function scrollToCard(id){ focusSetInput(id); }
 function focusSetInput(id){
-  const inp=document.getElementById('card_'+id);
-  if(inp){
-    const row=inp.closest('tr');
-    if(row){
-      document.querySelectorAll('#pdf-tbody tr').forEach(r=>r.style.outline='');
-      row.style.outline='3px solid #2563eb';
-      setTimeout(()=>row.style.outline='',2500);
-      row.scrollIntoView({behavior:'smooth',block:'center'});
-    }
-    setTimeout(()=>{inp.click();inp.select();},300);
-  }
+  // Find the record in logRecs
+  const rec = logRecs.find(r => r.id === id);
+  if(!rec) return;
+  const ex = rec.fields[LOG.ex] || '';
+  const varRaw = rec.fields[LOG.var];
+  const variation = (Array.isArray(varRaw) ? varRaw[0] : varRaw) || '';
+  const reps = rec.fields[LOG.reps] || '';
+  const wt = rec.fields[LOG.wt] || '';
+  const setN = rec.fields[LOG.setN] || '';
+  // Open modal pre-filled for editing
+  cmDate = curDate; cmEx = ex; cmRecId = id;
+  document.getElementById('cm-title').textContent = ex + ' — S' + setN;
+  document.getElementById('cm-set').value = setN;
+  document.getElementById('cm-reps').value = reps;
+  document.getElementById('cm-wt').value = wt;
+  document.getElementById('cm-var').value = variation;
+  document.getElementById('cm-existing').innerHTML = '<i>Editing existing set — save to update</i>';
+  document.getElementById('cm').style.display = 'flex';
+  const btn = document.getElementById('cm-save-btn');
+  if(btn) btn.textContent = '✓ Save Changes';
 }
 
 function initGridDrag(){
@@ -1100,7 +1109,7 @@ async function gridCellClick(date,ex){
 }
 
 // ── ADD MODAL ─────────────────────────────────────────────────────────
-let cmDate=null,cmEx=null;
+let cmDate=null,cmEx=null,cmRecId=null;
 function openAddModal(){
   if(!curDate){setSt('Select a date first');return;}
   cmDate=curDate;cmEx=null;
@@ -1111,6 +1120,7 @@ function openAddModal(){
   document.getElementById('cm-var').value='';
   document.getElementById('cm-existing').innerHTML='';
   document.getElementById('cm').style.display='flex';
+  const btnA=document.getElementById('cm-save-btn');if(btnA)btnA.textContent='+ Add Set';
 }
 async function openAddModalForEx(date,ex){
   cmDate=date;cmEx=ex;
@@ -1122,6 +1132,8 @@ async function openAddModalForEx(date,ex){
   document.getElementById('cm-var').value='';
   document.getElementById('cm-existing').innerHTML='<i>Loading last set…</i>';
   document.getElementById('cm').style.display='flex';
+  cmRecId=null;
+  const btnB=document.getElementById('cm-save-btn');if(btnB)btnB.textContent='+ Add Set';
   try{
     const filter=encodeURIComponent('{Exercise}="'+ex+'"');
     const d=await atFetch(LOG.tbl+'?filterByFormula='+filter+'&sort%5B0%5D%5Bfield%5D='+LOG.date+'&sort%5B0%5D%5Bdirection%5D=desc&returnFieldsByFieldId=true&fields%5B%5D='+LOG.wt+'&fields%5B%5D='+LOG.reps+'&fields%5B%5D='+LOG.date+'&pageSize=1');
@@ -1136,28 +1148,55 @@ async function openAddModalForEx(date,ex){
     }
   }catch(e){document.getElementById('cm-existing').innerHTML='<i>Could not load prior sets</i>';}
 }
-function closeCM(){document.getElementById('cm').style.display='none';}
+function closeCM(){document.getElementById('cm').style.display='none'; cmRecId=null;}
 async function cmSave(){
   const ex=cmEx||(document.getElementById('q-cmp').value||'');
   if(!ex){setSt('Select an exercise');return;}
-  const fields={};
-  fields[LOG.date]=cmDate;
-  fields[LOG.ex]=ex;
-  const setN=document.getElementById('cm-set').value;if(setN)fields[LOG.setN]=parseInt(setN);
-  const reps=document.getElementById('cm-reps').value;if(reps)fields[LOG.reps]=parseInt(reps);
-  const wt=document.getElementById('cm-wt').value;if(wt)fields[LOG.wt]=parseFloat(wt);
-  const variation=document.getElementById('cm-var').value;if(variation)fields[LOG.var]=variation;
-  // Day/Session
-  const dow=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'][(new Date(cmDate+'T12:00:00').getDay()+6)%7];
-  fields[LOG.day]=dow;fields[LOG.sess]=cmDate+' '+dow;
-  try{
-    const res=await atFetch(LOG.tbl+'?returnFieldsByFieldId=true',{method:'POST',body:JSON.stringify({records:[{fields}],typecast:true})});
-    setSt('✓ Added '+ex+' to '+cmDate);
-    closeCM();
-    if(cmDate===curDate){logRecs.push(res.records[0]);document.getElementById('b-total').textContent=logRecs.length+' sets';renderRecordsOrdered(getRowOrder(curDate));}
-    if(!allDates.includes(cmDate)){allDates.push(cmDate);allDates.sort();buildDateSel();}
-    loadWeekGrid(curDate);
-  }catch(e){setSt('Error: '+e.message);}
+  const reps=document.getElementById('cm-reps').value;
+  const wt=document.getElementById('cm-wt').value;
+  const setN=document.getElementById('cm-set').value;
+  const variation=document.getElementById('cm-var').value;
+
+  if(cmRecId){
+    // Editing existing record — PATCH
+    const fields={};
+    if(reps)fields[LOG.reps]=parseInt(reps);
+    if(wt)fields[LOG.wt]=parseFloat(wt);
+    if(variation)fields[LOG.var]=[variation];
+    try{
+      await atFetch(LOG.tbl+'/'+cmRecId+'?returnFieldsByFieldId=true&typecast=true',{method:'PATCH',body:JSON.stringify({fields})});
+      // Update in memory
+      const i=logRecs.findIndex(r=>r.id===cmRecId);
+      if(i>=0){
+        if(reps)logRecs[i].fields[LOG.reps]=parseInt(reps);
+        if(wt)logRecs[i].fields[LOG.wt]=parseFloat(wt);
+        if(variation)logRecs[i].fields[LOG.var]=[variation];
+      }
+      setSt('✓ Updated');
+      closeCM();
+      renderRecordsOrdered(getRowOrder(curDate));
+      loadWeekGrid(curDate);
+    }catch(e){setSt('Error: '+e.message);}
+  } else {
+    // New record — POST
+    const fields={};
+    fields[LOG.date]=cmDate;
+    fields[LOG.ex]=ex;
+    if(setN)fields[LOG.setN]=parseInt(setN);
+    if(reps)fields[LOG.reps]=parseInt(reps);
+    if(wt)fields[LOG.wt]=parseFloat(wt);
+    if(variation)fields[LOG.var]=variation;
+    const dow=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'][(new Date(cmDate+'T12:00:00').getDay()+6)%7];
+    fields[LOG.day]=dow;fields[LOG.sess]=cmDate+' '+dow;
+    try{
+      const res=await atFetch(LOG.tbl+'?returnFieldsByFieldId=true',{method:'POST',body:JSON.stringify({records:[{fields}],typecast:true})});
+      setSt('✓ Added '+ex+' to '+cmDate);
+      closeCM();
+      if(cmDate===curDate){logRecs.push(res.records[0]);document.getElementById('b-total').textContent=logRecs.length+' sets';renderRecordsOrdered(getRowOrder(curDate));}
+      if(!allDates.includes(cmDate)){allDates.push(cmDate);allDates.sort();buildDateSel();}
+      loadWeekGrid(curDate);
+    }catch(e){setSt('Error: '+e.message);}
+  }
 }
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeCM();});
 
