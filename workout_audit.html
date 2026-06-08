@@ -239,7 +239,8 @@ const LOG={
   wt:'fldmrbBmfgSMtREMt',
   day:'fldypzlwqw9AzWrEE',
   sess:'fldBChNmPkNg61oTN',
-  verified:'fldEks3PPooSZ1j38'
+  verified:'fldEks3PPooSZ1j38',
+  canon:'fldSxNKXflcFNvo21'
 };
 
 const GCL_ID='478191426516-94rflpalsl5ev56ptck62k5imes6jk8l.apps.googleusercontent.com';
@@ -250,6 +251,8 @@ const QUICK_PDF=[
   {n:'📋 Workouts 2026',id:'1u7wc9rGFZD_n7e0L2hbwnEhRciVwxykvwcp5MVNeYIaYn0dDE'}
 ];
 const CMPS=['Back Extension','Barbell Shrugs','Bench Press','Bent Over Rows','Bicep Curls-Preacher','Cable Cross Overs 1/2 ea','Cable Curls 1/2 ea','Cable Press 1/2 ea','Cable Rows','Cable Shrugs 1/2','Curls (Standing)','DB Calf Raises','Decline Press','Face Pulls','Forearm Raise - Cable 1/2','Forward Back Stretch','Hammer Curls','High Cable Fly 1/2 ea','Hip Thrust','Incline Curls','Incline Fly','Incline Press','Lat Pulldown','Lateral Raises','Leg Curls','Leg Extensions','Leg Press','Low Cable Fly 1/2 ea','Nordic Curl','Overhead Tricep Ext','Overhead Tricep Press','Rear Delt Raises','Reverse Hyper','Seated Shoulder Press','Smith Mach Calf Raises','Tricep Ext Down 1/2','Tricep Ext Up','Tricep Pushdowns 1/2','Wrist Twist'];
+
+const VAR_OPTS=['','Rope 1/2','DBs','EZ-Bar','Lat Machine','Cable - 2 Hand','UClip','V-Bar','Bar','Cables','Cable 1/2','Rope - Bar','Smith Machine','Barbell'];
 
 const LS={get:k=>localStorage.getItem('mba_vs_'+k),set:(k,v)=>localStorage.setItem('mba_vs_'+k,v)};
 let curDate=null,logRecs=[],allDates=[],gTok=null;
@@ -482,7 +485,7 @@ async function setDate(date){
   try{
     const q=encodeURIComponent('IS_SAME({'+LOG.date+'},"'+date+'","day")');
     let recs=[],off=null;
-    do{const d=await atFetch(LOG.tbl+'?returnFieldsByFieldId=true&filterByFormula='+q+'&pageSize=100'+(off?'&offset='+off:''));recs=recs.concat(d.records);off=d.offset;}while(off);
+    do{const d=await atFetch(LOG.tbl+'?returnFieldsByFieldId=true&filterByFormula='+q+'&fields[]='+LOG.date+'&fields[]='+LOG.ex+'&fields[]='+LOG.var+'&fields[]='+LOG.setN+'&fields[]='+LOG.reps+'&fields[]='+LOG.wt+'&fields[]='+LOG.day+'&fields[]='+LOG.sess+'&fields[]='+LOG.verified+'&fields[]='+LOG.canon+'&pageSize=100'+(off?'&offset='+off:''));recs=recs.concat(d.records);off=d.offset;}while(off);
     logRecs=recs;
     document.getElementById('b-total').textContent=recs.length+' sets';
     loadWeekGrid(date);
@@ -801,6 +804,7 @@ function renderGroupedTable(sorted){
   html+='<th style="padding:4px 6px;width:24px"></th>'; // drag handle
   html+='<th style="padding:6px 10px;text-align:left;font-size:11px;min-width:150px">Exercise</th>';
   html+='<th style="padding:4px 8px;text-align:center;font-size:10px;color:#d1d5db;min-width:150px">Variation</th>';
+  html+='<th style="padding:4px 8px;text-align:left;font-size:10px;color:#9ca3af;min-width:80px">Canonical</th>';
   for(let i=0;i<maxSets;i++){
     html+=`<th style="padding:4px 6px;text-align:center;font-size:10px;color:#93c5fd;border-left:2px solid #374151;min-width:52px">S${i+1} Reps</th>`;
     html+=`<th style="padding:4px 6px;text-align:center;font-size:10px;color:#fcd34d;min-width:56px">S${i+1} Wt</th>`;
@@ -826,9 +830,15 @@ function renderGroupedTable(sorted){
     html+=`<tr data-key="${esc(exKey)}" data-cmp="${esc(ex)}" style="background:${rowBg};border-bottom:1px solid #e5e7eb">`;
     html+=`<td style="padding:3px 4px;text-align:center;color:#9ca3af;cursor:grab;font-size:14px;user-select:none">⠿</td>`;
     html+=`<td style="padding:5px 10px;font-weight:700;font-size:13px;border-right:1px solid #e2e5ea;background:${allV?'#dcfce7':'#f8fafc'}">${esc(ex)}</td>`;
+    const varSelectHtml=VAR_OPTS.map(v=>`<option value="${esc(v)}"${v===variation?' selected':''}>${v||'—'}</option>`).join('');
+    const canonVal=recs[0]&&recs[0].fields[LOG.canon]||'';
     html+=`<td style="padding:2px 4px;text-align:center">
-      <input list="var-list" value="${esc(variation)}" placeholder="—" style="width:140px;padding:4px 6px;border:1px solid #d1d5db;border-radius:4px;font-size:13px;background:#fff"
-        onblur="saveVarGroup('${esc(ex)}','${esc(variation)}',this.value)"
+      <select style="width:130px;padding:3px 5px;border:1px solid #d1d5db;border-radius:4px;font-size:12px;background:#fff"
+        onchange="saveVarGroup('${esc(ex)}','${esc(variation)}',this.value)">${varSelectHtml}</select>
+    </td>`;
+    html+=`<td style="padding:2px 6px">
+      <input value="${esc(canonVal)}" placeholder="" style="width:90px;padding:3px 5px;border:1px solid #e5e7eb;border-radius:4px;font-size:12px;color:#374151;background:#fff"
+        onblur="saveCanonGroup('${esc(ex)}','${esc(variation)}',this.value)"
         onkeydown="if(event.key==='Enter')this.blur()">
     </td>`;
     for(let i=0;i<maxSets;i++){
@@ -892,6 +902,23 @@ async function saveVarGroup(ex, oldVar, newVal){
     recs.forEach(r=>r.fields[LOG.var]=newVal||null);
     setSt('✓ Saved');
     loadWeekGrid(curDate);
+  }catch(e){setSt('Error: '+e.message);}
+}
+
+async function saveCanonGroup(ex, variation, newVal){
+  const recs=logRecs.filter(r=>{
+    const v=(Array.isArray(r.fields[LOG.var])?r.fields[LOG.var][0]:r.fields[LOG.var])||'';
+    return r.fields[LOG.ex]===ex&&v===variation;
+  });
+  if(!recs.length)return;
+  setSt('Saving…');
+  try{
+    for(let i=0;i<recs.length;i+=10){
+      const batch=recs.slice(i,i+10).map(r=>({id:r.id,fields:{[LOG.canon]:newVal||null}}));
+      await atFetch(LOG.tbl,{method:'PATCH',body:JSON.stringify({records:batch,returnFieldsByFieldId:true})});
+    }
+    recs.forEach(r=>r.fields[LOG.canon]=newVal||null);
+    setSt('✓ Saved');
   }catch(e){setSt('Error: '+e.message);}
 }
 
@@ -1026,13 +1053,13 @@ async function toggleVerify(id,currentVerified){
 // ── GRID CELL CLICK ───────────────────────────────────────────────────
 async function gridCellClick(date,ex){
   if(date!==curDate)await setDate(date);
-  const cards=[...document.querySelectorAll('.card')];
-  const found=cards.find(card=>{const s=card.querySelector('select.fe-ex');return s&&s.value===ex;});
+  const rows=[...document.querySelectorAll('#pdf-tbody tr[data-cmp]')];
+  const found=rows.find(r=>r.dataset.cmp===ex);
   if(found){
-    document.querySelectorAll('.card').forEach(c=>c.style.outline='');
+    document.querySelectorAll('#pdf-tbody tr').forEach(r=>r.style.outline='');
     found.scrollIntoView({behavior:'smooth',block:'center'});
     found.style.outline='3px solid #2563eb';
-    window._highlightedCard={ex};
+    setTimeout(()=>found.style.outline='',2000);
   } else {
     openAddModalForEx(date,ex);
   }
