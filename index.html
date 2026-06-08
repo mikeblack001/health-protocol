@@ -4065,170 +4065,193 @@ async function wktPopulateDropdown() {
 // WORKOUT AUDIT
 // ════════════════════════════════════════════════════════════════════════════
 
+let _wkaDateList = [];
+let _wkaDropDone = false;
+let _wkaCurDate = null;
+
 async function loadWkAudit() {
-  const statusEl = document.getElementById('wkaudit-status');
-  const navEl = document.getElementById('wkaudit-nav');
-  const contentEl = document.getElementById('wkaudit-content');
-  if (!statusEl || !navEl || !contentEl) return;
-  statusEl.textContent = 'Loading...';
-  navEl.innerHTML = '';
-  contentEl.innerHTML = '';
-
-  function getMon(dateStr) {
-    const d = new Date(dateStr + 'T12:00:00');
-    const diff = d.getDay() === 0 ? -6 : 1 - d.getDay();
-    const m = new Date(d); m.setDate(d.getDate() + diff);
-    return m.toISOString().split('T')[0];
-  }
-
-  try {
-    let records = [], offset = null;
-    do {
-      let url = `https://api.airtable.com/v0/${BASE}/${WKT.tbl}?returnFieldsByFieldId=true&pageSize=100`
-        + `&fields[]=${WKT.date}&fields[]=${WKT.ex}&fields[]=${WKT.setN}&fields[]=${WKT.reps}&fields[]=${WKT.wt}&fields[]=${WKT.var}&fields[]=${WKT.day}`
-        + `&sort[0][field]=${WKT.date}&sort[0][direction]=asc`;
-      if (offset) url += '&offset=' + encodeURIComponent(offset);
-      const r = await fetch(url, { headers: { Authorization: 'Bearer ' + TOKEN } });
-      const j = await r.json();
-      if (j.error) throw new Error(j.error.message);
-      records = records.concat(j.records || []);
-      offset = j.offset;
-      statusEl.textContent = 'Loading... ' + records.length + ' records';
-    } while (offset);
-
-    // Group: week → date → exercise → [recs]
-    const weeks = {};
-    records.forEach(rec => {
-      const f = rec.fields;
-      const date = f[WKT.date];
-      if (!date) return;
-      const ex = f[WKT.ex] || '?';
-      const mon = getMon(date);
-      if (!weeks[mon]) weeks[mon] = {};
-      if (!weeks[mon][date]) weeks[mon][date] = {};
-      if (!weeks[mon][date][ex]) weeks[mon][date][ex] = [];
-      weeks[mon][date][ex].push(rec);
-    });
-
-    const DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-    const sortedWeeks = Object.keys(weeks).sort();
-    statusEl.textContent = records.length + ' records across ' + sortedWeeks.length + ' weeks';
-
-    sortedWeeks.forEach(mon => {
-      const btn = document.createElement('button');
-      const [yr,mo,dy] = mon.split('-');
-      btn.textContent = mo+'/'+dy+'/'+yr.slice(2);
-      btn.style.cssText = 'padding:3px 8px;border:1px solid var(--border);border-radius:4px;cursor:pointer;font-size:10px;background:var(--surface);color:var(--text);margin:1px';
-      btn.onclick = () => {
-        navEl.querySelectorAll('button').forEach(b => { b.style.background='var(--surface)'; b.style.color='var(--text)'; });
-        btn.style.background = 'var(--accent)'; btn.style.color = '#fff';
-        showWkAuditWeek(mon, weeks[mon], DAYS);
-      };
-      navEl.appendChild(btn);
-    });
-    if (sortedWeeks.length) navEl.querySelectorAll('button')[sortedWeeks.length - 1].click();
-  } catch(e) {
-    statusEl.textContent = 'Error: ' + e.message;
-    console.error('loadWkAudit:', e);
-  }
-}
-
-function showWkAuditWeek(mon, weekData, DAYS) {
   const el = document.getElementById('wkaudit-content');
-  // Build date buttons for this week that have data
-  const monDate = new Date(mon + 'T12:00:00');
-  const dates = [];
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(monDate); d.setDate(monDate.getDate() + i);
-    dates.push(d.toISOString().split('T')[0]);
+  if (!el) return;
+  el.innerHTML = '<div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div>';
+  await wkaPopulateDropdown();
+  if (!_wkaCurDate) {
+    _wkaCurDate = _wkaDateList.length ? _wkaDateList[_wkaDateList.length - 1] : new Date().toISOString().split('T')[0];
   }
-  const datesWithData = dates.filter(d => weekData[d] && Object.keys(weekData[d]).length);
-  if (!datesWithData.length) { el.innerHTML = '<div style="padding:20px;color:var(--muted)">No data this week</div>'; return; }
-
-  // Day buttons
-  const DN2 = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-  let btnHtml = '<div style="display:flex;gap:6px;flex-wrap:wrap;padding:8px 0 12px">';
-  datesWithData.forEach(d => {
-    const dt = new Date(d + 'T12:00:00');
-    const label = DN2[dt.getDay()] + ' ' + d.slice(5);
-    btnHtml += `<button onclick="wkAuditShowDate('${d}',wkAuditCurrentData)" style="padding:4px 12px;border:1px solid var(--border);border-radius:6px;cursor:pointer;font-size:11px;font-weight:700;background:var(--surface);color:var(--text)" id="wkabtn_${d}">${label}</button>`;
-  });
-  btnHtml += '</div><div id="wkaudit-day-table"></div>';
-  el.innerHTML = btnHtml;
-
-  // Store data for onclick
-  window.wkAuditCurrentData = weekData;
-
-  // Auto-show first date
-  wkAuditShowDate(datesWithData[0], weekData);
-  document.getElementById('wkabtn_'+datesWithData[0]).style.background = 'var(--accent)';
-  document.getElementById('wkabtn_'+datesWithData[0]).style.color = '#000';
+  await wkaLoadDay(_wkaCurDate);
 }
 
-function wkAuditShowDate(date, weekData) {
-  // Highlight selected button
-  document.querySelectorAll('[id^="wkabtn_"]').forEach(b => { b.style.background='var(--surface)'; b.style.color='var(--text)'; });
-  const btn = document.getElementById('wkabtn_'+date);
-  if (btn) { btn.style.background='var(--accent)'; btn.style.color='#000'; }
+async function wkaLoadDay(dateISO) {
+  _wkaCurDate = dateISO;
+  const el = document.getElementById('wkaudit-content');
+  if (!el) return;
+  el.innerHTML = '<div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div>';
 
-  const dayData = weekData[date] || {};
-  const dt = new Date(date + 'T12:00:00');
-  const DN2 = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-  const dayLabel = DN2[dt.getDay()] + ' ' + date;
+  const formula = encodeURIComponent('DATESTR({' + WKT.date + '})="' + dateISO + '"');
+  const flds = [WKT.date,WKT.ex,WKT.var,WKT.setN,WKT.reps,WKT.wt,WKT.day,WKT.canon].map(function(f){ return 'fields[]=' + f; }).join('&');
+  var recs = [], off = null;
+  try {
+    do {
+      var resp = await fetch(
+        'https://api.airtable.com/v0/' + BASE + '/' + WKT.tbl + '?returnFieldsByFieldId=true&filterByFormula=' + formula + '&' + flds + '&sort[0][field]=' + WKT.setN + '&sort[0][direction]=asc&pageSize=100' + (off ? '&offset=' + off : ''),
+        { headers: { Authorization: 'Bearer ' + TOKEN } }
+      );
+      var d = await resp.json();
+      recs = recs.concat(d.records || []);
+      off = d.offset || null;
+    } while (off);
+  } catch(err) { console.error('wkaLoadDay:', err); }
 
-  // Sort exercises by first set number (matches log/PDF order)
-  const exFirstSet = {};
-  Object.entries(dayData).forEach(([ex, recs]) => {
-    const minN = Math.min(...recs.map(r => r.fields[WKT.setN] || 999));
-    exFirstSet[ex] = minN;
+  wkaRenderDay(dateISO, recs);
+}
+
+function wkaRenderDay(dateISO, recs) {
+  const el = document.getElementById('wkaudit-content');
+  if (!el) return;
+
+  var dt = new Date(dateISO + 'T12:00:00');
+  var DN = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  var dayName = DN[dt.getDay()];
+  var dayLabel = dayName + ' ' + (dt.getMonth()+1) + '/' + dt.getDate() + '/' + dt.getFullYear();
+  var totalSets = recs.length;
+
+  // Group: exercise -> variation -> [recs]
+  var exOrder = [];
+  var groups = {};
+  recs.forEach(function(r) {
+    var f = r.fields;
+    var ex = f[WKT.ex] || '';
+    var varRaw = f[WKT.var];
+    var variation = (Array.isArray(varRaw) ? (varRaw[0] && varRaw[0].name ? varRaw[0].name : varRaw[0]) : varRaw) || '';
+    if (!ex) return;
+    if (!groups[ex]) { groups[ex] = {}; exOrder.push(ex); }
+    if (!groups[ex][variation]) groups[ex][variation] = [];
+    groups[ex][variation].push(r);
   });
-  const exercises = Object.keys(dayData).sort((a,b) => (exFirstSet[a]||999)-(exFirstSet[b]||999));
 
-  if (!exercises.length) {
-    document.getElementById('wkaudit-day-table').innerHTML = '<div style="padding:16px;color:var(--muted)">No sets</div>';
-    return;
-  }
+  var maxSets = 3;
+  exOrder.forEach(function(ex) {
+    Object.values(groups[ex]).forEach(function(arr) { maxSets = Math.max(maxSets, arr.length); });
+  });
+  maxSets = Math.min(maxSets, 6);
 
-  const maxSets = Math.max(...exercises.map(ex => dayData[ex].length));
+  function e(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
 
-  let html = `<div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px">${dayLabel}</div>`;
-  html += '<div style="overflow-x:auto"><table style="border-collapse:collapse;font-size:12px;width:100%"><thead>';
-  html += '<tr style="background:#1e2433;color:#fff">';
-  html += '<th style="padding:6px 10px;text-align:left;min-width:160px">Exercise</th>';
-  for (let i = 0; i < maxSets; i++) {
-    html += `<th style="padding:4px 8px;text-align:center;font-size:10px;font-weight:700;border-left:2px solid #374151;white-space:nowrap">S${i+1}</th>`;
-    html += `<th style="padding:4px 6px;text-align:center;font-size:10px;color:#93c5fd">Reps</th>`;
-    html += `<th style="padding:4px 6px;text-align:center;font-size:10px;color:#fcd34d">Wt</th>`;
-    html += `<th style="padding:4px 6px;text-align:center;font-size:10px;color:#d1d5db">Var</th>`;
+  var html = '<style>'
+    + '#wka-hdr{background:#1e2433;color:#fff;padding:0 10px;height:38px;display:flex;align-items:center;gap:8px;margin:-16px -16px 0 -16px}'
+    + '#wka-hdr button{background:rgba(255,255,255,.15);border:none;color:#fff;padding:3px 10px;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer}'
+    + '#wka-hdr button:hover{background:rgba(255,255,255,.28)}'
+    + '#wka-hdr select{background:#2d3748;border:1px solid rgba(255,255,255,.2);color:#fff;padding:2px 6px;border-radius:4px;font-size:11px;cursor:pointer}'
+    + '#wka-hdr .wka-label{font-size:13px;font-weight:700}'
+    + '#wka-hdr .wka-sets{font-size:10px;color:rgba(255,255,255,.6);margin-left:auto;white-space:nowrap}'
+    + '#wka-day-label{font-size:14px;font-weight:800;color:#1e2433;padding:8px 0 4px}'
+    + '#wka-tbl{border-collapse:collapse;width:100%;font-size:13px}'
+    + '#wka-tbl thead th{background:#1e2433;color:#fff;padding:5px 6px;font-size:12px;font-weight:700;text-align:center;white-space:nowrap}'
+    + '#wka-tbl thead th.th-ex{text-align:left;padding-left:8px;min-width:160px}'
+    + '#wka-tbl thead th.th-can{text-align:left;color:#9ca3af;min-width:80px}'
+    + '#wka-tbl thead th.th-var{color:#d1d5db;min-width:100px}'
+    + '#wka-tbl thead th.th-reps{color:#93c5fd;border-left:2px solid #374151;min-width:52px}'
+    + '#wka-tbl thead th.th-wt{color:#fcd34d;min-width:52px}'
+    + '#wka-tbl td{border:1px solid #e2e5ea;padding:4px 6px;text-align:center}'
+    + '#wka-tbl td.td-ex{text-align:left;padding:5px 8px;font-weight:700;font-size:13px;color:#1e2433;background:#f8fafc;white-space:nowrap}'
+    + '#wka-tbl td.td-can{text-align:left;font-size:11px;color:#6b7280;padding:4px 6px}'
+    + '#wka-tbl td.td-var{font-size:11px;color:#374151}'
+    + '#wka-tbl td.td-reps{border-left:2px solid #e5e7eb;font-size:14px;font-weight:700;color:#1d4ed8;background:#dbeafe}'
+    + '#wka-tbl td.td-wt{font-size:14px;font-weight:700;color:#92400e;background:#fef3c7}'
+    + '#wka-tbl td.td-empty{color:#d1d5db}'
+    + '</style>';
+
+  html += '<div id="wka-hdr">'
+    + '<button onclick="wkaPrevDay()">‹ Prev</button>'
+    + '<span class="wka-label">' + e(dayLabel) + '</span>'
+    + '<button onclick="wkaNextDay()">Next ›</button>'
+    + '<select id="wka-jump" onchange="wkaJumpToDay(this.value)"><option value="">Jump…</option></select>'
+    + '<span class="wka-sets">' + totalSets + ' sets</span>'
+    + '</div>';
+
+  html += '<div id="wka-day-label">' + e(dayLabel) + '</div>';
+
+  html += '<div style="overflow-x:auto"><table id="wka-tbl"><thead><tr>'
+    + '<th class="th-ex">Exercise</th>'
+    + '<th class="th-can">Canonical</th>'
+    + '<th class="th-var">Variation</th>';
+  for (var i = 0; i < maxSets; i++) {
+    html += '<th class="th-reps">S' + (i+1) + ' Reps</th><th class="th-wt">S' + (i+1) + ' Wt</th>';
   }
   html += '</tr></thead><tbody>';
 
-  exercises.forEach(ex => {
-    const recs = [...dayData[ex]].sort((a,b) => (a.fields[WKT.setN]||0)-(b.fields[WKT.setN]||0));
-    const allV = recs.every(r => r.fields[WKT.verified] === true);
-    html += `<tr style="background:${allV?'#f0fdf4':'#fff'};border-bottom:1px solid #e5e7eb">`;
-    html += `<td style="padding:5px 10px;font-weight:700;font-size:12px;border-right:2px solid #e2e5ea;background:${allV?'#dcfce7':'#f8fafc'}">${ex}</td>`;
-    for (let i = 0; i < maxSets; i++) {
-      const r = recs[i];
-      if (!r) {
-        html += `<td colspan="4" style="border-left:2px solid #f3f4f6"></td>`;
-      } else {
-        const f = r.fields;
-        const setN = f[WKT.setN] || i+1;
-        const reps = f[WKT.reps] || '';
-        const wt = f[WKT.wt] || '';
-        const varVal = f[WKT.var] || '';
-        html += `<td style="padding:3px 4px;text-align:center;border-left:2px solid #e5e7eb;font-size:10px;color:#6b7280">S${setN}</td>`;
-        html += `<td style="padding:2px 3px;text-align:center"><span style="display:inline-block;min-width:36px;padding:2px 4px;background:#dbeafe;color:#1d4ed8;border-radius:4px;font-size:12px;font-weight:700">${reps||'—'}</span></td>`;
-        html += `<td style="padding:2px 3px;text-align:center"><span style="display:inline-block;min-width:42px;padding:2px 4px;background:#fef3c7;color:#92400e;border-radius:4px;font-size:12px;font-weight:700">${wt||'—'}</span></td>`;
-        html += `<td style="padding:2px 3px;text-align:center;font-size:11px;color:#374151">${varVal||''}</td>`;
+  exOrder.forEach(function(ex) {
+    var varMap = groups[ex] || {};
+    Object.keys(varMap).forEach(function(variation) {
+      var setRecs = varMap[variation];
+      var canonVal = (setRecs[0] && setRecs[0].fields[WKT.canon]) || '';
+      html += '<tr>'
+        + '<td class="td-ex">' + e(ex) + '</td>'
+        + '<td class="td-can">' + e(canonVal) + '</td>'
+        + '<td class="td-var">' + e(variation) + '</td>';
+      for (var i = 0; i < maxSets; i++) {
+        var rec = setRecs[i];
+        if (rec) {
+          html += '<td class="td-reps">' + (rec.fields[WKT.reps] || '') + '</td>'
+                + '<td class="td-wt">' + (rec.fields[WKT.wt] || '') + '</td>';
+        } else {
+          html += '<td class="td-empty td-reps">—</td><td class="td-empty td-wt">—</td>';
+        }
       }
-    }
-    html += '</tr>';
+      html += '</tr>';
+    });
   });
 
+  if (!exOrder.length) {
+    html += '<tr><td colspan="' + (3 + maxSets*2) + '" style="padding:20px;text-align:center;color:var(--muted)">No data for this date</td></tr>';
+  }
+
   html += '</tbody></table></div>';
-  document.getElementById('wkaudit-day-table').innerHTML = html;
+  el.innerHTML = html;
+
+  // Populate jump dropdown
+  var sel = document.getElementById('wka-jump');
+  if (sel && _wkaDateList.length) {
+    _wkaDateList.forEach(function(iso) {
+      var d = new Date(iso + 'T12:00:00');
+      var opt = document.createElement('option');
+      opt.value = iso;
+      opt.textContent = (d.getMonth()+1) + '/' + d.getDate() + '/' + d.getFullYear();
+      sel.appendChild(opt);
+    });
+    sel.value = dateISO;
+  }
+}
+
+function wkaPrevDay() {
+  var idx = _wkaDateList.indexOf(_wkaCurDate);
+  if (idx > 0) { wkaLoadDay(_wkaDateList[idx - 1]); return; }
+  var d = new Date(_wkaCurDate + 'T12:00:00'); d.setDate(d.getDate() - 1);
+  wkaLoadDay(d.toISOString().split('T')[0]);
+}
+function wkaNextDay() {
+  var idx = _wkaDateList.indexOf(_wkaCurDate);
+  if (idx >= 0 && idx < _wkaDateList.length - 1) { wkaLoadDay(_wkaDateList[idx + 1]); return; }
+  var d = new Date(_wkaCurDate + 'T12:00:00'); d.setDate(d.getDate() + 1);
+  wkaLoadDay(d.toISOString().split('T')[0]);
+}
+function wkaJumpToDay(iso) { if (iso) wkaLoadDay(iso); }
+
+async function wkaPopulateDropdown() {
+  if (_wkaDropDone && _wkaDateList.length) return;
+  var allDates = [], off = null;
+  try {
+    do {
+      var resp = await fetch(
+        'https://api.airtable.com/v0/' + BASE + '/' + WKT.tbl + '?returnFieldsByFieldId=true&fields[]=' + WKT.date + '&pageSize=100' + (off ? '&offset=' + off : ''),
+        { headers: { Authorization: 'Bearer ' + TOKEN } }
+      );
+      var d = await resp.json();
+      (d.records || []).forEach(function(rec) { if (rec.fields[WKT.date]) allDates.push(rec.fields[WKT.date]); });
+      off = d.offset || null;
+    } while (off);
+  } catch(err) { return; }
+  _wkaDateList = Array.from(new Set(allDates)).sort();
+  _wkaDropDone = true;
 }
 
 
