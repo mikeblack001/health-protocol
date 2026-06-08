@@ -3756,19 +3756,10 @@ let _wktCurDate = null;
 let _wktDateList = [];
 let _wktDropDone = false;
 
-function wktGetMonday() {
-  const today = new Date();
-  const mon = new Date(today);
-  mon.setDate(today.getDate() - ((today.getDay() + 6) % 7) + _wktMondayOffset * 7);
-  mon.setHours(0,0,0,0);
-  return mon;
-}
-
 async function loadWkTracker() {
   const el = document.getElementById('wkt-content');
   if (!el) return;
   el.innerHTML = '<div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div>';
-  // Start on today's date
   await wktPopulateDropdown();
   if (!_wktCurDate) {
     _wktCurDate = _wktDateList.length ? _wktDateList[_wktDateList.length - 1] : new Date().toISOString().split('T')[0];
