@@ -3901,22 +3901,22 @@ function wktRenderDay(dateISO, recs) {
     const variations = Object.keys(varMap);
     // If no AT records yet, show one empty row
     if (variations.length === 0) {
-      html += '<tr class="wkt-tr" data-ex="' + esc(ex) + '" data-var="">'
+      html += '<tr class="wkt-tr" data-ex="' + wktEsc(ex) + '" data-var="">'
         + '<td class="wkt-td-handle">\u2840</td>'
-        + '<td class="wkt-td-ex">' + esc(ex) + '</td>'
-        + '<td class="wkt-td-var"><input value="" placeholder="\u2014" onblur="wktSaveVar(\'' + esc(ex) + '\',\'\',this.value)"></td>';
+        + '<td class="wkt-td-ex">' + wktEsc(ex) + '</td>'
+        + '<td class="wkt-td-var"><input value="" placeholder="\u2014" onblur="wktSaveVar(\'' + wktEsc(ex) + '\',\'\',this.value)"></td>';
       for (let i = 0; i < maxSets; i++) {
-        html += '<td class="wkt-td-reps"><input type="number" placeholder="\u2014" onblur="wktSaveSet(\'' + esc(ex) + '\',\'\','+i+',\'reps\',this)"></td>'
-              + '<td class="wkt-td-wt"><input type="number" placeholder="\u2014" onblur="wktSaveSet(\'' + esc(ex) + '\',\'\','+i+',\'wt\',this)"></td>';
+        html += '<td class="wkt-td-reps"><input type="number" placeholder="\u2014" onblur="wktSaveSet(\'' + wktEsc(ex) + '\',\'\','+i+',\'reps\',this)"></td>'
+              + '<td class="wkt-td-wt"><input type="number" placeholder="\u2014" onblur="wktSaveSet(\'' + wktEsc(ex) + '\',\'\','+i+',\'wt\',this)"></td>';
       }
-      html += '<td class="wkt-td-add"><button onclick="wktAddSet(\'' + esc(ex) + '\',\'\')">+ Set</button></td></tr>';
+      html += '<td class="wkt-td-add"><button onclick="wktAddSet(\'' + wktEsc(ex) + '\',\'\')">+ Set</button></td></tr>';
     } else {
       variations.forEach(function(variation) {
         const setRecs = varMap[variation];
-        html += '<tr class="wkt-tr" data-ex="' + esc(ex) + '" data-var="' + esc(variation) + '">'
+        html += '<tr class="wkt-tr" data-ex="' + wktEsc(ex) + '" data-var="' + wktEsc(variation) + '">'
           + '<td class="wkt-td-handle">\u2840</td>'
-          + '<td class="wkt-td-ex">' + esc(ex) + '</td>'
-          + '<td class="wkt-td-var"><input value="' + esc(variation) + '" placeholder="\u2014" onblur="wktSaveVar(\'' + esc(ex) + '\',\'' + esc(variation) + '\',this.value)"></td>';
+          + '<td class="wkt-td-ex">' + wktEsc(ex) + '</td>'
+          + '<td class="wkt-td-var"><input value="' + wktEsc(variation) + '" placeholder="\u2014" onblur="wktSaveVar(\'' + wktEsc(ex) + '\',\'' + wktEsc(variation) + '\',this.value)"></td>';
         for (let i = 0; i < maxSets; i++) {
           const rec = setRecs[i];
           if (rec) {
@@ -3925,11 +3925,11 @@ function wktRenderDay(dateISO, recs) {
             html += '<td class="wkt-td-reps"><input type="number" value="' + repsVal + '" placeholder="\u2014" data-id="' + rec.id + '" onblur="wktSaveField(\'' + rec.id + '\',\'reps\',this)"></td>'
                   + '<td class="wkt-td-wt"><input type="number" value="' + wtVal + '" placeholder="\u2014" data-id="' + rec.id + '" onblur="wktSaveField(\'' + rec.id + '\',\'wt\',this)"></td>';
           } else {
-            html += '<td class="wkt-td-reps"><input type="number" placeholder="\u2014" onblur="wktSaveSet(\'' + esc(ex) + '\',\'' + esc(variation) + '\',' + i + ',\'reps\',this)"></td>'
-                  + '<td class="wkt-td-wt"><input type="number" placeholder="\u2014" onblur="wktSaveSet(\'' + esc(ex) + '\',\'' + esc(variation) + '\',' + i + ',\'wt\',this)"></td>';
+            html += '<td class="wkt-td-reps"><input type="number" placeholder="\u2014" onblur="wktSaveSet(\'' + wktEsc(ex) + '\',\'' + wktEsc(variation) + '\',' + i + ',\'reps\',this)"></td>'
+                  + '<td class="wkt-td-wt"><input type="number" placeholder="\u2014" onblur="wktSaveSet(\'' + wktEsc(ex) + '\',\'' + wktEsc(variation) + '\',' + i + ',\'wt\',this)"></td>';
           }
         }
-        html += '<td class="wkt-td-add"><button onclick="wktAddSet(\'' + esc(ex) + '\',\'' + esc(variation) + '\')">+ Set</button></td></tr>';
+        html += '<td class="wkt-td-add"><button onclick="wktAddSet(\'' + wktEsc(ex) + '\',\'' + wktEsc(variation) + '\')">+ Set</button></td></tr>';
       });
     }
   });
@@ -3951,7 +3951,7 @@ function wktRenderDay(dateISO, recs) {
   }
 }
 
-function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;'); }
+function wktEsc(s) { return String(s||'').replace(/\\/g,'\\\\').replace(/'/g,"&#39;").replace(/"/g,'&quot;').replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
 
 function wktPrevDay() {
   const idx = _wktDateList.indexOf(_wktCurDate);
