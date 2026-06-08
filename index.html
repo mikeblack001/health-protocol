@@ -3850,7 +3850,7 @@ function wktRenderDay(dateISO, recs) {
     + '#wkt-tbl thead th.th-wt{color:#fcd34d;min-width:52px}'
     + '#wkt-tbl td{border:1px solid #e2e5ea;padding:2px 3px;text-align:center}'
     + '#wkt-tbl td.td-ex{text-align:left;padding:4px 8px;font-weight:700;font-size:12px;color:#1e2433;background:#f8fafc;white-space:nowrap}'
-    + '#wkt-tbl td.td-can input{width:78px;padding:2px 4px;border:1px solid #e5e7eb;border-radius:3px;font-size:10px;color:#6b7280;background:#f9fafb}'
+    + '#wkt-tbl td.td-can input{width:100%;padding:3px 5px;border:1px solid #d1d5db;border-radius:3px;font-size:11px;color:#111827;background:#fff;box-sizing:border-box}'+ '#wkt-tbl td.td-can input:focus{border-color:#6366f1;outline:none;background:#f5f3ff}'+ '#wkt-tbl td.td-can input.saved{border-color:#22c55e;background:#f0fdf4}'+ '#wkt-tbl td.td-can{min-width:90px;max-width:120px;padding:2px 3px}'
     + '#wkt-tbl td.td-var select{width:100px;padding:2px 3px;border:1px solid #d1d5db;border-radius:3px;font-size:10px;background:#fff}'
     + '#wkt-tbl td.td-reps{border-left:2px solid #e5e7eb}'
     + '#wkt-tbl td.td-reps input{width:46px;padding:2px 3px;border:1px solid #bfdbfe;border-radius:3px;font-size:13px;font-weight:700;background:#dbeafe;color:#1d4ed8;text-align:center}'
@@ -3977,8 +3977,8 @@ async function wktSaveVar(ex, oldVar, newVar) {
   wktLoadDay(_wktCurDate);
 }
 
-async function wktSaveCanon(ex, variation, canonVal) {
-  // Find all records for this ex on this date and update canonical field
+async function wktSaveCanon(ex, variation, canonVal, inputEl) {
+  if (!canonVal) return;
   var toUpdate = [];
   var formula = encodeURIComponent('AND(DATESTR({' + WKT.date + '})="' + _wktCurDate + '",{' + WKT.ex + '}="' + ex.replace(/"/g,'\\"') + '")');
   try {
@@ -3993,6 +3993,9 @@ async function wktSaveCanon(ex, variation, canonVal) {
       { method: 'PATCH', headers: { Authorization: 'Bearer ' + TOKEN, 'Content-Type': 'application/json' },
         body: JSON.stringify({ records: batch }) });
   }
+  // Visual feedback
+  var el = inputEl || document.querySelector('#wkt-tbl td.td-can input[value="' + canonVal + '"]');
+  if (el) { el.classList.add('saved'); setTimeout(function(){ el.classList.remove('saved'); }, 2000); }
 }
 
 async function wktSaveSet(ex, variation, setIdx, field, input) {
