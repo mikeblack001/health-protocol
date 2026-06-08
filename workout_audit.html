@@ -194,11 +194,30 @@ select.fe{cursor:pointer}
       <button onclick="closeCM()" style="background:none;border:none;color:#fff;font-size:18px;cursor:pointer;line-height:1">×</button>
     </div>
     <div style="padding:14px;display:flex;flex-direction:column;gap:10px">
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <input id="cm-set" type="number" placeholder="Set#" style="width:60px;padding:7px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px">
-        <input id="cm-reps" type="number" placeholder="Reps" style="flex:1;padding:7px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px">
-        <input id="cm-wt" type="number" placeholder="Weight lbs" style="flex:1;padding:7px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px">
-        <input id="cm-var" type="text" placeholder="Variation" style="width:100%;padding:7px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px">
+      <div style="display:flex;gap:8px;align-items:center">
+        <div style="display:flex;flex-direction:column;gap:2px;align-items:center">
+          <label style="font-size:10px;color:#9ca3af;font-weight:700">SET</label>
+          <input id="cm-set" type="number" placeholder="#" style="width:52px;padding:7px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:14px;text-align:center">
+        </div>
+        <div style="display:flex;flex-direction:column;gap:2px;align-items:center;flex:1">
+          <label style="font-size:10px;color:#1d4ed8;font-weight:700">REPS</label>
+          <input id="cm-reps" type="number" placeholder="—" style="width:100%;padding:7px 8px;border:1px solid #bfdbfe;border-radius:6px;font-size:16px;font-weight:700;background:#dbeafe;color:#1d4ed8;text-align:center">
+        </div>
+        <div style="display:flex;flex-direction:column;gap:2px;align-items:center;flex:1">
+          <label style="font-size:10px;color:#92400e;font-weight:700">WEIGHT</label>
+          <input id="cm-wt" type="number" placeholder="—" style="width:100%;padding:7px 8px;border:1px solid #fde68a;border-radius:6px;font-size:16px;font-weight:700;background:#fef3c7;color:#92400e;text-align:center">
+        </div>
+      </div>
+      <div>
+        <label style="font-size:10px;color:#9ca3af;font-weight:700;display:block;margin-bottom:4px">VARIATION</label>
+        <select id="cm-var" style="width:100%;padding:7px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;background:#fff">
+          <option value="">— None —</option>
+          <option>Rope 1/2</option><option>DBs</option><option>EZ-Bar</option>
+          <option>Lat Machine</option><option>Cable - 2 Hand</option><option>UClip</option>
+          <option>V-Bar</option><option>Bar</option><option>Cables</option>
+          <option>Cable 1/2</option><option>Rope - Bar</option><option>Smith Machine</option>
+          <option>Barbell</option><option>Cable Wide</option><option>Straight Bar</option>
+        </select>
       </div>
       <div id="cm-existing" style="font-size:11px;color:#6b7280;max-height:80px;overflow-y:auto"></div>
       <button onclick="cmSave()" id="cm-save-btn" style="background:#2563eb;color:#fff;border:none;border-radius:6px;padding:9px;font-size:13px;font-weight:700;cursor:pointer">+ Add Set</button>
@@ -400,14 +419,11 @@ function buildFromDateData(allD,byDate,autoSelect){
   buildDateSel();
   buildWeekSel();
   if(autoSelect){
-    // Auto-select most recent unverified date (oldest first — same as injection audit)
-    let target=allDates[0];
-    for(let i=0;i<allDates.length;i++){
+    // Start from most recent, find most recent unverified date
+    let target=allDates[allDates.length-1];
+    for(let i=allDates.length-1;i>=0;i--){
       const s=byDate[allDates[i]];
-      if(s&&s.total>0&&s.verified===s.total){
-        if(i+1<allDates.length)target=allDates[i+1];
-        else target=allDates[i];
-      } else {
+      if(s&&s.total>0&&s.verified<s.total){
         target=allDates[i];break;
       }
     }
@@ -558,7 +574,8 @@ async function toggleDateVerified(){
     loadWeekGrid(curDate);
     if(newVal){
       const i=allDates.indexOf(curDate);
-      if(i>=0&&i+1<allDates.length)setTimeout(()=>setDate(allDates[i+1]),400);
+      // Go to previous unverified date
+      for(let j=i-1;j>=0;j--){if(!allDates[j]||true){setTimeout(()=>setDate(allDates[Math.max(0,i-1)]),400);break;}}
     }
   }catch(e){setSt('Error: '+e.message);}
 }
@@ -584,8 +601,9 @@ async function verifyWeek(){
     const wBtn=document.getElementById('verify-week-btn');
     if(wBtn){wBtn.style.background='#16a34a';wBtn.style.borderColor='#16a34a';wBtn.textContent='✓ Verified!';}
     const lastDayOfWeek=days[days.length-1];
-    const nextDate=allDates.find(d=>d>lastDayOfWeek);
-    if(nextDate)setTimeout(()=>setDate(nextDate),1200);
+    // Go to most recent previous unverified date
+    const prevDate=[...allDates].reverse().find(d=>d<days[0]);
+    if(prevDate)setTimeout(()=>setDate(prevDate),1200);
     else await setDate(curDate);
   }catch(e){setSt('Error: '+e.message);}
 }
