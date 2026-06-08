@@ -3732,30 +3732,25 @@ function showView(name, e) {
 // ════════════════════════════════════════════════════════════════════════════
 
 const WKT = {
-  tbl: 'tblKDqjy5RzqaJvjr',
-  date: 'fld75zYXknF0RtCWH',
-  ex:   'fldZ93A1t7fGjjsSS',
-  var:  'fld2TZdmCOloH0gAK',
-  setN: 'fldNm9Ao0rmcwwDXo',
-  reps: 'fldelUngWHRTm48m1',
-  wt:   'fldmrbBmfgSMtREMt',
-  day:  'fldypzlwqw9AzWrEE',
-  sess: 'fldBChNmPkNg61oTN',
+  tbl:   'tblKDqjy5RzqaJvjr',
+  date:  'fld75zYXknF0RtCWH',
+  ex:    'fldZ93A1t7fGjjsSS',
+  var:   'fld2TZdmCOloH0gAK',
+  setN:  'fldNm9Ao0rmcwwDXo',
+  reps:  'fldelUngWHRTm48m1',
+  wt:    'fldmrbBmfgSMtREMt',
+  day:   'fldypzlwqw9AzWrEE',
+  sess:  'fldBChNmPkNg61oTN',
   canon: 'fldSxNKXflcFNvo21',
 };
 
-// Day-type label → day-of-week index (0=Mon)
-const WKT_DAY_MAP = {
-  'Monday - Push': 0,
-  'Tuesday - Pull': 1,
-  'Wednesday - Legs / Core': 2,
-  'Thursday - Arms / Chest': 3,
-};
+const WKT_VARS = ['','Rope 1/2','DBs','EZ-Bar','Lat Machine','Cable - 2 Hand','UClip','V-Bar','Bar','Cables','Cable 1/2','Rope - Bar','Smith Machine','Barbell'];
 
 let _wktCurDate = null;
 let _wktDateList = [];
 let _wktDropDone = false;
 
+// ── Entry point ──────────────────────────────────────────────────────────────
 async function loadWkTracker() {
   const el = document.getElementById('wkt-content');
   if (!el) return;
@@ -3767,23 +3762,23 @@ async function loadWkTracker() {
   await wktLoadDay(_wktCurDate);
 }
 
+// ── Load one day's records from AT ───────────────────────────────────────────
 async function wktLoadDay(dateISO) {
   _wktCurDate = dateISO;
   const el = document.getElementById('wkt-content');
   if (!el) return;
   el.innerHTML = '<div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div>';
 
-  // Fetch all records for this date
-  const formula = encodeURIComponent(`{${WKT.date}}="${dateISO}"`);
-  const flds = [WKT.date,WKT.ex,WKT.var,WKT.setN,WKT.reps,WKT.wt,WKT.day,WKT.sess,WKT.canon].map(f=>'fields[]='+f).join('&');
+  const formula = encodeURIComponent('DATESTR({' + WKT.date + '})="' + dateISO + '"');
+  const flds = [WKT.date,WKT.ex,WKT.var,WKT.setN,WKT.reps,WKT.wt,WKT.day,WKT.sess,WKT.canon].map(function(f){ return 'fields[]=' + f; }).join('&');
   let recs = [], off = null;
   try {
     do {
-      const r = await fetch(
-        `https://api.airtable.com/v0/${BASE}/${WKT.tbl}?returnFieldsByFieldId=true&filterByFormula=${formula}&${flds}&sort[0][field]=${WKT.setN}&sort[0][direction]=asc&pageSize=100${off?'&offset='+off:''}`,
+      const resp = await fetch(
+        'https://api.airtable.com/v0/' + BASE + '/' + WKT.tbl + '?returnFieldsByFieldId=true&filterByFormula=' + formula + '&' + flds + '&sort[0][field]=' + WKT.setN + '&sort[0][direction]=asc&pageSize=100' + (off ? '&offset=' + off : ''),
         { headers: { Authorization: 'Bearer ' + TOKEN } }
       );
-      const d = await r.json();
+      const d = await resp.json();
       recs = recs.concat(d.records || []);
       off = d.offset || null;
     } while (off);
@@ -3792,6 +3787,7 @@ async function wktLoadDay(dateISO) {
   wktRenderDay(dateISO, recs);
 }
 
+// ── Render ───────────────────────────────────────────────────────────────────
 function wktRenderDay(dateISO, recs) {
   const el = document.getElementById('wkt-content');
   if (!el) return;
@@ -3799,140 +3795,123 @@ function wktRenderDay(dateISO, recs) {
   const dt = new Date(dateISO + 'T12:00:00');
   const DN = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
   const dayName = DN[dt.getDay()];
-  const dayLabel = dayName + ' ' + (dt.getMonth()+1) + '/' + dt.getDate() + '/' + String(dt.getFullYear()).slice(2);
+  const dayLabel = dayName + ' ' + (dt.getMonth()+1) + '/' + dt.getDate() + '/' + dt.getFullYear();
+  const totalSets = recs.length;
 
-  // Group records by exercise → variation → sets
-  const groups = {}; // ex → {variation → [rec]}
+  // Group: exercise → variation → [recs sorted by setN]
   const exOrder = [];
-  // Seed from WORKOUT_DAYS template
-  const wdKey = Object.keys(WORKOUT_DAYS).find(k => k.indexOf(dayName) === 0) || null;
+  const groups = {};
+
+  // Seed from template
+  const wdKey = Object.keys(WORKOUT_DAYS).find(function(k){ return k.indexOf(dayName) === 0; }) || null;
   if (wdKey) {
     WORKOUT_DAYS[wdKey].forEach(function(e) {
       const n = e.name || e;
       if (!groups[n]) { groups[n] = {}; exOrder.push(n); }
     });
   }
-  // Add actual AT records
+
+  // Merge AT records
   recs.forEach(function(r) {
     const f = r.fields;
     const ex = f[WKT.ex] || '';
     const varRaw = f[WKT.var];
-    const variation = (Array.isArray(varRaw) ? varRaw[0] : varRaw) || '';
+    const variation = (Array.isArray(varRaw) ? (varRaw[0] && varRaw[0].name ? varRaw[0].name : varRaw[0]) : varRaw) || '';
     if (!ex) return;
     if (!groups[ex]) { groups[ex] = {}; exOrder.push(ex); }
     if (!groups[ex][variation]) groups[ex][variation] = [];
     groups[ex][variation].push(r);
   });
 
-  // Determine max sets across all rows
-  let maxSets = 1;
+  // Max sets (min 3)
+  let maxSets = 3;
   exOrder.forEach(function(ex) {
-    Object.values(groups[ex]).forEach(function(setArr) {
-      maxSets = Math.max(maxSets, setArr.length);
-    });
+    Object.values(groups[ex]).forEach(function(arr) { maxSets = Math.max(maxSets, arr.length); });
   });
-  maxSets = Math.max(3, Math.min(maxSets, 6));
+  maxSets = Math.min(maxSets, 6);
 
-  const totalSets = recs.length;
+  function e(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;'); }
 
   // CSS
-  const VAR_OPTIONS = ['','Rope 1/2','DBs','EZ-Bar','Lat Machine','Cable - 2 Hand','UClip','V-Bar','Bar','Cables','Cable 1/2','Rope - Bar','Smith Machine','Barbell'];
   let html = '<style>'
     + '#wkt-hdr{background:#1e2433;color:#fff;padding:0 10px;height:38px;display:flex;align-items:center;gap:8px;margin:-24px -24px 0 -24px}'
     + '#wkt-hdr button{background:rgba(255,255,255,.15);border:none;color:#fff;padding:3px 10px;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer}'
+    + '#wkt-hdr button:hover{background:rgba(255,255,255,.28)}'
     + '#wkt-hdr select{background:#2d3748;border:1px solid rgba(255,255,255,.2);color:#fff;padding:2px 6px;border-radius:4px;font-size:11px;cursor:pointer}'
     + '#wkt-hdr .wkt-label{font-size:12px;font-weight:700}'
     + '#wkt-hdr .wkt-sets{font-size:10px;color:rgba(255,255,255,.6);margin-left:auto;white-space:nowrap}'
     + '#wkt-day-label{font-size:12px;font-weight:800;color:#1e2433;padding:6px 0 4px}'
-    + '#wkt-table-wrap{overflow-x:auto}'
-    + '#wkt-table{border-collapse:collapse;width:100%;font-size:11px}'
-    + '#wkt-table thead th{background:#1e2433;color:#fff;padding:3px 4px;font-size:9px;font-weight:700;text-align:center;white-space:nowrap;overflow:hidden}'
-    + '#wkt-table thead th.wkt-th-ex{text-align:left;width:180px;padding-left:6px}'
-    + '#wkt-table thead th.wkt-th-canon{text-align:left;width:80px;color:#9ca3af}'
-    + '#wkt-table thead th.wkt-th-var{color:#d1d5db;width:90px}'
-    + '#wkt-table thead th.wkt-th-reps{color:#93c5fd;border-left:2px solid #374151;width:46px}'
-    + '#wkt-table thead th.wkt-th-wt{color:#fcd34d;width:46px}'
-    + '#wkt-table td{border:1px solid #e2e5ea;padding:2px 2px;text-align:center;overflow:hidden}'
-    + '#wkt-table td.wkt-td-ex{text-align:left;padding:3px 6px;font-weight:700;font-size:11px;color:#1e2433;background:#f8fafc;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}'
-    + '#wkt-table td.wkt-td-canon{text-align:left;padding:2px 4px;width:80px}'
-    + '#wkt-table td.wkt-td-canon input{width:76px;padding:2px 4px;border:1px solid #e5e7eb;border-radius:3px;font-size:10px;color:#6b7280;background:#f9fafb}'
-    + '#wkt-table td.wkt-td-var{padding:1px 2px}'
-    + '#wkt-table td.wkt-td-var select{width:100%;padding:2px 2px;border:1px solid #d1d5db;border-radius:3px;font-size:10px;background:#fff}'
-    + '#wkt-table td.wkt-td-reps{border-left:2px solid #e5e7eb;padding:1px 2px}'
-    + '#wkt-table td.wkt-td-reps input{width:100%;padding:2px 2px;border:1px solid #bfdbfe;border-radius:3px;font-size:12px;font-weight:700;background:#dbeafe;color:#1d4ed8;text-align:center}'
-    + '#wkt-table td.wkt-td-wt input{width:100%;padding:2px 2px;border:1px solid #fde68a;border-radius:3px;font-size:12px;font-weight:700;background:#fef3c7;color:#92400e;text-align:center}'
-    + '#wkt-table td.wkt-td-add{padding:2px 6px}'
-    + '#wkt-table td.wkt-td-add button{background:#f3f4f6;border:1px solid #d1d5db;border-radius:4px;font-size:11px;cursor:pointer;padding:2px 6px;color:#374151}'
-    + '#wkt-table td.wkt-td-add button:hover{background:#e5e7eb}'
-    + '#wkt-table tr.wkt-tr:hover td.wkt-td-ex{background:#f0f9ff}'
+    + '#wkt-tbl{border-collapse:collapse;width:100%;font-size:11px}'
+    + '#wkt-tbl thead th{background:#1e2433;color:#fff;padding:4px 5px;font-size:10px;font-weight:700;text-align:center;white-space:nowrap}'
+    + '#wkt-tbl thead th.th-ex{text-align:left;padding-left:8px;min-width:160px}'
+    + '#wkt-tbl thead th.th-can{text-align:left;color:#9ca3af;min-width:80px;max-width:80px}'
+    + '#wkt-tbl thead th.th-var{color:#d1d5db;min-width:100px}'
+    + '#wkt-tbl thead th.th-reps{color:#93c5fd;border-left:2px solid #374151;min-width:52px}'
+    + '#wkt-tbl thead th.th-wt{color:#fcd34d;min-width:52px}'
+    + '#wkt-tbl td{border:1px solid #e2e5ea;padding:2px 3px;text-align:center}'
+    + '#wkt-tbl td.td-ex{text-align:left;padding:4px 8px;font-weight:700;font-size:12px;color:#1e2433;background:#f8fafc;white-space:nowrap}'
+    + '#wkt-tbl td.td-can input{width:78px;padding:2px 4px;border:1px solid #e5e7eb;border-radius:3px;font-size:10px;color:#6b7280;background:#f9fafb}'
+    + '#wkt-tbl td.td-var select{width:100px;padding:2px 3px;border:1px solid #d1d5db;border-radius:3px;font-size:10px;background:#fff}'
+    + '#wkt-tbl td.td-reps{border-left:2px solid #e5e7eb}'
+    + '#wkt-tbl td.td-reps input{width:46px;padding:2px 3px;border:1px solid #bfdbfe;border-radius:3px;font-size:13px;font-weight:700;background:#dbeafe;color:#1d4ed8;text-align:center}'
+    + '#wkt-tbl td.td-wt input{width:46px;padding:2px 3px;border:1px solid #fde68a;border-radius:3px;font-size:13px;font-weight:700;background:#fef3c7;color:#92400e;text-align:center}'
+    + '#wkt-tbl td.td-add button{background:#f3f4f6;border:1px solid #d1d5db;border-radius:3px;font-size:10px;cursor:pointer;padding:2px 6px}'
     + '</style>';
 
-  // Header bar
+  // Header
   html += '<div id="wkt-hdr">'
     + '<button onclick="wktPrevDay()">\u2039 Prev</button>'
-    + '<span class="wkt-label">' + dayLabel + '</span>'
+    + '<span class="wkt-label">' + e(dayLabel) + '</span>'
     + '<button onclick="wktNextDay()">Next \u203a</button>'
-    + '<select id="wkt-day-jump" onchange="wktJumpToDay(this.value)"><option value="">Jump to date\u2026</option></select>'
+    + '<select id="wkt-jump" onchange="wktJumpToDay(this.value)"><option value="">Jump\u2026</option></select>'
     + '<span class="wkt-sets">' + totalSets + ' sets</span>'
     + '</div>';
 
-  // Day label
-  html += '<div id="wkt-day-label">' + dayLabel + '</div>';
+  html += '<div id="wkt-day-label">' + e(dayLabel) + '</div>';
 
   // Table
-  html += '<div id="wkt-table-wrap"><table id="wkt-table"><thead><tr>'
-    + '<th class="wkt-th-ex">Exercise</th>'
-    + '<th class="wkt-th-canon">Canonical</th>'
-    + '<th class="wkt-th-var">Variation</th>';
-  for (let i = 0; i < maxSets; i++) {
-    html += '<th class="wkt-th-reps">S' + (i+1) + ' Reps</th>'
-          + '<th class="wkt-th-wt">S' + (i+1) + ' Wt</th>';
+  html += '<div style="overflow-x:auto"><table id="wkt-tbl"><thead><tr>'
+    + '<th class="th-ex">Exercise</th>'
+    + '<th class="th-can">Canonical</th>'
+    + '<th class="th-var">Variation</th>';
+  for (var i = 0; i < maxSets; i++) {
+    html += '<th class="th-reps">S' + (i+1) + ' Reps</th><th class="th-wt">S' + (i+1) + ' Wt</th>';
   }
-  html += '<th style="width:36px"></th></tr></thead><tbody id="wkt-tbody">';
+  html += '<th style="width:40px"></th></tr></thead><tbody>';
 
   exOrder.forEach(function(ex) {
-    const varMap = groups[ex] || {};
-    const variations = Object.keys(varMap);
-    // Build variation select
-    function varSelect(cur, exName, oldVar) {
-      const opts = ['','Rope 1/2','DBs','EZ-Bar','Lat Machine','Cable - 2 Hand','UClip','V-Bar','Bar','Cables','Cable 1/2','Rope - Bar','Smith Machine','Barbell'];
-      let s = '<select onchange="wktSaveVar(\'' + wktEsc(exName) + '\',\'' + wktEsc(oldVar) + '\',this.value)">';
-      opts.forEach(function(v) { s += '<option value="' + wktEsc(v) + '"' + (v===cur?' selected':'') + '>' + (v||'—') + '</option>'; });
-      return s + '</select>';
-    }
-
-    // If no AT records yet, show one empty row
+    var varMap = groups[ex] || {};
+    var variations = Object.keys(varMap);
     if (variations.length === 0) {
-      html += '<tr class="wkt-tr" data-ex="' + wktEsc(ex) + '" data-var="">'
-        + '<td class="wkt-td-ex">' + wktEsc(ex) + '</td>'
-        + '<td class="wkt-td-canon"><input value="" placeholder="" onblur="wktSaveCanon(\'' + wktEsc(ex) + '\',\'\',this.value)"></td>'
-        + '<td class="wkt-td-var">' + varSelect('', ex, '') + '</td>';
-      for (let i = 0; i < maxSets; i++) {
-        html += '<td class="wkt-td-reps"><input type="number" placeholder="—" onblur="wktSaveSet(\'' + wktEsc(ex) + '\',\'\','+i+',\'reps\',this)"></td>'
-              + '<td class="wkt-td-wt"><input type="number" placeholder="—" onblur="wktSaveSet(\'' + wktEsc(ex) + '\',\'\','+i+',\'wt\',this)"></td>';
+      // Template row — no AT data yet
+      var varOpts = WKT_VARS.map(function(v){ return '<option value="' + e(v) + '">' + (v||'—') + '</option>'; }).join('');
+      html += '<tr><td class="td-ex">' + e(ex) + '</td>'
+        + '<td class="td-can"><input value="" onblur="wktSaveCanon(\'' + e(ex) + '\',\'\',this.value)"></td>'
+        + '<td class="td-var"><select onchange="wktSaveVar(\'' + e(ex) + '\',\'\',this.value)">' + varOpts + '</select></td>';
+      for (var i = 0; i < maxSets; i++) {
+        html += '<td class="td-reps"><input type="number" placeholder="—" onblur="wktSaveSet(\'' + e(ex) + '\',\'\',' + i + ',\'reps\',this)"></td>'
+              + '<td class="td-wt"><input type="number" placeholder="—" onblur="wktSaveSet(\'' + e(ex) + '\',\'\',' + i + ',\'wt\',this)"></td>';
       }
-      html += '<td class="wkt-td-add"><button onclick="wktAddSet(\'' + wktEsc(ex) + '\',\'\')">+ Set</button></td></tr>';
+      html += '<td class="td-add"><button onclick="wktAddSet(\'' + e(ex) + '\',\'\')">+ Set</button></td></tr>';
     } else {
       variations.forEach(function(variation) {
-        const setRecs = varMap[variation];
-        const canonVal = (setRecs[0] && setRecs[0].fields[WKT.canon]) || '';
-        html += '<tr class="wkt-tr" data-ex="' + wktEsc(ex) + '" data-var="' + wktEsc(variation) + '">'
-          + '<td class="wkt-td-ex">' + wktEsc(ex) + '</td>'
-          + '<td class="wkt-td-canon"><input value="' + wktEsc(canonVal) + '" placeholder="" onblur="wktSaveCanon(\'' + wktEsc(ex) + '\',\'' + wktEsc(variation) + '\',this.value)"></td>'
-          + '<td class="wkt-td-var">' + varSelect(variation, ex, variation) + '</td>';
-        for (let i = 0; i < maxSets; i++) {
-          const rec = setRecs[i];
+        var setRecs = varMap[variation];
+        var canonVal = (setRecs[0] && setRecs[0].fields[WKT.canon]) || '';
+        var varOpts = WKT_VARS.map(function(v){ return '<option value="' + e(v) + '"' + (v===variation?' selected':'') + '>' + (v||'—') + '</option>'; }).join('');
+        html += '<tr><td class="td-ex">' + e(ex) + '</td>'
+          + '<td class="td-can"><input value="' + e(canonVal) + '" onblur="wktSaveCanon(\'' + e(ex) + '\',\'' + e(variation) + '\',this.value)"></td>'
+          + '<td class="td-var"><select onchange="wktSaveVar(\'' + e(ex) + '\',\'' + e(variation) + '\',this.value)">' + varOpts + '</select></td>';
+        for (var i = 0; i < maxSets; i++) {
+          var rec = setRecs[i];
           if (rec) {
-            const repsVal = rec.fields[WKT.reps] || '';
-            const wtVal = rec.fields[WKT.wt] || '';
-            html += '<td class="wkt-td-reps"><input type="number" value="' + repsVal + '" placeholder="—" data-id="' + rec.id + '" onblur="wktSaveField(\'' + rec.id + '\',\'reps\',this)"></td>'
-                  + '<td class="wkt-td-wt"><input type="number" value="' + wtVal + '" placeholder="—" data-id="' + rec.id + '" onblur="wktSaveField(\'' + rec.id + '\',\'wt\',this)"></td>';
+            html += '<td class="td-reps"><input type="number" value="' + (rec.fields[WKT.reps]||'') + '" data-id="' + rec.id + '" onblur="wktSaveField(\'' + rec.id + '\',\'reps\',this)"></td>'
+                  + '<td class="td-wt"><input type="number" value="' + (rec.fields[WKT.wt]||'') + '" data-id="' + rec.id + '" onblur="wktSaveField(\'' + rec.id + '\',\'wt\',this)"></td>';
           } else {
-            html += '<td class="wkt-td-reps"><input type="number" placeholder="—" onblur="wktSaveSet(\'' + wktEsc(ex) + '\',\'' + wktEsc(variation) + '\',' + i + ',\'reps\',this)"></td>'
-                  + '<td class="wkt-td-wt"><input type="number" placeholder="—" onblur="wktSaveSet(\'' + wktEsc(ex) + '\',\'' + wktEsc(variation) + '\',' + i + ',\'wt\',this)"></td>';
+            html += '<td class="td-reps"><input type="number" placeholder="—" onblur="wktSaveSet(\'' + e(ex) + '\',\'' + e(variation) + '\',' + i + ',\'reps\',this)"></td>'
+                  + '<td class="td-wt"><input type="number" placeholder="—" onblur="wktSaveSet(\'' + e(ex) + '\',\'' + e(variation) + '\',' + i + ',\'wt\',this)"></td>';
           }
         }
-        html += '<td class="wkt-td-add"><button onclick="wktAddSet(\'' + wktEsc(ex) + '\',\'' + wktEsc(variation) + '\')">+ Set</button></td></tr>';
+        html += '<td class="td-add"><button onclick="wktAddSet(\'' + e(ex) + '\',\'' + e(variation) + '\')">+ Set</button></td></tr>';
       });
     }
   });
@@ -3940,135 +3919,115 @@ function wktRenderDay(dateISO, recs) {
   html += '</tbody></table></div>';
   el.innerHTML = html;
 
-  // Populate date jump dropdown
-  const sel = document.getElementById('wkt-day-jump');
+  // Populate jump dropdown
+  var sel = document.getElementById('wkt-jump');
   if (sel && _wktDateList.length) {
     _wktDateList.forEach(function(iso) {
-      const d = new Date(iso + 'T12:00:00');
-      const opt = document.createElement('option');
+      var d = new Date(iso + 'T12:00:00');
+      var opt = document.createElement('option');
       opt.value = iso;
-      opt.textContent = (d.getMonth()+1) + '/' + d.getDate() + '/' + String(d.getFullYear()).slice(2);
+      opt.textContent = (d.getMonth()+1) + '/' + d.getDate() + '/' + d.getFullYear();
       sel.appendChild(opt);
     });
     sel.value = dateISO;
   }
 }
 
-function wktEsc(s) { return String(s||'').replace(/\\/g,'\\\\').replace(/'/g,"&#39;").replace(/"/g,'&quot;').replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
-
+// ── Navigation ────────────────────────────────────────────────────────────────
 function wktPrevDay() {
-  const idx = _wktDateList.indexOf(_wktCurDate);
-  if (idx > 0) wktLoadDay(_wktDateList[idx - 1]);
-  else {
-    const d = new Date(_wktCurDate + 'T12:00:00');
-    d.setDate(d.getDate() - 1);
-    wktLoadDay(d.toISOString().split('T')[0]);
-  }
+  var idx = _wktDateList.indexOf(_wktCurDate);
+  if (idx > 0) { wktLoadDay(_wktDateList[idx - 1]); return; }
+  var d = new Date(_wktCurDate + 'T12:00:00'); d.setDate(d.getDate() - 1);
+  wktLoadDay(d.toISOString().split('T')[0]);
 }
 function wktNextDay() {
-  const idx = _wktDateList.indexOf(_wktCurDate);
-  if (idx >= 0 && idx < _wktDateList.length - 1) wktLoadDay(_wktDateList[idx + 1]);
-  else {
-    const d = new Date(_wktCurDate + 'T12:00:00');
-    d.setDate(d.getDate() + 1);
-    wktLoadDay(d.toISOString().split('T')[0]);
-  }
+  var idx = _wktDateList.indexOf(_wktCurDate);
+  if (idx >= 0 && idx < _wktDateList.length - 1) { wktLoadDay(_wktDateList[idx + 1]); return; }
+  var d = new Date(_wktCurDate + 'T12:00:00'); d.setDate(d.getDate() + 1);
+  wktLoadDay(d.toISOString().split('T')[0]);
 }
 function wktJumpToDay(iso) { if (iso) wktLoadDay(iso); }
 
+// ── Save helpers ─────────────────────────────────────────────────────────────
 async function wktSaveField(recId, field, input) {
-  const val = parseFloat(input.value) || null;
-  const fieldId = field === 'reps' ? WKT.reps : WKT.wt;
+  var val = input.value === '' ? null : parseFloat(input.value);
+  var fieldId = field === 'reps' ? WKT.reps : WKT.wt;
   try {
-    await fetch(`https://api.airtable.com/v0/${BASE}/${WKT.tbl}/${recId}?returnFieldsByFieldId=true`,
+    await fetch('https://api.airtable.com/v0/' + BASE + '/' + WKT.tbl + '/' + recId + '?returnFieldsByFieldId=true',
       { method: 'PATCH', headers: { Authorization: 'Bearer ' + TOKEN, 'Content-Type': 'application/json' },
         body: JSON.stringify({ fields: { [fieldId]: val } }) });
   } catch(e) { console.error('wktSaveField:', e); }
 }
 
 async function wktAddSet(ex, variation) {
-  // Count existing sets for this ex+var on this date
-  const tbody = document.getElementById('wkt-tbody');
-  const rows = tbody ? Array.from(tbody.querySelectorAll('tr[data-ex]')) : [];
-  const matchRows = rows.filter(r => r.getAttribute('data-ex') === ex && r.getAttribute('data-var') === variation);
-  const filledInputs = matchRows.flatMap(r => Array.from(r.querySelectorAll('td.wkt-td-reps input[data-id]')));
-  const setN = filledInputs.length + 1;
-  const dow = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'][(new Date(_wktCurDate + 'T12:00:00').getDay() + 6) % 7];
-  const fields = {
-    [WKT.date]: _wktCurDate,
-    [WKT.ex]: ex,
-    [WKT.setN]: setN,
-    [WKT.day]: dow,
-    [WKT.sess]: _wktCurDate + ' ' + dow,
-  };
+  var dow = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'][(new Date(_wktCurDate + 'T12:00:00').getDay() + 6) % 7];
+  var fields = { [WKT.date]: _wktCurDate, [WKT.ex]: ex, [WKT.setN]: 1, [WKT.day]: dow, [WKT.sess]: _wktCurDate + ' ' + dow };
   if (variation) fields[WKT.var] = variation;
   try {
-    await fetch(`https://api.airtable.com/v0/${BASE}/${WKT.tbl}?returnFieldsByFieldId=true`,
+    await fetch('https://api.airtable.com/v0/' + BASE + '/' + WKT.tbl + '?returnFieldsByFieldId=true',
       { method: 'POST', headers: { Authorization: 'Bearer ' + TOKEN, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ records: [{ fields }], typecast: true }) });
+        body: JSON.stringify({ records: [{ fields: fields }], typecast: true }) });
     wktLoadDay(_wktCurDate);
   } catch(e) { console.error('wktAddSet:', e); }
 }
 
-async function wktSaveVar(ex, oldVar, newVar) { /* variation save — reload */ }
+async function wktSaveVar(ex, oldVar, newVar) {
+  // Update variation on all sets for this ex on this date
+  // For now just reload — full implementation TBD
+  wktLoadDay(_wktCurDate);
+}
 
 async function wktSaveCanon(ex, variation, canonVal) {
-  // Update all records for this ex+var on this date with the canonical name
-  const formula = encodeURIComponent(`AND(IS_SAME({Date},"${_wktCurDate}","day"),{${WKT.ex}}="${ex}")`);
-  const r = await fetch(
-    `https://api.airtable.com/v0/${BASE}/${WKT.tbl}?returnFieldsByFieldId=true&filterByFormula=${formula}&fields[]=${WKT.canon}&pageSize=100`,
-    { headers: { Authorization: 'Bearer ' + TOKEN } }
-  );
-  const d = await r.json();
-  const ids = (d.records || []).map(rec => rec.id);
-  if (!ids.length) return;
-  // Batch update up to 10
-  for (let i = 0; i < ids.length; i += 10) {
-    const batch = ids.slice(i, i+10).map(id => ({id, fields: {[WKT.canon]: canonVal}}));
-    await fetch(`https://api.airtable.com/v0/${BASE}/${WKT.tbl}?returnFieldsByFieldId=true`,
+  // Find all records for this ex on this date and update canonical field
+  var toUpdate = [];
+  var formula = encodeURIComponent('AND(DATESTR({' + WKT.date + '})="' + _wktCurDate + '",{' + WKT.ex + '}="' + ex.replace(/"/g,'\\"') + '")');
+  try {
+    var resp = await fetch('https://api.airtable.com/v0/' + BASE + '/' + WKT.tbl + '?returnFieldsByFieldId=true&filterByFormula=' + formula + '&fields[]=' + WKT.canon + '&pageSize=100',
+      { headers: { Authorization: 'Bearer ' + TOKEN } });
+    var d = await resp.json();
+    toUpdate = (d.records || []).map(function(r){ return r.id; });
+  } catch(e) { return; }
+  for (var i = 0; i < toUpdate.length; i += 10) {
+    var batch = toUpdate.slice(i, i+10).map(function(id){ return { id: id, fields: { [WKT.canon]: canonVal } }; });
+    await fetch('https://api.airtable.com/v0/' + BASE + '/' + WKT.tbl + '?returnFieldsByFieldId=true',
       { method: 'PATCH', headers: { Authorization: 'Bearer ' + TOKEN, 'Content-Type': 'application/json' },
         body: JSON.stringify({ records: batch }) });
   }
 }
 
+async function wktSaveSet(ex, variation, setIdx, field, input) {
+  // Create new record for this set
+  var val = input.value === '' ? null : parseFloat(input.value);
+  if (!val) return;
+  var dow = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'][(new Date(_wktCurDate + 'T12:00:00').getDay() + 6) % 7];
+  var fields = { [WKT.date]: _wktCurDate, [WKT.ex]: ex, [WKT.setN]: setIdx + 1, [WKT.day]: dow, [WKT.sess]: _wktCurDate + ' ' + dow };
+  if (variation) fields[WKT.var] = variation;
+  fields[field === 'reps' ? WKT.reps : WKT.wt] = val;
+  try {
+    await fetch('https://api.airtable.com/v0/' + BASE + '/' + WKT.tbl + '?returnFieldsByFieldId=true',
+      { method: 'POST', headers: { Authorization: 'Bearer ' + TOKEN, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ records: [{ fields: fields }], typecast: true }) });
+    wktLoadDay(_wktCurDate);
+  } catch(e) { console.error('wktSaveSet:', e); }
+}
+
+// ── Populate date jump dropdown ───────────────────────────────────────────────
 async function wktPopulateDropdown() {
-  if (_wktDropDone && _wktDateList.length) {
-    const sel = document.getElementById('wkt-day-jump');
-    if (!sel) return;
-    sel.innerHTML = '<option value="">Jump to date\u2026</option>';
-    _wktDateList.forEach(function(iso) {
-      const d = new Date(iso + 'T12:00:00');
-      const opt = document.createElement('option');
-      opt.value = iso; opt.textContent = (d.getMonth()+1)+'/'+d.getDate()+'/'+String(d.getFullYear()).slice(2);
-      sel.appendChild(opt);
-    });
-    sel.value = _wktCurDate;
-    return;
-  }
-  let allDates = [], off = null;
+  if (_wktDropDone && _wktDateList.length) return;
+  var allDates = [], off = null;
   try {
     do {
-      const r = await fetch(
-        `https://api.airtable.com/v0/${BASE}/${WKT.tbl}?returnFieldsByFieldId=true&fields[]=${WKT.date}&pageSize=100${off?'&offset='+off:''}`,
+      var resp = await fetch(
+        'https://api.airtable.com/v0/' + BASE + '/' + WKT.tbl + '?returnFieldsByFieldId=true&fields[]=' + WKT.date + '&pageSize=100' + (off ? '&offset=' + off : ''),
         { headers: { Authorization: 'Bearer ' + TOKEN } }
       );
-      const d = await r.json();
-      (d.records || []).forEach(rec => { if (rec.fields[WKT.date]) allDates.push(rec.fields[WKT.date]); });
+      var d = await resp.json();
+      (d.records || []).forEach(function(rec) { if (rec.fields[WKT.date]) allDates.push(rec.fields[WKT.date]); });
       off = d.offset || null;
     } while (off);
   } catch(e) { return; }
-  _wktDateList = [...new Set(allDates)].sort();
+  _wktDateList = Array.from(new Set(allDates)).sort();
   _wktDropDone = true;
-  const sel = document.getElementById('wkt-day-jump');
-  if (!sel) return;
-  sel.innerHTML = '<option value="">Jump to date\u2026</option>';
-  _wktDateList.forEach(function(iso) {
-    const d = new Date(iso + 'T12:00:00');
-    const opt = document.createElement('option');
-    opt.value = iso; opt.textContent = (d.getMonth()+1)+'/'+d.getDate()+'/'+String(d.getFullYear()).slice(2);
-    sel.appendChild(opt);
-  });
-  sel.value = _wktCurDate;
 }
 
 // ════════════════════════════════════════════════════════════════════════════
