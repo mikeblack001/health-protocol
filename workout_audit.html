@@ -639,7 +639,7 @@ async function loadWeekGrid(date){
     for(let i=0;i<maxSets;i++){
       const s=sets[i];
       if(!s){
-        h+=`<td></td>`;
+        h+=`<td onclick="gridCellClick('${date}','${esc(ex)}')" style="cursor:pointer;min-width:80px"></td>`;
       } else {
         const bg=s.verified?'#dcfce7':'#dbeafe';
         const fg=s.verified?'#15803d':'#1e40af';
@@ -857,28 +857,29 @@ function renderGroupedTable(sorted){
       if(!varGroups[v]){varGroups[v]=[];varOrder.push(v);}
       varGroups[v].push(r);
     });
-    varOrder.forEach(variation=>{
-    const recs=varGroups[variation];
-    const allV=recs.every(r=>r.fields[LOG.verified]===true);
+    // Merge all recs for this exercise into one row regardless of variation
+    const allRecsFlat=allRecs.sort((a,b)=>(a.fields[LOG.setN]||0)-(b.fields[LOG.setN]||0));
+    const allV=allRecsFlat.every(r=>r.fields[LOG.verified]===true);
     const rowBg=allV?'#f0fdf4':'#fff';
-    const firstRec=recs[0];
-    const exKey=ex+'||'+variation;
+    const exKey=ex+'||';
+    // Use first non-empty variation for the dropdown
+    const firstVar=allRecsFlat.map(r=>(Array.isArray(r.fields[LOG.var])?r.fields[LOG.var][0]:r.fields[LOG.var])||'').find(v=>v)||'';
+    const canonVal=allRecsFlat[0]&&allRecsFlat[0].fields[LOG.canon]||'';
+    const varSelectHtml=VAR_OPTS.map(v=>`<option value="${esc(v)}"${v===firstVar?' selected':''}>${v||'—'}</option>`).join('');
     html+=`<tr data-key="${esc(exKey)}" data-cmp="${esc(ex)}" style="background:${rowBg};border-bottom:1px solid #e5e7eb">`;
     html+=`<td style="padding:3px 4px;text-align:center;color:#9ca3af;cursor:grab;font-size:14px;user-select:none">⠿</td>`;
     html+=`<td style="padding:5px 10px;font-weight:700;font-size:13px;border-right:1px solid #e2e5ea;background:${allV?'#dcfce7':'#f8fafc'}">${esc(ex)}</td>`;
-    const varSelectHtml=VAR_OPTS.map(v=>`<option value="${esc(v)}"${v===variation?' selected':''}>${v||'—'}</option>`).join('');
-    const canonVal=recs[0]&&recs[0].fields[LOG.canon]||'';
     html+=`<td style="padding:2px 6px">
       <input value="${esc(canonVal)}" placeholder="" style="width:86px;padding:3px 5px;border:1px solid #e5e7eb;border-radius:4px;font-size:12px;color:#374151;background:#fff"
-        onblur="saveCanonGroup('${esc(ex)}','${esc(variation)}',this.value)"
+        onblur="saveCanonGroup('${esc(ex)}','${esc(firstVar)}',this.value)"
         onkeydown="if(event.key==='Enter')this.blur()">
     </td>`;
     html+=`<td style="padding:2px 4px;text-align:center">
       <select style="width:130px;padding:3px 5px;border:1px solid #d1d5db;border-radius:4px;font-size:12px;background:#fff"
-        onchange="saveVarGroup('${esc(ex)}','${esc(variation)}',this.value)">${varSelectHtml}</select>
+        onchange="saveVarGroup('${esc(ex)}','',this.value)">${varSelectHtml}</select>
     </td>`;
     for(let i=0;i<maxSets;i++){
-      const r=recs[i];
+      const r=allRecsFlat[i];
       if(!r){
         html+=`<td style="border-left:2px solid #f3f4f6"></td><td></td>`;
       } else {
@@ -901,7 +902,6 @@ function renderGroupedTable(sorted){
       <button class="abtn ${allV?'a-verified':'a-verify'}" onclick="toggleExVerify('${esc(ex)}',${allV})">${allV?'✓':'○'}</button>
     </td>`;
     html+='</tr>';
-    }); // end varOrder
   }); // end groupOrder (replaced below)
   html+='</tbody></table></div>';
   document.getElementById('table-section').innerHTML=html;
@@ -931,12 +931,15 @@ async function saveVarGroup(ex, oldVar, newVal){
   if(!recs.length)return;
   setSt('Saving…');
   try{
+    // Variation is multipleSelects — wrap in array, null to clear
+    const val=newVal?[newVal]:null;
     for(let i=0;i<recs.length;i+=10){
-      const batch=recs.slice(i,i+10).map(r=>({id:r.id,fields:{[LOG.var]:newVal||null}}));
-      await atFetch(LOG.tbl,{method:'PATCH',body:JSON.stringify({records:batch,returnFieldsByFieldId:true})});
+      const batch=recs.slice(i,i+10).map(r=>({id:r.id,fields:{[LOG.var]:val}}));
+      await atFetch(LOG.tbl+'?typecast=true',{method:'PATCH',body:JSON.stringify({records:batch,returnFieldsByFieldId:true})});
     }
-    recs.forEach(r=>r.fields[LOG.var]=newVal||null);
+    recs.forEach(r=>r.fields[LOG.var]=newVal?[newVal]:null);
     setSt('✓ Saved');
+    renderRecords();
     loadWeekGrid(curDate);
   }catch(e){setSt('Error: '+e.message);}
 }
