@@ -181,7 +181,7 @@ select.fe{cursor:pointer}
     </datalist>
     <div id="records" style="flex:1;overflow-y:auto;overflow-x:auto;padding:10px 14px">
       <div id="table-section"><div class="empty">Select a date to load records</div></div>
-      <div id="cards-section" style="padding-top:8px"></div>
+      <div id="cards-section" style="display:none"></div>
     </div>
   </div>
 </div>
@@ -616,7 +616,7 @@ async function loadWeekGrid(date){
         const fg=s.verified?'#15803d':'#1e40af';
         const label=s.wt?`<b>${s.reps}</b><span style="font-size:9px;color:#6b7280">×</span><b>${s.wt}</b><span style="font-size:9px">lb</span>`
           :`<b>${s.reps}</b><span style="font-size:9px">reps</span>`;
-        h+=`<td onclick="scrollToCard('${s.id}')" style="cursor:pointer;background:${bg};color:${fg};text-align:center;padding:4px 3px;font-size:12px;white-space:nowrap">${label}</td>`;
+        h+=`<td onclick="focusSetInput('${s.id}')" style="cursor:pointer;background:${bg};color:${fg};text-align:center;padding:4px 3px;font-size:12px;white-space:nowrap">${label}</td>`;
       }
     }
     h+=`</tr>`;
@@ -643,13 +643,20 @@ async function loadWeekGrid(date){
   renderRecordsOrdered(orderedKeys);
 }
 
-function scrollToCard(id){
-  const card=document.getElementById('card_'+id);
-  if(card){
-    document.querySelectorAll('.card').forEach(c=>c.style.outline='');
-    card.scrollIntoView({behavior:'smooth',block:'center'});
-    card.style.outline='3px solid #2563eb';
-    setTimeout(()=>card.style.outline='',2000);
+function scrollToCard(id){ focusSetInput(id); }
+function focusSetInput(id){
+  // Find the reps input for this record in the grouped table
+  const inp=document.getElementById('card_'+id);
+  if(inp){
+    // Highlight parent row
+    const row=inp.closest('tr');
+    if(row){
+      document.querySelectorAll('#pdf-tbody tr').forEach(r=>r.style.outline='');
+      row.style.outline='3px solid #2563eb';
+      setTimeout(()=>row.style.outline='',2500);
+      row.scrollIntoView({behavior:'smooth',block:'center'});
+    }
+    setTimeout(()=>{inp.focus();inp.select();},300);
   }
 }
 
@@ -803,8 +810,8 @@ function renderGroupedTable(sorted){
   html+='<thead><tr style="background:#1e2433;color:#fff">';
   html+='<th style="padding:4px 6px;width:24px"></th>'; // drag handle
   html+='<th style="padding:6px 10px;text-align:left;font-size:11px;min-width:150px">Exercise</th>';
-  html+='<th style="padding:4px 8px;text-align:center;font-size:10px;color:#d1d5db;min-width:150px">Variation</th>';
-  html+='<th style="padding:4px 8px;text-align:left;font-size:10px;color:#9ca3af;min-width:80px">Canonical</th>';
+  html+='<th style="padding:4px 8px;text-align:left;font-size:10px;color:#9ca3af;min-width:90px">Canonical</th>';
+  html+='<th style="padding:4px 8px;text-align:center;font-size:10px;color:#d1d5db;min-width:130px">Variation</th>';
   for(let i=0;i<maxSets;i++){
     html+=`<th style="padding:4px 6px;text-align:center;font-size:10px;color:#93c5fd;border-left:2px solid #374151;min-width:52px">S${i+1} Reps</th>`;
     html+=`<th style="padding:4px 6px;text-align:center;font-size:10px;color:#fcd34d;min-width:56px">S${i+1} Wt</th>`;
@@ -832,14 +839,14 @@ function renderGroupedTable(sorted){
     html+=`<td style="padding:5px 10px;font-weight:700;font-size:13px;border-right:1px solid #e2e5ea;background:${allV?'#dcfce7':'#f8fafc'}">${esc(ex)}</td>`;
     const varSelectHtml=VAR_OPTS.map(v=>`<option value="${esc(v)}"${v===variation?' selected':''}>${v||'—'}</option>`).join('');
     const canonVal=recs[0]&&recs[0].fields[LOG.canon]||'';
+    html+=`<td style="padding:2px 6px">
+      <input value="${esc(canonVal)}" placeholder="" style="width:86px;padding:3px 5px;border:1px solid #e5e7eb;border-radius:4px;font-size:12px;color:#374151;background:#fff"
+        onblur="saveCanonGroup('${esc(ex)}','${esc(variation)}',this.value)"
+        onkeydown="if(event.key==='Enter')this.blur()">
+    </td>`;
     html+=`<td style="padding:2px 4px;text-align:center">
       <select style="width:130px;padding:3px 5px;border:1px solid #d1d5db;border-radius:4px;font-size:12px;background:#fff"
         onchange="saveVarGroup('${esc(ex)}','${esc(variation)}',this.value)">${varSelectHtml}</select>
-    </td>`;
-    html+=`<td style="padding:2px 6px">
-      <input value="${esc(canonVal)}" placeholder="" style="width:90px;padding:3px 5px;border:1px solid #e5e7eb;border-radius:4px;font-size:12px;color:#374151;background:#fff"
-        onblur="saveCanonGroup('${esc(ex)}','${esc(variation)}',this.value)"
-        onkeydown="if(event.key==='Enter')this.blur()">
     </td>`;
     for(let i=0;i<maxSets;i++){
       const r=recs[i];
@@ -1053,13 +1060,18 @@ async function toggleVerify(id,currentVerified){
 // ── GRID CELL CLICK ───────────────────────────────────────────────────
 async function gridCellClick(date,ex){
   if(date!==curDate)await setDate(date);
+  // Find matching row in grouped table
   const rows=[...document.querySelectorAll('#pdf-tbody tr[data-cmp]')];
   const found=rows.find(r=>r.dataset.cmp===ex);
   if(found){
-    document.querySelectorAll('#pdf-tbody tr').forEach(r=>r.style.outline='');
+    document.querySelectorAll('#pdf-tbody tr').forEach(r=>{r.style.outline='';r.style.background=r._origBg||r.style.background;});
+    found._origBg=found.style.background;
     found.scrollIntoView({behavior:'smooth',block:'center'});
     found.style.outline='3px solid #2563eb';
-    setTimeout(()=>found.style.outline='',2000);
+    // Focus first reps input in row
+    const inp=found.querySelector('input[type="number"]');
+    if(inp)setTimeout(()=>inp.focus(),300);
+    setTimeout(()=>{found.style.outline='';},2500);
   } else {
     openAddModalForEx(date,ex);
   }
