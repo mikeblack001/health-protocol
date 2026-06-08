@@ -3741,6 +3741,7 @@ const WKT = {
   wt:   'fldmrbBmfgSMtREMt',
   day:  'fldypzlwqw9AzWrEE',
   sess: 'fldBChNmPkNg61oTN',
+  canon: 'fldSxNKXflcFNvo21',
 };
 
 // Day-type label → day-of-week index (0=Mon)
@@ -3783,7 +3784,7 @@ async function wktLoadDay(dateISO) {
 
   // Fetch all records for this date
   const formula = encodeURIComponent(`IS_SAME({Date},"${dateISO}","day")`);
-  const flds = [WKT.date,WKT.ex,WKT.var,WKT.setN,WKT.reps,WKT.wt,WKT.day,WKT.sess].map(f=>'fields[]='+f).join('&');
+  const flds = [WKT.date,WKT.ex,WKT.var,WKT.setN,WKT.reps,WKT.wt,WKT.day,WKT.sess,WKT.canon].map(f=>'fields[]='+f).join('&');
   let recs = [], off = null;
   try {
     do {
@@ -3844,29 +3845,31 @@ function wktRenderDay(dateISO, recs) {
   const totalSets = recs.length;
 
   // CSS
+  const VAR_OPTIONS = ['','Rope 1/2','DBs','EZ-Bar','Lat Machine','Cable - 2 Hand','UClip','V-Bar','Bar','Cables','Cable 1/2','Rope - Bar','Smith Machine','Barbell'];
   let html = '<style>'
-    + '#wkt-hdr{background:#1e2433;color:#fff;padding:0 14px;height:44px;display:flex;align-items:center;gap:10px;margin:-24px -24px 0 -24px}'
-    + '#wkt-hdr button{background:rgba(255,255,255,.15);border:none;color:#fff;padding:4px 12px;border-radius:4px;font-size:12px;font-weight:700;cursor:pointer}'
-    + '#wkt-hdr button:hover{background:rgba(255,255,255,.28)}'
-    + '#wkt-hdr select{background:#2d3748;border:1px solid rgba(255,255,255,.25);color:#fff;padding:4px 8px;border-radius:4px;font-size:12px;cursor:pointer}'
-    + '#wkt-hdr .wkt-label{font-size:13px;font-weight:700}'
-    + '#wkt-hdr .wkt-sets{font-size:11px;color:rgba(255,255,255,.6);margin-left:auto;white-space:nowrap}'
-    + '#wkt-day-label{font-size:14px;font-weight:800;color:#1e2433;padding:10px 0 8px}'
+    + '#wkt-hdr{background:#1e2433;color:#fff;padding:0 10px;height:38px;display:flex;align-items:center;gap:8px;margin:-24px -24px 0 -24px}'
+    + '#wkt-hdr button{background:rgba(255,255,255,.15);border:none;color:#fff;padding:3px 10px;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer}'
+    + '#wkt-hdr select{background:#2d3748;border:1px solid rgba(255,255,255,.2);color:#fff;padding:2px 6px;border-radius:4px;font-size:11px;cursor:pointer}'
+    + '#wkt-hdr .wkt-label{font-size:12px;font-weight:700}'
+    + '#wkt-hdr .wkt-sets{font-size:10px;color:rgba(255,255,255,.6);margin-left:auto;white-space:nowrap}'
+    + '#wkt-day-label{font-size:12px;font-weight:800;color:#1e2433;padding:6px 0 4px}'
     + '#wkt-table-wrap{overflow-x:auto}'
-    + '#wkt-table{border-collapse:collapse;width:100%;font-size:12px}'
-    + '#wkt-table thead th{background:#1e2433;color:#fff;padding:4px 6px;font-size:10px;font-weight:700;text-align:center;white-space:nowrap}'
-    + '#wkt-table thead th.wkt-th-ex{text-align:left;min-width:150px;padding-left:10px}'
-    + '#wkt-table thead th.wkt-th-var{color:#d1d5db;min-width:130px}'
-    + '#wkt-table thead th.wkt-th-reps{color:#93c5fd;border-left:2px solid #374151;min-width:52px}'
-    + '#wkt-table thead th.wkt-th-wt{color:#fcd34d;min-width:56px}'
-    + '#wkt-table td{border:1px solid #e2e5ea;padding:3px 4px;text-align:center;white-space:nowrap}'
-    + '#wkt-table td.wkt-td-handle{color:#d1d5db;font-size:14px;cursor:grab;user-select:none;width:20px}'
-    + '#wkt-table td.wkt-td-ex{text-align:left;padding:5px 10px;font-weight:700;font-size:13px;color:#1e2433;border-right:1px solid #e2e5ea;background:#f8fafc}'
-    + '#wkt-table td.wkt-td-var{padding:2px 4px;text-align:center}'
-    + '#wkt-table td.wkt-td-var input{width:120px;padding:3px 6px;border:1px solid #d1d5db;border-radius:4px;font-size:12px}'
-    + '#wkt-table td.wkt-td-reps{border-left:2px solid #e5e7eb;padding:2px 3px}'
-    + '#wkt-table td.wkt-td-reps input{width:50px;padding:3px 4px;border:1px solid #bfdbfe;border-radius:4px;font-size:14px;font-weight:700;background:#dbeafe;color:#1d4ed8;text-align:center}'
-    + '#wkt-table td.wkt-td-wt input{width:54px;padding:3px 4px;border:1px solid #fde68a;border-radius:4px;font-size:14px;font-weight:700;background:#fef3c7;color:#92400e;text-align:center}'
+    + '#wkt-table{border-collapse:collapse;width:100%;font-size:11px;table-layout:fixed}'
+    + '#wkt-table thead th{background:#1e2433;color:#fff;padding:3px 4px;font-size:9px;font-weight:700;text-align:center;white-space:nowrap;overflow:hidden}'
+    + '#wkt-table thead th.wkt-th-ex{text-align:left;width:140px;padding-left:6px}'
+    + '#wkt-table thead th.wkt-th-canon{text-align:left;width:120px;color:#9ca3af}'
+    + '#wkt-table thead th.wkt-th-var{color:#d1d5db;width:90px}'
+    + '#wkt-table thead th.wkt-th-reps{color:#93c5fd;border-left:2px solid #374151;width:46px}'
+    + '#wkt-table thead th.wkt-th-wt{color:#fcd34d;width:46px}'
+    + '#wkt-table td{border:1px solid #e2e5ea;padding:2px 2px;text-align:center;overflow:hidden}'
+    + '#wkt-table td.wkt-td-ex{text-align:left;padding:3px 6px;font-weight:700;font-size:11px;color:#1e2433;background:#f8fafc;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}'
+    + '#wkt-table td.wkt-td-canon{text-align:left;padding:2px 4px}'
+    + '#wkt-table td.wkt-td-canon input{width:100%;padding:2px 4px;border:1px solid #e5e7eb;border-radius:3px;font-size:10px;color:#6b7280;background:#f9fafb}'
+    + '#wkt-table td.wkt-td-var{padding:1px 2px}'
+    + '#wkt-table td.wkt-td-var select{width:100%;padding:2px 2px;border:1px solid #d1d5db;border-radius:3px;font-size:10px;background:#fff}'
+    + '#wkt-table td.wkt-td-reps{border-left:2px solid #e5e7eb;padding:1px 2px}'
+    + '#wkt-table td.wkt-td-reps input{width:100%;padding:2px 2px;border:1px solid #bfdbfe;border-radius:3px;font-size:12px;font-weight:700;background:#dbeafe;color:#1d4ed8;text-align:center}'
+    + '#wkt-table td.wkt-td-wt input{width:100%;padding:2px 2px;border:1px solid #fde68a;border-radius:3px;font-size:12px;font-weight:700;background:#fef3c7;color:#92400e;text-align:center}'
     + '#wkt-table td.wkt-td-add{padding:2px 6px}'
     + '#wkt-table td.wkt-td-add button{background:#f3f4f6;border:1px solid #d1d5db;border-radius:4px;font-size:11px;cursor:pointer;padding:2px 6px;color:#374151}'
     + '#wkt-table td.wkt-td-add button:hover{background:#e5e7eb}'
@@ -3887,53 +3890,60 @@ function wktRenderDay(dateISO, recs) {
 
   // Table
   html += '<div id="wkt-table-wrap"><table id="wkt-table"><thead><tr>'
-    + '<th style="width:20px"></th>'
     + '<th class="wkt-th-ex">Exercise</th>'
+    + '<th class="wkt-th-canon">Canonical</th>'
     + '<th class="wkt-th-var">Variation</th>';
   for (let i = 0; i < maxSets; i++) {
     html += '<th class="wkt-th-reps">S' + (i+1) + ' Reps</th>'
           + '<th class="wkt-th-wt">S' + (i+1) + ' Wt</th>';
   }
-  html += '<th style="width:50px"></th></tr></thead><tbody id="wkt-tbody">';
+  html += '<th style="width:36px"></th></tr></thead><tbody id="wkt-tbody">';
 
   exOrder.forEach(function(ex) {
     const varMap = groups[ex] || {};
     const variations = Object.keys(varMap);
+    // Build variation select
+    function varSelect(cur, exName, oldVar) {
+      const opts = ['','Rope 1/2','DBs','EZ-Bar','Lat Machine','Cable - 2 Hand','UClip','V-Bar','Bar','Cables','Cable 1/2','Rope - Bar','Smith Machine','Barbell'];
+      let s = '<select onchange="wktSaveVar(\'' + wktEsc(exName) + '\',\'' + wktEsc(oldVar) + '\',this.value)">';
+      opts.forEach(function(v) { s += '<option value="' + wktEsc(v) + '"' + (v===cur?' selected':'') + '>' + (v||'—') + '</option>'; });
+      return s + '</select>';
+    }
+
     // If no AT records yet, show one empty row
     if (variations.length === 0) {
       html += '<tr class="wkt-tr" data-ex="' + wktEsc(ex) + '" data-var="">'
-        + '<td class="wkt-td-handle">\u2840</td>'
         + '<td class="wkt-td-ex">' + wktEsc(ex) + '</td>'
-        + '<td class="wkt-td-var"><input value="" placeholder="\u2014" onblur="wktSaveVar(\'' + wktEsc(ex) + '\',\'\',this.value)"></td>';
+        + '<td class="wkt-td-canon"><input value="" placeholder="canonical" onblur="wktSaveCanon(\'' + wktEsc(ex) + '\',\'\',this.value)"></td>'
+        + '<td class="wkt-td-var">' + varSelect('', ex, '') + '</td>';
       for (let i = 0; i < maxSets; i++) {
-        html += '<td class="wkt-td-reps"><input type="number" placeholder="\u2014" onblur="wktSaveSet(\'' + wktEsc(ex) + '\',\'\','+i+',\'reps\',this)"></td>'
-              + '<td class="wkt-td-wt"><input type="number" placeholder="\u2014" onblur="wktSaveSet(\'' + wktEsc(ex) + '\',\'\','+i+',\'wt\',this)"></td>';
+        html += '<td class="wkt-td-reps"><input type="number" placeholder="—" onblur="wktSaveSet(\'' + wktEsc(ex) + '\',\'\','+i+',\'reps\',this)"></td>'
+              + '<td class="wkt-td-wt"><input type="number" placeholder="—" onblur="wktSaveSet(\'' + wktEsc(ex) + '\',\'\','+i+',\'wt\',this)"></td>';
       }
-      html += '<td class="wkt-td-add"><button onclick="wktAddSet(\'' + wktEsc(ex) + '\',\'\')">+ Set</button></td></tr>';
+      html += '<td class="wkt-td-add"><button onclick="wktAddSet(\'' + wktEsc(ex) + '\',\'\')">\+ Set</button></td></tr>';
     } else {
       variations.forEach(function(variation) {
         const setRecs = varMap[variation];
+        const canonVal = (setRecs[0] && setRecs[0].fields[WKT.canon]) || '';
         html += '<tr class="wkt-tr" data-ex="' + wktEsc(ex) + '" data-var="' + wktEsc(variation) + '">'
-          + '<td class="wkt-td-handle">\u2840</td>'
           + '<td class="wkt-td-ex">' + wktEsc(ex) + '</td>'
-          + '<td class="wkt-td-var"><input value="' + wktEsc(variation) + '" placeholder="\u2014" onblur="wktSaveVar(\'' + wktEsc(ex) + '\',\'' + wktEsc(variation) + '\',this.value)"></td>';
+          + '<td class="wkt-td-canon"><input value="' + wktEsc(canonVal) + '" placeholder="canonical" onblur="wktSaveCanon(\'' + wktEsc(ex) + '\',\'' + wktEsc(variation) + '\',this.value)"></td>'
+          + '<td class="wkt-td-var">' + varSelect(variation, ex, variation) + '</td>';
         for (let i = 0; i < maxSets; i++) {
           const rec = setRecs[i];
           if (rec) {
             const repsVal = rec.fields[WKT.reps] || '';
             const wtVal = rec.fields[WKT.wt] || '';
-            html += '<td class="wkt-td-reps"><input type="number" value="' + repsVal + '" placeholder="\u2014" data-id="' + rec.id + '" onblur="wktSaveField(\'' + rec.id + '\',\'reps\',this)"></td>'
-                  + '<td class="wkt-td-wt"><input type="number" value="' + wtVal + '" placeholder="\u2014" data-id="' + rec.id + '" onblur="wktSaveField(\'' + rec.id + '\',\'wt\',this)"></td>';
+            html += '<td class="wkt-td-reps"><input type="number" value="' + repsVal + '" placeholder="—" data-id="' + rec.id + '" onblur="wktSaveField(\'' + rec.id + '\',\'reps\',this)"></td>'
+                  + '<td class="wkt-td-wt"><input type="number" value="' + wtVal + '" placeholder="—" data-id="' + rec.id + '" onblur="wktSaveField(\'' + rec.id + '\',\'wt\',this)"></td>';
           } else {
-            html += '<td class="wkt-td-reps"><input type="number" placeholder="\u2014" onblur="wktSaveSet(\'' + wktEsc(ex) + '\',\'' + wktEsc(variation) + '\',' + i + ',\'reps\',this)"></td>'
-                  + '<td class="wkt-td-wt"><input type="number" placeholder="\u2014" onblur="wktSaveSet(\'' + wktEsc(ex) + '\',\'' + wktEsc(variation) + '\',' + i + ',\'wt\',this)"></td>';
+            html += '<td class="wkt-td-reps"><input type="number" placeholder="—" onblur="wktSaveSet(\'' + wktEsc(ex) + '\',\'' + wktEsc(variation) + '\',' + i + ',\'reps\',this)"></td>'
+                  + '<td class="wkt-td-wt"><input type="number" placeholder="—" onblur="wktSaveSet(\'' + wktEsc(ex) + '\',\'' + wktEsc(variation) + '\',' + i + ',\'wt\',this)"></td>';
           }
         }
-        html += '<td class="wkt-td-add"><button onclick="wktAddSet(\'' + wktEsc(ex) + '\',\'' + wktEsc(variation) + '\')">+ Set</button></td></tr>';
+        html += '<td class="wkt-td-add"><button onclick="wktAddSet(\'' + wktEsc(ex) + '\',\'' + wktEsc(variation) + '\')">\+ Set</button></td></tr>';
       });
     }
-  });
-
   html += '</tbody></table></div>';
   el.innerHTML = html;
 
@@ -4008,6 +4018,25 @@ async function wktAddSet(ex, variation) {
 }
 
 async function wktSaveVar(ex, oldVar, newVar) { /* variation save — reload */ }
+
+async function wktSaveCanon(ex, variation, canonVal) {
+  // Update all records for this ex+var on this date with the canonical name
+  const formula = encodeURIComponent(`AND(IS_SAME({Date},"${_wktCurDate}","day"),{${WKT.ex}}="${ex}")`);
+  const r = await fetch(
+    `https://api.airtable.com/v0/${BASE}/${WKT.tbl}?returnFieldsByFieldId=true&filterByFormula=${formula}&fields[]=${WKT.canon}&pageSize=100`,
+    { headers: { Authorization: 'Bearer ' + TOKEN } }
+  );
+  const d = await r.json();
+  const ids = (d.records || []).map(rec => rec.id);
+  if (!ids.length) return;
+  // Batch update up to 10
+  for (let i = 0; i < ids.length; i += 10) {
+    const batch = ids.slice(i, i+10).map(id => ({id, fields: {[WKT.canon]: canonVal}}));
+    await fetch(`https://api.airtable.com/v0/${BASE}/${WKT.tbl}?returnFieldsByFieldId=true`,
+      { method: 'PATCH', headers: { Authorization: 'Bearer ' + TOKEN, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ records: batch }) });
+  }
+}
 
 async function wktPopulateDropdown() {
   if (_wktDropDone && _wktDateList.length) {
