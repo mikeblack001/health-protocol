@@ -521,7 +521,7 @@ async function setDate(date){
     loadWeekGrid(date);
     const allVerified=recs.length>0&&recs.every(r=>r.fields[LOG.verified]===true);
     updateVerifyBtn(allVerified);
-    renderRecords();setSt('');
+    renderRecordsOrdered(getRowOrder(curDate));setSt('');
   // Scroll records into view
   setTimeout(()=>{
     const rec=document.getElementById('records');
@@ -554,7 +554,7 @@ async function toggleDateVerified(){
     logRecs.forEach(r=>r.fields[LOG.verified]=newVal);
     updateVerifyBtn(newVal);
     setSt(newVal?'✓ Date verified':'✓ Date unverified');
-    renderRecords();
+    renderRecordsOrdered(getRowOrder(curDate));
     loadWeekGrid(curDate);
     if(newVal){
       const i=allDates.indexOf(curDate);
@@ -940,7 +940,7 @@ async function saveVarGroup(ex, oldVar, newVal){
     }
     recs.forEach(r=>r.fields[LOG.var]=newVal?[newVal]:null);
     setSt('✓ Saved');
-    renderRecords();
+    renderRecordsOrdered(getRowOrder(curDate));
     loadWeekGrid(curDate);
   }catch(e){setSt('Error: '+e.message);}
 }
@@ -1170,7 +1170,7 @@ async function cmSave(){
     const res=await atFetch(LOG.tbl+'?returnFieldsByFieldId=true',{method:'POST',body:JSON.stringify({records:[{fields}],typecast:true})});
     setSt('✓ Added '+ex+' to '+cmDate);
     closeCM();
-    if(cmDate===curDate){logRecs.push(res.records[0]);document.getElementById('b-total').textContent=logRecs.length+' sets';renderRecords();}
+    if(cmDate===curDate){logRecs.push(res.records[0]);document.getElementById('b-total').textContent=logRecs.length+' sets';renderRecordsOrdered(getRowOrder(curDate));}
     if(!allDates.includes(cmDate)){allDates.push(cmDate);allDates.sort();buildDateSel();}
     loadWeekGrid(curDate);
   }catch(e){setSt('Error: '+e.message);}
@@ -1192,7 +1192,7 @@ async function quickAdd(){
   try{
     const res=await atFetch(LOG.tbl+'?returnFieldsByFieldId=true',{method:'POST',body:JSON.stringify({records:[{fields}],typecast:true})});
     logRecs.push(res.records[0]);
-    renderRecords();
+    renderRecordsOrdered(getRowOrder(curDate));
     document.getElementById('b-total').textContent=logRecs.length+' sets';
     ['q-set','q-reps','q-wt','q-var'].forEach(id=>{document.getElementById(id).value='';});
     setSt('✓ Added');
