@@ -1390,9 +1390,10 @@ function renderPrintList() {
   }
 
   // Supplements by timing
+  const NON_PILL_FORMS_DASH = ['RTD / Shake','Food / Snack','Liquid'];
   ['Morning','Dinner','Night'].forEach(t => {
     const icon = t === 'Morning' ? 'â' : t === 'Dinner' ? 'ð½' : 'ð';
-    const group = activeSupp.filter(r => getField(r,'SuppTiming') === t);
+    const group = activeSupp.filter(r => getField(r,'SuppTiming') === t && !NON_PILL_FORMS_DASH.includes(getField(r,'Form')));
     if (!group.length) return;
     html += `<div class="table-wrap"><div class="timing-header">${icon} ${t} Supplements</div>
       <table class="data-table"><thead><tr><th>Supplement</th><th>Dose</th><th>Brand</th></tr></thead><tbody>
@@ -1494,7 +1495,8 @@ function renderDashboard() {
       ${badge('Active')}
     </div>`).join('') || '<p style="color:var(--muted);font-size:12px;padding:4px 0">None</p>';
 
-  const activeSupps = allSupp.filter(r => getField(r,'SuppStatus') === 'Active');
+  const NON_PILL_FORMS = ['RTD / Shake','Food / Snack','Liquid'];
+  const activeSupps = allSupp.filter(r => getField(r,'SuppStatus') === 'Active').filter(r => !NON_PILL_FORMS.includes(getField(r,'Form')));
   ['Morning','Night','Dinner'].forEach((timing, i) => {
     const ids = ['dash-supps-am','dash-supps-pm','dash-supps-din'];
     const group = activeSupps.filter(r => getField(r,'SuppTiming') === timing);
@@ -1594,7 +1596,7 @@ function renderSupplements(filter) {
   const timings = ['Morning','Dinner','Night'];
   let html = '';
   timings.forEach(t => {
-    const group = records.filter(r => getField(r,'SuppTiming') === t);
+    const group = records.filter(r => getField(r,'SuppTiming') === t && !['RTD / Shake','Food / Snack','Liquid'].includes(getField(r,'Form')));
     if (!group.length) return;
     const icon = t === 'Morning' ? 'â' : t === 'Dinner' ? 'ð½' : 'ð';
     html += `<div class="table-wrap">
@@ -1620,7 +1622,7 @@ function renderSupplements(filter) {
       </tbody></table></div>`;
   });
 
-  const other = records.filter(r => !['Morning','Dinner','Night'].includes(getField(r,'SuppTiming')));
+  const other = records.filter(r => !['Morning','Dinner','Night'].includes(getField(r,'SuppTiming')) && !['RTD / Shake','Food / Snack','Liquid'].includes(getField(r,'Form')));
   if (other.length) {
     html += `<div class="table-wrap">
       <div class="timing-header">â Other / TBD</div>
@@ -1706,7 +1708,7 @@ function renderSuppDashProtocol() {
   ];
   let html = '<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start">';
   timings.forEach(({key, icon, bg}) => {
-    const group = active.filter(r => getField(r,'SuppTiming') === key)
+    const group = active.filter(r => getField(r,'SuppTiming') === key && !['RTD / Shake','Food / Snack','Liquid'].includes(getField(r,'Form')))
       .sort((a,b) => (getField(a,'Supplement')||'').localeCompare(getField(b,'Supplement')||''));
     if (!group.length) return;
     html += `<div style="flex:1;min-width:220px;background:${bg};border:1px solid var(--border);border-radius:10px;padding:14px">
@@ -1723,7 +1725,7 @@ function renderSuppDashProtocol() {
     html += `</div>`;
   });
   // Other timing
-  const other = active.filter(r => !['Morning','Dinner','Night'].includes(getField(r,'SuppTiming')));
+  const other = active.filter(r => !['Morning','Dinner','Night'].includes(getField(r,'SuppTiming')) && !['RTD / Shake','Food / Snack','Liquid'].includes(getField(r,'Form')));
   if (other.length) {
     html += `<div style="flex:1;min-width:220px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px">
       <div style="font-size:14px;font-weight:700;margin-bottom:10px;color:var(--text)">â Other / TBD</div>`;
@@ -5527,9 +5529,10 @@ if (!lastBackup || new Date(lastBackup) < oneMonthAgo) {
 }
 function printSuppList() {
   const activeSupp = data.supplements.filter(r => getField(r,'SuppStatus') === 'Active');
-  const mornSupp  = activeSupp.filter(r => getField(r,'SuppTiming') === 'Morning');
-  const dinSupp   = activeSupp.filter(r => getField(r,'SuppTiming') === 'Dinner');
-  const nightSupp = activeSupp.filter(r => getField(r,'SuppTiming') === 'Night');
+  const _npf = ['RTD / Shake','Food / Snack','Liquid'];
+  const mornSupp  = activeSupp.filter(r => getField(r,'SuppTiming') === 'Morning' && !_npf.includes(getField(r,'Form')));
+  const dinSupp   = activeSupp.filter(r => getField(r,'SuppTiming') === 'Dinner' && !_npf.includes(getField(r,'Form')));
+  const nightSupp = activeSupp.filter(r => getField(r,'SuppTiming') === 'Night' && !_npf.includes(getField(r,'Form')));
 
   function suppTbl(title, rows) {
     if (!rows.length) return '';
@@ -8015,6 +8018,7 @@ function prefillLogDate(dateStr) {
 </body>
 </html>
 <!-- cache bust Mon May 26 2026 â revert inj logger -->
+
 
 
 
