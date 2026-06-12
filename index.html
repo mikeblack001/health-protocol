@@ -1399,7 +1399,7 @@ function renderPrintList() {
       <table class="data-table"><thead><tr><th>Supplement</th><th>Dose</th><th>Brand</th></tr></thead><tbody>
       ${group.map(r => `<tr>
         <td><div class="compound-name">${getField(r,'Supplement')}</div></td>
-        <td style="font-size:13px;font-weight:500;white-space:nowrap">${getField(r,'SuppDose')}</td>
+        <td style="font-size:13px;font-weight:500;white-space:nowrap">${formatSuppDose(getField(r,'SuppDose'))}</td>
         <td style="font-size:12px;color:var(--muted)">${getField(r,'Brand')}</td>
       </tr>`).join('')}</tbody></table></div>`;
   });
@@ -1501,7 +1501,7 @@ function renderDashboard() {
     const group = activeSupps.filter(r => getField(r,'SuppTiming') === timing);
     document.getElementById(ids[i]).innerHTML = group.map(r => `
       <div class="quick-item">
-        <div><div class="compound-name">${getField(r,'Supplement')}</div><div class="compound-sub">${getField(r,'SuppDose')}</div></div>
+        <div><div class="compound-name">${getField(r,'Supplement')}</div><div class="compound-sub">${formatSuppDose(getField(r,'SuppDose'))}</div></div>
         ${badge(getField(r,'SuppStatus'))}
       </div>`).join('') || '<p style="color:var(--muted);font-size:12px;padding:4px 0">None</p>';
   });
@@ -1581,6 +1581,40 @@ function suppSortIcon(col) {
   if (suppSort.col !== col) return ' <span style="color:#d1d5db">â</span>';
   return suppSort.dir === 1 ? ' <span style="color:var(--accent)">â</span>' : ' <span style="color:var(--accent)">â</span>';
 }
+
+function formatSuppDose(raw) {
+  if (!raw) return '';
+  raw = raw.trim();
+  // Patterns: "1 cap (25mg)", "2 caps = 1200mg daily", "3 caps (432mg)", "400mg (4 caps)", "1mg — 3x per week", "5mg daily"
+  const capFirst = raw.match(/^(\d+[\d./]*)\s*caps?[^(]*/i);
+  const mgInParen = raw.match(/\((\d+[\d.]*\s*mg)\)/i);
+  const capsInParen = raw.match(/\((\d+[\d.]*)\s*caps?\)/i);
+  const mgFirst = raw.match(/^([\d.]+\s*mg)/i);
+  const xDaily = raw.match(/(\d+x?\s*(?:\/day|daily|nightly|per week|x\/week|week))/i);
+
+  let capPart = '', mgPart = '', freqPart = '';
+
+  if (capFirst) {
+    capPart = capFirst[1] + ' cap';
+    if (parseInt(capFirst[1]) > 1) capPart += 's';
+    if (mgInParen) mgPart = mgInParen[1];
+  } else if (capsInParen) {
+    capPart = capsInParen[1] + ' cap';
+    if (parseInt(capsInParen[1]) > 1) capPart += 's';
+    if (mgFirst) mgPart = mgFirst[1];
+  } else {
+    // No cap info — just return cleaned raw
+    return raw;
+  }
+
+  if (xDaily) freqPart = xDaily[1];
+
+  let out = capPart;
+  if (mgPart) out += ' · ' + mgPart;
+  if (freqPart) out += ' · ' + freqPart;
+  return out;
+}
+
 function renderSupplements(filter) {
   currentSuppFilter = filter;
   let records = data.supplements;
@@ -1610,7 +1644,7 @@ function renderSupplements(filter) {
       </tr></thead><tbody>
       ${group.map(r => `<tr>
         <td><div class="compound-name">${getField(r,'Supplement')}</div><div class="compound-sub">${getField(r,'Product')}</div></td>
-        <td style="font-size:13px;font-weight:500;white-space:nowrap">${getField(r,'SuppDose')}</td>
+        <td style="font-size:13px;font-weight:500;white-space:nowrap">${formatSuppDose(getField(r,'SuppDose'))}</td>
         <td style="font-size:12px;color:var(--muted)">${getField(r,'SuppPurpose')}</td>
         <td style="font-size:12px;color:var(--muted)">${getField(r,'Brand')}</td>
         <td>${badge(getField(r,'SuppStatus'))}</td>
@@ -1635,7 +1669,7 @@ function renderSupplements(filter) {
       </tr></thead><tbody>
       ${other.map(r => `<tr>
         <td><div class="compound-name">${getField(r,'Supplement')}</div><div class="compound-sub">${getField(r,'Product')}</div></td>
-        <td style="font-size:13px;font-weight:500;white-space:nowrap">${getField(r,'SuppDose')}</td>
+        <td style="font-size:13px;font-weight:500;white-space:nowrap">${formatSuppDose(getField(r,'SuppDose'))}</td>
         <td style="font-size:12px;color:var(--muted)">${getField(r,'SuppPurpose')}</td>
         <td style="font-size:12px;color:var(--muted)">${getField(r,'Brand')}</td>
         <td>${badge(getField(r,'SuppStatus'))}</td>
@@ -1714,7 +1748,7 @@ function renderSuppDashProtocol() {
       <div style="font-size:14px;font-weight:700;margin-bottom:10px;color:var(--text)">${icon} ${key}</div>`;
     group.forEach(r => {
       const name = getField(r,'Supplement') || '';
-      const dose = getField(r,'SuppDose') || '';
+      const dose = formatSuppDose(getField(r,'SuppDose') || '');
       const brand = getField(r,'Brand') || '';
       html += `<div style="padding:6px 0;border-bottom:1px solid rgba(0,0,0,0.06)">
         <div style="font-size:13px;font-weight:600;color:var(--text)">${name}</div>
@@ -1730,7 +1764,7 @@ function renderSuppDashProtocol() {
       <div style="font-size:14px;font-weight:700;margin-bottom:10px;color:var(--text)">â Other / TBD</div>`;
     other.forEach(r => {
       const name = getField(r,'Supplement') || '';
-      const dose = getField(r,'SuppDose') || '';
+      const dose = formatSuppDose(getField(r,'SuppDose') || '');
       const timing = getField(r,'SuppTiming') || 'No timing';
       html += `<div style="padding:6px 0;border-bottom:1px solid rgba(0,0,0,0.06)">
         <div style="font-size:13px;font-weight:600;color:var(--text)">${name}</div>
@@ -5477,7 +5511,7 @@ function printProtocolList() {
     </tr></thead><tbody>
     ${rows.map(r => `<tr>
       <td style="border:1px solid #ddd;padding:4px 8px;font-weight:600">${getField(r,'Supplement')}</td>
-      <td style="border:1px solid #ddd;padding:4px 8px;font-family:monospace">${getField(r,'SuppDose')}</td>
+      <td style="border:1px solid #ddd;padding:4px 8px;font-family:monospace">${formatSuppDose(getField(r,'SuppDose'))}</td>
       <td style="border:1px solid #ddd;padding:4px 8px">${getField(r,'SuppTiming')||''}</td>
       <td style="border:1px solid #ddd;padding:4px 8px;color:#666">${getField(r,'Brand')||''}</td>
     </tr>`).join('')}
@@ -5545,7 +5579,7 @@ function printSuppList() {
     </tr></thead><tbody>
     ${rows.map(r => `<tr>
       <td style="border:1px solid #ddd;padding:4px 8px;font-weight:600">${getField(r,'Supplement')}</td>
-      <td style="border:1px solid #ddd;padding:4px 8px;font-family:monospace">${getField(r,'SuppDose')}</td>
+      <td style="border:1px solid #ddd;padding:4px 8px;font-family:monospace">${formatSuppDose(getField(r,'SuppDose'))}</td>
       <td style="border:1px solid #ddd;padding:4px 8px">${getField(r,'SuppTiming')||''}</td>
       <td style="border:1px solid #ddd;padding:4px 8px;color:#666">${getField(r,'Brand')||''}</td>
     </tr>`).join('')}
@@ -6378,9 +6412,9 @@ function buildWeeklyPrintHTML(monday) {
         </div>`;
       const sections = [
         {title:'Active Peptides', items: activePeps.map(r=>`${getField(r,'Compound')} | ${getField(r,'Dose')} | ${getField(r,'Frequency')}`)},
-        {title:'Morning Supplements', items: amSupp.map(r=>`${getField(r,'Supplement')} | ${getField(r,'SuppDose')}`)},
-        ...(dinSupp.length?[{title:'Dinner Supplements', items: dinSupp.map(r=>`${getField(r,'Supplement')} | ${getField(r,'SuppDose')}`)}]:[]),
-        {title:'Night Supplements', items: pmSupp.map(r=>`${getField(r,'Supplement')} | ${getField(r,'SuppDose')}`)},
+        {title:'Morning Supplements', items: amSupp.map(r=>`${getField(r,'Supplement')} | ${formatSuppDose(getField(r,'SuppDose'))}`)},
+        ...(dinSupp.length?[{title:'Dinner Supplements', items: dinSupp.map(r=>`${getField(r,'Supplement')} | ${formatSuppDose(getField(r,'SuppDose'))}`)}]:[]),
+        {title:'Night Supplements', items: pmSupp.map(r=>`${getField(r,'Supplement')} | ${formatSuppDose(getField(r,'SuppDose'))}`)},
         {title:'Goals', items: window._aiGoalRecs.map(r=>`[${r.fields['Priority']}] ${r.fields['Goal']} (${r.fields['Category']||''})${r.fields['TargetMetric']?' â '+r.fields['TargetMetric']:''}`)},
       ];
       sections.forEach(s => {
@@ -6428,10 +6462,10 @@ function buildWeeklyPrintHTML(monday) {
     txt += `\n---\n## ACTIVE PEPTIDES (${activePeps.length})\n`;
     txt += activePeps.map(r=>`  - ${getField(r,'Compound')} | ${getField(r,'Dose')} | ${getField(r,'Frequency')}`).join('\n');
     txt += `\n\n---\n## SUPPLEMENTS\n\n### Morning (${amSupp.length})\n`;
-    txt += amSupp.map(r=>`  - ${getField(r,'Supplement')} | ${getField(r,'SuppDose')}`).join('\n');
-    if (dinSupp.length) { txt += `\n\n### Dinner (${dinSupp.length})\n`; txt += dinSupp.map(r=>`  - ${getField(r,'Supplement')} | ${getField(r,'SuppDose')}`).join('\n'); }
+    txt += amSupp.map(r=>`  - ${getField(r,'Supplement')} | ${formatSuppDose(getField(r,'SuppDose'))}`).join('\n');
+    if (dinSupp.length) { txt += `\n\n### Dinner (${dinSupp.length})\n`; txt += dinSupp.map(r=>`  - ${getField(r,'Supplement')} | ${formatSuppDose(getField(r,'SuppDose'))}`).join('\n'); }
     txt += `\n\n### Night (${pmSupp.length})\n`;
-    txt += pmSupp.map(r=>`  - ${getField(r,'Supplement')} | ${getField(r,'SuppDose')}`).join('\n');
+    txt += pmSupp.map(r=>`  - ${getField(r,'Supplement')} | ${formatSuppDose(getField(r,'SuppDose'))}`).join('\n');
     txt += `\n\n---\n## GOALS (${goalRecs.length})\n`;
     txt += goalRecs.map(r=>`  [${r.fields['Priority']}] ${r.fields['Goal']} (${r.fields['Category']||''})${r.fields['TargetMetric']?'\n    Target: '+r.fields['TargetMetric']:''}${r.fields['CurrentStatus']?'\n    Status: '+r.fields['CurrentStatus']:''}`).join('\n\n');
     txt += `\n\n---\n## WORKOUT SPLIT (4-Day)\nNo squats (back surgery). USA G20 Pro cables 2:1.\n\n`;
