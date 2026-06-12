@@ -1649,8 +1649,6 @@ function renderSupplements(filter) {
         <td style="font-size:12px;color:var(--muted)">${getField(r,'Brand')}</td>
         <td>${badge(getField(r,'SuppStatus'))}</td>
         <td style="font-size:12px;color:var(--muted)">${getField(r,'SuppSource')||'â'}</td>
-        <td style="font-size:12px;color:var(--muted);white-space:nowrap">${fmtDate(getField(r,'SuppStartDate'))}</td>
-        <td style="font-size:12px;color:var(--muted);white-space:nowrap">${fmtDate(getField(r,'SuppEndDate'))}</td>
       </tr>`).join('')}
       </tbody></table></div>`;
   });
@@ -1674,8 +1672,6 @@ function renderSupplements(filter) {
         <td style="font-size:12px;color:var(--muted)">${getField(r,'Brand')}</td>
         <td>${badge(getField(r,'SuppStatus'))}</td>
         <td style="font-size:12px;color:var(--muted)">${getField(r,'SuppSource')||'â'}</td>
-        <td style="font-size:12px;color:var(--muted);white-space:nowrap">${fmtDate(getField(r,'SuppStartDate'))}</td>
-        <td style="font-size:12px;color:var(--muted);white-space:nowrap">${fmtDate(getField(r,'SuppEndDate'))}</td>
       </tr>`).join('')}
       </tbody></table></div>`;
   }
