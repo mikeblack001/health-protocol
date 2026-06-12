@@ -59,7 +59,7 @@
   .drop-item { display: block; width: 100%; text-align: left; background: none; border: none; color: var(--muted); font-family: 'DM Sans', sans-serif; font-size: 14px; padding: 8px 14px; border-radius: 5px; cursor: pointer; text-decoration: none; }
   .drop-item:hover:not(:disabled) { color: var(--text); background: var(--surface2); }
   .drop-soon { opacity: 0.4; cursor: default; font-style: italic; }
-  .drop-soon::after { content: ' Â· soon'; font-size: 11px; }
+  .drop-soon::after { content: ' · soon'; font-size: 11px; }
   .drop-divider { height: 1px; background: var(--border); margin: 4px 8px; }
   .nav-right { display: flex; align-items: center; gap: 10px; }
   .status-dot { width: 7px; height: 7px; border-radius: 50%; background: #d1d5db; flex-shrink: 0; }
@@ -747,9 +747,8 @@
       </div>
     </div>
     <div class="warning-bar">
-      <span>â  Kangen water: Stop 30 min BEFORE Â· Resume 60 min AFTER</span>
+      <span>â  Kangen water: Stop 30 min BEFORE · Resume 60 min AFTER</span>
       <span>â  Anastrozole: Day AFTER TRT injection only (Tues/Fri)</span>
-      <span>â  Seed DS-01: Take FIRST, 30 min before food</span>
       <span>â  LDN: No opioids within 4â6 hrs</span>
     </div>
     <div class="filter-bar">
@@ -927,13 +926,13 @@
 
     <!-- DASH STATS -->
     <div id="log-dash" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;padding:14px 16px 0">
-      <div class="stat-card" id="dash-weight"><div class="stat-label">Avg Weight</div><div class="stat-val">â</div><div class="stat-sub">lbs Â· 30d</div></div>
-      <div class="stat-card" id="dash-sleep"><div class="stat-label">Avg Sleep</div><div class="stat-val">â</div><div class="stat-sub">hrs Â· 30d</div></div>
-      <div class="stat-card" id="dash-deep"><div class="stat-label">Avg Deep</div><div class="stat-val">â</div><div class="stat-sub">min Â· 30d</div></div>
-      <div class="stat-card" id="dash-hrv"><div class="stat-label">Avg HRV</div><div class="stat-val">â</div><div class="stat-sub">ms Â· 30d</div></div>
-      <div class="stat-card" id="dash-rhr"><div class="stat-label">Avg Resting HR</div><div class="stat-val">â</div><div class="stat-sub">bpm Â· 30d</div></div>
-      <div class="stat-card" id="dash-water"><div class="stat-label">Avg Water</div><div class="stat-val">â</div><div class="stat-sub">oz Â· 30d</div></div>
-      <div class="stat-card" id="dash-steps"><div class="stat-label">Avg Steps</div><div class="stat-val">â</div><div class="stat-sub">Â· 30d</div></div>
+      <div class="stat-card" id="dash-weight"><div class="stat-label">Avg Weight</div><div class="stat-val">â</div><div class="stat-sub">lbs · 30d</div></div>
+      <div class="stat-card" id="dash-sleep"><div class="stat-label">Avg Sleep</div><div class="stat-val">â</div><div class="stat-sub">hrs · 30d</div></div>
+      <div class="stat-card" id="dash-deep"><div class="stat-label">Avg Deep</div><div class="stat-val">â</div><div class="stat-sub">min · 30d</div></div>
+      <div class="stat-card" id="dash-hrv"><div class="stat-label">Avg HRV</div><div class="stat-val">â</div><div class="stat-sub">ms · 30d</div></div>
+      <div class="stat-card" id="dash-rhr"><div class="stat-label">Avg Resting HR</div><div class="stat-val">â</div><div class="stat-sub">bpm · 30d</div></div>
+      <div class="stat-card" id="dash-water"><div class="stat-label">Avg Water</div><div class="stat-val">â</div><div class="stat-sub">oz · 30d</div></div>
+      <div class="stat-card" id="dash-steps"><div class="stat-label">Avg Steps</div><div class="stat-val">â</div><div class="stat-sub">· 30d</div></div>
     </div>
 
     <!-- ADD / EDIT FORM -->
@@ -1098,9 +1097,8 @@
     <!-- PROTOCOL PANEL -->
     <div id="suppdash-protocol" class="suppdash-panel">
       <div class="warning-bar">
-        <span>â  Kangen water: Stop 30 min BEFORE Â· Resume 60 min AFTER</span>
+        <span>â  Kangen water: Stop 30 min BEFORE · Resume 60 min AFTER</span>
         <span>â  Anastrozole: Day AFTER TRT injection only (Tues/Fri)</span>
-        <span>â  Seed DS-01: Take FIRST, 30 min before food</span>
         <span>â  LDN: No opioids within 4â6 hrs</span>
       </div>
       <div id="suppdash-protocol-content"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
@@ -1486,12 +1484,12 @@ function renderDashboard() {
     .sort((a,b) => ((a.fields['Row Order']??99999)-(b.fields['Row Order']??99999)));
   document.getElementById('dash-pep-am').innerHTML = amPep.map(r => `
     <div class="quick-item">
-      <div><div class="compound-name">${getField(r,'Compound')}</div><div class="compound-sub">${getField(r,'Dose')} Â· ${getField(r,'Frequency')}</div></div>
+      <div><div class="compound-name">${getField(r,'Compound')}</div><div class="compound-sub">${getField(r,'Dose')} · ${getField(r,'Frequency')}</div></div>
       ${badge('Active')}
     </div>`).join('') || '<p style="color:var(--muted);font-size:12px;padding:4px 0">None</p>';
   document.getElementById('dash-pep-pm').innerHTML = pmPep.map(r => `
     <div class="quick-item">
-      <div><div class="compound-name">${getField(r,'Compound')}</div><div class="compound-sub">${getField(r,'Dose')} Â· ${getField(r,'Frequency')}</div></div>
+      <div><div class="compound-name">${getField(r,'Compound')}</div><div class="compound-sub">${getField(r,'Dose')} · ${getField(r,'Frequency')}</div></div>
       ${badge('Active')}
     </div>`).join('') || '<p style="color:var(--muted);font-size:12px;padding:4px 0">None</p>';
 
@@ -1748,7 +1746,7 @@ function renderSuppDashProtocol() {
       const brand = getField(r,'Brand') || '';
       html += `<div style="padding:6px 0;border-bottom:1px solid rgba(0,0,0,0.06)">
         <div style="font-size:13px;font-weight:600;color:var(--text)">${name}</div>
-        <div style="font-size:11px;color:var(--muted)">${dose}${brand ? ' Â· '+brand : ''}</div>
+        <div style="font-size:11px;color:var(--muted)">${dose}${brand ? ' · '+brand : ''}</div>
       </div>`;
     });
     html += `</div>`;
@@ -1764,7 +1762,7 @@ function renderSuppDashProtocol() {
       const timing = getField(r,'SuppTiming') || 'No timing';
       html += `<div style="padding:6px 0;border-bottom:1px solid rgba(0,0,0,0.06)">
         <div style="font-size:13px;font-weight:600;color:var(--text)">${name}</div>
-        <div style="font-size:11px;color:var(--muted)">${dose}${timing ? ' Â· '+timing : ''}</div>
+        <div style="font-size:11px;color:var(--muted)">${dose}${timing ? ' · '+timing : ''}</div>
       </div>`;
     });
     html += '</div>';
@@ -2067,7 +2065,7 @@ function renderTracker(weekNum) {
 
   function vialBtns(name) {
     return `<td style="border:1px solid #ccc;padding:2px 4px;white-space:nowrap;text-align:center;width:70px" data-vial-compound="${name}">
-      <span style="font-size:10px;color:#ccc">Â·</span>
+      <span style="font-size:10px;color:#ccc">·</span>
     </td>`;
   }
 
@@ -2109,7 +2107,7 @@ function renderTracker(weekNum) {
       html += `<tr>
         <td style="padding:5px 10px;border:1px solid #000;background:${MORN_BG}" data-compound-label="${name}">
           <div style="font-weight:700;font-size:13px;line-height:1.3;color:var(--text)">${name}</div>
-          <div style="font-size:10px;color:var(--muted);margin-top:1px"><span class="tracker-dose-label">${getField(r,'Dose')}</span>${getField(r,'Frequency') ? ' Â· '+getField(r,'Frequency') : ''}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:1px"><span class="tracker-dose-label">${getField(r,'Dose')}</span>${getField(r,'Frequency') ? ' · '+getField(r,'Frequency') : ''}</div>
         </td>
         ${days.map((_,i) => dayCell(name, i, MORN_BG, 'Morning')).join('')}
         ${vialBtns(name)}
@@ -2130,7 +2128,7 @@ function renderTracker(weekNum) {
       html += `<tr>
         <td style="padding:3px 6px;border:1px solid #000;background:${NIGHT_BG};overflow:hidden;text-overflow:ellipsis;white-space:nowrap" data-compound-label="${name}">
           <div style="font-weight:700;font-size:13px;line-height:1.3;color:var(--text)">${name}</div>
-          <div style="font-size:10px;color:var(--muted);margin-top:1px"><span class="tracker-dose-label">${getField(r,'Dose')}</span>${getField(r,'Frequency') ? ' Â· '+getField(r,'Frequency') : ''}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:1px"><span class="tracker-dose-label">${getField(r,'Dose')}</span>${getField(r,'Frequency') ? ' · '+getField(r,'Frequency') : ''}</div>
         </td>
         ${days.map((_,i) => dayCell(name, i, NIGHT_BG, 'Night')).join('')}
         ${vialBtns(name)}
@@ -2715,7 +2713,7 @@ async function loadSchedule() {
       <td style="padding:6px 4px;color:#d1d5db;font-size:16px;cursor:grab;user-select:none;background:${bg};width:24px;border-bottom:1px solid #9ca3af">â ¿</td>
       <td style="padding:8px 12px;background:${bg};min-width:200px;border-bottom:1px solid #9ca3af;border-right:1px solid #9ca3af">
         <div style="font-weight:700;font-size:13px">${name}</div>
-        <div style="font-size:10px;color:var(--muted);margin-top:2px">${dose}${freq?' Â· '+freq:''}</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">${dose}${freq?' · '+freq:''}</div>
       </td>
       ${dayCells}
       <td style="padding:6px 8px;background:${bg};white-space:nowrap;border:1px solid #9ca3af">
@@ -2738,7 +2736,7 @@ async function loadSchedule() {
     return `<tr data-rec="${r.id}" data-name="${name.toLowerCase()}" data-status="${status}" id="sched-row-${r.id}" style="border-bottom:1px solid var(--border);opacity:0.65">
       <td style="padding:8px 12px;min-width:200px">
         <div style="font-weight:600;font-size:13px">${name}</div>
-        <div style="font-size:10px;color:var(--muted);margin-top:2px">${dose}${freq?' Â· '+freq:''}</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px">${dose}${freq?' · '+freq:''}</div>
       </td>
       <td style="padding:6px 8px;white-space:nowrap">
         <select onchange="schedStatusChange(this,'${r.id}','${name}')" style="font-size:11px;padding:2px 4px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text)">
@@ -2770,7 +2768,7 @@ async function loadSchedule() {
   let h = `<div style="padding:16px 20px">
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:4px">
       <h2 style="margin:0;font-size:18px;font-weight:700">Peptide Schedule</h2>
-      <span style="font-size:11px;color:var(--muted);border:1px solid var(--border);border-radius:4px;padding:2px 8px">Drag to reorder Â· changes auto-logged</span>
+      <span style="font-size:11px;color:var(--muted);border:1px solid var(--border);border-radius:4px;padding:2px 8px">Drag to reorder · changes auto-logged</span>
     </div>
     <p style="font-size:11px;color:var(--muted);margin:0 0 16px">Changes save to Airtable instantly and are logged to Protocol Changes</p>
 
@@ -4505,15 +4503,15 @@ function renderLogDash(records) {
     el.querySelector('.stat-val').textContent = val;
     if (sub) el.querySelector('.stat-sub').textContent = sub;
   };
-  set('dash-weight', avg('fldKTZ5ML0fnZV3oz'), 'lbs Â· 30d');
-  set('dash-sleep',  avg('fldy1hM7kymJKN52E'), 'hrs Â· 30d');
-  set('dash-deep',   avg('fld5PGt9ZdFgBzMAM',0), 'min Â· 30d');
-  set('dash-hrv',    avg('fldIt4TweBKT7LiAV',0), 'ms Â· 30d');
-  set('dash-rhr',    avg('fldXDw3aTnOLHk6lh',0), 'bpm Â· 30d');
+  set('dash-weight', avg('fldKTZ5ML0fnZV3oz'), 'lbs · 30d');
+  set('dash-sleep',  avg('fldy1hM7kymJKN52E'), 'hrs · 30d');
+  set('dash-deep',   avg('fld5PGt9ZdFgBzMAM',0), 'min · 30d');
+  set('dash-hrv',    avg('fldIt4TweBKT7LiAV',0), 'ms · 30d');
+  set('dash-rhr',    avg('fldXDw3aTnOLHk6lh',0), 'bpm · 30d');
   const stepVals = r30.map(r=>r.fields['fldUyaoAJXry9xqzb']).filter(v=>v!=null&&!isNaN(v));
   const avgSteps = stepVals.length ? Math.round(stepVals.reduce((a,b)=>a+b,0)/stepVals.length).toLocaleString() : 'â';
-  set('dash-water', avg('fldDvpkWlQK2Kw5wB',1), 'oz Â· 30d');
-  set('dash-steps', avgSteps, 'Â· 30d');
+  set('dash-water', avg('fldDvpkWlQK2Kw5wB',1), 'oz · 30d');
+  set('dash-steps', avgSteps, '· 30d');
 }
 
 function renderLogHistory(records, days) {
@@ -6066,7 +6064,7 @@ function buildWeeklyPrintHTML(monday) {
       const [lastDate, prevDate] = dates;
       let html = '<div style="margin-bottom:10px;font-size:11px;color:var(--muted);font-family:\'DM Mono\',monospace">'
         + 'Last: <b>' + lastDate + '</b>'
-        + (prevDate ? ' &nbsp;Â·&nbsp; Prev: ' + prevDate : '') + ' &nbsp;Â·&nbsp; ' + rows.length + ' exercises</div>'
+        + (prevDate ? ' &nbsp;·&nbsp; Prev: ' + prevDate : '') + ' &nbsp;·&nbsp; ' + rows.length + ' exercises</div>'
         + '<div class="table-wrap"><table class="data-table"><thead><tr>'
         + '<th>Exercise</th>'
         + '<th style="text-align:right">Prev</th>'
@@ -6404,7 +6402,7 @@ function buildWeeklyPrintHTML(monday) {
       const pmSupp = allSupp.filter(r=>(getField(r,'SuppStatus')||'').toLowerCase()==='active'&&((getField(r,'SuppTiming')||'').toLowerCase().includes('night')||(getField(r,'SuppTiming')||'').toLowerCase().includes('evening')||(getField(r,'SuppTiming')||'').toLowerCase()==='pm'));
       let html = `<div style="padding:16px">
         <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:16px;font-size:12px;color:var(--muted)">
-          Data loaded ${now} Â· ${activePeps.length} active peptides Â· ${amSupp.length+dinSupp.length+pmSupp.length} active supplements Â· ${window._aiGoalRecs.length} goals
+          Data loaded ${now} · ${activePeps.length} active peptides · ${amSupp.length+dinSupp.length+pmSupp.length} active supplements · ${window._aiGoalRecs.length} goals
         </div>`;
       const sections = [
         {title:'Active Peptides', items: activePeps.map(r=>`${getField(r,'Compound')} | ${getField(r,'Dose')} | ${getField(r,'Frequency')}`)},
@@ -6845,7 +6843,7 @@ async function selFile(id, name, type) {
     }
 
     if (loaded) {
-      document.getElementById("pdfMeta").textContent = pages.length + " pages Â· " + type;
+      document.getElementById("pdfMeta").textContent = pages.length + " pages · " + type;
       renderThumbs(); goToPage(0); updateStatusBar();
       toast("Loaded " + pages.length + " pages", "tg");
     } else {
@@ -7205,7 +7203,7 @@ async function loadInjAuditPanel() {
     });
     injAuditData = weeks;
     var sortedWeeks = Object.keys(weeks).sort();
-    statusEl.textContent = records.length + " Â· " + sortedWeeks.length + " wks";
+    statusEl.textContent = records.length + " · " + sortedWeeks.length + " wks";
     renderInjAuditNav(weeks, navEl, contentEl);
   } catch(e) {
     statusEl.textContent = "Error: " + e.message;
@@ -7249,7 +7247,7 @@ function showInjWeek(mon, weekData, DAYS, contentEl) {
   function cell(entries) {
     if (!entries||!entries.length) return "<td style='border:1px solid #ccc;min-width:48px'></td>";
     var s = entries[0].site;
-    if (!s) return "<td style='border:1px solid #ccc;min-width:48px;text-align:center;background:#f9fafb;font-size:11px;color:#ccc'>Â·</td>";
+    if (!s) return "<td style='border:1px solid #ccc;min-width:48px;text-align:center;background:#f9fafb;font-size:11px;color:#ccc'>·</td>";
     return "<td style='border:1px solid #ccc;min-width:48px;text-align:center;padding:5px 2px;background:"+(CC[s]||"#dcfce7")+";font-size:13px;font-weight:700;color:"+(TC[s]||"#15803d")+"'>"+s+"</td>";
   }
   var html = "<table style='border-collapse:collapse;font-size:12px;width:100%'><thead><tr>";
@@ -7346,7 +7344,7 @@ async function runInjectionVerification(pageIndices) {
   var batchSummary = batchResults.map(function(r) {
     if (r.err) return "B"+(r.batch+1)+":ERR";
     return "B"+(r.batch+1)+":"+(r.entries.length||"0");
-  }).join(" Â· ");
+  }).join(" · ");
 
   var allEntries = [];
   batchResults.forEach(function(r) { allEntries = allEntries.concat(r.entries); });
@@ -7356,8 +7354,8 @@ async function runInjectionVerification(pageIndices) {
 
   var dates = allEntries.map(function(e){ return e.date; }).filter(Boolean).sort();
   var startDate = dates[0], endDate = dates[dates.length-1];
-  var errNote = errors.length ? " Â· " + errors.length + " batch(es) empty/failed" : "";
-  vStatus("Done â " + allEntries.length + " entries Â· " + startDate + " to " + endDate + errNote, errors.length ? "warn" : "ok");
+  var errNote = errors.length ? " · " + errors.length + " batch(es) empty/failed" : "";
+  vStatus("Done â " + allEntries.length + " entries · " + startDate + " to " + endDate + errNote, errors.length ? "warn" : "ok");
   renderExtractedForClaude(allEntries, startDate, endDate, batchSummary);
 }
 
@@ -7431,7 +7429,7 @@ function renderVerifyResults(rows, startDate, endDate) {
     return _diffSort === 'asc' ? d : -d;
   });
   var html = "<div style='display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px'>";
-  html += "<span style='font-size:10px;color:var(--dd);font-family:var(--mono)'>Run: "+runDate+" Â· "+startDate+" â "+endDate+"</span>";
+  html += "<span style='font-size:10px;color:var(--dd);font-family:var(--mono)'>Run: "+runDate+" · "+startDate+" â "+endDate+"</span>";
   html += "<div style='display:flex;gap:6px;flex-wrap:wrap'>";
   html += "<button class='btn bg-btn' style='font-size:10px;padding:4px 10px' onclick='toggleDiffSort()'>&#8597; " + (_diffSort==='asc'?'Oldest first':'Newest first') + "</button>";
   html += "<button class='btn bg-btn' style='font-size:10px;padding:4px 10px' onclick='backToExtracted()'>&#8592; Back</button>";
@@ -7536,7 +7534,7 @@ async function addAllMissing() {
       vStatus('Added ' + added + '/' + missing.length + '...');
     } catch(e) { failed += batches[b].length; }
   }
-  vStatus('Done â ' + added + ' added' + (failed?' Â· ' + failed + ' failed':''), failed ? 'warn' : 'ok');
+  vStatus('Done â ' + added + ' added' + (failed?' · ' + failed + ' failed':''), failed ? 'warn' : 'ok');
   toast(added + ' records added to AT', 'tg', 4000);
   // Re-run compare to refresh
   setTimeout(function(){ compareWithAT(); }, 1000);
@@ -7561,7 +7559,7 @@ async function deleteAllExtra() {
       vStatus('Deleted ' + deleted + '/' + extra.length + '...');
     } catch(e) { failed += batches[b].length; }
   }
-  vStatus('Done â ' + deleted + ' deleted' + (failed?' Â· ' + failed + ' failed':''), failed ? 'warn' : 'ok');
+  vStatus('Done â ' + deleted + ' deleted' + (failed?' · ' + failed + ' failed':''), failed ? 'warn' : 'ok');
   toast(deleted + ' records deleted from AT', 'tg', 4000);
   setTimeout(function(){ compareWithAT(); }, 1000);
 }
@@ -7604,7 +7602,7 @@ function renderExtractedForClaude(entries, startDate, endDate, batchSummary) {
   function buildTable(sorted) {
     var html = "";
     html += "<div style='display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px'>";
-    html += "<span style='font-size:11px;color:var(--dd);font-family:var(--mono)'>Extracted: " + entries.length + " entries Â· " + startDate + " â " + endDate + "</span>";
+    html += "<span style='font-size:11px;color:var(--dd);font-family:var(--mono)'>Extracted: " + entries.length + " entries · " + startDate + " â " + endDate + "</span>";
     if (batchSummary) html += "<span style='font-size:9px;color:var(--dd);font-family:var(--mono)'>" + esc(batchSummary) + "</span>";
     html += "<div style='display:flex;gap:6px'>";
     html += "<button class='btn bg-btn' style='font-size:10px;padding:4px 10px' onclick='toggleVerifySort()'>&#8597; " + (_verifySort==='asc'?'Oldest first':'Newest first') + "</button>";
@@ -7665,7 +7663,7 @@ async function compareWithAT() {
     var miss = rows.filter(function(r){return r.status==="missing";}).length;
     var wrong = rows.filter(function(r){return r.status==="wrong";}).length;
     var extra = rows.filter(function(r){return r.status==="extra";}).length;
-    vStatus("Diff complete â â" + ok + " match Â· " + miss + " missing Â· " + wrong + " wrong Â· " + extra + " extra", miss+wrong ? "warn" : "ok");
+    vStatus("Diff complete â â" + ok + " match · " + miss + " missing · " + wrong + " wrong · " + extra + " extra", miss+wrong ? "warn" : "ok");
   } catch(e) {
     vStatus("AT fetch failed: " + e.message, "err");
   }
@@ -7747,7 +7745,7 @@ function renderBCDash(records, days) {
     const el = document.getElementById(id);
     if (!el) return;
     el.querySelector('.stat-val').textContent = val != null ? val + suffix : 'â';
-    el.querySelector('.stat-sub').textContent = (days>0?days+'d':'All') + ' Â· avg';
+    el.querySelector('.stat-sub').textContent = (days>0?days+'d':'All') + ' · avg';
   };
   set('bc-wt-w',   avg('fldRFVwEkmRLOJXXL'), ' lbs');
   set('bc-wt-r',   avg('fldt9TvK2gL1YWGn8'), ' lbs');
@@ -8020,7 +8018,7 @@ function prefillLogDate(dateStr) {
   <!-- Body & Vitals -->
   <div class="view" id="view-bodycomp" class="view">
     <div class="section-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
-      <div><h2>Body &amp; Vitals</h2><p class="section-sub">Withings + RENPHO data Â· 2018âpresent</p></div>
+      <div><h2>Body &amp; Vitals</h2><p class="section-sub">Withings + RENPHO data · 2018âpresent</p></div>
       <div style="display:flex;gap:6px">
         <button class="filter-btn active" onclick="setBCRange(30,this)">30d</button>
         <button class="filter-btn" onclick="setBCRange(90,this)">90d</button>
@@ -8029,14 +8027,14 @@ function prefillLogDate(dateStr) {
       </div>
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;padding:14px 16px 0">
-      <div class="stat-card" id="bc-wt-w"><div class="stat-label">Weight (Withings)</div><div class="stat-val" style="color:#60a5fa">â</div><div class="stat-sub">lbs Â· avg</div></div>
-      <div class="stat-card" id="bc-wt-r"><div class="stat-label">Weight (RENPHO)</div><div class="stat-val" style="color:#34d399">â</div><div class="stat-sub">lbs Â· avg</div></div>
-      <div class="stat-card" id="bc-bf-w"><div class="stat-label">BF% (Withings)</div><div class="stat-val" style="color:#60a5fa">â</div><div class="stat-sub">% Â· avg</div></div>
-      <div class="stat-card" id="bc-bf-r"><div class="stat-label">BF% (RENPHO)</div><div class="stat-val" style="color:#34d399">â</div><div class="stat-sub">% Â· avg</div></div>
-      <div class="stat-card" id="bc-muscle"><div class="stat-label">Muscle Mass</div><div class="stat-val">â</div><div class="stat-sub">lbs Â· avg</div></div>
-      <div class="stat-card" id="bc-fat"><div class="stat-label">Fat Mass</div><div class="stat-val">â</div><div class="stat-sub">lbs Â· avg</div></div>
-      <div class="stat-card" id="bc-hrv"><div class="stat-label">HRV</div><div class="stat-val">â</div><div class="stat-sub">ms Â· avg</div></div>
-      <div class="stat-card" id="bc-rhr"><div class="stat-label">Resting HR</div><div class="stat-val">â</div><div class="stat-sub">bpm Â· avg</div></div>
+      <div class="stat-card" id="bc-wt-w"><div class="stat-label">Weight (Withings)</div><div class="stat-val" style="color:#60a5fa">â</div><div class="stat-sub">lbs · avg</div></div>
+      <div class="stat-card" id="bc-wt-r"><div class="stat-label">Weight (RENPHO)</div><div class="stat-val" style="color:#34d399">â</div><div class="stat-sub">lbs · avg</div></div>
+      <div class="stat-card" id="bc-bf-w"><div class="stat-label">BF% (Withings)</div><div class="stat-val" style="color:#60a5fa">â</div><div class="stat-sub">% · avg</div></div>
+      <div class="stat-card" id="bc-bf-r"><div class="stat-label">BF% (RENPHO)</div><div class="stat-val" style="color:#34d399">â</div><div class="stat-sub">% · avg</div></div>
+      <div class="stat-card" id="bc-muscle"><div class="stat-label">Muscle Mass</div><div class="stat-val">â</div><div class="stat-sub">lbs · avg</div></div>
+      <div class="stat-card" id="bc-fat"><div class="stat-label">Fat Mass</div><div class="stat-val">â</div><div class="stat-sub">lbs · avg</div></div>
+      <div class="stat-card" id="bc-hrv"><div class="stat-label">HRV</div><div class="stat-val">â</div><div class="stat-sub">ms · avg</div></div>
+      <div class="stat-card" id="bc-rhr"><div class="stat-label">Resting HR</div><div class="stat-val">â</div><div class="stat-sub">bpm · avg</div></div>
     </div>
     <div style="padding:14px 16px 16px">
       <b style="font-size:12px;font-weight:800;color:var(--text)">History</b>
