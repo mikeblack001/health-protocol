@@ -747,9 +747,9 @@
       </div>
     </div>
     <div class="warning-bar">
-      <span>â  Kangen water: Stop 30 min BEFORE · Resume 60 min AFTER</span>
-      <span>â  Anastrozole: Day AFTER TRT injection only (Tues/Fri)</span>
-      <span>â  LDN: No opioids within 4â6 hrs</span>
+      <span>• Kangen water: Stop 30 min BEFORE · Resume 60 min AFTER</span>
+      <span>• Anastrozole: Day AFTER TRT injection only (Tues/Fri)</span>
+      <span>• LDN: No opioids within 4–6 hrs</span>
     </div>
     <div class="filter-bar">
       <div class="filter-chip" onclick="filterSupps('all', this)">All</div>
@@ -1097,9 +1097,9 @@
     <!-- PROTOCOL PANEL -->
     <div id="suppdash-protocol" class="suppdash-panel">
       <div class="warning-bar">
-        <span>â  Kangen water: Stop 30 min BEFORE · Resume 60 min AFTER</span>
-        <span>â  Anastrozole: Day AFTER TRT injection only (Tues/Fri)</span>
-        <span>â  LDN: No opioids within 4â6 hrs</span>
+        <span>• Kangen water: Stop 30 min BEFORE · Resume 60 min AFTER</span>
+        <span>• Anastrozole: Day AFTER TRT injection only (Tues/Fri)</span>
+        <span>• LDN: No opioids within 4–6 hrs</span>
       </div>
       <div id="suppdash-protocol-content"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
     </div>
@@ -1423,7 +1423,7 @@ async function loadAll() {
     } catch(e) {
     document.getElementById('statusDot').className = 'status-dot';
     console.error('[loadAll] FAILED:', e);
-    const errMsg = `<div style="padding:24px;color:var(--red,#e53e3e);font-size:13px">â  Failed to load data â ${e.message || e}.<br><br><button onclick="loadAll()" style="margin-top:8px;padding:6px 14px;border-radius:6px;border:none;background:var(--accent);color:#fff;cursor:pointer;font-size:13px">â» Retry</button></div>`;
+    const errMsg = `<div style="padding:24px;color:var(--red,#e53e3e);font-size:13px">• Failed to load data â ${e.message || e}.<br><br><button onclick="loadAll()" style="margin-top:8px;padding:6px 14px;border-radius:6px;border:none;background:var(--accent);color:#fff;cursor:pointer;font-size:13px">â» Retry</button></div>`;
     const pc = document.getElementById('peptides-content');
     if (pc) pc.innerHTML = errMsg;
   }
@@ -1583,34 +1583,34 @@ function suppSortIcon(col) {
 function formatSuppDose(raw) {
   if (!raw) return '';
   raw = raw.trim();
-  // Patterns: "1 cap (25mg)", "2 caps = 1200mg daily", "3 caps (432mg)", "400mg (4 caps)", "1mg — 3x per week", "5mg daily"
-  const capFirst = raw.match(/^(\d+[\d./]*)\s*caps?[^(]*/i);
-  const mgInParen = raw.match(/\((\d+[\d.]*\s*mg)\)/i);
-  const capsInParen = raw.match(/\((\d+[\d.]*)\s*caps?\)/i);
-  const mgFirst = raw.match(/^([\d.]+\s*mg)/i);
-  const xDaily = raw.match(/(\d+x?\s*(?:\/day|daily|nightly|per week|x\/week|week))/i);
 
-  let capPart = '', mgPart = '', freqPart = '';
+  // Extract cap/tab count
+  const capMatch = raw.match(/(\d+)\s*caps?/i) || raw.match(/(\d+)\s*tabs?/i);
+  const capCount = capMatch ? parseInt(capMatch[1]) : null;
+  const capWord = (raw.match(/tab/i) ? 'tab' : 'cap') + (capCount > 1 ? 's' : '');
 
-  if (capFirst) {
-    capPart = capFirst[1] + ' cap';
-    if (parseInt(capFirst[1]) > 1) capPart += 's';
-    if (mgInParen) mgPart = mgInParen[1];
-  } else if (capsInParen) {
-    capPart = capsInParen[1] + ' cap';
-    if (parseInt(capsInParen[1]) > 1) capPart += 's';
-    if (mgFirst) mgPart = mgFirst[1];
-  } else {
-    // No cap info — just return cleaned raw
-    return raw;
-  }
+  // Extract mg/mcg amount — handles "1200mg", "432mg", "50mg", "4.5mg", "1280mg × 3 caps (3840mg total)" → use total
+  const totalMg = raw.match(/\(([\d,]+(?:\.[\d]*)?)\s*mg\s*total\)/i);
+  const mgMatch = totalMg || raw.match(/([\d,]+(?:\.[\d]*)?)\s*(mcg|mg)/i);
+  const mgAmt = mgMatch ? mgMatch[1].replace(/,/g, '') + (totalMg ? 'mg total' : mgMatch[2]) : null;
 
-  if (xDaily) freqPart = xDaily[1];
+  // Frequency
+  const freqMatch = raw.match(/(\d+x?\s*(?:per week|x\/week|\/week|nightly|daily|\/day))/i)
+    || raw.match(/(\d+\s*[×x]\s*(?:per week|weekly|daily|nightly|\/week))/i);
+  const freq = freqMatch ? freqMatch[1] : null;
 
-  let out = capPart;
-  if (mgPart) out += ' · ' + mgPart;
-  if (freqPart) out += ' · ' + freqPart;
-  return out;
+  // Build output
+  let parts = [];
+  if (capCount !== null) parts.push(capCount + ' ' + capWord);
+  if (mgAmt) parts.push(mgAmt);
+  if (freq) parts.push(freq);
+
+  // If we got nothing useful, return raw
+  if (parts.length === 0) return raw;
+  // If only mg (no cap count), return raw — we don't know cap count
+  if (parts.length === 1 && !capCount) return raw;
+
+  return parts.join(' · ');
 }
 
 function renderSupplements(filter) {
@@ -4617,7 +4617,7 @@ async function loadPurchases() {
   const el = document.getElementById('purchases-content');
   if (!el) return;
   if (TABLES.purchases === 'PURCHASES_TABLE_ID') {
-    el.innerHTML = '<div style="padding:20px;background:var(--amber-bg);border:1px solid #fcd34d;border-radius:8px;font-size:13px;color:var(--amber)">â ï¸ Purchases table not yet set up in Airtable. Create a table named <strong>Purchases</strong> with fields: Order ID, Vendor, Compound, Date, Qty, Price Paid, Total, Notes â then tell Claude the table ID to add it here.</div>';
+    el.innerHTML = '<div style="padding:20px;background:var(--amber-bg);border:1px solid #fcd34d;border-radius:8px;font-size:13px;color:var(--amber)">•ï¸ Purchases table not yet set up in Airtable. Create a table named <strong>Purchases</strong> with fields: Order ID, Vendor, Compound, Date, Qty, Price Paid, Total, Notes â then tell Claude the table ID to add it here.</div>';
     return;
   }
   el.innerHTML = '<div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div>';
@@ -4885,7 +4885,7 @@ function renderLabsFlagBar() {
   const out = filtered.filter(r=>r.Date===latest && r.Status==='Out of Range');
   if (!out.length) { bar.style.display='none'; return; }
   bar.style.display = 'block';
-  bar.innerHTML = `â ï¸ <strong>${latest}:</strong> ${out.length} out of range â ${out.map(r=>r.Biomarker).join(', ')}`;
+  bar.innerHTML = `•ï¸ <strong>${latest}:</strong> ${out.length} out of range â ${out.map(r=>r.Biomarker).join(', ')}`;
 }
 
 function renderLabsTrend() {
@@ -5052,7 +5052,7 @@ function renderLabsDraw() {
 
   const out = records.filter(r=>r.Status==='Out of Range');
 
-  let html = out.length ? `<div style="padding:8px 16px;background:var(--red-bg);border-bottom:1px solid #fecaca;font-size:12px;color:var(--red);font-weight:500">â ï¸ ${out.length} out of range: ${out.map(r=>r.Biomarker).join(', ')}</div>` : '';
+  let html = out.length ? `<div style="padding:8px 16px;background:var(--red-bg);border-bottom:1px solid #fecaca;font-size:12px;color:var(--red);font-weight:500">•ï¸ ${out.length} out of range: ${out.map(r=>r.Biomarker).join(', ')}</div>` : '';
 
   Object.keys(byType).sort().forEach(type => {
     html += `<div class="table-wrap" style="margin-bottom:16px">
@@ -5064,7 +5064,7 @@ function renderLabsDraw() {
           <td style="font-weight:500">${r.Biomarker||'â'}</td>
           <td style="font-family:'DM Mono',monospace;font-weight:600;${isOut?'color:var(--red)':''}">${r.Value??'â'}</td>
           <td style="font-size:12px;color:var(--muted)">${r.Units||'â'}</td>
-          <td>${isOut?`<span style="color:var(--red);font-size:12px;font-weight:600">â  Out of Range</span>`:`<span style="color:var(--green);font-size:12px">â In Range</span>`}</td>
+          <td>${isOut?`<span style="color:var(--red);font-size:12px;font-weight:600">• Out of Range</span>`:`<span style="color:var(--green);font-size:12px">â In Range</span>`}</td>
         </tr>`;
       }).join('')}
       </tbody></table></div>`;
