@@ -1495,8 +1495,7 @@ function renderDashboard() {
       ${badge('Active')}
     </div>`).join('') || '<p style="color:var(--muted);font-size:12px;padding:4px 0">None</p>';
 
-  const NON_PILL_FORMS = ['RTD / Shake','Food / Snack','Liquid'];
-  const activeSupps = allSupp.filter(r => getField(r,'SuppStatus') === 'Active').filter(r => !NON_PILL_FORMS.includes(getField(r,'Form')));
+  const activeSupps = allSupp.filter(r => getField(r,'SuppStatus') === 'Active').filter(r => getField(r,'Form') === 'Pill / Cap');
   ['Morning','Night','Dinner'].forEach((timing, i) => {
     const ids = ['dash-supps-am','dash-supps-pm','dash-supps-din'];
     const group = activeSupps.filter(r => getField(r,'SuppTiming') === timing);
