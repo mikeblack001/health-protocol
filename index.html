@@ -2014,6 +2014,8 @@ function renderTracker(weekNum) {
     // Preserve insertion order from InjectionLog (matches PDF row order for that week)
     const histNames = [...trackerHistoricalData.keys()];
     morning = histNames.filter(n => !isNightPep(n)).map(n => pepMap[n] || pepMapCI[n] || { fields: { Compound: n, Dose: '', Status: 'Historical', Timing: 'Morning' }});
+    const MORN_ORDER = ['Testosterone','Deca (Nandrolone)','NAD+','Retatrutide','Cagrilintide','Tesamorelin','GHK-Cu','Melanotan II (MT2)','Tirzepatide'];
+    morning.sort((a,b) => { const ai = MORN_ORDER.indexOf(getField(a,'Compound')); const bi = MORN_ORDER.indexOf(getField(b,'Compound')); return (ai < 0 ? 999 : ai) - (bi < 0 ? 999 : bi); });
     night   = histNames.filter(n => isNightPep(n)).map(n => pepMap[n] || pepMapCI[n] || { fields: { Compound: n, Dose: '', Status: 'Historical', Timing: 'Night' }});
   } else {
     const knownM = new Set(TRACKER_MORNING_ORDER), knownN = new Set(TRACKER_NIGHT_ORDER);
