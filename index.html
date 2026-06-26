@@ -2303,7 +2303,7 @@ async function loadTrackerWeekData(mondayISO) {
       const box = allBoxes.find(b => norm(b.dataset.compound) === resolved && b.dataset.date === date);
       if (box) {
         applyState(box, site, r.id);
-        const note = f['Notes'];
+        const note = f['Notes'] || f['fldmGAKBTKLMGeRGn'];
         if (note && note.trim()) {
           const noteInput = document.querySelector(`input[data-type="notes"][data-compound="${box.dataset.compound}"]`);
           if (noteInput && !noteInput.value) noteInput.value = note.trim();
