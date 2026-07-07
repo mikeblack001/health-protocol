@@ -587,6 +587,7 @@
         <button class="drop-item" onclick="navDrop('bodycomp','nav-personal')">Body & Vitals</button>
         <button class="drop-item" onclick="navDrop('goals','nav-personal')">Goals</button>
         <button class="drop-item" onclick="navDrop('profile','nav-personal')">Profile</button>
+        <button class="drop-item" onclick="navDrop('recipes','nav-personal')">Recipes</button>
       </div>
     </div>
 
@@ -1036,6 +1037,18 @@
     </div>
     <div id="profile-filter-bar" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px"></div>
     <div id="profile-content"><div class="loading">Loading...</div></div>
+  </div>
+
+  <div id="view-recipes" class="view">
+    <div class="section-header">
+      <div>
+        <h2>Recipes</h2>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px">Nama J2 &middot; Ninja Creami &middot; Ninja Slushi &mdash; macros per serving</div>
+      </div>
+      <button class="btn-secondary" onclick="loadRecipes()">Refresh</button>
+    </div>
+    <div id="recipes-filter-bar" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px"></div>
+    <div id="recipes-content"><div class="loading">Loading...</div></div>
   </div>
 
   <div id="view-aicontext" class="view">
@@ -3757,11 +3770,116 @@ function showView(name, e) {
   if (name === 'wktracker') loadWkTracker();
   if (name === 'wkaudit') loadWkAudit();
   if (name === 'bodycomp') loadBodyComp();
+  if (name === 'recipes') loadRecipes();
   if (name === 'workouts') {
     document.getElementById('workout-date').value = new Date().toISOString().split('T')[0];
   }
 }
 
+
+// 
+// RECIPES
+// 
+
+let recipesData = [];
+let recipesFilter = 'all';
+let _recipesOpen = {};
+
+async function loadRecipes() {
+  const el = document.getElementById('recipes-content');
+  if (!el) return;
+  el.innerHTML = '<div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div>';
+  try {
+    let records = [], offset = null;
+    do {
+      const url = 'https://api.airtable.com/v0/' + BASE + '/Recipes?pageSize=100' + (offset ? '&offset=' + offset : '');
+      const res = await fetch(url, { headers: { Authorization: 'Bearer ' + TOKEN } });
+      const json = await res.json();
+      if (!res.ok) {
+        if ((json.error && (json.error.type === 'TABLE_NOT_FOUND' || res.status === 404 || res.status === 403))) {
+          el.innerHTML = '<p style="color:var(--muted);padding:16px">Recipes table not found in Airtable yet. Run <a href="recipes_setup.html" style="color:var(--accent)">recipes_setup.html</a> once to create and seed it, then Refresh.</p>';
+          return;
+        }
+        throw new Error('AT error');
+      }
+      records = records.concat(json.records || []);
+      offset = json.offset;
+    } while (offset);
+    recipesData = records;
+    renderRecipesFilterBar();
+    renderRecipes();
+  } catch(e) {
+    el.innerHTML = '<p style="color:var(--red);padding:16px">Failed to load recipes.</p>';
+  }
+}
+
+function renderRecipesFilterBar() {
+  const bar = document.getElementById('recipes-filter-bar');
+  if (!bar) return;
+  const cats = ['all','Nama J2','Ninja Creami','Ninja Slushi','Other'];
+  bar.innerHTML = cats.map(function(c){
+    return '<button class="filter-btn' + (recipesFilter === c ? ' active' : '') + '" onclick="filterRecipes(\'' + c + '\', this)">' + (c === 'all' ? 'All' : c) + '</button>';
+  }).join('');
+}
+
+function filterRecipes(f, btn) {
+  recipesFilter = f;
+  document.querySelectorAll('#recipes-filter-bar .filter-btn').forEach(function(b){ b.classList.remove('active'); });
+  if (btn) btn.classList.add('active');
+  renderRecipes();
+}
+
+function toggleRecipe(id) {
+  _recipesOpen[id] = !_recipesOpen[id];
+  renderRecipes();
+}
+
+function recipesEsc(s) {
+  return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function renderRecipes() {
+  const el = document.getElementById('recipes-content');
+  if (!el) return;
+  let rows = recipesData.map(function(r){ return Object.assign({ id: r.id }, r.fields || {}); }).filter(function(r){ return r['Recipe']; });
+  if (recipesFilter !== 'all') {
+    rows = rows.filter(function(r){
+      const a = r['Appliance'];
+      const name = a && a.name ? a.name : (a || '');
+      return name === recipesFilter;
+    });
+  }
+  rows.sort(function(a,b){ return String(a['Recipe']).localeCompare(String(b['Recipe'])); });
+  if (!rows.length) { el.innerHTML = '<p style="color:var(--muted);padding:16px">No recipes' + (recipesFilter !== 'all' ? ' for ' + recipesEsc(recipesFilter) : '') + '.</p>'; return; }
+  el.innerHTML = rows.map(function(r){
+    const sel = function(v){ return v && v.name ? v.name : (v || ''); };
+    const appliance = sel(r['Appliance']);
+    const category = sel(r['Category']);
+    const status = sel(r['Status']);
+    const rating = sel(r['Rating']);
+    const open = !!_recipesOpen[r.id];
+    const macros = [
+      r['Protein (g)'] != null ? r['Protein (g)'] + 'g protein' : null,
+      r['Calories'] != null ? r['Calories'] + ' cal' : null,
+      r['Carbs (g)'] != null ? r['Carbs (g)'] + 'g carbs' : null,
+      r['Fat (g)'] != null ? r['Fat (g)'] + 'g fat' : null
+    ].filter(Boolean).join(' &middot; ');
+    return '<div style="border:1px solid var(--border);border-radius:10px;margin-bottom:10px;background:var(--surface2)">' +
+      '<div style="padding:12px 16px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:10px" onclick="toggleRecipe(\'' + r.id + '\')">' +
+        '<div>' +
+          '<div style="font-weight:600;font-size:14px">' + recipesEsc(r['Recipe']) + (status ? ' <span style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.6px;margin-left:6px">' + recipesEsc(status) + '</span>' : '') + (rating ? ' <span style="font-size:11px;color:var(--accent);margin-left:4px">' + '&#9733;'.repeat(parseInt(rating,10)||0) + '</span>' : '') + '</div>' +
+          '<div style="font-size:11px;color:var(--muted);margin-top:2px">' + recipesEsc(appliance) + (category ? ' &middot; ' + recipesEsc(category) : '') + (r['Servings'] ? ' &middot; ' + r['Servings'] + ' serving' + (r['Servings'] > 1 ? 's' : '') : '') + (macros ? ' &middot; ' + macros : '') + '</div>' +
+        '</div>' +
+        '<div style="color:var(--muted);font-size:12px">' + (open ? '&#9650;' : '&#9660;') + '</div>' +
+      '</div>' +
+      (open ? '<div style="padding:0 16px 14px;font-size:13px;line-height:1.55">' +
+        (r['Ingredients'] ? '<div style="font-size:10px;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);margin:8px 0 4px">Ingredients</div><div style="white-space:pre-wrap">' + recipesEsc(r['Ingredients']) + '</div>' : '') +
+        (r['Instructions'] ? '<div style="font-size:10px;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);margin:10px 0 4px">Instructions</div><div style="white-space:pre-wrap">' + recipesEsc(r['Instructions']) + '</div>' : '') +
+        (r['Notes'] ? '<div style="font-size:10px;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);margin:10px 0 4px">Notes</div><div style="white-space:pre-wrap;color:var(--muted)">' + recipesEsc(r['Notes']) + '</div>' : '') +
+      '</div>' : '') +
+    '</div>';
+  }).join('');
+}
 
 // 
 // WORKOUT TRACKER
