@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Recipes Table Setup</title>
+<style>
+ body{font-family:-apple-system,Helvetica,Arial,sans-serif;background:#0f1115;color:#e6e8ec;margin:0;padding:24px;max-width:820px}
+ h2{margin:0 0 16px}
+ .log{background:#12151b;border:1px solid #2c313c;border-radius:8px;padding:14px;font-family:ui-monospace,Menlo,monospace;font-size:13px;white-space:pre-wrap;line-height:1.5}
+ .ok{color:#7ee2a0}.err{color:#ff8a95}.info{color:#9ab8ff}
+</style>
+</head>
+<body>
+<h2>Recipes Table Setup — auto-run</h2>
+<div class="log" id="log"></div>
+<script>
+const TOKEN = "pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a";
+const BASE = "appmHDG4TGT1xy6R6";
+const H = {"Authorization":"Bearer "+TOKEN,"Content-Type":"application/json"};
+const log = (m,c)=>{const d=document.getElementById('log');d.innerHTML+=`<span class="${c||''}">${m}</span>\n`;};
+
+const tableSpec = {
+  name: "Recipes",
+  description: "Recipes for Nama J2, Ninja Creami, Ninja Slushi. Macros are per serving (estimates).",
+  fields: [
+    {name:"Recipe", type:"singleLineText"},
+    {name:"Appliance", type:"singleSelect", options:{choices:[{name:"Nama J2"},{name:"Ninja Creami"},{name:"Ninja Slushi"},{name:"Other"}]}},
+    {name:"Category", type:"singleSelect", options:{choices:[{name:"Protein Ice Cream"},{name:"Juice"},{name:"Slushie"},{name:"Shake"},{name:"Other"}]}},
+    {name:"Servings", type:"number", options:{precision:0}},
+    {name:"Protein (g)", type:"number", options:{precision:0}},
+    {name:"Calories", type:"number", options:{precision:0}},
+    {name:"Carbs (g)", type:"number", options:{precision:0}},
+    {name:"Fat (g)", type:"number", options:{precision:0}},
+    {name:"Ingredients", type:"multilineText"},
+    {name:"Instructions", type:"multilineText"},
+    {name:"Rating", type:"singleSelect", options:{choices:[{name:"1"},{name:"2"},{name:"3"},{name:"4"},{name:"5"}]}},
+    {name:"Status", type:"singleSelect", options:{choices:[{name:"Testing"},{name:"Keeper"},{name:"Rejected"}]}},
+    {name:"Last Made", type:"date", options:{dateFormat:{name:"local"}}},
+    {name:"Photo", type:"multipleAttachments"},
+    {name:"Notes", type:"multilineText"}
+  ]
+};
+
+const recipes = [
+ {Recipe:"Vanilla Protein Ice Cream",Appliance:"Ninja Creami",Category:"Protein Ice Cream",Servings:1,"Protein (g)":40,Calories:230,"Carbs (g)":12,"Fat (g)":2,
+  Ingredients:"1 cup Fairlife skim milk\n1 scoop (~32g) vanilla whey/casein blend\n1 tbsp sugar-free vanilla pudding mix\nPinch of salt\n1/2 tsp vanilla extract",
+  Instructions:"Whisk or blend everything until smooth. Pour into Creami pint, freeze 24 hrs flat. Spin on Lite Ice Cream. If crumbly, add 1 tbsp milk and Re-spin.",
+  Status:"Testing",Notes:"Pudding mix is the texture key. Macros are estimates - adjust to your powder."},
+ {Recipe:"Chocolate PB Protein Ice Cream",Appliance:"Ninja Creami",Category:"Protein Ice Cream",Servings:1,"Protein (g)":42,Calories:280,"Carbs (g)":16,"Fat (g)":6,
+  Ingredients:"1 cup Fairlife 2% milk\n1 scoop chocolate casein\n2 tbsp PB2 powder\n1 tbsp cocoa powder\n1 tbsp sugar-free chocolate pudding mix\nPinch of salt",
+  Instructions:"Blend all until smooth. Freeze 24 hrs. Lite Ice Cream spin, then Re-spin with a splash of milk. Optional Mix-In: chopped peanuts.",
+  Status:"Testing",Notes:"Casein spins creamier than whey."},
+ {Recipe:"Strawberry Cheesecake Protein Ice Cream",Appliance:"Ninja Creami",Category:"Protein Ice Cream",Servings:1,"Protein (g)":35,Calories:250,"Carbs (g)":18,"Fat (g)":5,
+  Ingredients:"3/4 cup low-fat cottage cheese\n1/2 cup Fairlife milk\n3/4 cup strawberries\n1 tbsp sugar-free cheesecake pudding mix\n1 tsp honey or allulose",
+  Instructions:"Blend until completely smooth (no cottage cheese lumps). Freeze 24 hrs. Lite Ice Cream, Re-spin as needed.",
+  Status:"Testing",Notes:"Cottage cheese base - highest satiety of the three."},
+ {Recipe:"Cold Brew Protein Frappe Ice Cream",Appliance:"Ninja Creami",Category:"Protein Ice Cream",Servings:1,"Protein (g)":32,Calories:200,"Carbs (g)":10,"Fat (g)":2,
+  Ingredients:"3/4 cup cold brew coffee\n1/2 cup Fairlife skim\n1 scoop vanilla whey\n1 tbsp sugar-free vanilla pudding mix",
+  Instructions:"Whisk, freeze 24 hrs, Lite Ice Cream spin + Re-spin. AM only given sleep protocol - no caffeine after noon.",
+  Status:"Testing",Notes:"Swap decaf cold brew for PM version."},
+ {Recipe:"Morning Green Juice",Appliance:"Nama J2",Category:"Juice",Servings:2,"Protein (g)":2,Calories:90,"Carbs (g)":20,"Fat (g)":0,
+  Ingredients:"4 celery stalks\n1 cucumber\n1 green apple\n1 lemon (peeled)\n1 inch ginger\n2 cups spinach",
+  Instructions:"Load J2 hopper: greens first, then celery/cucumber, apple last. Slow press. Drink fresh or store airtight up to 48 hrs.",
+  Status:"Testing",Notes:"Kangen timing rule applies if taken near oral supplements."},
+ {Recipe:"Beet Pre-Workout Juice",Appliance:"Nama J2",Category:"Juice",Servings:2,"Protein (g)":3,Calories:120,"Carbs (g)":28,"Fat (g)":0,
+  Ingredients:"2 medium beets\n3 carrots\n1 apple\n1 inch ginger\n1/2 lemon (peeled)",
+  Instructions:"Juice all in J2. Drink ~2 hrs pre-training for nitrate effect on blood flow/pump.",
+  Status:"Testing",Notes:"Dietary nitrates - complements training days."},
+ {Recipe:"Citrus Turmeric Recovery Juice",Appliance:"Nama J2",Category:"Juice",Servings:2,"Protein (g)":2,Calories:110,"Carbs (g)":26,"Fat (g)":0,
+  Ingredients:"3 oranges (peeled)\n2 carrots\n1 inch turmeric root\n1 inch ginger\n1/2 lemon\nPinch black pepper (stir in after)",
+  Instructions:"Juice all. Stir in black pepper after pressing (piperine aids curcumin absorption).",
+  Status:"Testing",Notes:"Anti-inflammatory angle - tennis elbow support."},
+ {Recipe:"Watermelon Lime Slush",Appliance:"Ninja Slushi",Category:"Slushie",Servings:3,"Protein (g)":1,Calories:90,"Carbs (g)":23,"Fat (g)":0,
+  Ingredients:"32 oz fresh watermelon juice (J2-pressed works)\nJuice of 2 limes\nPinch sea salt",
+  Instructions:"Combine, pour into Slushi (16 oz minimum), Slush preset, ~25-40 min. Watermelon's natural sugar clears the 4% floor - no added sugar needed.",
+  Status:"Testing",Notes:"Cross-appliance: press the watermelon in the J2 first."},
+ {Recipe:"Vanilla Protein Slush",Appliance:"Ninja Slushi",Category:"Slushie",Servings:2,"Protein (g)":26,Calories:170,"Carbs (g)":8,"Fat (g)":3,
+  Ingredients:"2 bottles (14 oz ea) Fairlife Core Power vanilla\n1 tbsp allulose syrup (if low-sugar warning fires)",
+  Instructions:"Pour into Slushi, Slush preset. If unit flags low sugar, add allulose (~1/2 tbsp per 8 oz) and restart preset.",
+  Status:"Testing",Notes:"Frosty-style protein hit. Machine needs >=4% sugar; allulose is the compliant sugar-free fix."},
+ {Recipe:"Sugar-Free Lemonade Slush",Appliance:"Ninja Slushi",Category:"Slushie",Servings:3,"Protein (g)":0,Calories:15,"Carbs (g)":4,"Fat (g)":0,
+  Ingredients:"32 oz water\nJuice of 4 lemons\n3 tbsp allulose syrup\nPinch sea salt",
+  Instructions:"Mix until allulose dissolves, Slushi Slush preset ~25-35 min. Allulose replaces the 4% sugar requirement for freeze-point depression.",
+  Status:"Testing",Notes:"Zero-sugar template - swap lemon for lime/berry blends."}
+];
+
+async function run(){
+  try{
+    log("Creating Recipes table...","info");
+    let res = await fetch(`https://api.airtable.com/v0/meta/bases/${BASE}/tables`,{method:"POST",headers:H,body:JSON.stringify(tableSpec)});
+    let js = await res.json();
+    let tableId;
+    if(!res.ok){
+      if(JSON.stringify(js).toLowerCase().includes("duplicate")||JSON.stringify(js).toLowerCase().includes("exists")){
+        log("Table already exists - locating it...","info");
+        const meta = await fetch(`https://api.airtable.com/v0/meta/bases/${BASE}/tables`,{headers:H}).then(r=>r.json());
+        const t = meta.tables.find(t=>t.name==="Recipes");
+        if(!t){log("FAILED: could not locate existing Recipes table.","err");return;}
+        tableId = t.id;
+      } else { log("CREATE TABLE FAILED: "+JSON.stringify(js),"err"); return; }
+    } else { tableId = js.id; }
+    log("Table ID: "+tableId,"ok");
+
+    log("Seeding 10 recipes (2 batches of 5)...","info");
+    for(let i=0;i<recipes.length;i+=5){
+      const batch = recipes.slice(i,i+5).map(r=>({fields:r}));
+      const cr = await fetch(`https://api.airtable.com/v0/${BASE}/${tableId}`,{method:"POST",headers:H,body:JSON.stringify({records:batch,typecast:true})});
+      const cj = await cr.json();
+      if(!cr.ok){log("SEED BATCH FAILED: "+JSON.stringify(cj),"err");return;}
+      log(`Batch ${i/5+1}: created ${cj.records.length} records`,"ok");
+    }
+
+    log("Read-back verification...","info");
+    const vr = await fetch(`https://api.airtable.com/v0/${BASE}/${tableId}?fields%5B%5D=Recipe&fields%5B%5D=Appliance`,{headers:H}).then(r=>r.json());
+    log(`Verified ${vr.records.length} records in table:`,"ok");
+    vr.records.forEach(r=>log("  - "+r.fields.Recipe+" ["+(r.fields.Appliance||"")+"]"));
+    log("\nDONE. Table ID: "+tableId+"\nReport this ID back to Claude.","ok");
+  }catch(e){ log("ERROR: "+e.message,"err"); }
+}
+run();
+</script>
+</body>
+</html>
