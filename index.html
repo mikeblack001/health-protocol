@@ -2702,7 +2702,7 @@ async function loadSchedule() {
   el.innerHTML = '<div style="padding:20px;color:var(--muted)">Loading...</div>';
 
   const DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-  const STATUS_OPTS = ['Active','Paused','On Order','Deferred'];
+  const STATUS_OPTS = ['Active','Paused','Stopped','On Order','Deferred'];
 
   const res = await fetch(`https://api.airtable.com/v0/${BASE}/tblMs6YRdP4wkndUp?fields[]=Compound&fields[]=Status&fields[]=Dose&fields[]=Schedule&fields[]=Timing&fields[]=Frequency&fields[]=Row%20Order&sort[0][field]=Row%20Order&sort[0][direction]=asc&pageSize=100`, {headers:{Authorization:`Bearer ${TOKEN}`}});
   const json = await res.json();
