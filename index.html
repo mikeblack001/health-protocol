@@ -566,6 +566,7 @@
       <div class="drop-menu" id="drop-ex">
         <button class="drop-item" onclick="navDrop('workouts','nav-ex')">Workouts</button>
         <button class="drop-item" onclick="navDrop('workout-suggestions','nav-ex')">Workout Suggestions</button>
+        <button class="drop-item" onclick="navDrop('woschedule','nav-ex')">Workout Schedule</button>
         <button class="drop-item" onclick="openWeeklyPrint()">Weekly Workout Print</button>
         <div style="border-top:1px solid var(--border);margin:4px 8px;"></div>
         <div class="drop-submenu-wrap">
@@ -649,6 +650,7 @@
     <div class="mobile-section-label">Exercise</div>
     <button class="mobile-item" onclick="mobileNav('workouts')">Workouts</button>
     <button class="mobile-item" onclick="mobileNav('workout-suggestions')">Workout Suggestions</button>
+    <button class="mobile-item" onclick="mobileNav('woschedule')">Workout Schedule</button>
     <button class="mobile-item" onclick="mobileNav('wktracker')">Workout Tracker</button>
     <button class="mobile-item" onclick="window.open('https://mikeblack001.github.io/health-protocol/workout_audit.html','_blank')">Workout PDF Verify</button>
     <button class="mobile-item" onclick="mobileNav('wkaudit')">Workout Audit</button>
@@ -1226,6 +1228,8 @@
   <!-- CHANGES VIEW -->
   <div id="view-schedule" class="view"></div>
 
+  <div id="view-woschedule" class="view"></div>
+
   <div id="view-changes" class="view">
     <div class="filter-bar">
       <span style="font-size:13px;font-weight:500;color:var(--text)">Peptide Changes</span>
@@ -1332,12 +1336,13 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('todayDate').textContent = new Date().toLocaleDateString('en-US', {weekday:'long',year:'numeric',month:'long',day:'numeric'});
   document.getElementById('log-date').textContent = new Date().toLocaleDateString('en-US', {month:'long',day:'numeric',year:'numeric'});
   loadAll();
+  loadWorkoutTemplate();
 });
 
 // AIRTABLE CONFIG 
 const TOKEN = 'pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
 const BASE = 'appmHDG4TGT1xy6R6';
-const TABLES = { peptides: 'tblMs6YRdP4wkndUp', supplements: 'tblSnkc0Gu2BzGACP', amazonPurchases: 'tblGs2dflGhvPs94p', dailyLog: 'tblaYuZjl4Pu4nKxS', pricing: 'tblnW21TLSqgVerwQ', vendors: 'tblI0nfBBuHXjp3KT', suppVendors: 'tblxI3G63a7WvK0Ya', purchases: 'tblWmflohL6d6HC9p', bloodwork: 'tbl3200yJid6fXaOp', protocolChanges: 'tblolVx7YwO5cJhsE', goals: 'tblRuaROlyG93Bz4Y', profile: 'tblPBJkYqlnzrBK3B', suppChanges: 'tblcwqEVCMfSwNSMu', sessions: 'tblk9tTYIcIY4tWjF', sets: 'tblKDqjy5RzqaJvjr' };
+const TABLES = { peptides: 'tblMs6YRdP4wkndUp', supplements: 'tblSnkc0Gu2BzGACP', amazonPurchases: 'tblGs2dflGhvPs94p', dailyLog: 'tblaYuZjl4Pu4nKxS', pricing: 'tblnW21TLSqgVerwQ', vendors: 'tblI0nfBBuHXjp3KT', suppVendors: 'tblxI3G63a7WvK0Ya', purchases: 'tblWmflohL6d6HC9p', bloodwork: 'tbl3200yJid6fXaOp', protocolChanges: 'tblolVx7YwO5cJhsE', goals: 'tblRuaROlyG93Bz4Y', profile: 'tblPBJkYqlnzrBK3B', suppChanges: 'tblcwqEVCMfSwNSMu', sessions: 'tblk9tTYIcIY4tWjF', sets: 'tblKDqjy5RzqaJvjr', wotemplate: 'tblO3uq3dLfcm4nfX' };
 
 let data = { peptides: [], supplements: [] };
 let currentPepFilter = 'Active';
@@ -3428,7 +3433,7 @@ function vendorSortIcon(col) {
 }
 
 // ===== WORKOUT DATA =====
-const WORKOUT_DAYS = {
+let WORKOUT_DAYS = {
   'Monday - Push': [
     { name: 'Wrist Twist', variations: ['DBs'] },
     { name: 'Bench Press', variations: ['35lbs Smith Machine', '45lb Olympic', 'DBs', 'Cables'] },
@@ -3475,6 +3480,195 @@ const WORKOUT_DAYS = {
 };
 
 let workoutPrevData = {}; // cache previous weights
+
+// ===== WORKOUT TEMPLATE (AT-driven — source of truth: WorkoutTemplate tblO3uq3dLfcm4nfX) =====
+const WO_TPL_DAYS = ['Monday - Push','Tuesday - Pull','Wednesday - Legs / Core','Thursday - Arms / Chest','Friday - Shoulders','Saturday - Cardio'];
+let woTplRecords = [];
+let woSchedActiveDay = 'Monday - Push';
+let woTplEditingId = null;
+
+async function fetchWoTemplate() {
+  let recs = [], offset = '';
+  do {
+    const url = `https://api.airtable.com/v0/${BASE}/${TABLES.wotemplate}?pageSize=100${offset ? '&offset=' + offset : ''}`;
+    const res = await fetch(url, { headers: { Authorization: 'Bearer ' + TOKEN } });
+    if (!res.ok) throw new Error('AT fetch failed: ' + res.status);
+    const json = await res.json();
+    recs = recs.concat(json.records || []);
+    offset = json.offset || '';
+  } while (offset);
+  woTplRecords = recs.map(r => ({
+    id: r.id,
+    name: r.fields['Exercise'] || '',
+    day: r.fields['Day'] || '',
+    order: r.fields['Order'] || 0,
+    variations: (r.fields['Variations'] || '').split(',').map(s => s.trim()).filter(Boolean),
+    note: r.fields['Note'] || ''
+  }));
+  return woTplRecords;
+}
+
+async function loadWorkoutTemplate() {
+  try {
+    await fetchWoTemplate();
+    if (!woTplRecords.length) return; // AT empty -> keep hardcoded fallback
+    const days = {};
+    woTplRecords.slice().sort((a, b) => a.order - b.order).forEach(r => {
+      if (!r.day || !r.name) return;
+      if (!days[r.day]) days[r.day] = [];
+      const ex = { name: r.name, variations: r.variations };
+      if (r.note) ex.note = r.note;
+      days[r.day].push(ex);
+    });
+    const ordered = {};
+    WO_TPL_DAYS.forEach(d => { if (days[d]) ordered[d] = days[d]; });
+    Object.keys(days).forEach(d => { if (!ordered[d]) ordered[d] = days[d]; });
+    WORKOUT_DAYS = ordered;
+    rebuildWorkoutDaySelect();
+  } catch (e) { console.warn('loadWorkoutTemplate:', e); }
+}
+
+function rebuildWorkoutDaySelect() {
+  const sel = document.getElementById('workout-day-select');
+  if (!sel) return;
+  const cur = sel.value;
+  let html = '<option value="">Select day...</option>';
+  Object.keys(WORKOUT_DAYS).forEach(k => {
+    html += '<option value="' + esc(k) + '">' + esc(k.replace(' - ', ' ')) + '</option>';
+  });
+  sel.innerHTML = html;
+  if (cur && WORKOUT_DAYS[cur]) sel.value = cur;
+}
+
+async function woTplApi(method, path, body) {
+  const res = await fetch(`https://api.airtable.com/v0/${BASE}/${TABLES.wotemplate}${path || ''}`, {
+    method,
+    headers: { Authorization: 'Bearer ' + TOKEN, 'Content-Type': 'application/json' },
+    body: body ? JSON.stringify(body) : undefined
+  });
+  if (!res.ok) { const t = await res.text(); throw new Error(t); }
+  return res.json();
+}
+
+function loadWoSchedule() { woTplEditingId = null; renderWoSchedule(); }
+
+async function renderWoSchedule(skipFetch) {
+  const v = document.getElementById('view-woschedule');
+  if (!skipFetch) {
+    v.innerHTML = '<div style="padding:40px;text-align:center;color:var(--muted);font-size:14px">Loading schedule...</div>';
+    try { await fetchWoTemplate(); } catch (e) { v.innerHTML = '<div style="padding:40px;text-align:center;color:#d9534f;font-size:14px">Failed to load: ' + esc(e.message) + '</div>'; return; }
+  }
+  const btnS = 'padding:4px 9px;border:1px solid var(--border);border-radius:5px;background:var(--surface);color:var(--text);font-size:11px;cursor:pointer';
+  const tabs = WO_TPL_DAYS.map(d => {
+    const n = woTplRecords.filter(r => r.day === d).length;
+    return '<button class="filter-btn' + (d === woSchedActiveDay ? ' active' : '') + '" onclick="woSchedActiveDay=\'' + d + '\';woTplEditingId=null;renderWoSchedule(true)">' + esc(d.split(' - ')[1] || d) + ' <span style="opacity:.55">' + n + '</span></button>';
+  }).join('');
+  const rows = woTplRecords.filter(r => r.day === woSchedActiveDay).sort((a, b) => a.order - b.order);
+  let list = '';
+  rows.forEach((r, i) => {
+    if (woTplEditingId === r.id) {
+      const inS = "width:100%;padding:7px 9px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface);box-sizing:border-box";
+      list += '<div style="padding:12px;border:1px solid var(--accent);border-radius:8px;margin-bottom:8px;background:var(--surface)">'
+        + '<div style="display:grid;gap:8px">'
+        + '<input id="wot-e-name" value="' + esc(r.name) + '" placeholder="Exercise name" style="' + inS + '">'
+        + '<input id="wot-e-vars" value="' + esc(r.variations.join(', ')) + '" placeholder="Variations (comma-separated)" style="' + inS + '">'
+        + '<input id="wot-e-note" value="' + esc(r.note) + '" placeholder="Note (e.g. 1/2, (2:1))" style="' + inS + '">'
+        + '</div><div style="display:flex;gap:8px;margin-top:10px">'
+        + '<button onclick="woTplSaveEdit(\'' + r.id + '\')" style="padding:6px 16px;background:var(--accent);color:#000;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer">Save</button>'
+        + '<button onclick="woTplEditingId=null;renderWoSchedule(true)" style="' + btnS + '">Cancel</button>'
+        + '</div></div>';
+      return;
+    }
+    const up = i === 0 ? 'disabled style="' + btnS + ';opacity:.25;cursor:default"' : 'style="' + btnS + '"';
+    const dn = i === rows.length - 1 ? 'disabled style="' + btnS + ';opacity:.25;cursor:default"' : 'style="' + btnS + '"';
+    const safeName = esc(r.name).replace(/'/g, '&#39;');
+    list += '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;background:var(--surface)">'
+      + '<div style="display:flex;flex-direction:column;gap:3px"><button onclick="woTplMove(\'' + r.id + '\',-1)" ' + up + '>&#9650;</button><button onclick="woTplMove(\'' + r.id + '\',1)" ' + dn + '>&#9660;</button></div>'
+      + '<div style="width:22px;text-align:center;font-size:12px;color:var(--muted);font-weight:600">' + (i + 1) + '</div>'
+      + '<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:600;color:var(--text)">' + esc(r.name) + (r.note ? ' <span style="color:var(--accent);font-weight:500;font-size:12px">' + esc(r.note) + '</span>' : '') + '</div>'
+      + (r.variations.length ? '<div style="font-size:12px;color:var(--muted);margin-top:2px">' + esc(r.variations.join(', ')) + '</div>' : '')
+      + '</div>'
+      + '<button onclick="woTplEditingId=\'' + r.id + '\';renderWoSchedule(true)" style="' + btnS + '">Edit</button>'
+      + '<button onclick="woTplDelete(\'' + r.id + '\',\'' + safeName + '\')" style="' + btnS + ';color:#d9534f">&#10005;</button>'
+      + '</div>';
+  });
+  if (!rows.length) list = '<div style="padding:30px;text-align:center;color:var(--muted);font-size:13px">No exercises for this day yet. Add one below.</div>';
+  const inS2 = "padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface)";
+  v.innerHTML = '<div class="filter-bar" style="flex-wrap:wrap"><span style="font-size:13px;font-weight:500;color:var(--text)">Workout Schedule</span>' + tabs + '</div>'
+    + '<div style="max-width:760px">' + list
+    + '<div style="margin-top:16px;padding:14px;border:1px dashed var(--border);border-radius:8px">'
+    + '<div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:8px">Add exercise &mdash; ' + esc(woSchedActiveDay) + '</div>'
+    + '<div style="display:flex;gap:8px;flex-wrap:wrap">'
+    + '<input id="wot-add-name" placeholder="Exercise name" style="' + inS2 + ';flex:2;min-width:160px">'
+    + '<input id="wot-add-vars" placeholder="Variations (comma-sep)" style="' + inS2 + ';flex:2;min-width:160px">'
+    + '<input id="wot-add-note" placeholder="Note" style="' + inS2 + ';flex:1;min-width:80px">'
+    + '<button onclick="woTplAdd()" style="padding:8px 18px;background:var(--accent);color:#000;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer">Add</button>'
+    + '</div></div>'
+    + '<div style="margin-top:10px;font-size:11px;color:var(--muted)">Saved live to Airtable &rarr; WorkoutTemplate. Changes apply to the Workouts page + Weekly Print immediately.</div>'
+    + '</div>';
+}
+
+async function woTplRenumber(day) {
+  const rows = woTplRecords.filter(r => r.day === day).sort((a, b) => a.order - b.order);
+  const patches = [];
+  rows.forEach((r, i) => { if (r.order !== i + 1) { r.order = i + 1; patches.push({ id: r.id, fields: { 'Order': i + 1 } }); } });
+  for (let i = 0; i < patches.length; i += 10) {
+    await woTplApi('PATCH', '', { records: patches.slice(i, i + 10) });
+  }
+}
+
+async function woTplMove(id, dir) {
+  const rows = woTplRecords.filter(r => r.day === woSchedActiveDay).sort((a, b) => a.order - b.order);
+  const idx = rows.findIndex(r => r.id === id);
+  const j = idx + dir;
+  if (idx < 0 || j < 0 || j >= rows.length) return;
+  const a = rows[idx], b = rows[j];
+  const tmp = a.order; a.order = b.order; b.order = tmp;
+  renderWoSchedule(true);
+  try {
+    await woTplApi('PATCH', '', { records: [{ id: a.id, fields: { 'Order': a.order } }, { id: b.id, fields: { 'Order': b.order } }] });
+  } catch (e) { alert('Reorder failed: ' + e.message); }
+  loadWorkoutTemplate();
+}
+
+async function woTplSaveEdit(id) {
+  const name = document.getElementById('wot-e-name').value.trim();
+  const vars = document.getElementById('wot-e-vars').value.trim();
+  const note = document.getElementById('wot-e-note').value.trim();
+  if (!name) { alert('Exercise name required'); return; }
+  try {
+    await woTplApi('PATCH', '', { records: [{ id: id, fields: { 'Exercise': name, 'Variations': vars, 'Note': note } }] });
+    woTplEditingId = null;
+    await renderWoSchedule();
+    loadWorkoutTemplate();
+  } catch (e) { alert('Save failed: ' + e.message); }
+}
+
+async function woTplAdd() {
+  const name = document.getElementById('wot-add-name').value.trim();
+  const vars = document.getElementById('wot-add-vars').value.trim();
+  const note = document.getElementById('wot-add-note').value.trim();
+  if (!name) { alert('Exercise name required'); return; }
+  const dayOrders = woTplRecords.filter(r => r.day === woSchedActiveDay).map(r => r.order);
+  const maxOrder = dayOrders.length ? Math.max.apply(null, dayOrders) : 0;
+  try {
+    await woTplApi('POST', '', { records: [{ fields: { 'Exercise': name, 'Day': woSchedActiveDay, 'Order': maxOrder + 1, 'Variations': vars, 'Note': note } }], typecast: true });
+    await renderWoSchedule();
+    loadWorkoutTemplate();
+  } catch (e) { alert('Add failed: ' + e.message); }
+}
+
+async function woTplDelete(id, name) {
+  if (!confirm('Delete "' + name + '" from ' + woSchedActiveDay + '?')) return;
+  try {
+    await woTplApi('DELETE', '?records[]=' + id);
+    woTplRecords = woTplRecords.filter(r => r.id !== id);
+    await woTplRenumber(woSchedActiveDay);
+    await renderWoSchedule();
+    loadWorkoutTemplate();
+  } catch (e) { alert('Delete failed: ' + e.message); }
+}
+
 
 function showWorkoutPanel(panel, btn) {
   ['log','history','progress'].forEach(p => {
@@ -3741,6 +3935,7 @@ function mobileNav(viewId) {
   if (viewId === 'injlog') loadInjLog();
   if (viewId === 'wktracker') loadWkTracker();
   if (viewId === 'wkaudit') loadWkAudit();
+  if (viewId === 'woschedule') loadWoSchedule();
   if (viewId === 'log') setTimeout(loadLog, 50);
   if (viewId === 'bodycomp') loadBodyComp();
   if (viewId === 'goals') loadGoals();
@@ -3769,6 +3964,7 @@ function showView(name, e) {
   if (name === 'injlog') loadInjLog();
   if (name === 'wktracker') loadWkTracker();
   if (name === 'wkaudit') loadWkAudit();
+  if (name === 'woschedule') loadWoSchedule();
   if (name === 'bodycomp') loadBodyComp();
   if (name === 'recipes') loadRecipes();
   if (name === 'workouts') {
@@ -6000,6 +6196,7 @@ function buildWeeklyPrintHTML(monday) {
     if (viewId === 'injaudit') loadInjAudit();
     if (viewId === 'wktracker') loadWkTracker();
     if (viewId === 'wkaudit') loadWkAudit();
+  if (viewId === 'woschedule') loadWoSchedule();
     if (viewId === 'workouts') document.getElementById('workout-date').value = new Date().toISOString().split('T')[0];
     if (viewId === 'goals') loadGoals();
     if (viewId === 'profile') loadProfileView();
