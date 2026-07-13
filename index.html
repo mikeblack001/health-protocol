@@ -5474,8 +5474,9 @@ async function loadInjLog() {
   summEl.innerHTML = loadHtml;
   fullEl.innerHTML = loadHtml;
 
-  // Fetch all records sorted by date desc using global BASE/TOKEN
-  let records = [], offset = null;
+  // Fetch recent records only (fast). Full history loads on demand via button below.
+  const MAX_PAGES = window._injLogLoadAll ? Infinity : 2;
+  let records = [], offset = null, pages = 0, more = false;
   try {
     do {
       let url = `https://api.airtable.com/v0/${BASE}/${TABLE}?sort[0][field]=Date&sort[0][direction]=desc&pageSize=100`;
@@ -5485,7 +5486,9 @@ async function loadInjLog() {
       if (!r.ok) throw new Error(d.error?.message || `HTTP ${r.status}`);
       records = records.concat(d.records || []);
       offset = d.offset || null;
-    } while (offset);
+      pages++;
+    } while (offset && pages < MAX_PAGES);
+    more = !!offset && !window._injLogLoadAll;
   } catch(e) {
     const err = `<p style="color:var(--danger);font-size:13px">Error: ${e.message}</p>`;
     summEl.innerHTML = err; fullEl.innerHTML = err; return;
@@ -5529,7 +5532,7 @@ async function loadInjLog() {
   summEl.innerHTML = summHtml;
 
   // --- FULL LOG ---
-  let fullHtml = `<p style="font-size:12px;color:var(--muted);margin-bottom:8px">${records.length} records</p>
+  let fullHtml = `<p style="font-size:12px;color:var(--muted);margin-bottom:8px">${records.length} records${more?' (most recent \u2014 full history button below)':''}</p>
     <table style="width:100%;border-collapse:collapse;font-size:12px;font-family:'DM Mono',monospace">
     <thead><tr style="background:var(--surface-alt,#f3f4f6);text-align:left">
       <th style="padding:7px 10px;font-weight:600;border-bottom:1px solid var(--border)">Date</th>
@@ -5553,6 +5556,9 @@ async function loadInjLog() {
     </tr>`;
   });
   fullHtml += '</tbody></table>';
+  if (more) {
+    fullHtml += '<div style="margin-top:12px"><button onclick="window._injLogLoadAll=true;loadInjLog()" style="padding:7px 14px;border:1px solid var(--border);border-radius:5px;background:var(--surface);color:var(--text);cursor:pointer;font-size:12px;font-family:\'DM Sans\',sans-serif">Load full history (all records)</button></div>';
+  }
   fullEl.innerHTML = fullHtml;
 }
 
