@@ -2207,7 +2207,7 @@ async function loadTrackerWeekData(mondayISO) {
     const prevISO = prevDay.toISOString().split('T')[0];
     const nextISO = nextDay.toISOString().split('T')[0];
     const formula = `AND(IS_AFTER({Date},"${prevISO}"),IS_BEFORE({Date},"${nextISO}"))`;
-    const url = `https://api.airtable.com/v0/${BASE}/tblBvEaLkGGipnOFc?filterByFormula=${encodeURIComponent(formula)}&fields[]=Date&fields[]=Compound&fields[]=Site&fields[]=Name&fields[]=Week+Note&fields[]=fldmGAKBTKLMGeRGn`;
+    const url = `https://api.airtable.com/v0/${BASE}/tblBvEaLkGGipnOFc?filterByFormula=${encodeURIComponent(formula)}&fields[]=Date&fields[]=Compound&fields[]=Site&fields[]=Name&fields[]=Notes&fields[]=Week+Note&fields[]=fldmGAKBTKLMGeRGn&pageSize=100`;
     const res = await fetch(url, { headers: { Authorization: `Bearer ${TOKEN}` } });
     const json = await res.json();
     const records = json.records || [];
@@ -2311,6 +2311,44 @@ async function loadTrackerWeekData(mondayISO) {
   const wnel = document.getElementById('tracker-week-note');
   if (weekNoteRec) { _weekNoteRecId[mondayISO] = weekNoteRec.id; }
   if (wnel) wnel.value = weekNoteRec ? (weekNoteRec.fields['fldmGAKBTKLMGeRGn'] || weekNoteRec.fields['Week Note'] || '') : '';
+
+  // Daily injection notes for this week — surfaced under the tracker grid
+  try {
+    const dayNotes = [];
+    records.forEach(r => {
+      const f = r.fields || {};
+      const c = Array.isArray(f['Compound']) ? f['Compound'][0] : (f['Compound'] || f['Name'] || '');
+      if ((c||'').toLowerCase().trim() === 'week note') return;
+      const nt = (f['Notes']||'').trim();
+      if (!nt || !f['Date']) return;
+      dayNotes.push({ date: f['Date'], compound: c, note: nt });
+    });
+    dayNotes.sort((a,b) => a.date.localeCompare(b.date) || a.compound.localeCompare(b.compound));
+    let dnEl = document.getElementById('tracker-daily-notes');
+    if (!dnEl) {
+      const anchor = wnel ? (wnel.closest('div') || wnel.parentNode) : null;
+      if (anchor && anchor.parentNode) {
+        dnEl = document.createElement('div');
+        dnEl.id = 'tracker-daily-notes';
+        dnEl.style.cssText = 'margin-top:10px';
+        anchor.parentNode.insertBefore(dnEl, anchor.nextSibling);
+      }
+    }
+    if (dnEl) {
+      if (!dayNotes.length) { dnEl.innerHTML = ''; }
+      else {
+        const esc2 = s => String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+        let h = '<div style="padding:8px 11px;background:#fffbeb;border:1px solid #fcd34d;border-left:3px solid #f59e0b;border-radius:5px">'
+              + '<div style="font-size:11px;font-weight:700;color:#78350f;text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px">Daily Notes</div>';
+        dayNotes.forEach(n => {
+          const [y,m,d] = n.date.split('-');
+          h += '<div style="font-size:12px;color:#78350f;margin-bottom:2px"><b>' + m + '/' + d + ' &middot; ' + esc2(n.compound) + ':</b> ' + esc2(n.note) + '</div>';
+        });
+        h += '</div>';
+        dnEl.innerHTML = h;
+      }
+    }
+  } catch(e) { console.error('tracker daily notes:', e); }
 
   records.forEach(r => {
       const f = r.fields;
@@ -4641,7 +4679,7 @@ async function loadInjAudit() {
     let records = [], offset = null;
     do {
       let url = 'https://api.airtable.com/v0/' + BASE + '/tblBvEaLkGGipnOFc?pageSize=100'
-        + '&fields[]=Date&fields[]=Compound&fields[]=Site&fields[]=Notes'
+        + '&fields[]=Date&fields[]=Compound&fields[]=Site&fields[]=Notes&fields[]=Week%20Note'
         + '&sort[0][field]=Date&sort[0][direction]=asc';
       if (offset) url += '&offset=' + encodeURIComponent(offset);
       const r = await fetch(url, { headers: { Authorization: 'Bearer ' + TOKEN } });
@@ -4652,17 +4690,22 @@ async function loadInjAudit() {
       statusEl.textContent = 'Loading... ' + records.length + ' records';
     } while (offset);
     const weeks = {};
+    const weekNotes = {};
     records.forEach(rec => {
       const f = rec.fields;
       const date = f['Date'];
       if (!date) return;
-      const compound = res(f['Compound'] || '');
       const mon = getMon(date);
+      const wn = f['Week Note'];
+      if (wn && String(wn).trim()) weekNotes[mon] = String(wn).trim();
+      const compound = res(f['Compound'] || '');
+      if ((compound||'').toLowerCase().trim() === 'week note') return; // note-only row, not an injection
       if (!weeks[mon]) weeks[mon] = {};
       const key = compound + '|' + date;
       if (!weeks[mon][key]) weeks[mon][key] = [];
       weeks[mon][key].push({ site: f['Site'] || '', note: f['Notes'] || '' });
     });
+    window._auditWeekNotes = weekNotes;
     const DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
     const sortedWeeks = Object.keys(weeks).sort();
     statusEl.textContent = records.length + ' records across ' + sortedWeeks.length + ' weeks';
@@ -4699,7 +4742,12 @@ function showAuditWeek(mon, weekData, DAYS) {
     if (!s) return '<td style="border:1px solid #ccc;min-width:52px;text-align:center;padding:6px 2px;background:#f3f4f6;font-size:11px;color:#9ca3af"></td>';
     return '<td style="border:1px solid #ccc;min-width:52px;text-align:center;padding:6px 2px;background:' + (CC[s]||'#dcfce7') + ';font-size:13px;font-weight:700;color:' + (TC[s]||'#15803d') + '">' + s + '</td>';
   }
-  let html = '<table style="border-collapse:collapse;font-size:13px;width:100%"><thead><tr>';
+  let html = '';
+  const wn = (window._auditWeekNotes || {})[mon];
+  if (wn) {
+    html += '<div style="margin-bottom:8px;padding:8px 12px;background:#fffbeb;border:1px solid #fcd34d;border-left:3px solid #f59e0b;border-radius:5px;font-size:12px;color:#78350f"><b>Week Note:</b> ' + wn.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])) + '</div>';
+  }
+  html += '<table style="border-collapse:collapse;font-size:13px;width:100%"><thead><tr>';
   html += '<th style="text-align:left;padding:6px 12px;border:1px solid #999;min-width:180px;background:#e5e7eb;font-size:12px">Compound</th>';
   DAYS.forEach((d,i) => { const [y,m,dy2] = dates[i].split('-'); html += '<th style="padding:4px 6px;border:1px solid #999;text-align:center;background:#e5e7eb;font-size:10px;min-width:52px">' + d + '<br><span style="font-weight:400;font-size:9px">' + m+'/'+dy2+'/'+y.slice(2) + '</span></th>'; });
   html += '<th style="border:1px solid #999;background:#e5e7eb;padding:4px 8px;font-size:10px">Notes</th></tr></thead><tbody>';
@@ -4709,7 +4757,10 @@ function showAuditWeek(mon, weekData, DAYS) {
       html += '<tr><td style="padding:5px 12px;border:1px solid #ccc;font-size:12px;font-weight:500;background:#f9fafb;white-space:nowrap">' + c + '</td>';
       dates.forEach(date => { html += cell(weekData[c+'|'+date]); });
       const notes = [...new Set(dates.flatMap(date => (weekData[c+'|'+date]||[]).map(e=>e.note).filter(Boolean)))];
-      html += '<td style="padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#666">' + notes.join('; ') + '</td></tr>';
+      const nstyle = notes.length
+        ? 'padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#78350f;background:#fffbeb;font-weight:500'
+        : 'padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#666';
+      html += '<td style="' + nstyle + '">' + notes.join('; ') + '</td></tr>';
     });
   });
   html += '</tbody></table>';
@@ -5531,8 +5582,23 @@ async function loadInjLog() {
   summHtml += '</tbody></table>';
   summEl.innerHTML = summHtml;
 
+  // --- WEEK NOTES (Compound = "Week Note" rows) ---
+  const isWeekNote = rec => (fv(rec, F.compound)||'').toLowerCase().trim() === 'week note';
+  const weekNoteRows = records.filter(rec => isWeekNote(rec) && (rec.fields['Week Note']||'').trim());
+  let wnHtml = '';
+  if (weekNoteRows.length) {
+    wnHtml = '<div style="margin-bottom:14px">';
+    weekNoteRows.forEach(rec => {
+      wnHtml += '<div style="padding:7px 11px;margin-bottom:5px;background:#fffbeb;border:1px solid #fcd34d;border-left:3px solid #f59e0b;border-radius:5px;font-size:12px;color:#78350f">'
+        + '<b>Week of ' + fv(rec,F.date) + ':</b> '
+        + String(rec.fields['Week Note']).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))
+        + '</div>';
+    });
+    wnHtml += '</div>';
+  }
+
   // --- FULL LOG ---
-  let fullHtml = `<p style="font-size:12px;color:var(--muted);margin-bottom:8px">${records.length} records${more?' (most recent \u2014 full history button below)':''}</p>
+  let fullHtml = wnHtml + `<p style="font-size:12px;color:var(--muted);margin-bottom:8px">${records.length} records${more?' (most recent \u2014 full history button below)':''}</p>
     <table style="width:100%;border-collapse:collapse;font-size:12px;font-family:'DM Mono',monospace">
     <thead><tr style="background:var(--surface-alt,#f3f4f6);text-align:left">
       <th style="padding:7px 10px;font-weight:600;border-bottom:1px solid var(--border)">Date</th>
@@ -5543,16 +5609,19 @@ async function loadInjLog() {
       <th style="padding:7px 10px;font-weight:600;border-bottom:1px solid var(--border)">Notes</th>
     </tr></thead><tbody>`;
   records.forEach((rec,i) => {
-    if ((fv(rec,F.compound)||'').toLowerCase().trim() === 'week note') return;
+    if (isWeekNote(rec)) return;
     const bg = i % 2 === 0 ? '' : 'background:var(--surface-alt,#f9fafb)';
     const notes = fv(rec,F.notes);
+    const nstyle = notes
+      ? 'padding:6px 10px;border-bottom:1px solid var(--border);color:#78350f;background:#fffbeb;font-weight:500;max-width:200px;word-break:break-word'
+      : 'padding:6px 10px;border-bottom:1px solid var(--border);color:var(--muted);max-width:200px;word-break:break-word';
     fullHtml += `<tr style="${bg}">
       <td style="padding:6px 10px;border-bottom:1px solid var(--border)">${fv(rec,F.date)}</td>
       <td style="padding:6px 10px;border-bottom:1px solid var(--border);font-weight:500">${fv(rec,F.compound)}</td>
       <td style="padding:6px 10px;border-bottom:1px solid var(--border)">${fv(rec,F.dose)}</td>
       <td style="padding:6px 10px;border-bottom:1px solid var(--border)">${fv(rec,F.site)}</td>
       <td style="padding:6px 10px;border-bottom:1px solid var(--border)">${fv(rec,F.timing)}</td>
-      <td style="padding:6px 10px;border-bottom:1px solid var(--border);color:var(--muted);max-width:200px;word-break:break-word">${notes}</td>
+      <td style="${nstyle}">${notes}</td>
     </tr>`;
   });
   fullHtml += '</tbody></table>';
@@ -5688,16 +5757,33 @@ async function printPeptideWeekly() {
     else { if (!morningOrder.includes(name)) morningOrder.push(name); }
   });
 
-  // Fetch current week note from InjectionLog using field ID for Compound (singleSelect)
+  // Fetch week notes for ALL printed weeks (not just week 1), keyed by that week's Monday
   let weekNote = '';
+  const weekNotesByMon = {};
   try {
-    const days = Array.from({length:7},(_,i)=>{ const d=new Date(monday); d.setDate(monday.getDate()+i); return d.toISOString().split('T')[0]; });
-    const orParts = days.map(d=>`IS_SAME({Date},"${d}","day")`).join(',');
+    const allDays = [];
+    for (let wk = 0; wk < 4; wk++) {
+      const wMon = new Date(monday); wMon.setDate(monday.getDate() + wk*7);
+      const wkKey = wMon.toISOString().split('T')[0];
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(wMon); d.setDate(wMon.getDate() + i);
+        allDays.push({ iso: d.toISOString().split('T')[0], wk: wkKey });
+      }
+    }
+    const orParts = allDays.map(d=>`IS_SAME({Date},"${d.iso}","day")`).join(',');
     const formula = encodeURIComponent(`AND(OR(${orParts}),{Compound}="Week Note")`);
-    const url = `https://api.airtable.com/v0/${BASE}/tblBvEaLkGGipnOFc?filterByFormula=${formula}&fields[]=Week+Note&pageSize=1`;
+    const url = `https://api.airtable.com/v0/${BASE}/tblBvEaLkGGipnOFc?filterByFormula=${formula}&fields[]=Week+Note&fields[]=Date&pageSize=100`;
     const res = await fetch(url, { headers: { Authorization: 'Bearer ' + TOKEN } });
     const json = await res.json();
-    if (json.records?.[0]) weekNote = json.records[0].fields['Week Note'] || '';
+    (json.records||[]).forEach(r => {
+      const txt = (r.fields['Week Note']||'').trim();
+      const dt = r.fields['Date'];
+      if (!txt || !dt) return;
+      const hit = allDays.find(d => d.iso === dt);
+      if (hit) weekNotesByMon[hit.wk] = txt;
+    });
+    const mk = monday.toISOString().split('T')[0];
+    weekNote = weekNotesByMon[mk] || '';
   } catch(e) {}
 
   function getScheduleDays(name) {
@@ -5745,7 +5831,8 @@ async function printPeptideWeekly() {
     const wMon = new Date(monday);
     wMon.setDate(monday.getDate() + weekOffset * 7);
     const mondayStr = wMon.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-    const noteText = weekOffset === 0 && weekNote ? weekNote : '';
+    const _wkMon = new Date(monday); _wkMon.setDate(monday.getDate() + weekOffset * 7);
+    const noteText = weekNotesByMon[_wkMon.toISOString().split('T')[0]] || '';
     const noteRow = `<tr><td colspan="9" style="border:1px solid #000;padding:4px 6px;font-size:8pt;color:#333;background:#ffffff!important;font-family:'DM Sans',Calibri,Arial,sans-serif;height:36px;vertical-align:top"><b>Week Note:</b> ${noteText}</td></tr>`;
     return `<table style="width:100%;border-collapse:collapse;margin-top:6px;border:2px solid #000;table-layout:fixed;font-size:8pt;font-family:'DM Sans',Calibri,Arial,sans-serif">
     <colgroup><col style="width:34%">${DAYS.map(()=>'<col style="width:6%">').join('')}<col style="width:24%"></colgroup>
@@ -7293,17 +7380,34 @@ function renderInjectionPanel(recs, startDate, endDate) {
     document.getElementById("atContent").innerHTML = "<div class='empty' style='padding:30px 10px'><div class='et' style='font-size:11px;color:var(--r)'>No records for week of " + startDate + "</div></div>";
     return;
   }
-  var html = "<div class='sec'><div class='sech'><span class='sect sectbl'>Week of " + startDate + "</span><span class='secc'>" + recs.length + "</span></div><div style='overflow-x:auto'>";
-  html += "<table class='tbl'><thead><tr><th>Date</th><th>Compound</th><th>Dose</th><th>Side</th><th>TOD</th><th>Notes</th></tr></thead><tbody>";
-  recs.forEach(function(r) {
+  // Week Note lives on its own record (Compound = "Week Note") — pull it out and banner it
+  var weekNote = "";
+  recs.forEach(function(r){
     var f = r.fields || {};
+    var wn = f["fldmGAKBTKLMGeRGn"];
+    if (wn && String(wn).trim()) weekNote = String(wn).trim();
+  });
+  var inj = recs.filter(function(r){
+    var f = r.fields || {};
+    var cn = ((f["fldwVFyizH4mBANBa"]||{}).name || f["fldt9vYT8Tm37Gf3k"] || "").toLowerCase().trim();
+    return cn !== "week note";
+  });
+  var html = "<div class='sec'><div class='sech'><span class='sect sectbl'>Week of " + startDate + "</span><span class='secc'>" + inj.length + "</span></div>";
+  if (weekNote) {
+    html += "<div style='margin:6px 0;padding:7px 10px;background:#fffbeb;border:1px solid #fcd34d;border-left:3px solid #f59e0b;border-radius:4px;font-size:11px;color:#78350f'><b>Week Note:</b> " + esc(weekNote) + "</div>";
+  }
+  html += "<div style='overflow-x:auto'>";
+  html += "<table class='tbl'><thead><tr><th>Date</th><th>Compound</th><th>Dose</th><th>Side</th><th>TOD</th><th>Notes</th></tr></thead><tbody>";
+  inj.forEach(function(r) {
+    var f = r.fields || {};
+    var note = f["fldAbczu73mINwLmx"] || "";
     html += "<tr>";
     html += "<td>" + esc(f["fldhYEtLEGA4VxvvO"]||"") + "</td>";
     html += "<td style='font-weight:500'>" + esc((f["fldwVFyizH4mBANBa"]||{}).name||"") + "</td>";
     html += "<td>" + esc(f["fld8d8mtRapfaIyqL"]||"") + "</td>";
     html += "<td>" + esc((f["fldHDlJY8FpAvK018"]||{}).name||"") + "</td>";
     html += "<td>" + esc((f["fldIdzew4Jd0qO4Uc"]||{}).name||"") + "</td>";
-    html += "<td style='font-size:10px;color:var(--d)'>" + esc(f["Notes"]||"") + "</td>";
+    html += "<td style='font-size:10px;color:" + (note ? "#78350f;background:#fffbeb;font-weight:500" : "var(--d)") + "'>" + esc(note) + "</td>";
     html += "</tr>";
   });
   html += "</tbody></table></div></div>";
