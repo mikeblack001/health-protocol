@@ -206,7 +206,14 @@ select.fe{cursor:pointer}
 
         <button id="wg-tog" onclick="toggleWGrid()">▲ Hide</button>
       </div>
-      <div id="wg-note" style="display:none;padding:7px 14px;background:#fffbeb;border-bottom:1px solid #fcd34d;border-left:3px solid #f59e0b;font-size:11px;color:#78350f;line-height:1.45"></div>
+      <div id="wg-note" style="display:flex;align-items:center;gap:8px;padding:6px 14px;background:#fffbeb;border-bottom:1px solid #fcd34d;border-left:3px solid #f59e0b">
+        <span style="font-size:10px;font-weight:800;color:#78350f;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap">📝 Week Note</span>
+        <input id="wg-note-in" type="text" placeholder="No note for this week — click to add…"
+          style="flex:1;padding:4px 8px;border:1px solid #fcd34d;border-radius:4px;font-size:11px;color:#78350f;background:#fff;font-family:inherit">
+        <button id="wg-note-btn" onclick="saveWeekNote()"
+          style="padding:4px 10px;font-size:10px;font-weight:700;border:1px solid #f59e0b;background:#f59e0b;color:#fff;border-radius:4px;cursor:pointer">Save</button>
+        <span id="wg-note-st" style="font-size:10px;color:#78350f;min-width:60px"></span>
+      </div>
       <div id="wgrid-body">
         <table id="wgrid"><tr><td class="empty" style="padding:12px 14px;font-size:11px">Select a date to load week</td></tr></table>
       </div>
@@ -556,22 +563,19 @@ async function loadWeekGrid(date){
     }while(off);
   }catch(e){wg.innerHTML=`<tr><td style="color:#dc2626;padding:8px">Grid error: ${e.message}</td></tr>`;ws.textContent='';return;}
 
-  // --- WEEK NOTE banner (Compound = "Week Note" row, dated to the week's Monday) ---
-  const wnEl=document.getElementById('wg-note');
-  if(wnEl){
-    const cmpName=r=>{const v=r.fields[LOG.compound];return(typeof v==='object'&&v)?v.name:v;};
-    const wnRec=recs.find(r=>String(cmpName(r)||'').toLowerCase().trim()==='week note');
-    const wnTxt=wnRec?String(wnRec.fields[LOG.weeknote]||wnRec.fields[LOG.notes]||'').trim():'';
-    if(wnTxt){
-      wnEl.innerHTML='<b>📝 Week Note:</b> '+esc(wnTxt);
-      wnEl.style.display='';
-    }else{
-      wnEl.innerHTML='';
-      wnEl.style.display='none';
-    }
+  // --- WEEK NOTE (editable; Compound = "Week Note" row dated to the week's Monday) ---
+  const cmpName=r=>{const v=r.fields[LOG.compound];return(typeof v==='object'&&v)?v.name:v;};
+  const wnRec=recs.find(r=>String(cmpName(r)||'').toLowerCase().trim()==='week note');
+  window._wnMonday=days[0];
+  window._wnRecId=wnRec?wnRec.id:null;
+  const wnIn=document.getElementById('wg-note-in');
+  if(wnIn){
+    wnIn.value=wnRec?String(wnRec.fields[LOG.weeknote]||'').trim():'';
+    wnIn.placeholder='No note for week of '+days[0]+' — click to add…';
+    document.getElementById('wg-note-st').textContent='';
   }
   // Week Note is a metadata row, not a dose — keep it out of the compound grid
-  recs=recs.filter(r=>{const v=r.fields[LOG.compound];const n=(typeof v==='object'&&v)?v.name:v;return String(n||'').toLowerCase().trim()!=='week note';});
+  recs=recs.filter(r=>String(cmpName(r)||'').toLowerCase().trim()!=='week note');
 
   // Build compound+timing lookup — each unique compound+timing gets its own row
   const data={};  // key = "CJC-1295 No DAC||Night"
@@ -831,6 +835,37 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeCM();});
 function pmsg(m){document.getElementById('pp-msg').textContent=m;}
 
 // ── AT ────────────────────────────────────────────────────────────────
+async function saveWeekNote(){
+  const inEl=document.getElementById('wg-note-in');
+  const stEl=document.getElementById('wg-note-st');
+  const btn=document.getElementById('wg-note-btn');
+  if(!inEl||!window._wnMonday)return;
+  const val=inEl.value.trim();
+  btn.disabled=true; stEl.textContent='Saving…';
+  try{
+    if(window._wnRecId){
+      await atFetch(LOG.tbl+'/'+window._wnRecId,{
+        method:'PATCH',
+        body:JSON.stringify({fields:{[LOG.weeknote]:val}})
+      });
+    }else{
+      const r=await atFetch(LOG.tbl+'?returnFieldsByFieldId=true',{
+        method:'POST',
+        body:JSON.stringify({records:[{fields:{
+          [LOG.name]:'Week Note '+window._wnMonday,
+          [LOG.date]:window._wnMonday,
+          [LOG.compound]:'Week Note',
+          [LOG.weeknote]:val
+        }}],typecast:true})
+      });
+      window._wnRecId=r.records[0].id;
+    }
+    stEl.textContent='✓ Saved';
+    setTimeout(()=>{stEl.textContent='';},2000);
+  }catch(e){ stEl.textContent='⚠ '+e.message; }
+  btn.disabled=false;
+}
+
 async function atFetch(path,opts={}){
   const r=await fetch('https://api.airtable.com/v0/'+AT_BASE+'/'+path,{...opts,headers:{Authorization:'Bearer '+AT_TOK,'Content-Type':'application/json',...(opts.headers||{})}});
   if(!r.ok){const e=await r.json().catch(()=>({error:{message:r.status}}));throw new Error(e.error?.message||r.status);}
