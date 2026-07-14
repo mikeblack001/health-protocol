@@ -586,7 +586,9 @@ async function loadWeekGrid(date){
     if((cmp||'').toLowerCase().trim()==='week note')return;
     const key=cmp+'||'+timing;
     // Also track by compound-only key for grouping same compound different timings
-    if(!data[key]){data[key]={cmp,timing,days:{}};keyOrder.push(key);}
+    if(!data[key]){data[key]={cmp,timing,days:{},notes:[]};keyOrder.push(key);}
+    const nt=(f[LOG.notes]||'').trim();
+    if(nt&&!data[key].notes.some(n=>n.note.toLowerCase()===nt.toLowerCase()))data[key].notes.push({day,note:nt});
     if(!data[key].days[day])data[key].days[day]={sites:[],doses:[],n:0};
     data[key].days[day].n++;
     if(site)data[key].days[day].sites.push(site);
@@ -611,6 +613,7 @@ async function loadWeekGrid(date){
     const today=d===date;
     h+=`<th class="wg-day${today?' wg-today':''}" onclick="setDate('${d}')" title="${d}">${DN[i]}<br><span style="font-size:9px;opacity:.8">${d.slice(5)}</span></th>`;
   });
+  h+=`<th style="min-width:180px;text-align:left;padding-left:10px">Notes</th>`;
   h+=`</tr></thead><tbody>`;
 
   orderedKeys.forEach(key=>{
@@ -629,6 +632,10 @@ async function loadWeekGrid(date){
         h+=`<td ${onclick} style="cursor:pointer;background:${sc.bg};color:${sc.fg};font-weight:800;font-size:11px">${esc(siteVal)}</td>`;
       }
     });
+    const noteTxt=(data[key].notes||[])
+      .sort((a,b)=>a.day.localeCompare(b.day))
+      .map(n=>n.note).join(' \u00b7 ');
+    h+=`<td style="text-align:left;padding:3px 8px;font-size:10px;color:#78350f;background:${noteTxt?'#fffbeb':'#fff'};white-space:normal;line-height:1.35">${esc(noteTxt)}</td>`;
     h+=`</tr>`;
   });
   h+=`</tbody>`;
