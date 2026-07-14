@@ -249,6 +249,29 @@ const LOG={tbl:'tblBvEaLkGGipnOFc',name:'fldt9vYT8Tm37Gf3k',date:'fldhYEtLEGA4Vx
   compound:'fldwVFyizH4mBANBa',site:'fldHDlJY8FpAvK018',timing:'fldIdzew4Jd0qO4Uc',
   dose:'fld8d8mtRapfaIyqL',notes:'fldAbczu73mINwLmx',status:'fldD9kegiwk6mINV8',
   verified:'fldCUuf2lg4hGwXZV',weeknote:'fldmGAKBTKLMGeRGn'};
+const PEP={tbl:'tblMs6YRdP4wkndUp',compound:'fldeH5uyKXDFPZbHK',roworder:'fldA9yLhudZkO1CjS',timing:'fld9J0U5iSDzyaaun'};
+let PEP_ORDER=null;   // {name -> {row, timing}} from the Peptides master
+async function loadPepOrder(){
+  if(PEP_ORDER)return PEP_ORDER;
+  PEP_ORDER={};
+  try{
+    let recs=[],off=null;
+    do{
+      const flds=[PEP.compound,PEP.roworder,PEP.timing].map(f=>'fields%5B%5D='+f).join('&');
+      const d=await atFetch(PEP.tbl+'?returnFieldsByFieldId=true&'+flds+'&pageSize=100'+(off?'&offset='+off:''));
+      recs=recs.concat(d.records);off=d.offset;
+    }while(off);
+    recs.forEach(r=>{
+      const f=r.fields;
+      const nm=f[PEP.compound];
+      if(!nm)return;
+      const tv=f[PEP.timing];
+      const tm=(typeof tv==='object'&&tv)?tv.name:tv;
+      PEP_ORDER[String(nm).trim()]={row:(f[PEP.roworder]??99999),timing:String(tm||'')};
+    });
+  }catch(e){ console.error('pep order:',e); }
+  return PEP_ORDER;
+}
 const GCL_ID='478191426516-94rflpalsl5ev56ptck62k5imes6jk8l.apps.googleusercontent.com';
 const GSCOPE='https://www.googleapis.com/auth/drive.readonly';
 const PDF_QA='https://mikeblack001.github.io/health-protocol/pdf_qa.html';
@@ -596,7 +619,22 @@ async function loadWeekGrid(date){
 
   });
 
-  // Apply saved order — only use keys that exist in actual data this week
+  // Sort keys by the Peptides master: Morning block first, then Night, each by Row Order.
+  // Previously this used only whatever order Airtable happened to return records in.
+  const PO=await loadPepOrder();
+  const tRank=t=>{const x=String(t||'').toLowerCase();return x.includes('night')?1:0;};
+  keyOrder.sort((a,b)=>{
+    const [ca,ta]=a.split('||'), [cb,tb]=b.split('||');
+    const pa=PO[ca]||{}, pb=PO[cb]||{};
+    // timing: prefer the logged record's timing, fall back to the master's
+    const ra=tRank(ta||pa.timing), rb=tRank(tb||pb.timing);
+    if(ra!==rb)return ra-rb;
+    const oa=(pa.row??99999), ob=(pb.row??99999);
+    if(oa!==ob)return oa-ob;
+    return ca.localeCompare(cb);
+  });
+
+  // Apply saved drag order on top — only keys that exist in actual data this week
   const saved=getRowOrder(date).filter(s=>keyOrder.includes(s)||keyOrder.some(k=>k.startsWith(s+'||')));
   const allKeys=keyOrder;
   const orderedKeys=[];
