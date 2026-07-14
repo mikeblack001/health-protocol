@@ -206,6 +206,7 @@ select.fe{cursor:pointer}
 
         <button id="wg-tog" onclick="toggleWGrid()">▲ Hide</button>
       </div>
+      <div id="wg-note" style="display:none;padding:7px 14px;background:#fffbeb;border-bottom:1px solid #fcd34d;border-left:3px solid #f59e0b;font-size:11px;color:#78350f;line-height:1.45"></div>
       <div id="wgrid-body">
         <table id="wgrid"><tr><td class="empty" style="padding:12px 14px;font-size:11px">Select a date to load week</td></tr></table>
       </div>
@@ -240,7 +241,7 @@ const AT_BASE='appmHDG4TGT1xy6R6';
 const LOG={tbl:'tblBvEaLkGGipnOFc',name:'fldt9vYT8Tm37Gf3k',date:'fldhYEtLEGA4VxvvO',
   compound:'fldwVFyizH4mBANBa',site:'fldHDlJY8FpAvK018',timing:'fldIdzew4Jd0qO4Uc',
   dose:'fld8d8mtRapfaIyqL',notes:'fldAbczu73mINwLmx',status:'fldD9kegiwk6mINV8',
-  verified:'fldCUuf2lg4hGwXZV'};
+  verified:'fldCUuf2lg4hGwXZV',weeknote:'fldmGAKBTKLMGeRGn'};
 const GCL_ID='478191426516-94rflpalsl5ev56ptck62k5imes6jk8l.apps.googleusercontent.com';
 const GSCOPE='https://www.googleapis.com/auth/drive.readonly';
 const PDF_QA='https://mikeblack001.github.io/health-protocol/pdf_qa.html';
@@ -546,7 +547,7 @@ async function loadWeekGrid(date){
   ws.textContent='Loading…';
   const orParts=days.map(d=>`IS_SAME({${LOG.date}},"${d}","day")`).join(',');
   const q=encodeURIComponent(`OR(${orParts})`);
-  const flds=[LOG.date,LOG.compound,LOG.site,LOG.timing,LOG.dose,LOG.verified].map(f=>'fields%5B%5D='+f).join('&');
+  const flds=[LOG.date,LOG.compound,LOG.site,LOG.timing,LOG.dose,LOG.verified,LOG.notes,LOG.weeknote].map(f=>'fields%5B%5D='+f).join('&');
   let recs=[],off=null;
   try{
     do{
@@ -554,6 +555,23 @@ async function loadWeekGrid(date){
       recs=recs.concat(d.records);off=d.offset;
     }while(off);
   }catch(e){wg.innerHTML=`<tr><td style="color:#dc2626;padding:8px">Grid error: ${e.message}</td></tr>`;ws.textContent='';return;}
+
+  // --- WEEK NOTE banner (Compound = "Week Note" row, dated to the week's Monday) ---
+  const wnEl=document.getElementById('wg-note');
+  if(wnEl){
+    const cmpName=r=>{const v=r.fields[LOG.compound];return(typeof v==='object'&&v)?v.name:v;};
+    const wnRec=recs.find(r=>String(cmpName(r)||'').toLowerCase().trim()==='week note');
+    const wnTxt=wnRec?String(wnRec.fields[LOG.weeknote]||wnRec.fields[LOG.notes]||'').trim():'';
+    if(wnTxt){
+      wnEl.innerHTML='<b>📝 Week Note:</b> '+esc(wnTxt);
+      wnEl.style.display='';
+    }else{
+      wnEl.innerHTML='';
+      wnEl.style.display='none';
+    }
+  }
+  // Week Note is a metadata row, not a dose — keep it out of the compound grid
+  recs=recs.filter(r=>{const v=r.fields[LOG.compound];const n=(typeof v==='object'&&v)?v.name:v;return String(n||'').toLowerCase().trim()!=='week note';});
 
   // Build compound+timing lookup — each unique compound+timing gets its own row
   const data={};  // key = "CJC-1295 No DAC||Night"
