@@ -5508,6 +5508,44 @@ async function loadChanges() {
   } catch(e) { el.innerHTML = `<p style="color:var(--red);padding:16px">Error: ${e.message}</p>`; }
 }
 
+async function saveInjWeekNote(wk){
+  const inEl = document.getElementById('wn-in-' + wk);
+  const stEl = document.getElementById('wn-st-' + wk);
+  if (!inEl) return;
+  const val = inEl.value.trim();
+  stEl.textContent = 'Saving…';
+  const TABLE = 'tblBvEaLkGGipnOFc';
+  const H = { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' };
+  try {
+    const existingId = (window._injWeekNotes || {})[wk];
+    if (existingId) {
+      const r = await fetch(`https://api.airtable.com/v0/${BASE}/${TABLE}/${existingId}`, {
+        method: 'PATCH', headers: H,
+        body: JSON.stringify({ fields: { 'fldmGAKBTKLMGeRGn': val } })
+      });
+      if (!r.ok) throw new Error((await r.json()).error?.message || r.status);
+    } else {
+      const r = await fetch(`https://api.airtable.com/v0/${BASE}/${TABLE}`, {
+        method: 'POST', headers: H,
+        body: JSON.stringify({ records: [{ fields: {
+          'fldt9vYT8Tm37Gf3k': 'Week Note ' + wk,
+          'fldhYEtLEGA4VxvvO': wk,
+          'fldwVFyizH4mBANBa': 'Week Note',
+          'fldmGAKBTKLMGeRGn': val
+        }}], typecast: true })
+      });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error?.message || r.status);
+      window._injWeekNotes = window._injWeekNotes || {};
+      window._injWeekNotes[wk] = j.records[0].id;
+    }
+    stEl.textContent = '✓ Saved';
+    setTimeout(() => { stEl.textContent = ''; }, 2000);
+  } catch(e) {
+    stEl.textContent = '⚠ ' + e.message;
+  }
+}
+
 async function loadInjLog() {
   const TABLE = 'tblBvEaLkGGipnOFc';
   const F = {
@@ -5582,30 +5620,46 @@ async function loadInjLog() {
   summHtml += '</tbody></table>';
   summEl.innerHTML = summHtml;
 
-  // --- WEEK NOTES (Compound = "Week Note" rows) ---
+  // --- WEEK NOTES (Compound = "Week Note" rows) — editable, always visible ---
   // Fetched separately: the 2-page record cap above means Week Note rows (one per week,
   // sparse) fall outside the recent-records window and would otherwise never appear.
-  const isWeekNote = rec => (fv(rec, F.compound)||'').toLowerCase().trim() === 'week note';
-  let weekNoteRows = [];
+  let weekNoteRecs = [];
   try {
     const wnUrl = `https://api.airtable.com/v0/${BASE}/${TABLE}`
       + `?filterByFormula=${encodeURIComponent('{Compound}="Week Note"')}`
       + `&sort[0][field]=Date&sort[0][direction]=desc&pageSize=100`;
     const wr = await fetch(wnUrl, { headers: { Authorization: `Bearer ${TOKEN}` } });
     const wd = await wr.json();
-    if (wr.ok) weekNoteRows = (wd.records || []).filter(rec => (rec.fields['Week Note']||'').trim());
-  } catch(e) { /* non-fatal: grid still renders without notes */ }
-  let wnHtml = '';
-  if (weekNoteRows.length) {
-    wnHtml = '<div style="margin-bottom:14px">';
-    weekNoteRows.forEach(rec => {
-      wnHtml += '<div style="padding:7px 11px;margin-bottom:5px;background:#fffbeb;border:1px solid #fcd34d;border-left:3px solid #f59e0b;border-radius:5px;font-size:12px;color:#78350f">'
-        + '<b>Week of ' + fv(rec,F.date) + ':</b> '
-        + String(rec.fields['Week Note']).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))
-        + '</div>';
-    });
-    wnHtml += '</div>';
-  }
+    if (wr.ok) weekNoteRecs = wd.records || [];
+  } catch(e) { /* non-fatal */ }
+
+  // Monday of the current week — so there is always a row to type into
+  const _mon = (() => {
+    const d = new Date();
+    const m = new Date(d.getFullYear(), d.getMonth(), d.getDate() - ((d.getDay()+6)%7));
+    return `${m.getFullYear()}-${String(m.getMonth()+1).padStart(2,'0')}-${String(m.getDate()).padStart(2,'0')}`;
+  })();
+  window._injWeekNotes = {};
+  weekNoteRecs.forEach(r => { window._injWeekNotes[fv(r,F.date)] = r.id; });
+  const _esc2 = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const wnWeeks = [...new Set([_mon, ...weekNoteRecs.map(r => fv(r,F.date))])]
+    .filter(Boolean).sort().reverse();
+
+  let wnHtml = '<div style="margin-bottom:14px">'
+    + '<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">\u{1F4DD} Week Notes</div>';
+  wnWeeks.forEach(wk => {
+    const rec = weekNoteRecs.find(r => fv(r,F.date) === wk);
+    const val = rec ? String(rec.fields['Week Note'] || '') : '';
+    wnHtml += `<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;margin-bottom:5px;background:#fffbeb;border:1px solid #fcd34d;border-left:3px solid #f59e0b;border-radius:5px">
+      <b style="font-size:11px;color:#78350f;white-space:nowrap;min-width:108px">Week of ${wk}</b>
+      <input type="text" id="wn-in-${wk}" value="${_esc2(val)}" placeholder="No note — click to add\u2026"
+        style="flex:1;padding:4px 8px;border:1px solid #fcd34d;border-radius:4px;font-size:12px;color:#78350f;background:#fff;font-family:inherit">
+      <button onclick="saveInjWeekNote('${wk}')"
+        style="padding:4px 10px;font-size:10px;font-weight:700;border:1px solid #f59e0b;background:#f59e0b;color:#fff;border-radius:4px;cursor:pointer">Save</button>
+      <span id="wn-st-${wk}" style="font-size:10px;color:#78350f;min-width:56px"></span>
+    </div>`;
+  });
+  wnHtml += '</div>';
 
   // --- FULL LOG ---
   let fullHtml = wnHtml + `<p style="font-size:12px;color:var(--muted);margin-bottom:8px">${records.length} records${more?' (most recent \u2014 full history button below)':''}</p>
