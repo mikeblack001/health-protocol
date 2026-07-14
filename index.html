@@ -2312,44 +2312,7 @@ async function loadTrackerWeekData(mondayISO) {
   if (weekNoteRec) { _weekNoteRecId[mondayISO] = weekNoteRec.id; }
   if (wnel) wnel.value = weekNoteRec ? (weekNoteRec.fields['fldmGAKBTKLMGeRGn'] || weekNoteRec.fields['Week Note'] || '') : '';
 
-  // Daily injection notes for this week — surfaced under the tracker grid
-  try {
-    const dayNotes = [];
-    records.forEach(r => {
-      const f = r.fields || {};
-      const c = Array.isArray(f['Compound']) ? f['Compound'][0] : (f['Compound'] || f['Name'] || '');
-      if ((c||'').toLowerCase().trim() === 'week note') return;
-      const nt = (f['Notes']||'').trim();
-      if (!nt || !f['Date']) return;
-      dayNotes.push({ date: f['Date'], compound: c, note: nt });
-    });
-    dayNotes.sort((a,b) => a.date.localeCompare(b.date) || a.compound.localeCompare(b.compound));
-    let dnEl = document.getElementById('tracker-daily-notes');
-    if (!dnEl) {
-      const anchor = wnel ? (wnel.closest('div') || wnel.parentNode) : null;
-      if (anchor && anchor.parentNode) {
-        dnEl = document.createElement('div');
-        dnEl.id = 'tracker-daily-notes';
-        dnEl.style.cssText = 'margin-top:10px';
-        anchor.parentNode.insertBefore(dnEl, anchor.nextSibling);
-      }
-    }
-    if (dnEl) {
-      if (!dayNotes.length) { dnEl.innerHTML = ''; }
-      else {
-        const esc2 = s => String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
-        let h = '<div style="padding:8px 11px;background:#fffbeb;border:1px solid #fcd34d;border-left:3px solid #f59e0b;border-radius:5px">'
-              + '<div style="font-size:11px;font-weight:700;color:#78350f;text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px">Daily Notes</div>';
-        dayNotes.forEach(n => {
-          const [y,m,d] = n.date.split('-');
-          h += '<div style="font-size:12px;color:#78350f;margin-bottom:2px"><b>' + m + '/' + d + ' &middot; ' + esc2(n.compound) + ':</b> ' + esc2(n.note) + '</div>';
-        });
-        h += '</div>';
-        dnEl.innerHTML = h;
-      }
-    }
-  } catch(e) { console.error('tracker daily notes:', e); }
-
+  const _cmpNotes = {};   // resolved compound -> [{date, note}]
   records.forEach(r => {
       const f = r.fields;
       const rawCompound = Array.isArray(f['Compound']) ? f['Compound'][0] : (f['Compound'] || f['Name']);
@@ -2358,15 +2321,36 @@ async function loadTrackerWeekData(mondayISO) {
       if (!rawCompound || !date) return;
       if ((rawCompound||'').toLowerCase().trim() === 'week note') return;
       const resolved = resolveCompound(rawCompound);
-      const box = allBoxes.find(b => norm(b.dataset.compound) === resolved && b.dataset.date === date);
-      if (box) {
-        applyState(box, site, r.id);
-        const note = f['Week Note'] || f['Notes'] || f['fldmGAKBTKLMGeRGn'];
-        if (note && note.trim()) {
-          const noteInput = document.querySelector(`input[data-type="notes"][data-compound="${box.dataset.compound}"]`);
-          if (noteInput && !noteInput.value) noteInput.value = note.trim();
-        }
+
+      // Collect notes regardless of whether a grid box exists for this date —
+      // a note must never be dropped just because its day cell isn't rendered.
+      const nt = (f['Notes'] || '').trim();
+      if (nt) {
+        (_cmpNotes[resolved] = _cmpNotes[resolved] || []).push({ date, note: nt });
       }
+
+      const box = allBoxes.find(b => norm(b.dataset.compound) === resolved && b.dataset.date === date);
+      if (box) applyState(box, site, r.id);
+    });
+
+    // Apply notes: every distinct note for the compound this week, oldest first,
+    // de-duplicated. Previously only the first one was kept and the rest vanished.
+    Object.keys(_cmpNotes).forEach(resolved => {
+      const list = _cmpNotes[resolved]
+        .sort((a,b) => a.date.localeCompare(b.date));
+      const seenN = new Set();
+      const parts = [];
+      list.forEach(n => {
+        const k = n.note.toLowerCase();
+        if (seenN.has(k)) return;
+        seenN.add(k);
+        parts.push(n.note);
+      });
+      if (!parts.length) return;
+      const box = allBoxes.find(b => norm(b.dataset.compound) === resolved);
+      if (!box) return;
+      const noteInput = document.querySelector(`input[data-type="notes"][data-compound="${box.dataset.compound}"]`);
+      if (noteInput) noteInput.value = parts.join(' · ');
     });
 
     // Dose labels always use current Peptides table (rendered at build time)
