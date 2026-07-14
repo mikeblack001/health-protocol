@@ -5583,8 +5583,18 @@ async function loadInjLog() {
   summEl.innerHTML = summHtml;
 
   // --- WEEK NOTES (Compound = "Week Note" rows) ---
+  // Fetched separately: the 2-page record cap above means Week Note rows (one per week,
+  // sparse) fall outside the recent-records window and would otherwise never appear.
   const isWeekNote = rec => (fv(rec, F.compound)||'').toLowerCase().trim() === 'week note';
-  const weekNoteRows = records.filter(rec => isWeekNote(rec) && (rec.fields['Week Note']||'').trim());
+  let weekNoteRows = [];
+  try {
+    const wnUrl = `https://api.airtable.com/v0/${BASE}/${TABLE}`
+      + `?filterByFormula=${encodeURIComponent('{Compound}="Week Note"')}`
+      + `&sort[0][field]=Date&sort[0][direction]=desc&pageSize=100`;
+    const wr = await fetch(wnUrl, { headers: { Authorization: `Bearer ${TOKEN}` } });
+    const wd = await wr.json();
+    if (wr.ok) weekNoteRows = (wd.records || []).filter(rec => (rec.fields['Week Note']||'').trim());
+  } catch(e) { /* non-fatal: grid still renders without notes */ }
   let wnHtml = '';
   if (weekNoteRows.length) {
     wnHtml = '<div style="margin-bottom:14px">';
