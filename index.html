@@ -2126,7 +2126,7 @@ function renderTracker(weekNum) {
       html += `<tr>
         <td style="padding:5px 10px;border:1px solid #000;background:${MORN_BG}" data-compound-label="${name}">
           <div style="font-weight:700;font-size:13px;line-height:1.3;color:var(--text)">${name}</div>
-          <div style="font-size:10px;color:var(--muted);margin-top:1px"><span class="tracker-dose-label">${getField(r,'Dose')}</span>${getField(r,'Frequency') ? ' · '+getField(r,'Frequency') : ''}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:1px"><span class="tracker-dose-label" data-compound="${name}" data-current-dose="${getField(r,'Dose')}">${getField(r,'Dose')}</span>${getField(r,'Frequency') ? ' · '+getField(r,'Frequency') : ''}</div>
         </td>
         ${days.map((_,i) => dayCell(name, i, MORN_BG, 'Morning')).join('')}
         ${vialBtns(name)}
@@ -2147,7 +2147,7 @@ function renderTracker(weekNum) {
       html += `<tr>
         <td style="padding:3px 6px;border:1px solid #000;background:${NIGHT_BG};overflow:hidden;text-overflow:ellipsis;white-space:nowrap" data-compound-label="${name}">
           <div style="font-weight:700;font-size:13px;line-height:1.3;color:var(--text)">${name}</div>
-          <div style="font-size:10px;color:var(--muted);margin-top:1px"><span class="tracker-dose-label">${getField(r,'Dose')}</span>${getField(r,'Frequency') ? ' · '+getField(r,'Frequency') : ''}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:1px"><span class="tracker-dose-label" data-compound="${name}" data-current-dose="${getField(r,'Dose')}">${getField(r,'Dose')}</span>${getField(r,'Frequency') ? ' · '+getField(r,'Frequency') : ''}</div>
         </td>
         ${days.map((_,i) => dayCell(name, i, NIGHT_BG, 'Night')).join('')}
         ${vialBtns(name)}
@@ -2207,7 +2207,7 @@ async function loadTrackerWeekData(mondayISO) {
     const prevISO = prevDay.toISOString().split('T')[0];
     const nextISO = nextDay.toISOString().split('T')[0];
     const formula = `AND(IS_AFTER({Date},"${prevISO}"),IS_BEFORE({Date},"${nextISO}"))`;
-    const url = `https://api.airtable.com/v0/${BASE}/tblBvEaLkGGipnOFc?filterByFormula=${encodeURIComponent(formula)}&fields[]=Date&fields[]=Compound&fields[]=Site&fields[]=Name&fields[]=Notes&fields[]=Week+Note&fields[]=fldmGAKBTKLMGeRGn&pageSize=100`;
+    const url = `https://api.airtable.com/v0/${BASE}/tblBvEaLkGGipnOFc?filterByFormula=${encodeURIComponent(formula)}&fields[]=Date&fields[]=Compound&fields[]=Site&fields[]=Name&fields[]=Notes&fields[]=Dose&fields[]=Week+Note&fields[]=fldmGAKBTKLMGeRGn&pageSize=100`;
     const res = await fetch(url, { headers: { Authorization: `Bearer ${TOKEN}` } });
     const json = await res.json();
     const records = json.records || [];
@@ -2353,7 +2353,38 @@ async function loadTrackerWeekData(mondayISO) {
       if (noteInput) noteInput.value = parts.join(' · ');
     });
 
-    // Dose labels always use current Peptides table (rendered at build time)
+    // --- HISTORICAL DOSE ---
+    // Dose labels are rendered from the Peptides master at build time, which is the
+    // CURRENT dose. On a past week that's wrong — show the dose actually logged then.
+    // Falls back to the current master dose only when nothing was logged that week.
+    const _doseByCmp = {};
+    records.forEach(r => {
+      const f = r.fields || {};
+      const rawC = Array.isArray(f['Compound']) ? f['Compound'][0] : (f['Compound'] || f['Name']);
+      if (!rawC) return;
+      if ((rawC||'').toLowerCase().trim() === 'week note') return;
+      const d = (f['Dose'] || '').trim();
+      if (!d) return;
+      const res = resolveCompound(rawC);
+      (_doseByCmp[res] = _doseByCmp[res] || []).push(d);
+    });
+    document.querySelectorAll('.tracker-dose-label').forEach(sp => {
+      const res = norm(sp.dataset.compound || '');
+      const logged = _doseByCmp[res];
+      if (logged && logged.length) {
+        // most frequently logged dose that week wins (handles a mid-week change)
+        const tally = {};
+        logged.forEach(d => { tally[d] = (tally[d]||0) + 1; });
+        const best = Object.keys(tally).sort((a,b) => tally[b]-tally[a])[0];
+        sp.textContent = best;
+        sp.style.color = '';
+        sp.title = 'Dose logged this week';
+      } else {
+        sp.textContent = sp.dataset.currentDose || '';
+        sp.style.color = 'var(--muted)';
+        sp.title = 'No dose logged this week — showing current protocol dose';
+      }
+    });
 
   } catch(e) { console.error('loadTrackerWeekData failed:', e); }
 }
