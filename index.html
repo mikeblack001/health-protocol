@@ -7459,22 +7459,32 @@ function renderInjectionPanel(recs, startDate, endDate) {
     document.getElementById("atContent").innerHTML = "<div class='empty' style='padding:30px 10px'><div class='et' style='font-size:11px;color:var(--r)'>No records for week of " + startDate + "</div></div>";
     return;
   }
-  // Week Note lives on its own record (Compound = "Week Note") — pull it out and banner it
-  var weekNote = "";
+  // Week Note lives on its own record (Compound = "Week Note")
+  var weekNote = "", weekNoteId = null;
   recs.forEach(function(r){
     var f = r.fields || {};
-    var wn = f["fldmGAKBTKLMGeRGn"];
-    if (wn && String(wn).trim()) weekNote = String(wn).trim();
+    var cn = ((f["fldwVFyizH4mBANBa"]||{}).name || "").toLowerCase().trim();
+    if (cn === "week note") {
+      weekNoteId = r.id;
+      weekNote = String(f["fldmGAKBTKLMGeRGn"] || "").trim();
+    }
   });
+  window._pvWeekNoteId = weekNoteId;
+  window._pvMonday = startDate;
+
   var inj = recs.filter(function(r){
     var f = r.fields || {};
     var cn = ((f["fldwVFyizH4mBANBa"]||{}).name || f["fldt9vYT8Tm37Gf3k"] || "").toLowerCase().trim();
     return cn !== "week note";
   });
   var html = "<div class='sec'><div class='sech'><span class='sect sectbl'>Week of " + startDate + "</span><span class='secc'>" + inj.length + "</span></div>";
-  if (weekNote) {
-    html += "<div style='margin:6px 0;padding:7px 10px;background:#fffbeb;border:1px solid #fcd34d;border-left:3px solid #f59e0b;border-radius:4px;font-size:11px;color:#78350f'><b>Week Note:</b> " + esc(weekNote) + "</div>";
-  }
+  // Editable week note — always shown so a missing note can be added
+  html += "<div style='display:flex;align-items:center;gap:6px;margin:6px 0;padding:6px 9px;background:#fffbeb;border:1px solid #fcd34d;border-left:3px solid #f59e0b;border-radius:4px'>"
+       +  "<b style='font-size:10px;color:#78350f;white-space:nowrap'>Week Note</b>"
+       +  "<input id='pv-wn' type='text' value=\"" + esc(weekNote) + "\" placeholder='No note - click to add...' "
+       +  "onblur='savePvWeekNote(this)' "
+       +  "style='flex:1;padding:3px 6px;border:1px solid #fcd34d;border-radius:3px;font-size:11px;color:#78350f;background:#fff;font-family:inherit'>"
+       +  "<span id='pv-wn-st' style='font-size:10px;color:#78350f;min-width:50px'></span></div>";
   html += "<div style='overflow-x:auto'>";
   html += "<table class='tbl'><thead><tr><th>Date</th><th>Compound</th><th>Dose</th><th>Side</th><th>TOD</th><th>Notes</th></tr></thead><tbody>";
   inj.forEach(function(r) {
@@ -7486,11 +7496,69 @@ function renderInjectionPanel(recs, startDate, endDate) {
     html += "<td>" + esc(f["fld8d8mtRapfaIyqL"]||"") + "</td>";
     html += "<td>" + esc((f["fldHDlJY8FpAvK018"]||{}).name||"") + "</td>";
     html += "<td>" + esc((f["fldIdzew4Jd0qO4Uc"]||{}).name||"") + "</td>";
-    html += "<td style='font-size:10px;color:" + (note ? "#78350f;background:#fffbeb;font-weight:500" : "var(--d)") + "'>" + esc(note) + "</td>";
+    // Editable per-compound note
+    html += "<td style='padding:2px'><input type='text' value=\"" + esc(note) + "\" placeholder='...' "
+         +  "onblur=\"savePvNote('" + r.id + "', this)\" "
+         +  "style='width:100%;min-width:130px;padding:3px 5px;border:1px solid " + (note?'#fcd34d':'var(--bd,#ddd)') + ";border-radius:3px;font-size:10px;"
+         +  "color:" + (note?'#78350f':'inherit') + ";background:" + (note?'#fffbeb':'#fff') + ";font-family:inherit'></td>";
     html += "</tr>";
   });
   html += "</tbody></table></div></div>";
   document.getElementById("atContent").innerHTML = html;
+}
+
+async function savePvNote(recId, el) {
+  var val = el.value.trim();
+  if (el.dataset.last === val) return;
+  el.dataset.last = val;
+  try {
+    var r = await fetch("https://api.airtable.com/v0/" + BASE + "/tblBvEaLkGGipnOFc/" + recId, {
+      method: "PATCH",
+      headers: { Authorization: "Bearer " + TOKEN, "Content-Type": "application/json" },
+      body: JSON.stringify({ fields: { "fldAbczu73mINwLmx": val } })
+    });
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    el.style.borderColor = val ? "#fcd34d" : "#22c55e";
+    el.style.background = val ? "#fffbeb" : "#fff";
+    el.style.color = val ? "#78350f" : "inherit";
+  } catch(e) {
+    el.style.borderColor = "#dc2626";
+  }
+}
+
+async function savePvWeekNote(el) {
+  var val = el.value.trim();
+  var st = document.getElementById("pv-wn-st");
+  if (el.dataset.last === val) return;
+  el.dataset.last = val;
+  st.textContent = "Saving...";
+  var H = { Authorization: "Bearer " + TOKEN, "Content-Type": "application/json" };
+  try {
+    if (window._pvWeekNoteId) {
+      var r = await fetch("https://api.airtable.com/v0/" + BASE + "/tblBvEaLkGGipnOFc/" + window._pvWeekNoteId, {
+        method: "PATCH", headers: H,
+        body: JSON.stringify({ fields: { "fldmGAKBTKLMGeRGn": val } })
+      });
+      if (!r.ok) throw new Error("HTTP " + r.status);
+    } else {
+      var r2 = await fetch("https://api.airtable.com/v0/" + BASE + "/tblBvEaLkGGipnOFc", {
+        method: "POST", headers: H,
+        body: JSON.stringify({ records: [{ fields: {
+          "fldt9vYT8Tm37Gf3k": "Week Note " + window._pvMonday,
+          "fldhYEtLEGA4VxvvO": window._pvMonday,
+          "fldwVFyizH4mBANBa": "Week Note",
+          "fldmGAKBTKLMGeRGn": val
+        }}], typecast: true })
+      });
+      var j = await r2.json();
+      if (!r2.ok) throw new Error(j.error && j.error.message || r2.status);
+      window._pvWeekNoteId = j.records[0].id;
+    }
+    st.textContent = "\u2713";
+    setTimeout(function(){ st.textContent = ""; }, 1500);
+  } catch(e) {
+    st.textContent = "\u26a0 " + e.message;
+  }
 }
 async function fetchAtDate(tid, date) {
   var formula = encodeURIComponent("FIND(\"" + date + "\",{Date})");
