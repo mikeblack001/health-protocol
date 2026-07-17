@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<head><!-- bust:1784316364 -->
+<head><!-- bust:1784316863 -->
 <meta charset="UTF-8">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
@@ -5590,6 +5590,22 @@ async function saveInjWeekNote(wk){
   }
 }
 
+function filterInjFull() {
+  const comp = document.getElementById('injfull-compound')?.value || '';
+  const hideSkip = document.getElementById('injfull-hideskip')?.checked;
+  const rows = document.querySelectorAll('#injfull-body tr');
+  let shown = 0;
+  rows.forEach(tr => {
+    const c = tr.getAttribute('data-compound') || '';
+    const sk = tr.getAttribute('data-skip') === '1';
+    const vis = (!comp || c === comp) && (!hideSkip || !sk);
+    tr.style.display = vis ? '' : 'none';
+    if (vis) shown++;
+  });
+  const cnt = document.getElementById('injfull-count');
+  if (cnt) cnt.textContent = shown + ' shown';
+}
+
 async function loadInjLog() {
   const TABLE = 'tblBvEaLkGGipnOFc';
   const F = {
@@ -5678,19 +5694,16 @@ async function loadInjLog() {
       <th style="padding:8px 10px;font-weight:600;border-bottom:1px solid var(--border)">Compound</th>
       <th style="padding:8px 10px;font-weight:600;border-bottom:1px solid var(--border)">Status</th>
       <th style="padding:8px 10px;font-weight:600;border-bottom:1px solid var(--border)">Dose</th>
-      <th style="padding:8px 10px;font-weight:600;border-bottom:1px solid var(--border)">Site</th>
       <th style="padding:8px 10px;font-weight:600;border-bottom:1px solid var(--border)">Timing</th>
       <th style="padding:8px 10px;font-weight:600;border-bottom:1px solid var(--border)">Last Logged</th>
     </tr></thead><tbody>`;
   summRows.forEach((rec,i) => {
     const st = pepStatus[fv(rec,F.compound)] || '';
-    const dim = st !== 'Active' ? 'opacity:.5;' : '';
-    const bg = i % 2 === 0 ? '' : 'background:var(--surface-alt,#f9fafb)';
-    summHtml += `<tr style="${bg}${dim}">
+    const rowStyle = st === 'Paused' ? 'background:#fef9c3' : st === 'Stopped' ? 'background:#f1f5f9' : (i % 2 === 0 ? '' : 'background:var(--surface-alt,#f9fafb)');
+    summHtml += `<tr style="${rowStyle}">
       <td style="padding:7px 10px;border-bottom:1px solid var(--border);font-weight:500">${fv(rec,F.compound)}</td>
       <td style="padding:7px 10px;border-bottom:1px solid var(--border)">${stBadge(st)}</td>
       <td style="padding:7px 10px;border-bottom:1px solid var(--border)">${fv(rec,F.dose)}</td>
-      <td style="padding:7px 10px;border-bottom:1px solid var(--border)">${fv(rec,F.site)}</td>
       <td style="padding:7px 10px;border-bottom:1px solid var(--border)">${fv(rec,F.timing)}</td>
       <td style="padding:7px 10px;border-bottom:1px solid var(--border);color:var(--muted)">${fv(rec,F.date)}</td>
     </tr>`;
@@ -5728,40 +5741,51 @@ async function loadInjLog() {
   wnWeeks.forEach(wk => {
     const rec = weekNoteRecs.find(r => fv(r,F.date) === wk);
     const val = rec ? String(rec.fields['Week Note'] || '') : '';
-    wnHtml += `<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;margin-bottom:5px;background:#fffbeb;border:1px solid #fcd34d;border-left:3px solid #f59e0b;border-radius:5px">
-      <b style="font-size:11px;color:#78350f;white-space:nowrap;min-width:108px">Week of ${wk}</b>
-      <input type="text" id="wn-in-${wk}" value="${_esc2(val)}" placeholder="No note — click to add\u2026"
-        style="flex:1;padding:4px 8px;border:1px solid #fcd34d;border-radius:4px;font-size:12px;color:#78350f;background:#fff;font-family:inherit">
-      <button onclick="saveInjWeekNote('${wk}')"
-        style="padding:4px 10px;font-size:10px;font-weight:700;border:1px solid #f59e0b;background:#f59e0b;color:#fff;border-radius:4px;cursor:pointer">Save</button>
-      <span id="wn-st-${wk}" style="font-size:10px;color:#78350f;min-width:56px"></span>
+    wnHtml += `<div style="padding:8px 10px;margin-bottom:6px;background:#fffbeb;border:1px solid #fcd34d;border-left:3px solid #f59e0b;border-radius:5px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+        <b style="font-size:11px;color:#78350f;white-space:nowrap">Week of ${wk}</b>
+        <span id="wn-st-${wk}" style="font-size:10px;color:#78350f;flex:1"></span>
+        <button onclick="saveInjWeekNote('${wk}')" style="padding:3px 12px;font-size:10px;font-weight:700;border:1px solid #f59e0b;background:#f59e0b;color:#fff;border-radius:4px;cursor:pointer">Save</button>
+      </div>
+      <textarea id="wn-in-${wk}" placeholder="No note \u2014 click to add\u2026" rows="2"
+        style="width:100%;box-sizing:border-box;padding:6px 8px;border:1px solid #fcd34d;border-radius:4px;font-size:12px;line-height:1.45;color:#78350f;background:#fff;font-family:inherit;resize:vertical;min-height:40px">${_esc2(val)}</textarea>
     </div>`;
   });
   wnHtml += '</div>';
 
-  // --- FULL LOG ---
+  // --- FULL LOG (with filters) ---
+  const fullCompounds = [...new Set(records.map(r => fv(r,F.compound)).filter(c => c && (c||'').toLowerCase().trim() !== 'week note'))].sort();
   let fullHtml = wnHtml + `<p style="font-size:12px;color:var(--muted);margin-bottom:8px">${records.length} records${more?' (most recent \u2014 full history button below)':''}</p>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
+      <select id="injfull-compound" onchange="filterInjFull()" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;background:var(--surface);color:var(--text)">
+        <option value="">All Compounds</option>
+        ${fullCompounds.map(c => `<option value="${c}">${c}</option>`).join('')}
+      </select>
+      <label style="font-size:12px;color:var(--text);display:flex;align-items:center;gap:5px;cursor:pointer"><input type="checkbox" id="injfull-hideskip" onchange="filterInjFull()"> Hide skips</label>
+      <span id="injfull-count" style="font-size:11px;color:var(--muted)"></span>
+    </div>
     <table style="width:100%;border-collapse:collapse;font-size:12px;font-family:'DM Mono',monospace">
     <thead><tr style="background:var(--surface-alt,#f3f4f6);text-align:left">
       <th style="padding:7px 10px;font-weight:600;border-bottom:1px solid var(--border)">Date</th>
       <th style="padding:7px 10px;font-weight:600;border-bottom:1px solid var(--border)">Compound</th>
       <th style="padding:7px 10px;font-weight:600;border-bottom:1px solid var(--border)">Dose</th>
-      <th style="padding:7px 10px;font-weight:600;border-bottom:1px solid var(--border)">Site</th>
       <th style="padding:7px 10px;font-weight:600;border-bottom:1px solid var(--border)">Timing</th>
       <th style="padding:7px 10px;font-weight:600;border-bottom:1px solid var(--border)">Notes</th>
-    </tr></thead><tbody>`;
+    </tr></thead><tbody id="injfull-body">`;
   records.forEach((rec,i) => {
-    if ((fv(rec,F.compound)||'').toLowerCase().trim() === 'week note') return;
+    const compound = fv(rec,F.compound);
+    if ((compound||'').toLowerCase().trim() === 'week note') return;
+    const skipped = (fv(rec,F.site)||'').toString().toUpperCase() === 'S';
     const bg = i % 2 === 0 ? '' : 'background:var(--surface-alt,#f9fafb)';
     const notes = fv(rec,F.notes);
     const nstyle = notes
-      ? 'padding:6px 10px;border-bottom:1px solid var(--border);color:#78350f;background:#fffbeb;font-weight:500;max-width:200px;word-break:break-word'
-      : 'padding:6px 10px;border-bottom:1px solid var(--border);color:var(--muted);max-width:200px;word-break:break-word';
-    fullHtml += `<tr style="${bg}">
+      ? 'padding:6px 10px;border-bottom:1px solid var(--border);color:#78350f;background:#fffbeb;font-weight:500;max-width:220px;word-break:break-word'
+      : 'padding:6px 10px;border-bottom:1px solid var(--border);color:var(--muted);max-width:220px;word-break:break-word';
+    const doseCell = skipped ? '<span style="color:#b91c1c;font-weight:600">skipped</span>' : (fv(rec,F.dose) || '');
+    fullHtml += `<tr data-compound="${(compound||'').replace(/"/g,'&quot;')}" data-skip="${skipped?1:0}" style="${bg}${skipped?'opacity:.6;':''}">
       <td style="padding:6px 10px;border-bottom:1px solid var(--border)">${fv(rec,F.date)}</td>
-      <td style="padding:6px 10px;border-bottom:1px solid var(--border);font-weight:500">${fv(rec,F.compound)}</td>
-      <td style="padding:6px 10px;border-bottom:1px solid var(--border)">${fv(rec,F.dose)}</td>
-      <td style="padding:6px 10px;border-bottom:1px solid var(--border)">${fv(rec,F.site)}</td>
+      <td style="padding:6px 10px;border-bottom:1px solid var(--border);font-weight:500">${compound}</td>
+      <td style="padding:6px 10px;border-bottom:1px solid var(--border)">${doseCell}</td>
       <td style="padding:6px 10px;border-bottom:1px solid var(--border)">${fv(rec,F.timing)}</td>
       <td style="${nstyle}">${notes}</td>
     </tr>`;
