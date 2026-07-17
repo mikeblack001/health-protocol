@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<head><!-- bust:1784314344 -->
+<head><!-- bust:1784314649 -->
 <meta charset="UTF-8">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
@@ -791,7 +791,7 @@
       <select id="pricing-med-filter" onchange="filterPricingByMed(this.value)" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface)">
         <option value="">All Meds</option>
       </select>
-      <select id="ai-vendor-select" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface)">
+      <select id="ai-vendor-select" onchange="filterPricingByVendor(this.value)" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface)">
         <option value="">Select vendor...</option>
       </select>
       <button class="filter-btn" onclick="showBulkEdit()" style="background:#6366f1;color:#fff;border-color:#6366f1">ï¸ Bulk Edit</button>
@@ -2748,6 +2748,7 @@ function filterSuppSource(source, el) {
 let pricingData = [];
 let pricingFilter = 'all';
 let pricingMedFilter = '';
+let pricingVendorFilter = '';
 
 
 async function loadSchedule() {
@@ -3029,6 +3030,11 @@ function filterPricingByMed(med) {
   renderPricing();
 }
 
+function filterPricingByVendor(v) {
+  pricingVendorFilter = v;
+  renderPricing();
+}
+
 function populateMedDropdown() {
   const meds = [...new Set(pricingData.map(r => (r.fields||{})['Peptide']).filter(Boolean))].sort();
   const sel = document.getElementById('pricing-med-filter');
@@ -3221,6 +3227,7 @@ function renderPricing() {
     const name = f['Peptide'] || f[Object.keys(f)[0]] || 'Unknown';
     if (pricingFilter === 'active' && !activePeptides.has(name)) return;
     if (pricingMedFilter && name !== pricingMedFilter) return;
+    if (pricingVendorFilter && f['Vendor'] !== pricingVendorFilter) return;
     if (!groups[name]) groups[name] = [];
     groups[name].push({...f, _id: r.id});
   });
