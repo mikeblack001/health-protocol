@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<head><!-- bust:1784311743 -->
+<head><!-- bust:1784314344 -->
 <meta charset="UTF-8">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
@@ -4995,6 +4995,16 @@ async function syncHealthToLog() {
 
 // ===== PURCHASES =====
 let purchasesData = [];
+let purchaseSort = { col: 'Date', dir: -1 };
+function sortPurchases(col) {
+  if (purchaseSort.col === col) purchaseSort.dir *= -1;
+  else { purchaseSort.col = col; purchaseSort.dir = (col === 'Date' || col === 'Total' || col === 'Qty' || col === 'Price Paid') ? -1 : 1; }
+  renderPurchases();
+}
+function purchaseSortIcon(col) {
+  if (purchaseSort.col !== col) return ' <span style="color:#d1d5db">&#8597;</span>';
+  return purchaseSort.dir === 1 ? ' <span style="color:var(--accent)">&#9650;</span>' : ' <span style="color:var(--accent)">&#9660;</span>';
+}
 
 async function loadPurchases() {
   const el = document.getElementById('purchases-content');
@@ -5057,11 +5067,13 @@ function renderPurchases() {
   const el = document.getElementById('purchases-content');
   if (!purchasesData.length) { el.innerHTML = '<p style="color:var(--muted);padding:16px">No purchases logged yet.</p>'; return; }
 
-  // Populate vendor dropdown
+  // Populate vendor dropdown (rebuild every render so new vendors appear)
   const vendorSel = document.getElementById('purchase-vendor-filter');
-  if (vendorSel && vendorSel.options.length <= 1) {
+  if (vendorSel) {
+    const prev = vendorSel.value;
     const vendors = [...new Set(purchasesData.map(r => r.fields['Vendor']).filter(Boolean))].sort();
-    vendors.forEach(v => { const o = document.createElement('option'); o.value = v; o.textContent = v; vendorSel.appendChild(o); });
+    vendorSel.innerHTML = '<option value="">All Vendors</option>' + vendors.map(v => `<option value="${v}">${v}</option>`).join('');
+    if (prev && vendors.includes(prev)) vendorSel.value = prev;
   }
 
   // Apply filters
@@ -5075,6 +5087,15 @@ function renderPurchases() {
     if (compoundFilter && !(f['Compound'] || '').toLowerCase().includes(compoundFilter)) return false;
     if (yearFilter && !(f['Date'] || '').startsWith(yearFilter)) return false;
     return true;
+  });
+
+  // Sort
+  const sc = purchaseSort.col, sd = purchaseSort.dir, numCols = ['Qty','Total','Price Paid'];
+  filtered.sort((a,b) => {
+    let av = a.fields[sc], bv = b.fields[sc];
+    if (numCols.includes(sc)) return ((av||0)-(bv||0))*sd;
+    av = (av||'').toString().toLowerCase(); bv = (bv||'').toString().toLowerCase();
+    return av<bv ? -sd : av>bv ? sd : 0;
   });
 
   // Group by vendor for summary
@@ -5093,7 +5114,7 @@ function renderPurchases() {
   if (!filtered.length) { el.innerHTML = html + '<p style="color:var(--muted);padding:16px">No results match filters.</p>'; return; }
 
   html += `<div class="table-wrap"><table class="data-table">
-    <thead><tr><th>Date</th><th>Vendor</th><th>Compound</th><th>Qty</th><th>Vial</th><th>Price/Item</th><th>Total</th><th>Order ID</th><th>Notes</th></tr></thead>
+    <thead><tr><th style="cursor:pointer" onclick="sortPurchases('Date')">Date${purchaseSortIcon('Date')}</th><th style="cursor:pointer" onclick="sortPurchases('Vendor')">Vendor${purchaseSortIcon('Vendor')}</th><th style="cursor:pointer" onclick="sortPurchases('Compound')">Compound${purchaseSortIcon('Compound')}</th><th style="cursor:pointer" onclick="sortPurchases('Qty')">Qty${purchaseSortIcon('Qty')}</th><th>Vial</th><th style="cursor:pointer" onclick="sortPurchases('Price Paid')">Price/Item${purchaseSortIcon('Price Paid')}</th><th style="cursor:pointer" onclick="sortPurchases('Total')">Total${purchaseSortIcon('Total')}</th><th>Order ID</th><th>Notes</th></tr></thead>
     <tbody>
     ${filtered.map(r => {
       const f = r.fields;
