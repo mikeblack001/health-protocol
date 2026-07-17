@@ -85,6 +85,8 @@ select.fe{cursor:pointer}
 .fe-dose{background:#dbeafe;color:#1d4ed8;min-width:50px}
 .fe-dose:hover{background:#bfdbfe}
 .fe-dose:focus{background:#fff;color:#1e2433}
+.wg-note-cell:hover{border-color:#fcd34d!important;background:#fff!important}
+.wg-note-cell:focus{border-color:#f59e0b!important;background:#fff!important;color:#1e2433!important;outline:none}
 .fe-note{background:#fffbeb;color:#78350f;min-width:90px;max-width:220px;flex-shrink:1}
 .fe-note:hover{background:#fef3c7}
 .fe-note:focus{background:#fff;color:#1e2433}
@@ -612,7 +614,8 @@ async function loadWeekGrid(date){
     if((cmp||'').toLowerCase().trim()==='week note')return;
     const key=cmp+'||'+timing;
     // Also track by compound-only key for grouping same compound different timings
-    if(!data[key]){data[key]={cmp,timing,days:{},notes:[]};keyOrder.push(key);}
+    if(!data[key]){data[key]={cmp,timing,days:{},notes:[],recIds:[]};keyOrder.push(key);}
+    data[key].recIds.push(r.id);
     const nt=(f[LOG.notes]||'').trim();
     if(nt&&!data[key].notes.some(n=>n.note.toLowerCase()===nt.toLowerCase()))data[key].notes.push({day,note:nt});
     if(!data[key].days[day])data[key].days[day]={sites:[],doses:[],n:0};
@@ -676,11 +679,12 @@ async function loadWeekGrid(date){
     const noteTxt=(data[key].notes||[])
       .sort((a,b)=>a.day.localeCompare(b.day))
       .map(n=>n.note).join(' \u00b7 ');
-    h+=`<td style="text-align:left;padding:3px 8px;font-size:10px;color:#78350f;background:${noteTxt?'#fffbeb':'#fff'};white-space:normal;line-height:1.35">${esc(noteTxt)}</td>`;
+    h+=`<td style="text-align:left;padding:3px 6px;background:${noteTxt?'#fffbeb':'#fff'}"><input class="wg-note-cell" value="${esc(noteTxt)}" placeholder="+ note" data-key="${esc(key)}" onblur="saveGridNote(this.getAttribute('data-key'),this.value)" onkeydown="if(event.key==='Enter')this.blur()" style="width:100%;box-sizing:border-box;border:1px solid transparent;background:transparent;font-size:10px;color:#78350f;padding:3px 5px;border-radius:4px;line-height:1.35"></td>`;
     h+=`</tr>`;
   });
   h+=`</tbody>`;
   wg.innerHTML=h;
+  window._gridNoteRecs={};orderedKeys.forEach(k=>{if(data[k])window._gridNoteRecs[k]=data[k].recIds||[];});
   ws.textContent=orderedKeys.length+' compounds';
   // Update Verify Week button color based on week verification status
   const wBtn=document.getElementById('verify-week-btn');
@@ -1183,6 +1187,23 @@ async function saveField(id,field,value){
       logProtocolChange(compound,date,value.trim());
     }
   }catch(e){setSt('Save error: '+e.message);}
+}
+
+async function saveGridNote(key,value){
+  const ids=(window._gridNoteRecs&&window._gridNoteRecs[key])||[];
+  if(!ids.length){setSt('No record for this compound this week');return;}
+  const v=value.trim();
+  const cmp=key.split('||')[0];
+  try{
+    const records=ids.map(id=>({id,fields:{[LOG.notes]:v||null}}));
+    for(let i=0;i<records.length;i+=10){
+      await atFetch(LOG.tbl,{method:'PATCH',body:JSON.stringify({records:records.slice(i,i+10),returnFieldsByFieldId:true})});
+    }
+    ids.forEach(id=>{const j=logRecs.findIndex(r=>r.id===id);if(j>=0)logRecs[j].fields[LOG.notes]=v;});
+    setSt('Note saved');
+    if(v){const first=logRecs.find(r=>r.id===ids[0]);logProtocolChange(cmp,first?first.fields[LOG.date]:curDate,v);}
+    loadWeekGrid(curDate);
+  }catch(e){setSt('Note save error: '+e.message);}
 }
 
 async function logProtocolChange(compound,date,note){
