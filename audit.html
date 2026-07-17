@@ -85,6 +85,9 @@ select.fe{cursor:pointer}
 .fe-dose{background:#dbeafe;color:#1d4ed8;min-width:50px}
 .fe-dose:hover{background:#bfdbfe}
 .fe-dose:focus{background:#fff;color:#1e2433}
+.fe-note{background:#fffbeb;color:#78350f;min-width:90px;max-width:220px;flex-shrink:1}
+.fe-note:hover{background:#fef3c7}
+.fe-note:focus{background:#fff;color:#1e2433}
 .fe-site{background:#fef3c7;color:#92400e;min-width:50px}
 .fe-site:hover{background:#fde68a}
 .fe-site:focus{background:#fff;color:#1e2433}
@@ -1129,6 +1132,7 @@ function cardHTML(r){
   const dose=f[LOG.dose]||'';
   const site=f[LOG.site]||'';
   const timing=f[LOG.timing]||'';
+  const notes=f[LOG.notes]||'';
   const verified=f[LOG.verified]===true;
 
   const cmpOpts=CMPS.map(c=>`<option ${c===cmp?'selected':''}>${c}</option>`).join('');
@@ -1148,7 +1152,9 @@ function cardHTML(r){
       <select class="fe fe-timing" onchange="saveField('${r.id}','${LOG.timing}',this.value)" title="Timing">
         ${timingOpts}
       </select>
-
+      <input class="fe fe-note" value="${esc(notes)}" placeholder="Note…" title="Note"
+        onblur="saveField('${r.id}','${LOG.notes}',this.value)"
+        onkeydown="if(event.key==='Enter')this.blur()">
     </div>
     <div class="card-actions">
       <button class="abtn ${verified?'a-verified':'a-verify'}" onclick="toggleVerify('${r.id}',${verified})">${verified?'✓':'○'}</button>
@@ -1262,10 +1268,12 @@ function refreshCard(r){
   const siteEl=el.querySelector('.fe-site');
   const timingEl=el.querySelector('.fe-timing');
   const cmpEl=el.querySelector('.fe-compound');
+  const noteEl=el.querySelector('.fe-note');
   if(doseEl)doseEl.value=f[LOG.dose]||'';
   if(siteEl)siteEl.value=f[LOG.site]||'';
   if(timingEl)timingEl.value=f[LOG.timing]||'';
   if(cmpEl)cmpEl.value=f[LOG.compound]||'';
+  if(noteEl)noteEl.value=f[LOG.notes]||'';
   const verified=f[LOG.verified]===true;
   el.className='card '+(verified?'verified':'unverified');
   const vBtn=el.querySelector('.abtn');
