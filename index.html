@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<head><!-- bust:1784315575 -->
+<head><!-- bust:1784316113 -->
 <meta charset="UTF-8">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
@@ -5639,7 +5639,8 @@ async function loadInjLog() {
   const seen = new Map();
   records.forEach(rec => {
     const compound = fv(rec, F.compound);
-    if (compound && (compound||'').toLowerCase().trim() !== 'week note' && !seen.has(compound)) seen.set(compound, rec);
+    const site = (fv(rec, F.site) || '').toString().toUpperCase();
+    if (compound && (compound||'').toLowerCase().trim() !== 'week note' && site !== 'S' && !seen.has(compound)) seen.set(compound, rec);
   });
   // Cross-reference current status from Peptides table (Active first, then paused/stopped)
   const pepStatus = {};
