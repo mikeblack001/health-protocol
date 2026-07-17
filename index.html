@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<head><!-- bust:1784316113 -->
+<head><!-- bust:1784316364 -->
 <meta charset="UTF-8">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
@@ -5637,11 +5637,25 @@ async function loadInjLog() {
 
   // --- SUMMARY: latest record per compound ---
   const seen = new Map();
+  const seenAny = new Map();
   records.forEach(rec => {
     const compound = fv(rec, F.compound);
+    if (!compound || (compound||'').toLowerCase().trim() === 'week note') return;
     const site = (fv(rec, F.site) || '').toString().toUpperCase();
-    if (compound && (compound||'').toLowerCase().trim() !== 'week note' && site !== 'S' && !seen.has(compound)) seen.set(compound, rec);
+    if (!seenAny.has(compound)) seenAny.set(compound, rec);
+    if (site !== 'S' && !seen.has(compound)) seen.set(compound, rec);
   });
+  // Compounds present in the window only as skips → fetch their last real (non-skip) dose from further back
+  const onlySkips = [...seenAny.keys()].filter(c => !seen.has(c));
+  for (const c of onlySkips) {
+    try {
+      const f = encodeURIComponent(`AND({Compound}="${c.replace(/"/g,'\\"')}",{Site}!="S")`);
+      const u = `https://api.airtable.com/v0/${BASE}/${TABLE}?filterByFormula=${f}&sort[0][field]=Date&sort[0][direction]=desc&pageSize=1`;
+      const rr = await fetch(u, { headers: { Authorization: `Bearer ${TOKEN}` } });
+      const dd = await rr.json();
+      if (rr.ok && dd.records && dd.records.length) seen.set(c, dd.records[0]);
+    } catch(e) { /* non-fatal */ }
+  }
   // Cross-reference current status from Peptides table (Active first, then paused/stopped)
   const pepStatus = {};
   (typeof data !== 'undefined' && data.peptides ? data.peptides : []).forEach(p => {
