@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<head><!-- bust:1784314649 -->
+<head><!-- bust:1784315405 -->
 <meta charset="UTF-8">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
@@ -5641,20 +5641,39 @@ async function loadInjLog() {
     const compound = fv(rec, F.compound);
     if (compound && (compound||'').toLowerCase().trim() !== 'week note' && !seen.has(compound)) seen.set(compound, rec);
   });
-  const summRows = [...seen.values()].sort((a,b) => (fv(a,F.compound)||'').localeCompare(fv(b,F.compound)||''));
+  // Cross-reference current status from Peptides table (Active first, then paused/stopped)
+  const pepStatus = {};
+  (typeof data !== 'undefined' && data.peptides ? data.peptides : []).forEach(p => {
+    const nm = getField(p,'Compound'); if (nm) pepStatus[nm] = getField(p,'Status') || '';
+  });
+  const statusRank = s => s === 'Active' ? 0 : s === 'Paused' ? 1 : s === 'Stopped' ? 2 : 3;
+  const stBadge = s => {
+    const map = { Active:['#dcfce7','#166534'], Paused:['#fef3c7','#92400e'], Stopped:['#f3f4f6','#4b5563'], Deferred:['#f3f4f6','#9ca3af'] };
+    const c = map[s] || ['#f3f4f6','#9ca3af'];
+    return `<span style="display:inline-block;padding:1px 8px;border-radius:10px;font-size:11px;font-weight:600;background:${c[0]};color:${c[1]}">${s || '\u2014'}</span>`;
+  };
+  const summRows = [...seen.values()].sort((a,b) => {
+    const ra = statusRank(pepStatus[fv(a,F.compound)] || ''), rb = statusRank(pepStatus[fv(b,F.compound)] || '');
+    if (ra !== rb) return ra - rb;
+    return (fv(a,F.compound)||'').localeCompare(fv(b,F.compound)||'');
+  });
 
   let summHtml = `<table style="width:100%;border-collapse:collapse;font-size:13px;font-family:'DM Sans',sans-serif">
     <thead><tr style="background:var(--surface-alt,#f3f4f6);text-align:left">
       <th style="padding:8px 10px;font-weight:600;border-bottom:1px solid var(--border)">Compound</th>
+      <th style="padding:8px 10px;font-weight:600;border-bottom:1px solid var(--border)">Status</th>
       <th style="padding:8px 10px;font-weight:600;border-bottom:1px solid var(--border)">Dose</th>
       <th style="padding:8px 10px;font-weight:600;border-bottom:1px solid var(--border)">Site</th>
       <th style="padding:8px 10px;font-weight:600;border-bottom:1px solid var(--border)">Timing</th>
       <th style="padding:8px 10px;font-weight:600;border-bottom:1px solid var(--border)">Last Logged</th>
     </tr></thead><tbody>`;
   summRows.forEach((rec,i) => {
+    const st = pepStatus[fv(rec,F.compound)] || '';
+    const dim = st !== 'Active' ? 'opacity:.5;' : '';
     const bg = i % 2 === 0 ? '' : 'background:var(--surface-alt,#f9fafb)';
-    summHtml += `<tr style="${bg}">
+    summHtml += `<tr style="${bg}${dim}">
       <td style="padding:7px 10px;border-bottom:1px solid var(--border);font-weight:500">${fv(rec,F.compound)}</td>
+      <td style="padding:7px 10px;border-bottom:1px solid var(--border)">${stBadge(st)}</td>
       <td style="padding:7px 10px;border-bottom:1px solid var(--border)">${fv(rec,F.dose)}</td>
       <td style="padding:7px 10px;border-bottom:1px solid var(--border)">${fv(rec,F.site)}</td>
       <td style="padding:7px 10px;border-bottom:1px solid var(--border)">${fv(rec,F.timing)}</td>
