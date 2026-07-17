@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<head><!-- bust:1784315405 -->
+<head><!-- bust:1784315575 -->
 <meta charset="UTF-8">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
@@ -5736,7 +5736,7 @@ async function loadInjLog() {
       <th style="padding:7px 10px;font-weight:600;border-bottom:1px solid var(--border)">Notes</th>
     </tr></thead><tbody>`;
   records.forEach((rec,i) => {
-    if (isWeekNote(rec)) return;
+    if ((fv(rec,F.compound)||'').toLowerCase().trim() === 'week note') return;
     const bg = i % 2 === 0 ? '' : 'background:var(--surface-alt,#f9fafb)';
     const notes = fv(rec,F.notes);
     const nstyle = notes
