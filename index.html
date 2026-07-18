@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<head><!-- bust:1784316863 -->
+<head><!-- bust:1784374195 -->
 <meta charset="UTF-8">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
@@ -904,7 +904,7 @@
   <div id="view-injlog" class="view">
     <div class="section-header">
       <h2>Injection Log</h2>
-      <p class="section-sub">All injections from Airtable sorted newest first</p>
+      <p class="section-sub">All injections from Airtable sorted newest first <button onclick="loadInjLog()" title="Reload latest from Airtable" style="margin-left:10px;padding:3px 10px;font-size:11px;font-weight:600;border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:6px;cursor:pointer">&#8635; Refresh</button></p>
     </div>
 
     <!-- SUMMARY TABLE -->
@@ -1252,6 +1252,7 @@
   <div id="view-injaudit" class="view">
     <div class="filter-bar">
       <span style="font-size:13px;font-weight:500;color:var(--text)">Injection Log Audit</span>
+      <button onclick="loadInjAudit()" title="Reload latest from Airtable" style="padding:4px 10px;font-size:11px;font-weight:600;border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:6px;cursor:pointer">&#8635; Refresh</button>
       <span id="injaudit-status" style="font-size:11px;color:var(--muted)">Loading...</span>
     </div>
     <div id="injaudit-nav" style="display:flex;gap:4px;flex-wrap:wrap;padding:8px 12px;border-bottom:1px solid var(--border)"></div>
