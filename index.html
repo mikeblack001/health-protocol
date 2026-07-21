@@ -3630,32 +3630,18 @@ async function renderWoSchedule(skipFetch) {
     return '<button class="filter-btn' + (d === woSchedActiveDay ? ' active' : '') + '" onclick="woSchedActiveDay=\'' + d + '\';woTplEditingId=null;renderWoSchedule(true)">' + esc(d.split(' - ')[1] || d) + ' <span style="opacity:.55">' + n + '</span></button>';
   }).join('');
   const rows = woTplRecords.filter(r => r.day === woSchedActiveDay).sort((a, b) => a.order - b.order);
+  const inR = "padding:6px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface);box-sizing:border-box";
+  const attr = v2 => esc(v2).replace(/"/g, '&quot;');
   let list = '';
   rows.forEach((r, i) => {
-    if (woTplEditingId === r.id) {
-      const inS = "width:100%;padding:7px 9px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface);box-sizing:border-box";
-      list += '<div style="padding:12px;border:1px solid var(--accent);border-radius:8px;margin-bottom:8px;background:var(--surface)">'
-        + '<div style="display:grid;gap:8px">'
-        + '<input id="wot-e-name" value="' + esc(r.name) + '" placeholder="Exercise name" style="' + inS + '">'
-        + '<input id="wot-e-vars" value="' + esc(r.variations.join(', ')) + '" placeholder="Variations (comma-separated)" style="' + inS + '">'
-        + '<input id="wot-e-note" value="' + esc(r.note) + '" placeholder="Note (e.g. 1/2, (2:1))" style="' + inS + '">'
-        + '</div><div style="display:flex;gap:8px;margin-top:10px">'
-        + '<button onclick="woTplSaveEdit(\'' + r.id + '\')" style="padding:6px 16px;background:var(--accent);color:#000;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer">Save</button>'
-        + '<button onclick="woTplEditingId=null;renderWoSchedule(true)" style="' + btnS + '">Cancel</button>'
-        + '</div></div>';
-      return;
-    }
-    const up = i === 0 ? 'disabled style="' + btnS + ';opacity:.25;cursor:default"' : 'style="' + btnS + '"';
-    const dn = i === rows.length - 1 ? 'disabled style="' + btnS + ';opacity:.25;cursor:default"' : 'style="' + btnS + '"';
     const safeName = esc(r.name).replace(/'/g, '&#39;');
-    list += '<div draggable="true" data-rec="' + r.id + '" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;background:var(--surface)">'
+    list += '<div draggable="true" data-rec="' + r.id + '" style="display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;background:var(--surface)">'
       + '<div style="cursor:grab;color:#d1d5db;font-size:15px;user-select:none;padding:0 2px" title="Drag to reorder">&#8942;&#8942;</div>'
-      + '<div style="display:flex;flex-direction:column;gap:3px"><button onclick="woTplMove(\'' + r.id + '\',-1)" ' + up + '>&#9650;</button><button onclick="woTplMove(\'' + r.id + '\',1)" ' + dn + '>&#9660;</button></div>'
       + '<div style="width:22px;text-align:center;font-size:12px;color:var(--muted);font-weight:600">' + (i + 1) + '</div>'
-      + '<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:600;color:var(--text)">' + esc(r.name) + (r.note ? ' <span style="color:var(--accent);font-weight:500;font-size:12px">' + esc(r.note) + '</span>' : '') + '</div>'
-      + (r.variations.length ? '<div style="font-size:12px;color:var(--muted);margin-top:2px">' + esc(r.variations.join(', ')) + '</div>' : '')
-      + '</div>'
-      + '<button onclick="woTplEditingId=\'' + r.id + '\';renderWoSchedule(true)" style="' + btnS + '">Edit</button>'
+      + '<input value="' + attr(r.name) + '" data-f="Exercise" onblur="woTplInline(this,\'' + r.id + '\')" placeholder="Exercise" style="' + inR + ';flex:1.4;min-width:130px;font-weight:600;font-size:13px">'
+      + '<input value="' + attr(r.variations.join(', ')) + '" data-f="Variations" onblur="woTplInline(this,\'' + r.id + '\')" placeholder="Variations" style="' + inR + ';flex:1.6;min-width:130px">'
+      + '<input value="' + attr(r.note) + '" data-f="Note" onblur="woTplInline(this,\'' + r.id + '\')" placeholder="Note" style="' + inR + ';width:70px">'
+      + '<span id="wot-st-' + r.id + '" style="font-size:12px;width:14px;text-align:center"></span>'
       + '<button onclick="woTplDelete(\'' + r.id + '\',\'' + safeName + '\')" style="' + btnS + ';color:#d9534f">&#10005;</button>'
       + '</div>';
   });
@@ -3727,31 +3713,26 @@ async function woTplRenumber(day) {
   }
 }
 
-async function woTplMove(id, dir) {
-  const rows = woTplRecords.filter(r => r.day === woSchedActiveDay).sort((a, b) => a.order - b.order);
-  const idx = rows.findIndex(r => r.id === id);
-  const j = idx + dir;
-  if (idx < 0 || j < 0 || j >= rows.length) return;
-  const a = rows[idx], b = rows[j];
-  const tmp = a.order; a.order = b.order; b.order = tmp;
-  renderWoSchedule(true);
+async function woTplInline(inp, id) {
+  const rec = woTplRecords.find(r => r.id === id);
+  if (!rec) return;
+  const f = inp.dataset.f;
+  const val = inp.value.trim();
+  const cur = f === 'Exercise' ? rec.name : f === 'Variations' ? rec.variations.join(', ') : rec.note;
+  if (val === cur) return;
+  if (f === 'Exercise' && !val) { inp.value = rec.name; return; }
+  const st = document.getElementById('wot-st-' + id);
+  if (st) { st.textContent = '...'; st.style.color = 'var(--muted)'; }
   try {
-    await woTplApi('PATCH', '', { records: [{ id: a.id, fields: { 'Order': a.order } }, { id: b.id, fields: { 'Order': b.order } }] });
-  } catch (e) { alert('Reorder failed: ' + e.message); }
-  loadWorkoutTemplate();
-}
-
-async function woTplSaveEdit(id) {
-  const name = document.getElementById('wot-e-name').value.trim();
-  const vars = document.getElementById('wot-e-vars').value.trim();
-  const note = document.getElementById('wot-e-note').value.trim();
-  if (!name) { alert('Exercise name required'); return; }
-  try {
-    await woTplApi('PATCH', '', { records: [{ id: id, fields: { 'Exercise': name, 'Variations': vars, 'Note': note } }] });
-    woTplEditingId = null;
-    await renderWoSchedule();
+    await woTplApi('PATCH', '/' + id, { fields: { [f]: val } });
+    if (f === 'Exercise') rec.name = val;
+    else if (f === 'Variations') rec.variations = val.split(',').map(s => s.trim()).filter(Boolean);
+    else rec.note = val;
+    if (st) { st.textContent = '\u2713'; st.style.color = '#16a34a'; setTimeout(() => { if (st) st.textContent = ''; }, 1500); }
     loadWorkoutTemplate();
-  } catch (e) { alert('Save failed: ' + e.message); }
+  } catch (e) {
+    if (st) { st.textContent = '\u2715'; st.style.color = '#dc2626'; }
+  }
 }
 
 async function woTplAdd() {
