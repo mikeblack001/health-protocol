@@ -3648,7 +3648,8 @@ async function renderWoSchedule(skipFetch) {
     const up = i === 0 ? 'disabled style="' + btnS + ';opacity:.25;cursor:default"' : 'style="' + btnS + '"';
     const dn = i === rows.length - 1 ? 'disabled style="' + btnS + ';opacity:.25;cursor:default"' : 'style="' + btnS + '"';
     const safeName = esc(r.name).replace(/'/g, '&#39;');
-    list += '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;background:var(--surface)">'
+    list += '<div draggable="true" data-rec="' + r.id + '" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;background:var(--surface)">'
+      + '<div style="cursor:grab;color:#d1d5db;font-size:15px;user-select:none;padding:0 2px" title="Drag to reorder">&#8942;&#8942;</div>'
       + '<div style="display:flex;flex-direction:column;gap:3px"><button onclick="woTplMove(\'' + r.id + '\',-1)" ' + up + '>&#9650;</button><button onclick="woTplMove(\'' + r.id + '\',1)" ' + dn + '>&#9660;</button></div>'
       + '<div style="width:22px;text-align:center;font-size:12px;color:var(--muted);font-weight:600">' + (i + 1) + '</div>'
       + '<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:600;color:var(--text)">' + esc(r.name) + (r.note ? ' <span style="color:var(--accent);font-weight:500;font-size:12px">' + esc(r.note) + '</span>' : '') + '</div>'
@@ -3660,8 +3661,8 @@ async function renderWoSchedule(skipFetch) {
   });
   if (!rows.length) list = '<div style="padding:30px;text-align:center;color:var(--muted);font-size:13px">No exercises for this day yet. Add one below.</div>';
   const inS2 = "padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface)";
-  v.innerHTML = '<div class="filter-bar" style="flex-wrap:wrap"><span style="font-size:13px;font-weight:500;color:var(--text)">Workout Schedule</span>' + tabs + '</div>'
-    + '<div style="max-width:760px">' + list
+  v.innerHTML = '<div class="filter-bar" style="flex-wrap:wrap"><span style="font-size:13px;font-weight:500;color:var(--text)">Workout Schedule</span><span style="font-size:11px;color:var(--muted);border:1px solid var(--border);border-radius:4px;padding:2px 8px">Drag to reorder</span>' + tabs + '</div>'
+    + '<div style="max-width:760px"><div id="wot-sched-list">' + list + '</div>'
     + '<div style="margin-top:16px;padding:14px;border:1px dashed var(--border);border-radius:8px">'
     + '<div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:8px">Add exercise &mdash; ' + esc(woSchedActiveDay) + '</div>'
     + '<div style="display:flex;gap:8px;flex-wrap:wrap">'
@@ -3672,6 +3673,49 @@ async function renderWoSchedule(skipFetch) {
     + '</div></div>'
     + '<div style="margin-top:10px;font-size:11px;color:var(--muted)">Saved live to Airtable &rarr; WorkoutTemplate. Changes apply to the Workouts page + Weekly Print immediately.</div>'
     + '</div>';
+  initWoSchedDrag();
+}
+
+function initWoSchedDrag() {
+  const box = document.getElementById('wot-sched-list');
+  if (!box) return;
+  let src = null;
+  box.addEventListener('dragstart', e => {
+    src = e.target.closest('div[data-rec]');
+    if (src) src.style.opacity = '0.4';
+  });
+  box.addEventListener('dragover', e => {
+    e.preventDefault();
+    const target = e.target.closest('div[data-rec]');
+    if (target && target !== src && src) {
+      const rows = [...box.querySelectorAll('div[data-rec]')];
+      if (rows.indexOf(target) > rows.indexOf(src)) box.insertBefore(src, target.nextSibling);
+      else box.insertBefore(src, target);
+    }
+  });
+  box.addEventListener('dragend', () => {
+    if (src) src.style.opacity = '1';
+    src = null;
+    saveWoSchedOrder();
+  });
+}
+
+async function saveWoSchedOrder() {
+  const box = document.getElementById('wot-sched-list');
+  if (!box) return;
+  const ids = [...box.querySelectorAll('div[data-rec]')].map(d => d.dataset.rec);
+  const patches = [];
+  ids.forEach((id, i) => {
+    const rec = woTplRecords.find(r => r.id === id);
+    if (rec && rec.order !== i + 1) { rec.order = i + 1; patches.push({ id, fields: { 'Order': i + 1 } }); }
+  });
+  renderWoSchedule(true);
+  try {
+    for (let i = 0; i < patches.length; i += 10) {
+      await woTplApi('PATCH', '', { records: patches.slice(i, i + 10) });
+    }
+  } catch (e) { alert('Reorder save failed: ' + e.message); return; }
+  loadWorkoutTemplate();
 }
 
 async function woTplRenumber(day) {
