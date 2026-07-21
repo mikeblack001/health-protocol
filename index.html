@@ -1432,7 +1432,7 @@ async function loadAll() {
   document.getElementById('statusDot').className = 'status-dot';
 
   try {
-      const [p, s] = await Promise.all([fetchTable(TABLES.peptides), fetchTable(TABLES.supplements, "{Status}='Active'")]);
+      const [p, s] = await Promise.all([fetchTable(TABLES.peptides), fetchTable(TABLES.supplements)]);
 
     data.peptides = p;
     data.supplements = s;
