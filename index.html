@@ -755,14 +755,18 @@
       <span>• Anastrozole: Day AFTER TRT injection only (Tues/Fri)</span>
     </div>
     <div class="filter-bar">
-      <div class="filter-chip" onclick="filterSupps('all', this)">All</div>
-      <div class="filter-chip active" onclick="filterSupps('Active', this)">Active</div>
-      <div class="filter-chip" onclick="filterSupps('Paused', this)">Paused</div>
-      <div class="filter-chip" onclick="filterSupps('TBD', this)">TBD</div>
-      <div class="filter-chip" onclick="filterSuppSource('Amazon', this)" style="margin-left:8px">Amazon</div>
-      <div class="filter-chip" onclick="filterSuppSource('Pharmacy', this)">Pharmacy</div>
-      <div class="filter-chip" onclick="filterSuppSource('Way to Wellness', this)">Way to Wellness</div>
-      <div class="filter-chip" onclick="filterSuppSource('', this)">All Vendors</div>
+      <div class="filter-chip-group" style="display:flex;gap:8px">
+        <div class="filter-chip" onclick="filterSupps('all', this)">All</div>
+        <div class="filter-chip active" onclick="filterSupps('Active', this)">Active</div>
+        <div class="filter-chip" onclick="filterSupps('Paused', this)">Paused</div>
+        <div class="filter-chip" onclick="filterSupps('TBD', this)">TBD</div>
+      </div>
+      <div class="filter-chip-group" style="display:flex;gap:8px;margin-left:8px">
+        <div class="filter-chip" onclick="filterSuppSource('Amazon', this)">Amazon</div>
+        <div class="filter-chip" onclick="filterSuppSource('Pharmacy', this)">Pharmacy</div>
+        <div class="filter-chip" onclick="filterSuppSource('Way to Wellness', this)">Way to Wellness</div>
+        <div class="filter-chip active" onclick="filterSuppSource('', this)">All Vendors</div>
+      </div>
     </div>
     <div id="supps-content"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
   </div>
@@ -2733,7 +2737,7 @@ function filterPeptides(f, el) {
 }
 
 function filterSupps(f, el) {
-  el.closest('.filter-bar').querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  el.closest('.filter-chip-group').querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
   el.classList.add('active');
   renderSupplements(f);
 }
@@ -2741,7 +2745,7 @@ function filterSupps(f, el) {
 let currentSuppSource = '';
 function filterSuppSource(source, el) {
   currentSuppSource = source;
-  el.closest('.filter-bar').querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  el.closest('.filter-chip-group').querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
   el.classList.add('active');
   renderSupplements(currentSuppFilter || 'all');
 }
