@@ -1428,7 +1428,7 @@ async function loadAll() {
   document.getElementById('statusDot').className = 'status-dot';
 
   try {
-      const [p, s] = await Promise.all([fetchTable(TABLES.peptides), fetchTable(TABLES.supplements)]);
+      const [p, s] = await Promise.all([fetchTable(TABLES.peptides), fetchTable(TABLES.supplements, "{Status}='Active'")]);
 
     data.peptides = p;
     data.supplements = s;
@@ -6131,11 +6131,20 @@ if (!lastBackup || new Date(lastBackup) < oneMonthAgo) {
   document.getElementById('backup-reminder').style.display = 'flex';
 }
 function printSuppList() {
-  const activeSupp = data.supplements.filter(r => getField(r,'SuppStatus') === 'Active');
-  const _npf = ['RTD / Shake','Food / Snack','Liquid'];
-  const mornSupp  = activeSupp.filter(r => getField(r,'SuppTiming') === 'Morning' && getField(r,'Form') === 'Pill / Cap');
-  const dinSupp   = activeSupp.filter(r => getField(r,'SuppTiming') === 'Dinner' && getField(r,'Form') === 'Pill / Cap');
-  const nightSupp = activeSupp.filter(r => getField(r,'SuppTiming') === 'Night' && getField(r,'Form') === 'Pill / Cap');
+  const filterLabel = currentSuppFilter || 'all';
+  let filteredSupp = data.supplements;
+  if (filterLabel.toLowerCase() !== 'all') {
+    filteredSupp = filteredSupp.filter(r => (getField(r,'SuppStatus')||'').toLowerCase() === filterLabel.toLowerCase());
+  }
+  if (currentSuppSource) filteredSupp = filteredSupp.filter(r => (getField(r,'SuppSource')||'') === currentSuppSource);
+
+  const pillSupp = filteredSupp.filter(r => getField(r,'Form') === 'Pill / Cap');
+  const mornSupp  = pillSupp.filter(r => getField(r,'SuppTiming') === 'Morning');
+  const dinSupp   = pillSupp.filter(r => getField(r,'SuppTiming') === 'Dinner');
+  const nightSupp = pillSupp.filter(r => getField(r,'SuppTiming') === 'Night');
+  const otherSupp = pillSupp.filter(r => !['Morning','Dinner','Night'].includes(getField(r,'SuppTiming')));
+
+  const showStatusCol = filterLabel.toLowerCase() === 'all';
 
   function suppTbl(title, rows) {
     if (!rows.length) return '';
@@ -6146,16 +6155,19 @@ function printSuppList() {
       <th style="border:1px solid #999;padding:4px 8px;text-align:left">Dose</th>
       <th style="border:1px solid #999;padding:4px 8px;text-align:left">Timing</th>
       <th style="border:1px solid #999;padding:4px 8px;text-align:left">Brand</th>
+      ${showStatusCol ? '<th style="border:1px solid #999;padding:4px 8px;text-align:left">Status</th>' : ''}
     </tr></thead><tbody>
     ${rows.map(r => `<tr>
       <td style="border:1px solid #ddd;padding:4px 8px;font-weight:600">${getField(r,'Supplement')}</td>
       <td style="border:1px solid #ddd;padding:4px 8px;font-family:monospace">${formatSuppDose(getField(r,'SuppDose'))}</td>
       <td style="border:1px solid #ddd;padding:4px 8px">${getField(r,'SuppTiming')||''}</td>
       <td style="border:1px solid #ddd;padding:4px 8px;color:#666">${getField(r,'Brand')||''}</td>
+      ${showStatusCol ? `<td style="border:1px solid #ddd;padding:4px 8px;color:#666">${getField(r,'SuppStatus')||''}</td>` : ''}
     </tr>`).join('')}
     </tbody></table>`;
   }
 
+  const titleLabel = filterLabel.toLowerCase() === 'all' ? 'All' : filterLabel;
   const dateStr = new Date().toLocaleDateString('en-US', {month:'long',day:'numeric',year:'numeric'});
   const html = `<!DOCTYPE html><html><head><title>Supplement Protocol</title>
   <style>
@@ -6165,11 +6177,12 @@ function printSuppList() {
     .page-title { font-size: 16px; font-weight: bold; margin-bottom: 4px; }
     .page-sub { font-size: 11px; color: #666; margin-bottom: 12px; }
   </style></head><body>
-  <div class="page-title">Active Supplement Protocol</div>
+  <div class="page-title">${titleLabel} Supplement Protocol</div>
   <div class="page-sub">Generated ${dateStr}</div>
   ${suppTbl('Morning', mornSupp)}
   ${suppTbl('Dinner', dinSupp)}
   ${suppTbl('Night', nightSupp)}
+  ${suppTbl('Other', otherSupp)}
   </body></html>`;
 
   let iframe = document.getElementById('_print_iframe');
