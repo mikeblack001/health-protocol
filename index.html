@@ -3641,6 +3641,9 @@ async function renderWoSchedule(skipFetch) {
       + '<input value="' + attr(r.name) + '" data-f="Exercise" onblur="woTplInline(this,\'' + r.id + '\')" placeholder="Exercise" style="' + inR + ';flex:1.4;min-width:130px;font-weight:600;font-size:13px">'
       + '<input value="' + attr(r.variations.join(', ')) + '" data-f="Variations" onblur="woTplInline(this,\'' + r.id + '\')" placeholder="Variations" style="' + inR + ';flex:1.6;min-width:130px">'
       + '<input value="' + attr(r.note) + '" data-f="Note" onblur="woTplInline(this,\'' + r.id + '\')" placeholder="Note" style="' + inR + ';width:70px">'
+      + '<select onchange="woTplMoveDay(this,\'' + r.id + '\')" title="Move to day" style="' + inR + ';width:86px;cursor:pointer">'
+      + WO_TPL_DAYS.map(d => '<option value="' + attr(d) + '"' + (d === r.day ? ' selected' : '') + '>' + esc(d.split(' - ')[1] || d) + '</option>').join('')
+      + '</select>'
       + '<span id="wot-st-' + r.id + '" style="font-size:12px;width:14px;text-align:center"></span>'
       + '<button onclick="woTplDelete(\'' + r.id + '\',\'' + safeName + '\')" style="' + btnS + ';color:#d9534f">&#10005;</button>'
       + '</div>';
@@ -3701,6 +3704,10 @@ async function saveWoSchedOrder() {
       await woTplApi('PATCH', '', { records: patches.slice(i, i + 10) });
     }
   } catch (e) { alert('Reorder save failed: ' + e.message); return; }
+  if (patches.length) {
+    const names = woTplRecords.filter(r => r.day === woSchedActiveDay).sort((a, b) => a.order - b.order).map(r => r.name).join(', ');
+    woTplLog('Reordered ' + woSchedActiveDay + ': ' + names);
+  }
   loadWorkoutTemplate();
 }
 
@@ -3711,6 +3718,33 @@ async function woTplRenumber(day) {
   for (let i = 0; i < patches.length; i += 10) {
     await woTplApi('PATCH', '', { records: patches.slice(i, i + 10) });
   }
+}
+
+async function woTplLog(desc) {
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    await fetch(`https://api.airtable.com/v0/${BASE}/tblolVx7YwO5cJhsE`, {
+      method: 'POST', headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ records: [{ fields: { 'Change Date': today, 'Compound': 'Workout Schedule', 'Description of Change': desc } }], typecast: true })
+    });
+  } catch (e) { console.warn('woTplLog:', e); }
+}
+
+async function woTplMoveDay(sel, id) {
+  const rec = woTplRecords.find(r => r.id === id);
+  const newDay = sel.value;
+  if (!rec || newDay === rec.day) return;
+  const oldDay = rec.day;
+  const orders = woTplRecords.filter(r => r.day === newDay).map(r => r.order);
+  const newOrder = (orders.length ? Math.max.apply(null, orders) : 0) + 1;
+  try {
+    await woTplApi('PATCH', '', { records: [{ id: id, fields: { 'Day': newDay, 'Order': newOrder } }], typecast: true });
+    rec.day = newDay; rec.order = newOrder;
+    await woTplRenumber(oldDay);
+    renderWoSchedule(true);
+    woTplLog('Moved ' + rec.name + ': ' + oldDay + ' \u2192 ' + newDay);
+    loadWorkoutTemplate();
+  } catch (e) { alert('Move failed: ' + e.message); sel.value = oldDay; }
 }
 
 async function woTplInline(inp, id) {
@@ -3729,6 +3763,9 @@ async function woTplInline(inp, id) {
     else if (f === 'Variations') rec.variations = val.split(',').map(s => s.trim()).filter(Boolean);
     else rec.note = val;
     if (st) { st.textContent = '\u2713'; st.style.color = '#16a34a'; setTimeout(() => { if (st) st.textContent = ''; }, 1500); }
+    woTplLog(f === 'Exercise'
+      ? 'Renamed "' + cur + '" \u2192 "' + val + '" (' + rec.day + ')'
+      : rec.name + ' \u2014 ' + f + ': "' + cur + '" \u2192 "' + val + '" (' + rec.day + ')');
     loadWorkoutTemplate();
   } catch (e) {
     if (st) { st.textContent = '\u2715'; st.style.color = '#dc2626'; }
@@ -3744,6 +3781,7 @@ async function woTplAdd() {
   const maxOrder = dayOrders.length ? Math.max.apply(null, dayOrders) : 0;
   try {
     await woTplApi('POST', '', { records: [{ fields: { 'Exercise': name, 'Day': woSchedActiveDay, 'Order': maxOrder + 1, 'Variations': vars, 'Note': note } }], typecast: true });
+    woTplLog('Added ' + name + ' to ' + woSchedActiveDay);
     await renderWoSchedule();
     loadWorkoutTemplate();
   } catch (e) { alert('Add failed: ' + e.message); }
@@ -3754,6 +3792,7 @@ async function woTplDelete(id, name) {
   try {
     await woTplApi('DELETE', '?records[]=' + id);
     woTplRecords = woTplRecords.filter(r => r.id !== id);
+    woTplLog('Removed ' + name + ' from ' + woSchedActiveDay);
     await woTplRenumber(woSchedActiveDay);
     await renderWoSchedule();
     loadWorkoutTemplate();
