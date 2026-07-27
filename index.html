@@ -1607,10 +1607,11 @@ function formatSuppDose(raw) {
   if (!raw) return '';
   raw = raw.trim();
 
-  // Extract cap/tab count
-  const capMatch = raw.match(/(\d+)\s*caps?/i) || raw.match(/(\d+)\s*tabs?/i);
+  // Extract cap/tab/softgel count
+  const capMatch = raw.match(/(\d+)\s*(softgels?|gelcaps?|capsules?|caps?|tablets?|tabs?)/i);
   const capCount = capMatch ? parseInt(capMatch[1]) : null;
-  const capWord = (raw.match(/tab/i) ? 'tab' : 'cap') + (capCount > 1 ? 's' : '');
+  const capUnit = capMatch ? capMatch[2].toLowerCase() : (raw.match(/tab/i) ? 'tab' : 'cap');
+  const capWord = (capUnit.startsWith('softgel') ? 'softgel' : capUnit.startsWith('tab') ? 'tab' : 'cap') + (capCount > 1 ? 's' : '');
 
   // Extract mg/mcg amount — handles "1200mg", "432mg", "50mg", "4.5mg", "1280mg × 3 caps (3840mg total)" → use total
   const totalMg = raw.match(/\(([\d,]+(?:\.[\d]*)?)\s*mg\s*total\)/i);
