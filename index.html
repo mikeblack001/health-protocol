@@ -1420,7 +1420,7 @@ function renderPrintList() {
       <table class="data-table"><thead><tr><th>Supplement</th><th>Dose</th><th>Brand</th></tr></thead><tbody>
       ${group.map(r => `<tr>
         <td><div class="compound-name">${getField(r,'Supplement')}</div></td>
-        <td style="font-size:13px;font-weight:500;white-space:nowrap">${formatSuppDose(getField(r,'SuppDose'))}</td>
+        <td style="font-size:13px;font-weight:500;white-space:nowrap">${formatSuppDose(getField(r,'SuppDose'))}${foodTag(r)}</td>
         <td style="font-size:12px;color:var(--muted)">${getField(r,'Brand')}</td>
       </tr>`).join('')}</tbody></table></div>`;
   });
@@ -1464,12 +1464,13 @@ function getField(record, name) {
     'Suggested Dose': 'fldB9osFGmDBoZBDX', 'Cycle Type': 'fldVifrYFOsF2JyTT', 'Vials on Hand': 'fld2dkhmc1M6AgnQu',
     'URL': 'fldSwpah2L7TCe8pc', 'SuppSource': 'fldUOuyi2uX3QWG1Z',
     'StartDate': 'fldO3s24TR8o1qfSY', 'EndDate': 'fldbS91GtXsxjZU4q',
-    'SuppStartDate': 'fldUgv5f6NUYkHTKA', 'SuppEndDate': 'fld3sB32jIXA0HLmi'
+    'SuppStartDate': 'fldUgv5f6NUYkHTKA', 'SuppEndDate': 'fld3sB32jIXA0HLmi',
+    'WithFood': 'fld9zFnSBDOttxCBx'
   };
   // Supp fields may return by name instead of ID
   const suppNameMap = {
     'SuppStatus': 'Status', 'SuppTiming': 'Timing', 'SuppDose': 'Dose',
-    'SuppPurpose': 'Purpose', 'SuppSource': 'Source', 'Supplement': 'Supplement', 'Brand': 'Brand', 'Product': 'Product'
+    'SuppPurpose': 'Purpose', 'SuppSource': 'Source', 'Supplement': 'Supplement', 'Brand': 'Brand', 'Product': 'Product', 'WithFood': 'With Food'
   };
   const spacedName = name.replace(/([A-Z])/g, ' $1').trim();
   const val = f[map[name]] || f[suppNameMap[name]] || f[name] || f[spacedName];
@@ -1522,7 +1523,7 @@ function renderDashboard() {
     const group = activeSupps.filter(r => getField(r,'SuppTiming') === timing);
     document.getElementById(ids[i]).innerHTML = group.map(r => `
       <div class="quick-item">
-        <div><div class="compound-name">${getField(r,'Supplement')}</div><div class="compound-sub">${formatSuppDose(getField(r,'SuppDose'))}</div></div>
+        <div><div class="compound-name">${getField(r,'Supplement')}</div><div class="compound-sub">${formatSuppDose(getField(r,'SuppDose'))}${foodTag(r)}</div></div>
         ${badge(getField(r,'SuppStatus'))}
       </div>`).join('') || '<p style="color:var(--muted);font-size:12px;padding:4px 0">None</p>';
   });
@@ -1603,6 +1604,18 @@ function suppSortIcon(col) {
   return suppSort.dir === 1 ? ' <span style="color:var(--accent)"></span>' : ' <span style="color:var(--accent)"></span>';
 }
 
+function withFood(r) {
+  const f = (r && r.fields) || {};
+  const v = (f['fld9zFnSBDOttxCBx'] !== undefined) ? f['fld9zFnSBDOttxCBx'] : f['With Food'];
+  return v === true || v === 'true';
+}
+
+function foodTag(r) {
+  return withFood(r)
+    ? ` <span class="badge badge-active" style="font-size:9px;padding:1px 5px;letter-spacing:.04em;vertical-align:1px" title="Take with food \u2014 ~11am protein shake">FOOD</span>`
+    : '';
+}
+
 function formatSuppDose(raw) {
   if (!raw) return '';
   raw = raw.trim();
@@ -1666,7 +1679,7 @@ function renderSupplements(filter) {
       </tr></thead><tbody>
       ${group.map(r => `<tr>
         <td><div class="compound-name">${getField(r,'Supplement')}</div><div class="compound-sub">${getField(r,'Product')}</div></td>
-        <td style="font-size:13px;font-weight:500;white-space:nowrap">${formatSuppDose(getField(r,'SuppDose'))}</td>
+        <td style="font-size:13px;font-weight:500;white-space:nowrap">${formatSuppDose(getField(r,'SuppDose'))}${foodTag(r)}</td>
         <td style="font-size:12px;color:var(--muted)">${getField(r,'SuppPurpose')}</td>
         <td style="font-size:12px;color:var(--muted)">${getField(r,'Brand')}</td>
         <td>${badge(getField(r,'SuppStatus'))}</td>
@@ -1689,7 +1702,7 @@ function renderSupplements(filter) {
       </tr></thead><tbody>
       ${other.map(r => `<tr>
         <td><div class="compound-name">${getField(r,'Supplement')}</div><div class="compound-sub">${getField(r,'Product')}</div></td>
-        <td style="font-size:13px;font-weight:500;white-space:nowrap">${formatSuppDose(getField(r,'SuppDose'))}</td>
+        <td style="font-size:13px;font-weight:500;white-space:nowrap">${formatSuppDose(getField(r,'SuppDose'))}${foodTag(r)}</td>
         <td style="font-size:12px;color:var(--muted)">${getField(r,'SuppPurpose')}</td>
         <td style="font-size:12px;color:var(--muted)">${getField(r,'Brand')}</td>
         <td>${badge(getField(r,'SuppStatus'))}</td>
@@ -6150,7 +6163,7 @@ function printProtocolList() {
     </tr></thead><tbody>
     ${rows.map(r => `<tr>
       <td style="border:1px solid #ddd;padding:4px 8px;font-weight:600">${getField(r,'Supplement')}</td>
-      <td style="border:1px solid #ddd;padding:4px 8px;font-family:monospace">${formatSuppDose(getField(r,'SuppDose'))}</td>
+      <td style="border:1px solid #ddd;padding:4px 8px;font-family:monospace">${formatSuppDose(getField(r,'SuppDose'))}${foodTag(r)}</td>
       <td style="border:1px solid #ddd;padding:4px 8px">${getField(r,'SuppTiming')||''}</td>
       <td style="border:1px solid #ddd;padding:4px 8px;color:#666">${getField(r,'Brand')||''}</td>
     </tr>`).join('')}
@@ -6228,7 +6241,7 @@ function printSuppList() {
     </tr></thead><tbody>
     ${rows.map(r => `<tr>
       <td style="border:1px solid #ddd;padding:4px 8px;font-weight:600">${getField(r,'Supplement')}</td>
-      <td style="border:1px solid #ddd;padding:4px 8px;font-family:monospace">${formatSuppDose(getField(r,'SuppDose'))}</td>
+      <td style="border:1px solid #ddd;padding:4px 8px;font-family:monospace">${formatSuppDose(getField(r,'SuppDose'))}${foodTag(r)}</td>
       <td style="border:1px solid #ddd;padding:4px 8px">${getField(r,'SuppTiming')||''}</td>
       <td style="border:1px solid #ddd;padding:4px 8px;color:#666">${getField(r,'Brand')||''}</td>
       ${showStatusCol ? `<td style="border:1px solid #ddd;padding:4px 8px;color:#666">${getField(r,'SuppStatus')||''}</td>` : ''}
