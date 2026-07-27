@@ -20,12 +20,13 @@ const BASE = "appmHDG4TGT1xy6R6";
 const H = {"Authorization":"Bearer "+TOKEN,"Content-Type":"application/json"};
 const log = (m,c)=>{const d=document.getElementById('log');d.innerHTML+=`<span class="${c||''}">${m}</span>\n`;};
 
-const INGREDIENT_TAGS = ["Oat Milk","Milk/Dairy","Heavy Cream","Protein Powder - Vanilla","Protein Powder - Chocolate",
-  "Allulose","Cane Sugar","Xanthan Gum","Cookie Dough Bites","Chocolate Chips","PB Fit",
-  "Tru Fru - Chocolate Raspberries","Tru Fru - Chocolate Strawberries","Wyman's Blueberry Blend",
-  "Wyman's Strawberry Banana Blend","Cocoa Powder","Fresh Berries","Banana","Cottage Cheese",
-  "Coffee/Cold Brew","Citrus (lemon/lime/orange)","Ginger","Turmeric","Carrots","Beets",
-  "Celery/Cucumber/Greens","Green Tea","Caffeine Powder","Acerola Powder","Watermelon","Salt","Vanilla Extract"];
+const INGREDIENT_TAGS = ["Oat Milk","Milk/Dairy","Coconut Milk","Greek Yogurt","Cottage Cheese","Heavy Cream",
+  "Protein Powder - Vanilla","Protein Powder - Chocolate","RTD Protein Shake","Allulose","Cane Sugar","Xanthan Gum",
+  "Cookie Dough Bites","Chocolate Chips","PB Fit","Cocoa Powder","Cinnamon","Vanilla Extract","Peppermint Extract","Salt",
+  "Tru Fru - Chocolate Raspberries","Tru Fru - Chocolate Strawberries","Wyman's Blueberry Blend","Wyman's Strawberry Banana Blend",
+  "Fresh Berries","Banana","Watermelon","Pineapple","Apple","Tart Cherry Juice","Citrus (lemon/lime/orange)",
+  "Celery/Cucumber/Greens","Carrots","Beets","Ginger","Turmeric","Mint (fresh)","Green Tea","Coffee/Cold Brew",
+  "Caffeine Powder","Acerola Powder","Electrolyte Powder","Chia Seeds","Black Pepper"];
 
 const tableSpec = {
   name: "Recipes",
@@ -46,70 +47,180 @@ const tableSpec = {
 };
 
 const recipes = [
+ // ================= NINJA CREAMI =================
  {Recipe:"Base Vanilla Protein Ice Cream",Machine:"Ninja Creami",Category:"Protein Ice Cream","Protein (g)":25,
   "Ingredient Tags":["Oat Milk","Protein Powder - Vanilla","Allulose","Cane Sugar","Salt"],
   Ingredients:"1 cup Oatly Full Fat Oatmilk\n1 scoop (~30g) vanilla protein powder\n1/3 cup allulose\n1 tbsp cane sugar (optional, flavor only)\nPinch salt",
-  Instructions:"Blend all until fully smooth. Pour into Creami pint container. Freeze flat 24 hrs. Run Lite Ice Cream/Protein setting once. Scoop straight from container going forward - no respinning.",
+  Instructions:"Blend all until fully smooth. Pour into Creami pint. Freeze flat 24 hrs. Run Lite Ice Cream/Protein setting once. Scoop straight from container going forward - no respinning.",
   Reaction:"Untried","Times Made":0},
  {Recipe:"Cookie Dough Protein Ice Cream",Machine:"Ninja Creami",Category:"Protein Ice Cream","Protein (g)":25,
   "Ingredient Tags":["Oat Milk","Protein Powder - Vanilla","Allulose","Cane Sugar","Salt","Cookie Dough Bites","Chocolate Chips"],
   Ingredients:"1 cup Oatly Full Fat Oatmilk\n1 scoop vanilla protein powder\n1/3 cup allulose\n1 tbsp cane sugar (optional)\nPinch salt\nCookie dough bites (heat-treated flour) + mini chocolate chips, folded in after spin",
-  Instructions:"Blend base until smooth. Freeze flat 24 hrs. Spin once. Fold in cookie dough bites and chocolate chips after spinning. Scoop from container after.",
+  Instructions:"Blend base until smooth. Freeze flat 24 hrs. Spin once. Fold in cookie dough bites and chocolate chips after spinning.",
   Reaction:"Untried","Times Made":0},
  {Recipe:"Chocolate PB Protein Ice Cream",Machine:"Ninja Creami",Category:"Protein Ice Cream","Protein (g)":28,
   "Ingredient Tags":["Oat Milk","Protein Powder - Chocolate","PB Fit","Allulose","Salt","Tru Fru - Chocolate Strawberries"],
-  Ingredients:"1 cup Oatly Full Fat Oatmilk\n1 scoop chocolate protein powder\n2 tbsp PB Fit peanut butter powder\n1/3 cup allulose\nPinch salt\nAfter spin: chopped Tru Fru dark chocolate-covered strawberries",
-  Instructions:"Blend oatmilk, chocolate protein, PB Fit, allulose, and salt until smooth. Freeze flat 24 hrs. Spin once. Fold in chopped Tru Fru pieces after. Scoop from container after.",
+  Ingredients:"1 cup Oatly Full Fat Oatmilk\n1 scoop chocolate protein powder\n2 tbsp PB Fit powder\n1/3 cup allulose\nPinch salt\nAfter spin: chopped Tru Fru dark chocolate strawberries",
+  Instructions:"Blend oatmilk, chocolate protein, PB Fit, allulose, salt until smooth. Freeze flat 24 hrs. Spin once. Fold in chopped Tru Fru after.",
   Reaction:"Untried","Times Made":0},
  {Recipe:"Wild Blueberry Crumble Protein Ice Cream",Machine:"Ninja Creami",Category:"Protein Ice Cream","Protein (g)":25,
   "Ingredient Tags":["Oat Milk","Protein Powder - Vanilla","Allulose","Salt","Wyman's Blueberry Blend"],
-  Ingredients:"1 cup Oatly Full Fat Oatmilk\n1 scoop vanilla protein powder\n1/3 cup allulose\n1/4 cup Wyman's Wild Blueberry Crumble protein blend\nPinch salt",
-  Instructions:"Blend everything together until smooth (Wyman's blend is designed to blend with milk). Freeze flat 24 hrs. Spin once. Scoop from container after.",
+  Ingredients:"1 cup Oatly Full Fat Oatmilk\n1 scoop vanilla protein powder\n1/3 cup allulose\n1/4 cup Wyman's Wild Blueberry Crumble blend\nPinch salt",
+  Instructions:"Blend everything until smooth. Freeze flat 24 hrs. Spin once.",
   Reaction:"Untried","Times Made":0},
  {Recipe:"Strawberry Banana Protein Ice Cream",Machine:"Ninja Creami",Category:"Protein Ice Cream","Protein (g)":25,
   "Ingredient Tags":["Oat Milk","Protein Powder - Vanilla","Allulose","Salt","Wyman's Strawberry Banana Blend"],
-  Ingredients:"1 cup Oatly Full Fat Oatmilk\n1 scoop vanilla protein powder\n1/3 cup allulose\n1/4 cup Wyman's Strawberry Banana protein blend\nPinch salt",
-  Instructions:"Blend everything together until smooth. Freeze flat 24 hrs. Spin once. Scoop from container after.",
+  Ingredients:"1 cup Oatly Full Fat Oatmilk\n1 scoop vanilla protein powder\n1/3 cup allulose\n1/4 cup Wyman's Strawberry Banana blend\nPinch salt",
+  Instructions:"Blend everything until smooth. Freeze flat 24 hrs. Spin once.",
   Reaction:"Untried","Times Made":0},
  {Recipe:"Raspberry White Chocolate Protein Ice Cream",Machine:"Ninja Creami",Category:"Protein Ice Cream","Protein (g)":25,
   "Ingredient Tags":["Oat Milk","Protein Powder - Vanilla","Allulose","Salt","Tru Fru - Chocolate Raspberries"],
   Ingredients:"1 cup Oatly Full Fat Oatmilk\n1 scoop vanilla protein powder\n1/3 cup allulose\nPinch salt\nAfter spin: chopped Tru Fru dark/white chocolate raspberries",
-  Instructions:"Blend base until smooth. Freeze flat 24 hrs. Spin once. Fold in chopped Tru Fru raspberry pieces after. Scoop from container after.",
+  Instructions:"Blend base until smooth. Freeze flat 24 hrs. Spin once. Fold in chopped Tru Fru raspberries after.",
   Reaction:"Untried","Times Made":0},
+ {Recipe:"Cottage Cheese Cheesecake Ice Cream",Machine:"Ninja Creami",Category:"Protein Ice Cream","Protein (g)":32,
+  "Ingredient Tags":["Cottage Cheese","Oat Milk","Allulose","Fresh Berries","Vanilla Extract","Salt"],
+  Ingredients:"3/4 cup low-fat cottage cheese\n1/2 cup Oatly Full Fat Oatmilk\n1/3 cup allulose\n1/2 tsp vanilla extract\nPinch salt\n1/2 cup fresh strawberries (optional swirl)",
+  Instructions:"Blend cottage cheese FULLY smooth - no lumps, this is critical. Add remaining base ingredients, blend again. Freeze flat 24 hrs. Spin once. Highest-satiety option; cottage cheese casein gives the creamiest no-respin texture of any base here.",
+  Reaction:"Untried","Times Made":0},
+ {Recipe:"Greek Yogurt Berry Froyo",Machine:"Ninja Creami",Category:"Protein Ice Cream","Protein (g)":24,
+  "Ingredient Tags":["Greek Yogurt","Oat Milk","Allulose","Fresh Berries","Salt"],
+  Ingredients:"1 cup plain Greek yogurt (whole milk or 2%)\n1/4 cup Oatly Full Fat Oatmilk\n1/3 cup allulose\n1/2 cup fresh mixed berries\nPinch salt",
+  Instructions:"Blend until smooth. Freeze flat 24 hrs. Spin once. Tangier than the protein-powder bases - closer to real frozen yogurt.",
+  Reaction:"Untried","Times Made":0},
+ {Recipe:"Cold Brew Coffee Protein Ice Cream",Machine:"Ninja Creami",Category:"Protein Ice Cream","Protein (g)":25,
+  "Ingredient Tags":["Coffee/Cold Brew","Oat Milk","Protein Powder - Vanilla","Allulose","Salt"],
+  Ingredients:"3/4 cup cold brew coffee\n1/4 cup Oatly Full Fat Oatmilk\n1 scoop vanilla protein powder\n1/3 cup allulose\nPinch salt",
+  Instructions:"Blend until smooth. Freeze flat 24 hrs. Spin once. AM only given your sleep protocol - swap decaf cold brew for an evening version.",
+  Reaction:"Untried","Times Made":0},
+ {Recipe:"Mint Chip Protein Ice Cream",Machine:"Ninja Creami",Category:"Protein Ice Cream","Protein (g)":25,
+  "Ingredient Tags":["Oat Milk","Protein Powder - Vanilla","Allulose","Peppermint Extract","Chocolate Chips","Salt"],
+  Ingredients:"1 cup Oatly Full Fat Oatmilk\n1 scoop vanilla protein powder\n1/3 cup allulose\n1/4 tsp peppermint extract (start low - it's potent)\nPinch salt\nDark chocolate chips folded in after spin",
+  Instructions:"Blend base until smooth. Freeze flat 24 hrs. Spin once. Fold in chocolate chips after.",
+  Reaction:"Untried","Times Made":0},
+ {Recipe:"Double Chocolate Fudge Protein Ice Cream",Machine:"Ninja Creami",Category:"Protein Ice Cream","Protein (g)":27,
+  "Ingredient Tags":["Oat Milk","Protein Powder - Chocolate","Cocoa Powder","Allulose","Salt"],
+  Ingredients:"1 cup Oatly Full Fat Oatmilk\n1 scoop chocolate protein powder\n1 tbsp unsweetened cocoa powder\n1/3 cup allulose\nPinch salt",
+  Instructions:"Blend until smooth (cocoa clumps easily - blend well). Freeze flat 24 hrs. Spin once. Cocoa adds bitterness; bump allulose slightly if too dark for you.",
+  Reaction:"Untried","Times Made":0},
+ {Recipe:"Peanut Butter Banana Protein Ice Cream",Machine:"Ninja Creami",Category:"Protein Ice Cream","Protein (g)":27,
+  "Ingredient Tags":["Oat Milk","Protein Powder - Vanilla","PB Fit","Banana","Allulose","Salt"],
+  Ingredients:"1 cup Oatly Full Fat Oatmilk\n1 scoop vanilla protein powder\n2 tbsp PB Fit powder\n1/2 ripe banana\n1/4 cup allulose (banana adds sweetness - less needed)\nPinch salt",
+  Instructions:"Blend until smooth. Freeze flat 24 hrs. Spin once. Banana adds natural sugar which also helps keep it scoopable.",
+  Reaction:"Untried","Times Made":0},
+ {Recipe:"Cinnamon Vanilla Protein Ice Cream",Machine:"Ninja Creami",Category:"Protein Ice Cream","Protein (g)":25,
+  "Ingredient Tags":["Oat Milk","Protein Powder - Vanilla","Allulose","Cinnamon","Vanilla Extract","Salt"],
+  Ingredients:"1 cup Oatly Full Fat Oatmilk\n1 scoop vanilla protein powder\n1/3 cup allulose\n1/2 tsp cinnamon\n1/4 tsp vanilla extract\nPinch salt",
+  Instructions:"Blend until smooth. Freeze flat 24 hrs. Spin once. Cinnamon has a mild blood-glucose-blunting effect - pairs well with the allulose base.",
+  Reaction:"Untried","Times Made":0},
+ {Recipe:"Coconut Protein Ice Cream (Dairy-Free)",Machine:"Ninja Creami",Category:"Protein Ice Cream","Protein (g)":24,
+  "Ingredient Tags":["Coconut Milk","Protein Powder - Vanilla","Allulose","Salt","Vanilla Extract"],
+  Ingredients:"1 cup So Delicious organic coconut milk\n1 scoop vanilla protein powder\n1/3 cup allulose\n1/4 tsp vanilla extract\nPinch salt",
+  Instructions:"Blend until smooth. Freeze flat 24 hrs. Spin once. Coconut milk fat gives a richer mouthfeel than oat milk - best dairy-free texture of the bunch.",
+  Reaction:"Untried","Times Made":0},
+ {Recipe:"RTD Shake Shortcut Ice Cream",Machine:"Ninja Creami",Category:"Protein Ice Cream","Protein (g)":30,
+  "Ingredient Tags":["RTD Protein Shake","Allulose"],
+  Ingredients:"1 bottle ready-to-drink protein shake (Core Power, Huel, OWYN - whatever's in the fridge)\n2 tbsp allulose",
+  Instructions:"Pour shake into Creami pint, stir in allulose until dissolved. Freeze flat 24 hrs. Spin once. Zero-prep option - the allulose is the only thing standing between this and a frozen brick.",
+  Reaction:"Untried","Times Made":0},
+
+ // ================= NAMA JUICER =================
  {Recipe:"Superberry Energy Juice",Machine:"Nama Juicer",Category:"Juice","Protein (g)":0,
   "Ingredient Tags":["Fresh Berries","Green Tea","Caffeine Powder","Acerola Powder"],
-  Ingredients:"1 cup blueberries\n1 cup strawberries\n1 green tea bag steeped in 1/4 cup hot water, cooled\n100mg caffeine powder (0.1g, milligram scale required)\n1/2 tsp acerola powder (optional)",
-  Instructions:"Juice blueberries and strawberries through the Nama. Steep tea, let cool. Combine juice, tea, and precisely-weighed caffeine powder. Refrigerate, use within 3-4 days. Never estimate caffeine by volume.",
+  Ingredients:"1 cup blueberries\n1 cup strawberries\n1 green tea bag steeped in 1/4 cup hot water, cooled\n100mg caffeine powder (0.1g - milligram scale required)\n1/2 tsp acerola powder (optional)",
+  Instructions:"Juice berries through the Nama. Steep tea, cool. Combine juice, tea, precisely-weighed caffeine. Refrigerate, use within 3-4 days. Never estimate caffeine by volume.",
   Reaction:"Untried","Times Made":0},
  {Recipe:"Morning Green Juice",Machine:"Nama Juicer",Category:"Juice","Protein (g)":2,
-  "Ingredient Tags":["Celery/Cucumber/Greens","Citrus (lemon/lime/orange)","Ginger"],
+  "Ingredient Tags":["Celery/Cucumber/Greens","Citrus (lemon/lime/orange)","Ginger","Apple"],
   Ingredients:"4 celery stalks\n1 cucumber\n1 green apple\n1 lemon (peeled)\n1 inch ginger\n2 cups spinach",
   Instructions:"Load hopper: greens first, then celery/cucumber, apple last. Slow press. Drink fresh or store airtight up to 48 hrs.",
   Reaction:"Untried","Times Made":0},
  {Recipe:"Beet Pre-Workout Juice",Machine:"Nama Juicer",Category:"Juice","Protein (g)":3,
-  "Ingredient Tags":["Beets","Carrots","Citrus (lemon/lime/orange)","Ginger"],
+  "Ingredient Tags":["Beets","Carrots","Citrus (lemon/lime/orange)","Ginger","Apple"],
   Ingredients:"2 medium beets\n3 carrots\n1 apple\n1 inch ginger\n1/2 lemon (peeled)",
-  Instructions:"Juice all ingredients. Drink ~2 hrs pre-training for nitrate effect on blood flow/pump.",
+  Instructions:"Juice all. Drink ~2 hrs pre-training - dietary nitrates support blood flow and pump.",
   Reaction:"Untried","Times Made":0},
  {Recipe:"Citrus Turmeric Recovery Juice",Machine:"Nama Juicer",Category:"Juice","Protein (g)":2,
-  "Ingredient Tags":["Citrus (lemon/lime/orange)","Turmeric","Ginger","Carrots"],
+  "Ingredient Tags":["Citrus (lemon/lime/orange)","Turmeric","Ginger","Carrots","Black Pepper"],
   Ingredients:"3 oranges (peeled)\n2 carrots\n1 inch turmeric root\n1 inch ginger\n1/2 lemon\nPinch black pepper (stir in after)",
-  Instructions:"Juice all. Stir in black pepper after pressing (piperine aids curcumin absorption).",
+  Instructions:"Juice all. Stir in black pepper after pressing - piperine substantially increases curcumin absorption. Anti-inflammatory angle for the tennis elbow.",
   Reaction:"Untried","Times Made":0},
+ {Recipe:"Tart Cherry Sleep Juice",Machine:"Nama Juicer",Category:"Juice","Protein (g)":1,
+  "Ingredient Tags":["Tart Cherry Juice","Fresh Berries","Citrus (lemon/lime/orange)"],
+  Ingredients:"1 cup tart cherry juice (or press fresh tart cherries)\n1/2 cup blueberries\nSqueeze of lemon",
+  Instructions:"Juice berries, combine with tart cherry juice and lemon. Drink 1-2 hrs before bed. Tart cherry is one of the few juices with actual sleep-latency data behind it (natural melatonin + anti-inflammatory) - relevant given the nocturnal cortisol picture.",
+  Reaction:"Untried","Times Made":0},
+ {Recipe:"Carrot Apple Ginger Juice",Machine:"Nama Juicer",Category:"Juice","Protein (g)":2,
+  "Ingredient Tags":["Carrots","Apple","Ginger","Citrus (lemon/lime/orange)"],
+  Ingredients:"5 carrots\n2 apples\n1 inch ginger\n1/2 lemon (peeled)",
+  Instructions:"Juice all. The classic starter juice - sweet, easy, high beta-carotene. Good one to test the Nama's yield against.",
+  Reaction:"Untried","Times Made":0},
+ {Recipe:"Cucumber Lime Electrolyte Juice",Machine:"Nama Juicer",Category:"Juice","Protein (g)":1,
+  "Ingredient Tags":["Celery/Cucumber/Greens","Citrus (lemon/lime/orange)","Electrolyte Powder","Salt","Mint (fresh)"],
+  Ingredients:"2 cucumbers\n2 limes (peeled)\nHandful fresh mint\n1/4 tsp sea salt\n1 scoop unflavored electrolyte powder (optional)",
+  Instructions:"Juice cucumber, lime, and mint. Stir in salt and electrolyte powder. Best post-sauna or post-training rehydration option here.",
+  Reaction:"Untried","Times Made":0},
+ {Recipe:"Pineapple Ginger Anti-Inflammatory Juice",Machine:"Nama Juicer",Category:"Juice","Protein (g)":1,
+  "Ingredient Tags":["Pineapple","Ginger","Turmeric","Citrus (lemon/lime/orange)","Black Pepper"],
+  Ingredients:"1/2 fresh pineapple (cored)\n1 inch ginger\n1 inch turmeric root\n1/2 lemon\nPinch black pepper after pressing",
+  Instructions:"Juice all, stir in pepper after. Pineapple bromelain plus curcumin - the strongest anti-inflammatory stack of the juice set.",
+  Reaction:"Untried","Times Made":0},
+ {Recipe:"Watermelon Mint Hydration Juice",Machine:"Nama Juicer",Category:"Juice","Protein (g)":1,
+  "Ingredient Tags":["Watermelon","Mint (fresh)","Citrus (lemon/lime/orange)","Salt"],
+  Ingredients:"4 cups cubed watermelon\nHandful fresh mint\nJuice of 1 lime\nPinch sea salt",
+  Instructions:"Juice watermelon and mint, stir in lime and salt. Watermelon is a natural citrulline source - mild pump/blood-flow benefit, and the highest-yield fruit in the Nama.",
+  Reaction:"Untried","Times Made":0},
+ {Recipe:"Deep Green Low-Sugar Juice",Machine:"Nama Juicer",Category:"Juice","Protein (g)":3,
+  "Ingredient Tags":["Celery/Cucumber/Greens","Citrus (lemon/lime/orange)","Ginger"],
+  Ingredients:"6 celery stalks\n1 cucumber\n3 cups spinach or kale\n1 lemon (peeled)\n1 inch ginger\nNo apple",
+  Instructions:"Juice all, greens first. Zero fruit means near-zero sugar - the version to run on fat-loss-focused days. Harsher taste; the lemon and ginger carry it.",
+  Reaction:"Untried","Times Made":0},
+
+ // ================= NINJA SLUSHI =================
  {Recipe:"Watermelon Lime Slush",Machine:"Ninja Slushi",Category:"Slushie","Protein (g)":1,
   "Ingredient Tags":["Watermelon","Citrus (lemon/lime/orange)","Salt"],
   Ingredients:"32 oz fresh watermelon juice (Nama-pressed works)\nJuice of 2 limes\nPinch sea salt",
   Instructions:"Combine, pour into Slushi (16oz minimum), Slush preset ~25-40 min. Watermelon's natural sugar clears the machine's 4% sugar floor - no added sugar needed.",
   Reaction:"Untried","Times Made":0},
  {Recipe:"Vanilla Protein Slush",Machine:"Ninja Slushi",Category:"Slushie","Protein (g)":26,
-  "Ingredient Tags":["Protein Powder - Vanilla","Milk/Dairy","Allulose"],
+  "Ingredient Tags":["RTD Protein Shake","Allulose"],
   Ingredients:"2 bottles (14 oz ea) ready-to-drink vanilla protein shake\n1 tbsp allulose syrup (if low-sugar warning fires)",
-  Instructions:"Pour into Slushi, Slush preset. If unit flags low sugar, add allulose (~1/2 tbsp per 8 oz) and restart preset.",
+  Instructions:"Pour into Slushi, Slush preset. If the unit flags low sugar, add allulose (~1/2 tbsp per 8 oz) and restart preset.",
   Reaction:"Untried","Times Made":0},
  {Recipe:"Sugar-Free Lemonade Slush",Machine:"Ninja Slushi",Category:"Slushie","Protein (g)":0,
   "Ingredient Tags":["Citrus (lemon/lime/orange)","Allulose","Salt"],
   Ingredients:"32 oz water\nJuice of 4 lemons\n3 tbsp allulose syrup\nPinch sea salt",
-  Instructions:"Mix until allulose dissolves. Slushi Slush preset ~25-35 min. Allulose replaces the 4% sugar requirement for freeze-point depression.",
+  Instructions:"Mix until allulose dissolves. Slush preset ~25-35 min. Allulose replaces the 4% sugar requirement for freeze-point depression.",
+  Reaction:"Untried","Times Made":0},
+ {Recipe:"Cold Brew Coffee Slush",Machine:"Ninja Slushi",Category:"Slushie","Protein (g)":2,
+  "Ingredient Tags":["Coffee/Cold Brew","Oat Milk","Allulose"],
+  Ingredients:"24 oz STOK cold brew (or any unsweetened cold brew)\n8 oz Oatly Full Fat Oatmilk\n3 tbsp allulose syrup",
+  Instructions:"Combine, stir until allulose dissolves, Slush preset ~25-35 min. AM only - caffeine load is significant at slush volume.",
+  Reaction:"Untried","Times Made":0},
+ {Recipe:"Chocolate Protein Slush",Machine:"Ninja Slushi",Category:"Slushie","Protein (g)":28,
+  "Ingredient Tags":["RTD Protein Shake","Oat Milk","Cocoa Powder","Allulose"],
+  Ingredients:"2 bottles chocolate RTD protein shake (Core Power / Huel)\n1 tbsp cocoa powder\n1 tbsp allulose syrup",
+  Instructions:"Whisk cocoa in fully before pouring (it clumps). Slush preset. Frosty-style - closest thing to a fast-food shake at 28g protein.",
+  Reaction:"Untried","Times Made":0},
+ {Recipe:"Strawberry Protein Slush",Machine:"Ninja Slushi",Category:"Slushie","Protein (g)":22,
+  "Ingredient Tags":["Wyman's Strawberry Banana Blend","Oat Milk","Allulose","Fresh Berries"],
+  Ingredients:"24 oz Oatly Full Fat Oatmilk\n1/2 cup Wyman's Strawberry Banana protein blend\n1 cup strawberries (blended smooth)\n2 tbsp allulose syrup",
+  Instructions:"Blend everything in the Ninja blender first until fully smooth - chunks will jam the Slushi auger. Then pour in and run Slush preset.",
+  Reaction:"Untried","Times Made":0},
+ {Recipe:"Electrolyte Lime Recovery Slush",Machine:"Ninja Slushi",Category:"Slushie","Protein (g)":0,
+  "Ingredient Tags":["Citrus (lemon/lime/orange)","Electrolyte Powder","Allulose","Salt"],
+  Ingredients:"32 oz water\nJuice of 4 limes\n2 scoops unflavored or citrus electrolyte powder\n3 tbsp allulose syrup\n1/4 tsp sea salt",
+  Instructions:"Dissolve everything fully, Slush preset. Post-sauna or post-training - the cold plus electrolytes hits better than a room-temp drink.",
+  Reaction:"Untried","Times Made":0},
+ {Recipe:"Green Tea Citrus Slush",Machine:"Ninja Slushi",Category:"Slushie","Protein (g)":0,
+  "Ingredient Tags":["Green Tea","Citrus (lemon/lime/orange)","Allulose"],
+  Ingredients:"32 oz strongly brewed green tea, chilled\nJuice of 2 lemons\n3 tbsp allulose syrup",
+  Instructions:"Brew tea double-strength, chill fully before adding (warm liquid will not freeze properly). Slush preset. Mild caffeine, high polyphenol.",
+  Reaction:"Untried","Times Made":0},
+ {Recipe:"Tart Cherry Recovery Slush",Machine:"Ninja Slushi",Category:"Slushie","Protein (g)":1,
+  "Ingredient Tags":["Tart Cherry Juice","Citrus (lemon/lime/orange)","Allulose"],
+  Ingredients:"32 oz tart cherry juice\nJuice of 1 lemon\n1 tbsp allulose syrup (only if needed - cherry juice usually clears the sugar floor)",
+  Instructions:"Combine, Slush preset. Evening option - tart cherry supports sleep latency and DOMS recovery. No caffeine.",
   Reaction:"Untried","Times Made":0}
 ];
 
@@ -121,45 +232,66 @@ async function run(){
     let tableId;
 
     if(existing){
-      log("Recipes table already exists (ID "+existing.id+"). Deleting old records before re-seed...","info");
       tableId = existing.id;
-      let allIds = [];
+      log("Recipes table found (ID "+tableId+"). Existing ratings/comments will NOT be touched.","info");
+
+      const tagField = existing.fields.find(f=>f.name==="Ingredient Tags");
+      if(tagField && tagField.options && tagField.options.choices){
+        const existingTags = new Set(tagField.options.choices.map(c=>c.name));
+        const missingTags = INGREDIENT_TAGS.filter(t=>!existingTags.has(t));
+        if(missingTags.length){
+          log("Adding "+missingTags.length+" new ingredient tag options...","info");
+          const allChoices = tagField.options.choices.concat(missingTags.map(n=>({name:n})));
+          const pr = await fetch(`https://api.airtable.com/v0/meta/bases/${BASE}/tables/${tableId}/fields/${tagField.id}`,{
+            method:"PATCH",headers:H,body:JSON.stringify({options:{choices:allChoices}})
+          });
+          if(pr.ok){ log("Tag options updated.","ok"); }
+          else { log("Tag update warning: "+JSON.stringify(await pr.json()),"err"); }
+        }
+      }
+
+      const existingNames = new Set();
       let offset;
       do{
-        const url = `https://api.airtable.com/v0/${BASE}/${tableId}${offset?`?offset=${offset}`:''}`;
+        const url = `https://api.airtable.com/v0/${BASE}/${tableId}?fields%5B%5D=Recipe${offset?`&offset=${offset}`:''}`;
         const r = await fetch(url,{headers:H}).then(r=>r.json());
-        allIds.push(...r.records.map(x=>x.id));
+        r.records.forEach(x=>{ if(x.fields.Recipe) existingNames.add(x.fields.Recipe); });
         offset = r.offset;
       }while(offset);
-      for(let i=0;i<allIds.length;i+=10){
-        const batch = allIds.slice(i,i+10);
-        const qs = batch.map(id=>`records[]=${id}`).join('&');
-        await fetch(`https://api.airtable.com/v0/${BASE}/${tableId}?${qs}`,{method:"DELETE",headers:H});
+      log("Found "+existingNames.size+" recipes already in the table.","info");
+
+      const toAdd = recipes.filter(r=>!existingNames.has(r.Recipe));
+      if(!toAdd.length){ log("Nothing new to add - all "+recipes.length+" recipes already present.","ok"); return; }
+      log("Adding "+toAdd.length+" new recipes (skipping "+(recipes.length-toAdd.length)+" already present)...","info");
+      for(let i=0;i<toAdd.length;i+=5){
+        const batch = toAdd.slice(i,i+5).map(r=>({fields:r}));
+        const cr = await fetch(`https://api.airtable.com/v0/${BASE}/${tableId}`,{method:"POST",headers:H,body:JSON.stringify({records:batch,typecast:true})});
+        const cj = await cr.json();
+        if(!cr.ok){log("ADD BATCH FAILED: "+JSON.stringify(cj),"err");return;}
+        cj.records.forEach(x=>log("  + "+x.fields.Recipe,"ok"));
       }
-      log(`Cleared ${allIds.length} old records.`,"ok");
-    } else {
-      log("Creating Recipes table...","info");
-      let res = await fetch(`https://api.airtable.com/v0/meta/bases/${BASE}/tables`,{method:"POST",headers:H,body:JSON.stringify(tableSpec)});
-      let js = await res.json();
-      if(!res.ok){ log("CREATE TABLE FAILED: "+JSON.stringify(js),"err"); return; }
-      tableId = js.id;
-      log("Table created. ID: "+tableId,"ok");
+      log("DONE. Added "+toAdd.length+" recipes. Existing ratings preserved.","ok");
+      return;
     }
 
-    log(`Seeding ${recipes.length} recipes...`,"info");
+    log("Creating Recipes table...","info");
+    let res = await fetch(`https://api.airtable.com/v0/meta/bases/${BASE}/tables`,{method:"POST",headers:H,body:JSON.stringify(tableSpec)});
+    let js = await res.json();
+    if(!res.ok){ log("CREATE TABLE FAILED: "+JSON.stringify(js),"err"); return; }
+    tableId = js.id;
+    log("Table created. ID: "+tableId,"ok");
+
+    log("Seeding "+recipes.length+" recipes...","info");
     for(let i=0;i<recipes.length;i+=5){
       const batch = recipes.slice(i,i+5).map(r=>({fields:r}));
       const cr = await fetch(`https://api.airtable.com/v0/${BASE}/${tableId}`,{method:"POST",headers:H,body:JSON.stringify({records:batch,typecast:true})});
       const cj = await cr.json();
       if(!cr.ok){log("SEED BATCH FAILED: "+JSON.stringify(cj),"err");return;}
-      log(`Batch ${Math.floor(i/5)+1}: created ${cj.records.length} records`,"ok");
+      log("Batch "+(Math.floor(i/5)+1)+": created "+cj.records.length+" records","ok");
     }
 
-    log("Read-back verification...","info");
-    const vr = await fetch(`https://api.airtable.com/v0/${BASE}/${tableId}?fields%5B%5D=Recipe&fields%5B%5D=Machine`,{headers:H}).then(r=>r.json());
-    log(`Verified ${vr.records.length} records in table:`,"ok");
-    vr.records.forEach(r=>log("  - "+r.fields.Recipe+" ["+(r.fields.Machine||"")+"]"));
-    log("\nDONE. Table ID: "+tableId+"\nGo to recipes.html to use the picker.","ok");
+    const vr = await fetch(`https://api.airtable.com/v0/${BASE}/${tableId}?fields%5B%5D=Recipe`,{headers:H}).then(r=>r.json());
+    log("DONE. Table ID: "+tableId+" - "+vr.records.length+" recipes seeded.","ok");
   }catch(e){ log("ERROR: "+e.message,"err"); }
 }
 run();
