@@ -1050,11 +1050,13 @@
     <div class="section-header">
       <div>
         <h2>Recipes</h2>
-        <div style="font-size:11px;color:var(--muted);margin-top:2px">Nama J2 &middot; Ninja Creami &middot; Ninja Slushi &mdash; macros per serving</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px">Pick a machine, check what you have, get matching recipes. Rate, comment, and track what you've made.</div>
       </div>
       <button class="btn-secondary" onclick="loadRecipes()">Refresh</button>
     </div>
-    <div id="recipes-filter-bar" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px"></div>
+    <div id="recipes-filter-bar" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px"></div>
+    <div id="recipes-ingredient-bar" style="display:none;flex-wrap:wrap;gap:8px;margin-bottom:10px;padding:14px;background:var(--surface2);border:1px solid var(--border);border-radius:10px"></div>
+    <div id="recipes-toolbar" style="display:none;gap:10px;align-items:center;margin-bottom:14px;font-size:12px;color:var(--muted)"></div>
     <div id="recipes-content"><div class="loading">Loading...</div></div>
   </div>
 
@@ -4122,8 +4124,12 @@ function showView(name, e) {
 // 
 
 let recipesData = [];
-let recipesFilter = 'all';
+let recipesMachine = null;
+let recipesSelectedTags = new Set();
+let recipesFullMatchOnly = false;
 let _recipesOpen = {};
+let _recipesPendingRx = {};
+let _recipesPendingMade = {};
 
 async function loadRecipes() {
   const el = document.getElementById('recipes-content');
@@ -4146,26 +4152,90 @@ async function loadRecipes() {
       offset = json.offset;
     } while (offset);
     recipesData = records;
-    renderRecipesFilterBar();
+    renderRecipesMachineBar();
+    renderRecipesIngredientBar();
+    renderRecipesToolbar();
     renderRecipes();
   } catch(e) {
     el.innerHTML = '<p style="color:var(--red);padding:16px">Failed to load recipes.</p>';
   }
 }
 
-function renderRecipesFilterBar() {
+function recipesEsc(s) {
+  return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function recipesSel(v) { return v && v.name ? v.name : (v || ''); }
+
+const RECIPES_MACHINES = ['Ninja Creami', 'Nama Juicer', 'Ninja Slushi'];
+
+function renderRecipesMachineBar() {
   const bar = document.getElementById('recipes-filter-bar');
   if (!bar) return;
-  const cats = ['all','Nama J2','Ninja Creami','Ninja Slushi','Other'];
-  bar.innerHTML = cats.map(function(c){
-    return '<button class="filter-btn' + (recipesFilter === c ? ' active' : '') + '" onclick="filterRecipes(\'' + c + '\', this)">' + (c === 'all' ? 'All' : c) + '</button>';
+  bar.innerHTML = RECIPES_MACHINES.map(function(m){
+    return '<button class="filter-btn' + (recipesMachine === m ? ' active' : '') + '" onclick="pickRecipesMachine(\'' + m + '\')">' + m + '</button>';
   }).join('');
 }
 
-function filterRecipes(f, btn) {
-  recipesFilter = f;
-  document.querySelectorAll('#recipes-filter-bar .filter-btn').forEach(function(b){ b.classList.remove('active'); });
-  if (btn) btn.classList.add('active');
+function pickRecipesMachine(m) {
+  recipesMachine = (recipesMachine === m) ? null : m;
+  recipesSelectedTags = new Set();
+  renderRecipesMachineBar();
+  renderRecipesIngredientBar();
+  renderRecipesToolbar();
+  renderRecipes();
+}
+
+function recipesTagsForMachine(m) {
+  const tags = new Set();
+  recipesData.forEach(function(r){
+    if (recipesSel(r.fields['Machine']) !== m) return;
+    (r.fields['Ingredient Tags'] || []).forEach(function(t){ tags.add(t); });
+  });
+  return Array.from(tags).sort();
+}
+
+function renderRecipesIngredientBar() {
+  const bar = document.getElementById('recipes-ingredient-bar');
+  if (!bar) return;
+  if (!recipesMachine) { bar.style.display = 'none'; bar.innerHTML = ''; return; }
+  bar.style.display = 'flex';
+  const tags = recipesTagsForMachine(recipesMachine);
+  bar.innerHTML = '<div style="width:100%;font-size:10px;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);margin-bottom:2px">Ingredients I have</div>' +
+    tags.map(function(t){
+      const checked = recipesSelectedTags.has(t);
+      return '<span onclick="toggleRecipeTag(\'' + recipesEsc(t).replace(/'/g,"\\'") + '\')" style="padding:6px 12px;border-radius:20px;border:1px solid ' + (checked ? 'var(--accent)' : 'var(--border)') + ';background:' + (checked ? 'var(--accent)' : 'var(--surface)') + ';color:' + (checked ? '#fff' : 'var(--text)') + ';font-size:12px;cursor:pointer;user-select:none">' + recipesEsc(t) + '</span>';
+    }).join('');
+}
+
+function toggleRecipeTag(t) {
+  if (recipesSelectedTags.has(t)) recipesSelectedTags.delete(t); else recipesSelectedTags.add(t);
+  renderRecipesIngredientBar();
+  renderRecipesToolbar();
+  renderRecipes();
+}
+
+function renderRecipesToolbar() {
+  const bar = document.getElementById('recipes-toolbar');
+  if (!bar) return;
+  if (!recipesMachine) { bar.style.display = 'none'; bar.innerHTML = ''; return; }
+  bar.style.display = 'flex';
+  bar.innerHTML =
+    '<button class="btn-secondary" onclick="toggleFullMatchOnly()">Show only full matches: ' + (recipesFullMatchOnly ? 'ON' : 'OFF') + '</button>' +
+    '<button class="btn-secondary" onclick="clearRecipeTags()">Clear ingredients</button>' +
+    '<span id="recipes-count"></span>';
+}
+
+function toggleFullMatchOnly() {
+  recipesFullMatchOnly = !recipesFullMatchOnly;
+  renderRecipesToolbar();
+  renderRecipes();
+}
+
+function clearRecipeTags() {
+  recipesSelectedTags = new Set();
+  renderRecipesIngredientBar();
+  renderRecipesToolbar();
   renderRecipes();
 }
 
@@ -4174,48 +4244,122 @@ function toggleRecipe(id) {
   renderRecipes();
 }
 
-function recipesEsc(s) {
-  return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+function setRecipeReaction(id, rx) {
+  _recipesPendingRx[id] = rx;
+  renderRecipes();
+}
+
+function markRecipeMade(id) {
+  _recipesPendingMade[id] = true;
+  renderRecipes();
+}
+
+async function saveRecipeFeedback(id) {
+  const btn = document.getElementById('rx-save-' + id);
+  if (btn) btn.textContent = 'Saving...';
+  const rec = recipesData.find(function(r){ return r.id === id; });
+  if (!rec) return;
+  const fields = {};
+  if (_recipesPendingRx[id]) fields['Reaction'] = _recipesPendingRx[id];
+  const commentEl = document.getElementById('rx-comment-' + id);
+  if (commentEl) fields['Comments'] = commentEl.value;
+  if (_recipesPendingMade[id]) {
+    fields['Times Made'] = (rec.fields['Times Made'] || 0) + 1;
+    fields['Last Made'] = new Date().toISOString().slice(0,10);
+  }
+  try {
+    const res = await fetch('https://api.airtable.com/v0/' + BASE + '/Recipes/' + id, {
+      method: 'PATCH',
+      headers: { Authorization: 'Bearer ' + TOKEN, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fields: fields })
+    });
+    if (res.ok) {
+      delete _recipesPendingRx[id];
+      delete _recipesPendingMade[id];
+      await loadRecipes();
+    } else if (btn) {
+      btn.textContent = 'Save failed - retry';
+    }
+  } catch(e) {
+    if (btn) btn.textContent = 'Save failed - retry';
+  }
 }
 
 function renderRecipes() {
   const el = document.getElementById('recipes-content');
   if (!el) return;
   let rows = recipesData.map(function(r){ return Object.assign({ id: r.id }, r.fields || {}); }).filter(function(r){ return r['Recipe']; });
-  if (recipesFilter !== 'all') {
-    rows = rows.filter(function(r){
-      const a = r['Appliance'];
-      const name = a && a.name ? a.name : (a || '');
-      return name === recipesFilter;
-    });
+
+  if (!recipesMachine) {
+    el.innerHTML = '<p style="color:var(--muted);padding:16px">Pick a machine above to see ingredient options and matching recipes.</p>';
+    return;
   }
-  rows.sort(function(a,b){ return String(a['Recipe']).localeCompare(String(b['Recipe'])); });
-  if (!rows.length) { el.innerHTML = '<p style="color:var(--muted);padding:16px">No recipes' + (recipesFilter !== 'all' ? ' for ' + recipesEsc(recipesFilter) : '') + '.</p>'; return; }
-  el.innerHTML = rows.map(function(r){
-    const sel = function(v){ return v && v.name ? v.name : (v || ''); };
-    const appliance = sel(r['Appliance']);
-    const category = sel(r['Category']);
-    const status = sel(r['Status']);
-    const rating = sel(r['Rating']);
+
+  rows = rows.filter(function(r){ return recipesSel(r['Machine']) === recipesMachine; });
+
+  rows = rows.map(function(r){
+    const need = r['Ingredient Tags'] || [];
+    const have = need.filter(function(t){ return recipesSelectedTags.has(t); });
+    const missing = need.filter(function(t){ return !recipesSelectedTags.has(t); });
+    const fullMatch = missing.length === 0 && need.length > 0;
+    return { r: r, need: need, have: have, missing: missing, fullMatch: fullMatch };
+  });
+
+  if (recipesSelectedTags.size > 0) {
+    rows.sort(function(a,b){ return b.have.length - a.have.length || a.missing.length - b.missing.length; });
+    if (recipesFullMatchOnly) rows = rows.filter(function(x){ return x.fullMatch; });
+  } else {
+    rows.sort(function(a,b){ return String(a.r['Recipe']).localeCompare(String(b.r['Recipe'])); });
+  }
+
+  const countEl = document.getElementById('recipes-count');
+  if (countEl) countEl.textContent = rows.length + ' recipe' + (rows.length === 1 ? '' : 's') + ' shown';
+
+  if (!rows.length) { el.innerHTML = '<p style="color:var(--muted);padding:16px">No recipes match. Try unchecking "full matches only" or selecting fewer ingredients.</p>'; return; }
+
+  el.innerHTML = rows.map(function(item){
+    const r = item.r;
+    const category = recipesSel(r['Category']);
+    const reaction = recipesSel(r['Reaction']) || 'Untried';
+    const timesMade = r['Times Made'] || 0;
+    const lastMade = r['Last Made'] || '';
     const open = !!_recipesOpen[r.id];
-    const macros = [
-      r['Protein (g)'] != null ? r['Protein (g)'] + 'g protein' : null,
-      r['Calories'] != null ? r['Calories'] + ' cal' : null,
-      r['Carbs (g)'] != null ? r['Carbs (g)'] + 'g carbs' : null,
-      r['Fat (g)'] != null ? r['Fat (g)'] + 'g fat' : null
-    ].filter(Boolean).join(' &middot; ');
+    const pendingRx = _recipesPendingRx[r.id] || reaction;
+    const badge = recipesSelectedTags.size === 0 ? '' :
+      (item.fullMatch
+        ? '<span style="font-size:10px;padding:3px 8px;border-radius:20px;background:var(--green-bg,#dcfce7);color:var(--green,#166534);white-space:nowrap">have everything</span>'
+        : '<span style="font-size:10px;padding:3px 8px;border-radius:20px;background:var(--amber-bg,#fef3c7);color:var(--amber,#92400e);white-space:nowrap">' + item.have.length + '/' + item.need.length + ' ingredients</span>');
+    const rxColor = { Like: 'var(--green,#166534)', Hate: 'var(--red,#991b1b)', Neutral: 'var(--amber,#92400e)', Untried: 'var(--muted)' }[reaction] || 'var(--muted)';
+
     return '<div style="border:1px solid var(--border);border-radius:10px;margin-bottom:10px;background:var(--surface2)">' +
       '<div style="padding:12px 16px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:10px" onclick="toggleRecipe(\'' + r.id + '\')">' +
         '<div>' +
-          '<div style="font-weight:600;font-size:14px">' + recipesEsc(r['Recipe']) + (status ? ' <span style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.6px;margin-left:6px">' + recipesEsc(status) + '</span>' : '') + (rating ? ' <span style="font-size:11px;color:var(--accent);margin-left:4px">' + '&#9733;'.repeat(parseInt(rating,10)||0) + '</span>' : '') + '</div>' +
-          '<div style="font-size:11px;color:var(--muted);margin-top:2px">' + recipesEsc(appliance) + (category ? ' &middot; ' + recipesEsc(category) : '') + (r['Servings'] ? ' &middot; ' + r['Servings'] + ' serving' + (r['Servings'] > 1 ? 's' : '') : '') + (macros ? ' &middot; ' + macros : '') + '</div>' +
+          '<div style="font-weight:600;font-size:14px">' + recipesEsc(r['Recipe']) + '</div>' +
+          '<div style="font-size:11px;color:var(--muted);margin-top:2px">' + recipesEsc(category) + (r['Protein (g)'] != null ? ' &middot; ' + r['Protein (g)'] + 'g protein' : '') + ' &middot; <span style="color:' + rxColor + '">' + recipesEsc(reaction) + '</span>' + (timesMade ? ' &middot; made ' + timesMade + 'x' : '') + '</div>' +
         '</div>' +
+        badge +
         '<div style="color:var(--muted);font-size:12px">' + (open ? '&#9650;' : '&#9660;') + '</div>' +
       '</div>' +
-      (open ? '<div style="padding:0 16px 14px;font-size:13px;line-height:1.55">' +
-        (r['Ingredients'] ? '<div style="font-size:10px;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);margin:8px 0 4px">Ingredients</div><div style="white-space:pre-wrap">' + recipesEsc(r['Ingredients']) + '</div>' : '') +
+      (open ? '<div style="padding:0 16px 16px;font-size:13px;line-height:1.55">' +
+        (item.missing.length && recipesSelectedTags.size > 0 ? '<div style="font-size:10px;text-transform:uppercase;letter-spacing:0.8px;color:var(--red,#991b1b);margin:8px 0 4px">Missing</div><div>' + recipesEsc(item.missing.join(', ')) + '</div>' : '') +
+        (r['Ingredients'] ? '<div style="font-size:10px;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);margin:10px 0 4px">Ingredients</div><div style="white-space:pre-wrap">' + recipesEsc(r['Ingredients']) + '</div>' : '') +
         (r['Instructions'] ? '<div style="font-size:10px;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);margin:10px 0 4px">Instructions</div><div style="white-space:pre-wrap">' + recipesEsc(r['Instructions']) + '</div>' : '') +
-        (r['Notes'] ? '<div style="font-size:10px;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);margin:10px 0 4px">Notes</div><div style="white-space:pre-wrap;color:var(--muted)">' + recipesEsc(r['Notes']) + '</div>' : '') +
+        '<div style="font-size:10px;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);margin:12px 0 6px">Your reaction</div>' +
+        '<div style="display:flex;gap:8px">' +
+          ['Like','Neutral','Hate'].map(function(rx){
+            const active = pendingRx === rx;
+            const bg = active ? (rx === 'Like' ? 'var(--green-bg,#dcfce7)' : rx === 'Hate' ? 'var(--red-bg,#fee2e2)' : 'var(--amber-bg,#fef3c7)') : 'var(--surface)';
+            const fg = active ? (rx === 'Like' ? 'var(--green,#166534)' : rx === 'Hate' ? 'var(--red,#991b1b)' : 'var(--amber,#92400e)') : 'var(--text)';
+            const label = rx === 'Like' ? '\uD83D\uDC4D Like' : rx === 'Hate' ? '\uD83D\uDC4E Hate' : '\uD83D\uDE10 Neutral';
+            return '<div onclick="setRecipeReaction(\'' + r.id + '\',\'' + rx + '\')" style="flex:1;padding:8px;border-radius:7px;border:1px solid var(--border);background:' + bg + ';color:' + fg + ';font-weight:' + (active?'600':'400') + ';text-align:center;cursor:pointer;font-size:13px">' + label + '</div>';
+          }).join('') +
+        '</div>' +
+        '<textarea id="rx-comment-' + r.id + '" placeholder="Notes / tweaks for next time..." style="width:100%;margin-top:10px;padding:8px;border-radius:7px;border:1px solid var(--border);font-family:inherit;font-size:13px;resize:vertical;min-height:50px">' + recipesEsc(r['Comments']) + '</textarea>' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">' +
+          '<span style="font-size:11px;color:var(--muted)">' + (lastMade ? 'Last made: ' + recipesEsc(lastMade) : 'Not made yet') + (_recipesPendingMade[r.id] ? ' &middot; marked for today' : '') + '</span>' +
+          '<button class="btn-secondary" onclick="markRecipeMade(\'' + r.id + '\')">I made this today</button>' +
+        '</div>' +
+        '<button id="rx-save-' + r.id + '" class="btn-secondary" style="margin-top:10px;background:var(--accent);color:#fff;border-color:var(--accent)" onclick="saveRecipeFeedback(\'' + r.id + '\')">Save</button>' +
       '</div>' : '') +
     '</div>';
   }).join('');
