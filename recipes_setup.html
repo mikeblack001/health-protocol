@@ -224,6 +224,56 @@ const recipes = [
   Reaction:"Untried","Times Made":0}
 ];
 
+const ingredientTableSpec = {
+  name: "Ingredients",
+  description: "Per-ingredient preference (Like/OK/No/Hate) and stock status (On Hand / Need to Buy). Drives recipe filtering in the Recipes page.",
+  fields: [
+    {name:"Ingredient", type:"singleLineText"},
+    {name:"Preference", type:"singleSelect", options:{choices:[{name:"Like"},{name:"OK"},{name:"No"},{name:"Hate"}]}},
+    {name:"Stock", type:"singleSelect", options:{choices:[{name:"On Hand"},{name:"Need to Buy"}]}},
+    {name:"Notes", type:"multilineText"}
+  ]
+};
+
+async function ensureIngredientsTable(){
+  const meta = await fetch(`https://api.airtable.com/v0/meta/bases/${BASE}/tables`,{headers:H}).then(r=>r.json());
+  let existing = meta.tables.find(t=>t.name==="Ingredients");
+  let tableId;
+
+  if(!existing){
+    log("Creating Ingredients table...","info");
+    const res = await fetch(`https://api.airtable.com/v0/meta/bases/${BASE}/tables`,{method:"POST",headers:H,body:JSON.stringify(ingredientTableSpec)});
+    const js = await res.json();
+    if(!res.ok){ log("CREATE INGREDIENTS FAILED: "+JSON.stringify(js),"err"); return null; }
+    tableId = js.id;
+    log("Ingredients table created. ID: "+tableId,"ok");
+  } else {
+    tableId = existing.id;
+    log("Ingredients table found (ID "+tableId+"). Preferences will NOT be overwritten.","info");
+  }
+
+  const existingNames = new Set();
+  let offset;
+  do{
+    const url = `https://api.airtable.com/v0/${BASE}/${tableId}?fields%5B%5D=Ingredient${offset?`&offset=${offset}`:''}`;
+    const r = await fetch(url,{headers:H}).then(r=>r.json());
+    r.records.forEach(x=>{ if(x.fields.Ingredient) existingNames.add(x.fields.Ingredient); });
+    offset = r.offset;
+  }while(offset);
+
+  const toAdd = INGREDIENT_TAGS.filter(t=>!existingNames.has(t));
+  if(!toAdd.length){ log("All "+INGREDIENT_TAGS.length+" ingredients already present.","ok"); return tableId; }
+  log("Adding "+toAdd.length+" new ingredients...","info");
+  for(let i=0;i<toAdd.length;i+=10){
+    const batch = toAdd.slice(i,i+10).map(n=>({fields:{Ingredient:n, Preference:"OK"}}));
+    const cr = await fetch(`https://api.airtable.com/v0/${BASE}/${tableId}`,{method:"POST",headers:H,body:JSON.stringify({records:batch,typecast:true})});
+    const cj = await cr.json();
+    if(!cr.ok){log("INGREDIENT BATCH FAILED: "+JSON.stringify(cj),"err");return tableId;}
+  }
+  log("Added "+toAdd.length+" ingredients (default Preference = OK, Stock = unset).","ok");
+  return tableId;
+}
+
 async function run(){
   try{
     log("Checking for existing Recipes table...","info");
@@ -261,7 +311,7 @@ async function run(){
       log("Found "+existingNames.size+" recipes already in the table.","info");
 
       const toAdd = recipes.filter(r=>!existingNames.has(r.Recipe));
-      if(!toAdd.length){ log("Nothing new to add - all "+recipes.length+" recipes already present.","ok"); return; }
+      if(!toAdd.length){ log("Nothing new to add - all "+recipes.length+" recipes already present.","ok"); await ensureIngredientsTable(); return; }
       log("Adding "+toAdd.length+" new recipes (skipping "+(recipes.length-toAdd.length)+" already present)...","info");
       for(let i=0;i<toAdd.length;i+=5){
         const batch = toAdd.slice(i,i+5).map(r=>({fields:r}));
@@ -271,6 +321,7 @@ async function run(){
         cj.records.forEach(x=>log("  + "+x.fields.Recipe,"ok"));
       }
       log("DONE. Added "+toAdd.length+" recipes. Existing ratings preserved.","ok");
+      await ensureIngredientsTable();
       return;
     }
 
@@ -292,6 +343,7 @@ async function run(){
 
     const vr = await fetch(`https://api.airtable.com/v0/${BASE}/${tableId}?fields%5B%5D=Recipe`,{headers:H}).then(r=>r.json());
     log("DONE. Table ID: "+tableId+" - "+vr.records.length+" recipes seeded.","ok");
+    await ensureIngredientsTable();
   }catch(e){ log("ERROR: "+e.message,"err"); }
 }
 run();

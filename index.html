@@ -4124,50 +4124,74 @@ function showView(name, e) {
 // 
 
 let recipesData = [];
+let ingredientsData = [];
 let recipesMachine = null;
-let recipesSelectedTags = new Set();
+let recipesPanelTab = 'stock';
+let recipesShowPanel = false;
 let recipesFullMatchOnly = false;
+let recipesShowExcluded = false;
 let _recipesOpen = {};
 let _recipesPendingRx = {};
 let _recipesPendingMade = {};
+
+const RECIPES_MACHINES = ['Ninja Creami', 'Nama Juicer', 'Ninja Slushi'];
+
+function recipesEsc(s) {
+  return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function recipesAttr(s) {
+  return recipesEsc(s).replace(/'/g, '&#39;').replace(/"/g, '&quot;');
+}
+function recipesSel(v) { return v && v.name ? v.name : (v || ''); }
+
+function ingRec(name) {
+  return ingredientsData.find(function(r){ return r.fields['Ingredient'] === name; });
+}
+function ingPref(name) {
+  const r = ingRec(name);
+  return r ? (recipesSel(r.fields['Preference']) || 'OK') : 'OK';
+}
+function ingStock(name) {
+  const r = ingRec(name);
+  return r ? recipesSel(r.fields['Stock']) : '';
+}
 
 async function loadRecipes() {
   const el = document.getElementById('recipes-content');
   if (!el) return;
   el.innerHTML = '<div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div>';
   try {
-    let records = [], offset = null;
-    do {
-      const url = 'https://api.airtable.com/v0/' + BASE + '/Recipes?pageSize=100' + (offset ? '&offset=' + offset : '');
-      const res = await fetch(url, { headers: { Authorization: 'Bearer ' + TOKEN } });
-      const json = await res.json();
-      if (!res.ok) {
-        if ((json.error && (json.error.type === 'TABLE_NOT_FOUND' || res.status === 404 || res.status === 403))) {
-          el.innerHTML = '<p style="color:var(--muted);padding:16px">Recipes table not found in Airtable yet. Run <a href="recipes_setup.html" style="color:var(--accent)">recipes_setup.html</a> once to create and seed it, then Refresh.</p>';
-          return;
-        }
-        throw new Error('AT error');
-      }
-      records = records.concat(json.records || []);
-      offset = json.offset;
-    } while (offset);
-    recipesData = records;
+    recipesData = await atFetchAll('Recipes');
+    if (recipesData === null) {
+      el.innerHTML = '<p style="color:var(--muted);padding:16px">Recipes table not found. Run <a href="recipes_setup.html" style="color:var(--accent)">recipes_setup.html</a> once, then Refresh.</p>';
+      return;
+    }
+    const ing = await atFetchAll('Ingredients');
+    ingredientsData = ing === null ? [] : ing;
     renderRecipesMachineBar();
-    renderRecipesIngredientBar();
+    renderRecipesPanel();
     renderRecipesToolbar();
     renderRecipes();
   } catch(e) {
-    el.innerHTML = '<p style="color:var(--red);padding:16px">Failed to load recipes.</p>';
+    el.innerHTML = '<p style="color:var(--red)">Failed to load recipes.</p>';
   }
 }
 
-function recipesEsc(s) {
-  return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+async function atFetchAll(tableName) {
+  let records = [], offset = null;
+  do {
+    const url = 'https://api.airtable.com/v0/' + BASE + '/' + tableName + '?pageSize=100' + (offset ? '&offset=' + offset : '');
+    const res = await fetch(url, { headers: { Authorization: 'Bearer ' + TOKEN } });
+    const json = await res.json();
+    if (!res.ok) {
+      if (res.status === 404 || res.status === 403 || (json.error && json.error.type === 'TABLE_NOT_FOUND')) return null;
+      throw new Error('AT error');
+    }
+    records = records.concat(json.records || []);
+    offset = json.offset;
+  } while (offset);
+  return records;
 }
-
-function recipesSel(v) { return v && v.name ? v.name : (v || ''); }
-
-const RECIPES_MACHINES = ['Ninja Creami', 'Nama Juicer', 'Ninja Slushi'];
 
 function renderRecipesMachineBar() {
   const bar = document.getElementById('recipes-filter-bar');
@@ -4179,9 +4203,8 @@ function renderRecipesMachineBar() {
 
 function pickRecipesMachine(m) {
   recipesMachine = (recipesMachine === m) ? null : m;
-  recipesSelectedTags = new Set();
   renderRecipesMachineBar();
-  renderRecipesIngredientBar();
+  renderRecipesPanel();
   renderRecipesToolbar();
   renderRecipes();
 }
@@ -4195,24 +4218,106 @@ function recipesTagsForMachine(m) {
   return Array.from(tags).sort();
 }
 
-function renderRecipesIngredientBar() {
-  const bar = document.getElementById('recipes-ingredient-bar');
-  if (!bar) return;
-  if (!recipesMachine) { bar.style.display = 'none'; bar.innerHTML = ''; return; }
-  bar.style.display = 'flex';
-  const tags = recipesTagsForMachine(recipesMachine);
-  bar.innerHTML = '<div style="width:100%;font-size:10px;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);margin-bottom:2px">Ingredients I have</div>' +
-    tags.map(function(t){
-      const checked = recipesSelectedTags.has(t);
-      return '<span onclick="toggleRecipeTag(\'' + recipesEsc(t).replace(/'/g,"\\'") + '\')" style="padding:6px 12px;border-radius:20px;border:1px solid ' + (checked ? 'var(--accent)' : 'var(--border)') + ';background:' + (checked ? 'var(--accent)' : 'var(--surface)') + ';color:' + (checked ? '#fff' : 'var(--text)') + ';font-size:12px;cursor:pointer;user-select:none">' + recipesEsc(t) + '</span>';
-    }).join('');
+function toggleRecipesPanel() {
+  recipesShowPanel = !recipesShowPanel;
+  renderRecipesPanel();
+  renderRecipesToolbar();
 }
 
-function toggleRecipeTag(t) {
-  if (recipesSelectedTags.has(t)) recipesSelectedTags.delete(t); else recipesSelectedTags.add(t);
-  renderRecipesIngredientBar();
-  renderRecipesToolbar();
+function setRecipesPanelTab(tab) {
+  recipesPanelTab = tab;
+  renderRecipesPanel();
+}
+
+function renderRecipesPanel() {
+  const bar = document.getElementById('recipes-ingredient-bar');
+  if (!bar) return;
+  if (!recipesMachine || !recipesShowPanel) { bar.style.display = 'none'; bar.innerHTML = ''; return; }
+  bar.style.display = 'block';
+
+  const tags = recipesTagsForMachine(recipesMachine);
+  const tabBtn = function(id, label){
+    const on = recipesPanelTab === id;
+    return '<button onclick="setRecipesPanelTab(\'' + id + '\')" style="padding:6px 14px;border-radius:6px;border:1px solid ' + (on?'var(--accent)':'var(--border)') + ';background:' + (on?'var(--accent)':'var(--surface)') + ';color:' + (on?'#fff':'var(--text)') + ';font-size:13px;cursor:pointer;font-family:inherit">' + label + '</button>';
+  };
+
+  let rows;
+  if (recipesPanelTab === 'stock') {
+    rows = tags.map(function(t){
+      const st = ingStock(t);
+      const btn = function(val, label, color){
+        const on = st === val;
+        return '<span onclick="setIngStock(\'' + recipesAttr(t) + '\',\'' + val + '\')" style="padding:4px 10px;border-radius:6px;border:1px solid ' + (on?color:'var(--border)') + ';background:' + (on?color:'var(--surface)') + ';color:' + (on?'#fff':'var(--muted)') + ';font-size:11px;cursor:pointer;white-space:nowrap">' + label + '</span>';
+      };
+      return '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border)">' +
+        '<span style="font-size:13px">' + recipesEsc(t) + '</span>' +
+        '<span style="display:flex;gap:5px">' + btn('On Hand','On hand','#166534') + btn('Need to Buy','Need to buy','#92400e') + '</span>' +
+      '</div>';
+    }).join('');
+  } else {
+    rows = tags.map(function(t){
+      const pf = ingPref(t);
+      const btn = function(val, label, color){
+        const on = pf === val;
+        return '<span onclick="setIngPref(\'' + recipesAttr(t) + '\',\'' + val + '\')" style="padding:4px 10px;border-radius:6px;border:1px solid ' + (on?color:'var(--border)') + ';background:' + (on?color:'var(--surface)') + ';color:' + (on?'#fff':'var(--muted)') + ';font-size:11px;cursor:pointer;white-space:nowrap">' + label + '</span>';
+      };
+      return '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border)">' +
+        '<span style="font-size:13px">' + recipesEsc(t) + '</span>' +
+        '<span style="display:flex;gap:5px">' + btn('Like','Like','#166534') + btn('OK','OK','#4b5563') + btn('No','No','#92400e') + btn('Hate','Hate','#991b1b') + '</span>' +
+      '</div>';
+    }).join('');
+  }
+
+  bar.innerHTML =
+    '<div style="display:flex;gap:8px;margin-bottom:12px">' + tabBtn('stock','What I have') + tabBtn('pref','Likes &amp; dislikes') + '</div>' +
+    '<div style="font-size:11px;color:var(--muted);margin-bottom:8px">' +
+      (recipesPanelTab === 'stock'
+        ? 'Mark what you have on hand. Anything unmarked is treated as not on hand.'
+        : 'Ingredients marked No or Hate will exclude any recipe that uses them.') +
+    '</div>' + rows;
+}
+
+async function setIngStock(name, val) {
+  const rec = ingRec(name);
+  const current = ingStock(name);
+  const newVal = current === val ? null : val;
+  await patchIngredient(name, rec, { 'Stock': newVal });
+}
+
+async function setIngPref(name, val) {
+  const rec = ingRec(name);
+  await patchIngredient(name, rec, { 'Preference': val });
+}
+
+async function patchIngredient(name, rec, fields) {
+  if (rec) {
+    Object.keys(fields).forEach(function(k){ rec.fields[k] = fields[k]; });
+  } else {
+    ingredientsData.push({ id: null, fields: Object.assign({ Ingredient: name }, fields) });
+  }
+  renderRecipesPanel();
   renderRecipes();
+  try {
+    if (rec && rec.id) {
+      await fetch('https://api.airtable.com/v0/' + BASE + '/Ingredients/' + rec.id, {
+        method: 'PATCH',
+        headers: { Authorization: 'Bearer ' + TOKEN, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fields: fields, typecast: true })
+      });
+    } else {
+      const res = await fetch('https://api.airtable.com/v0/' + BASE + '/Ingredients', {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + TOKEN, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ records: [{ fields: Object.assign({ Ingredient: name }, fields) }], typecast: true })
+      });
+      const js = await res.json();
+      if (res.ok && js.records && js.records[0]) {
+        const created = js.records[0];
+        const local = ingredientsData.find(function(r){ return r.fields['Ingredient'] === name; });
+        if (local) local.id = created.id;
+      }
+    }
+  } catch(e) {}
 }
 
 function renderRecipesToolbar() {
@@ -4220,9 +4325,11 @@ function renderRecipesToolbar() {
   if (!bar) return;
   if (!recipesMachine) { bar.style.display = 'none'; bar.innerHTML = ''; return; }
   bar.style.display = 'flex';
+  bar.style.flexWrap = 'wrap';
   bar.innerHTML =
-    '<button class="btn-secondary" onclick="toggleFullMatchOnly()">Show only full matches: ' + (recipesFullMatchOnly ? 'ON' : 'OFF') + '</button>' +
-    '<button class="btn-secondary" onclick="clearRecipeTags()">Clear ingredients</button>' +
+    '<button class="btn-secondary" onclick="toggleRecipesPanel()">' + (recipesShowPanel ? 'Hide' : 'Set up') + ' ingredients</button>' +
+    '<button class="btn-secondary" onclick="toggleFullMatchOnly()">Only what I can make now: ' + (recipesFullMatchOnly ? 'ON' : 'OFF') + '</button>' +
+    '<button class="btn-secondary" onclick="toggleShowExcluded()">' + (recipesShowExcluded ? 'Hide' : 'Show') + ' excluded</button>' +
     '<span id="recipes-count"></span>';
 }
 
@@ -4231,28 +4338,14 @@ function toggleFullMatchOnly() {
   renderRecipesToolbar();
   renderRecipes();
 }
-
-function clearRecipeTags() {
-  recipesSelectedTags = new Set();
-  renderRecipesIngredientBar();
+function toggleShowExcluded() {
+  recipesShowExcluded = !recipesShowExcluded;
   renderRecipesToolbar();
   renderRecipes();
 }
-
-function toggleRecipe(id) {
-  _recipesOpen[id] = !_recipesOpen[id];
-  renderRecipes();
-}
-
-function setRecipeReaction(id, rx) {
-  _recipesPendingRx[id] = rx;
-  renderRecipes();
-}
-
-function markRecipeMade(id) {
-  _recipesPendingMade[id] = true;
-  renderRecipes();
-}
+function toggleRecipe(id) { _recipesOpen[id] = !_recipesOpen[id]; renderRecipes(); }
+function setRecipeReaction(id, rx) { _recipesPendingRx[id] = rx; renderRecipes(); }
+function markRecipeMade(id) { _recipesPendingMade[id] = true; renderRecipes(); }
 
 async function saveRecipeFeedback(id) {
   const btn = document.getElementById('rx-save-' + id);
@@ -4271,91 +4364,106 @@ async function saveRecipeFeedback(id) {
     const res = await fetch('https://api.airtable.com/v0/' + BASE + '/Recipes/' + id, {
       method: 'PATCH',
       headers: { Authorization: 'Bearer ' + TOKEN, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fields: fields })
+      body: JSON.stringify({ fields: fields, typecast: true })
     });
     if (res.ok) {
       delete _recipesPendingRx[id];
       delete _recipesPendingMade[id];
       await loadRecipes();
-    } else if (btn) {
-      btn.textContent = 'Save failed - retry';
-    }
-  } catch(e) {
-    if (btn) btn.textContent = 'Save failed - retry';
-  }
+    } else if (btn) { btn.textContent = 'Save failed - retry'; }
+  } catch(e) { if (btn) btn.textContent = 'Save failed - retry'; }
 }
 
 function renderRecipes() {
   const el = document.getElementById('recipes-content');
   if (!el) return;
-  let rows = recipesData.map(function(r){ return Object.assign({ id: r.id }, r.fields || {}); }).filter(function(r){ return r['Recipe']; });
 
   if (!recipesMachine) {
-    el.innerHTML = '<p style="color:var(--muted);padding:16px">Pick a machine above to see ingredient options and matching recipes.</p>';
+    el.innerHTML = '<p style="color:var(--muted);padding:16px">Pick a machine above to see matching recipes.</p>';
     return;
   }
 
-  rows = rows.filter(function(r){ return recipesSel(r['Machine']) === recipesMachine; });
+  let rows = recipesData
+    .map(function(r){ return Object.assign({ id: r.id }, r.fields || {}); })
+    .filter(function(r){ return r['Recipe'] && recipesSel(r['Machine']) === recipesMachine; });
 
   rows = rows.map(function(r){
     const need = r['Ingredient Tags'] || [];
-    const have = need.filter(function(t){ return recipesSelectedTags.has(t); });
-    const missing = need.filter(function(t){ return !recipesSelectedTags.has(t); });
-    const fullMatch = missing.length === 0 && need.length > 0;
-    return { r: r, need: need, have: have, missing: missing, fullMatch: fullMatch };
+    const onHand = need.filter(function(t){ return ingStock(t) === 'On Hand'; });
+    const toBuy = need.filter(function(t){ return ingStock(t) !== 'On Hand'; });
+    const blocked = need.filter(function(t){ const p = ingPref(t); return p === 'No' || p === 'Hate'; });
+    const liked = need.filter(function(t){ return ingPref(t) === 'Like'; });
+    return { r:r, need:need, onHand:onHand, toBuy:toBuy, blocked:blocked, liked:liked,
+             canMakeNow: toBuy.length === 0 && need.length > 0, excluded: blocked.length > 0 };
   });
 
-  if (recipesSelectedTags.size > 0) {
-    rows.sort(function(a,b){ return b.have.length - a.have.length || a.missing.length - b.missing.length; });
-    if (recipesFullMatchOnly) rows = rows.filter(function(x){ return x.fullMatch; });
-  } else {
-    rows.sort(function(a,b){ return String(a.r['Recipe']).localeCompare(String(b.r['Recipe'])); });
-  }
+  const excludedCount = rows.filter(function(x){ return x.excluded; }).length;
+  if (!recipesShowExcluded) rows = rows.filter(function(x){ return !x.excluded; });
+  if (recipesFullMatchOnly) rows = rows.filter(function(x){ return x.canMakeNow; });
+
+  rows.sort(function(a,b){
+    if (a.excluded !== b.excluded) return a.excluded ? 1 : -1;
+    if (a.canMakeNow !== b.canMakeNow) return a.canMakeNow ? -1 : 1;
+    if (a.toBuy.length !== b.toBuy.length) return a.toBuy.length - b.toBuy.length;
+    return b.liked.length - a.liked.length;
+  });
 
   const countEl = document.getElementById('recipes-count');
-  if (countEl) countEl.textContent = rows.length + ' recipe' + (rows.length === 1 ? '' : 's') + ' shown';
+  if (countEl) countEl.textContent = rows.length + ' shown' + (excludedCount && !recipesShowExcluded ? ' · ' + excludedCount + ' excluded' : '');
 
-  if (!rows.length) { el.innerHTML = '<p style="color:var(--muted);padding:16px">No recipes match. Try unchecking "full matches only" or selecting fewer ingredients.</p>'; return; }
+  if (!rows.length) {
+    el.innerHTML = '<p style="color:var(--muted);padding:16px">No recipes match. Turn off "only what I can make now", or loosen your No/Hate ingredients.</p>';
+    return;
+  }
 
   el.innerHTML = rows.map(function(item){
     const r = item.r;
-    const category = recipesSel(r['Category']);
     const reaction = recipesSel(r['Reaction']) || 'Untried';
     const timesMade = r['Times Made'] || 0;
     const lastMade = r['Last Made'] || '';
     const open = !!_recipesOpen[r.id];
     const pendingRx = _recipesPendingRx[r.id] || reaction;
-    const badge = recipesSelectedTags.size === 0 ? '' :
-      (item.fullMatch
-        ? '<span style="font-size:10px;padding:3px 8px;border-radius:20px;background:var(--green-bg,#dcfce7);color:var(--green,#166534);white-space:nowrap">have everything</span>'
-        : '<span style="font-size:10px;padding:3px 8px;border-radius:20px;background:var(--amber-bg,#fef3c7);color:var(--amber,#92400e);white-space:nowrap">' + item.have.length + '/' + item.need.length + ' ingredients</span>');
-    const rxColor = { Like: 'var(--green,#166534)', Hate: 'var(--red,#991b1b)', Neutral: 'var(--amber,#92400e)', Untried: 'var(--muted)' }[reaction] || 'var(--muted)';
 
-    return '<div style="border:1px solid var(--border);border-radius:10px;margin-bottom:10px;background:var(--surface2)">' +
+    let badge;
+    if (item.excluded) {
+      badge = '<span style="font-size:10px;padding:3px 8px;border-radius:20px;background:#fee2e2;color:#991b1b;white-space:nowrap">excluded</span>';
+    } else if (item.canMakeNow) {
+      badge = '<span style="font-size:10px;padding:3px 8px;border-radius:20px;background:#dcfce7;color:#166534;white-space:nowrap">can make now</span>';
+    } else {
+      badge = '<span style="font-size:10px;padding:3px 8px;border-radius:20px;background:#fef3c7;color:#92400e;white-space:nowrap">need ' + item.toBuy.length + '</span>';
+    }
+
+    const rxColor = { Like:'#166534', Hate:'#991b1b', Neutral:'#92400e', Untried:'var(--muted)' }[reaction] || 'var(--muted)';
+
+    return '<div style="border:1px solid var(--border);border-radius:10px;margin-bottom:10px;background:var(--surface2)' + (item.excluded ? ';opacity:0.55' : '') + '">' +
       '<div style="padding:12px 16px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:10px" onclick="toggleRecipe(\'' + r.id + '\')">' +
-        '<div>' +
+        '<div style="min-width:0">' +
           '<div style="font-weight:600;font-size:14px">' + recipesEsc(r['Recipe']) + '</div>' +
-          '<div style="font-size:11px;color:var(--muted);margin-top:2px">' + recipesEsc(category) + (r['Protein (g)'] != null ? ' &middot; ' + r['Protein (g)'] + 'g protein' : '') + ' &middot; <span style="color:' + rxColor + '">' + recipesEsc(reaction) + '</span>' + (timesMade ? ' &middot; made ' + timesMade + 'x' : '') + '</div>' +
+          '<div style="font-size:11px;color:var(--muted);margin-top:2px">' + recipesEsc(recipesSel(r['Category'])) +
+            (r['Protein (g)'] != null ? ' &middot; ' + r['Protein (g)'] + 'g protein' : '') +
+            ' &middot; <span style="color:' + rxColor + '">' + recipesEsc(reaction) + '</span>' +
+            (timesMade ? ' &middot; made ' + timesMade + 'x' : '') + '</div>' +
         '</div>' +
         badge +
         '<div style="color:var(--muted);font-size:12px">' + (open ? '&#9650;' : '&#9660;') + '</div>' +
       '</div>' +
       (open ? '<div style="padding:0 16px 16px;font-size:13px;line-height:1.55">' +
-        (item.missing.length && recipesSelectedTags.size > 0 ? '<div style="font-size:10px;text-transform:uppercase;letter-spacing:0.8px;color:var(--red,#991b1b);margin:8px 0 4px">Missing</div><div>' + recipesEsc(item.missing.join(', ')) + '</div>' : '') +
+        (item.blocked.length ? '<div style="font-size:10px;text-transform:uppercase;letter-spacing:0.8px;color:#991b1b;margin:8px 0 4px">Contains ingredients you avoid</div><div style="color:#991b1b">' + recipesEsc(item.blocked.join(', ')) + '</div>' : '') +
+        (item.toBuy.length ? '<div style="font-size:10px;text-transform:uppercase;letter-spacing:0.8px;color:#92400e;margin:10px 0 4px">Shopping list</div><div>' + recipesEsc(item.toBuy.join(', ')) + '</div>' : '') +
         (r['Ingredients'] ? '<div style="font-size:10px;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);margin:10px 0 4px">Ingredients</div><div style="white-space:pre-wrap">' + recipesEsc(r['Ingredients']) + '</div>' : '') +
         (r['Instructions'] ? '<div style="font-size:10px;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);margin:10px 0 4px">Instructions</div><div style="white-space:pre-wrap">' + recipesEsc(r['Instructions']) + '</div>' : '') +
         '<div style="font-size:10px;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);margin:12px 0 6px">Your reaction</div>' +
         '<div style="display:flex;gap:8px">' +
           ['Like','Neutral','Hate'].map(function(rx){
             const active = pendingRx === rx;
-            const bg = active ? (rx === 'Like' ? 'var(--green-bg,#dcfce7)' : rx === 'Hate' ? 'var(--red-bg,#fee2e2)' : 'var(--amber-bg,#fef3c7)') : 'var(--surface)';
-            const fg = active ? (rx === 'Like' ? 'var(--green,#166534)' : rx === 'Hate' ? 'var(--red,#991b1b)' : 'var(--amber,#92400e)') : 'var(--text)';
-            const label = rx === 'Like' ? '\uD83D\uDC4D Like' : rx === 'Hate' ? '\uD83D\uDC4E Hate' : '\uD83D\uDE10 Neutral';
+            const bg = active ? (rx==='Like'?'#dcfce7':rx==='Hate'?'#fee2e2':'#fef3c7') : 'var(--surface)';
+            const fg = active ? (rx==='Like'?'#166534':rx==='Hate'?'#991b1b':'#92400e') : 'var(--text)';
+            const label = rx==='Like'?'\uD83D\uDC4D Like':rx==='Hate'?'\uD83D\uDC4E Hate':'\uD83D\uDE10 Neutral';
             return '<div onclick="setRecipeReaction(\'' + r.id + '\',\'' + rx + '\')" style="flex:1;padding:8px;border-radius:7px;border:1px solid var(--border);background:' + bg + ';color:' + fg + ';font-weight:' + (active?'600':'400') + ';text-align:center;cursor:pointer;font-size:13px">' + label + '</div>';
           }).join('') +
         '</div>' +
         '<textarea id="rx-comment-' + r.id + '" placeholder="Notes / tweaks for next time..." style="width:100%;margin-top:10px;padding:8px;border-radius:7px;border:1px solid var(--border);font-family:inherit;font-size:13px;resize:vertical;min-height:50px">' + recipesEsc(r['Comments']) + '</textarea>' +
-        '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;gap:10px">' +
           '<span style="font-size:11px;color:var(--muted)">' + (lastMade ? 'Last made: ' + recipesEsc(lastMade) : 'Not made yet') + (_recipesPendingMade[r.id] ? ' &middot; marked for today' : '') + '</span>' +
           '<button class="btn-secondary" onclick="markRecipeMade(\'' + r.id + '\')">I made this today</button>' +
         '</div>' +
@@ -4364,7 +4472,6 @@ function renderRecipes() {
     '</div>';
   }).join('');
 }
-
 // 
 // WORKOUT TRACKER
 // 
