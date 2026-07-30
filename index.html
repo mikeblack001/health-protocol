@@ -665,6 +665,7 @@
     <button class="mobile-item" onclick="mobileNav('bodycomp')">Body &amp; Vitals</button>
     <button class="mobile-item" onclick="mobileNav('goals')">Goals</button>
     <button class="mobile-item" onclick="mobileNav('profile')">Profile</button>
+    <button class="mobile-item" onclick="mobileNav('recipes')">Recipes</button>
   </div>
 
   <div class="mobile-section">
@@ -4084,6 +4085,7 @@ function mobileNav(viewId) {
   if (viewId === 'woschedule') loadWoSchedule();
   if (viewId === 'log') setTimeout(loadLog, 50);
   if (viewId === 'bodycomp') loadBodyComp();
+  if (viewId === 'recipes') loadRecipes();
   if (viewId === 'goals') loadGoals();
   if (viewId === 'profile') loadProfileView();
   if (viewId === 'aicontext') loadAIContext();
