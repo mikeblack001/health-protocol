@@ -6807,6 +6807,7 @@ function buildWeeklyPrintHTML(monday) {
   if (viewId === 'woschedule') loadWoSchedule();
     if (viewId === 'workouts') document.getElementById('workout-date').value = new Date().toISOString().split('T')[0];
     if (viewId === 'goals') loadGoals();
+    if (viewId === 'recipes') loadRecipes();
     if (viewId === 'profile') loadProfileView();
     if (viewId === 'aicontext') loadAIContext();
     if (viewId === 'printlist') renderPrintList();
