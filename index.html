@@ -4132,6 +4132,8 @@ let recipesPanelTab = 'stock';
 let recipesShowPanel = false;
 let recipesFullMatchOnly = false;
 let recipesShowExcluded = false;
+let recipesViewMode = 'browse';
+let _recipesPendingComment = {};
 let _recipesOpen = {};
 let _recipesPendingRx = {};
 let _recipesPendingMade = {};
@@ -4198,6 +4200,8 @@ async function atFetchAll(tableName) {
 function renderRecipesMachineBar() {
   const bar = document.getElementById('recipes-filter-bar');
   if (!bar) return;
+  if (recipesViewMode === 'log') { bar.style.display = 'none'; bar.innerHTML = ''; return; }
+  bar.style.display = 'flex';
   bar.innerHTML = RECIPES_MACHINES.map(function(m){
     return '<button class="filter-btn' + (recipesMachine === m ? ' active' : '') + '" onclick="pickRecipesMachine(\'' + m + '\')">' + m + '</button>';
   }).join('');
@@ -4234,7 +4238,7 @@ function setRecipesPanelTab(tab) {
 function renderRecipesPanel() {
   const bar = document.getElementById('recipes-ingredient-bar');
   if (!bar) return;
-  if (!recipesMachine || !recipesShowPanel) { bar.style.display = 'none'; bar.innerHTML = ''; return; }
+  if (recipesViewMode === 'log' || !recipesMachine || !recipesShowPanel) { bar.style.display = 'none'; bar.innerHTML = ''; return; }
   bar.style.display = 'block';
 
   const tags = recipesTagsForMachine(recipesMachine);
@@ -4322,17 +4326,115 @@ async function patchIngredient(name, rec, fields) {
   } catch(e) {}
 }
 
+function setRecipesViewMode(m) {
+  recipesViewMode = m;
+  renderRecipesMachineBar();
+  renderRecipesPanel();
+  renderRecipesToolbar();
+  renderRecipes();
+}
+
 function renderRecipesToolbar() {
   const bar = document.getElementById('recipes-toolbar');
   if (!bar) return;
-  if (!recipesMachine) { bar.style.display = 'none'; bar.innerHTML = ''; return; }
   bar.style.display = 'flex';
   bar.style.flexWrap = 'wrap';
-  bar.innerHTML =
+  const modeBtn = '<button class="btn-secondary" style="' +
+    (recipesViewMode === 'log' ? 'background:var(--accent);color:#fff;border-color:var(--accent)' : '') +
+    '" onclick="setRecipesViewMode(\'' + (recipesViewMode === 'log' ? 'browse' : 'log') + '\')">' +
+    (recipesViewMode === 'log' ? 'Back to recipes' : 'My log') + '</button>';
+  if (recipesViewMode === 'log') {
+    bar.innerHTML = modeBtn + '<span id="recipes-count"></span>';
+    return;
+  }
+  if (!recipesMachine) { bar.innerHTML = modeBtn + '<span id="recipes-count"></span>'; return; }
+  bar.innerHTML = modeBtn +
     '<button class="btn-secondary" onclick="toggleRecipesPanel()">' + (recipesShowPanel ? 'Hide' : 'Set up') + ' ingredients</button>' +
     '<button class="btn-secondary" onclick="toggleFullMatchOnly()">Only what I can make now: ' + (recipesFullMatchOnly ? 'ON' : 'OFF') + '</button>' +
     '<button class="btn-secondary" onclick="toggleShowExcluded()">' + (recipesShowExcluded ? 'Hide' : 'Show') + ' excluded</button>' +
     '<span id="recipes-count"></span>';
+}
+
+function renderRecipesLog() {
+  const el = document.getElementById('recipes-content');
+  const rows = recipesData.map(function(r){ return Object.assign({ id: r.id }, r.fields || {}); })
+    .filter(function(r){ return r['Recipe']; });
+
+  rows.forEach(function(r){
+    const rx = recipesSel(r['Reaction']) || 'Untried';
+    r._made = (r['Times Made'] || 0) > 0 || (rx !== 'Untried');
+    r._rx = rx;
+  });
+
+  rows.sort(function(a,b){
+    if (a._made !== b._made) return a._made ? -1 : 1;
+    const d = String(b['Last Made'] || '').localeCompare(String(a['Last Made'] || ''));
+    if (d !== 0) return d;
+    return String(a['Recipe']).localeCompare(String(b['Recipe']));
+  });
+
+  const madeCount = rows.filter(function(r){ return r._made; }).length;
+  const countEl = document.getElementById('recipes-count');
+  if (countEl) countEl.textContent = madeCount + ' of ' + rows.length + ' tried';
+
+  const rxIcon = { Like: '\uD83D\uDC4D', Hate: '\uD83D\uDC4E', Neutral: '\uD83D\uDE10', Untried: '' };
+
+  const byMachine = {};
+  rows.forEach(function(r){
+    const m = recipesSel(r['Machine']) || 'Other';
+    (byMachine[m] = byMachine[m] || []).push(r);
+  });
+
+  let out = '<div style="font-size:12px;color:var(--muted);margin-bottom:14px">' +
+    madeCount + ' tried &middot; ' + (rows.length - madeCount) + ' still to try. Tap any row to open notes.</div>';
+
+  RECIPES_MACHINES.forEach(function(m){
+    const list = byMachine[m];
+    if (!list || !list.length) return;
+    const tried = list.filter(function(r){ return r._made; }).length;
+    out += '<div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin:18px 0 8px">' +
+      recipesEsc(m) + ' &mdash; ' + tried + '/' + list.length + '</div>';
+    out += '<div style="border:1px solid var(--border);border-radius:10px;overflow:hidden">';
+    list.forEach(function(r, i){
+      const notes = (_recipesPendingComment[r.id] != null ? _recipesPendingComment[r.id] : r['Comments']) || '';
+      out += '<div onclick="openRecipeFromLog(\'' + r.id + '\')" style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;cursor:pointer;background:' +
+        (i % 2 ? 'var(--surface2)' : 'var(--surface)') + (r._made ? '' : ';opacity:0.55') + '">' +
+        '<div style="width:20px;flex:0 0 20px;text-align:center;font-weight:700;color:' + (r._made ? '#166534' : 'var(--border)') + ';font-size:14px">' +
+          (r._made ? 'X' : '&middot;') + '</div>' +
+        '<div style="flex:1;min-width:0">' +
+          '<div style="font-size:13px;font-weight:' + (r._made ? '600' : '400') + '">' + recipesEsc(r['Recipe']) + '</div>' +
+          (notes ? '<div style="font-size:12px;color:var(--muted);margin-top:3px;white-space:pre-wrap">' + recipesEsc(notes) + '</div>' : '') +
+        '</div>' +
+        '<div style="flex:0 0 auto;text-align:right;font-size:11px;color:var(--muted)">' +
+          '<div style="font-size:14px">' + (rxIcon[r._rx] || '') + '</div>' +
+          (r['Last Made'] ? '<div>' + recipesEsc(r['Last Made']) + '</div>' : '') +
+          ((r['Times Made'] || 0) > 1 ? '<div>' + r['Times Made'] + 'x</div>' : '') +
+        '</div>' +
+      '</div>';
+    });
+    out += '</div>';
+  });
+
+  el.innerHTML = out;
+}
+
+function openRecipeFromLog(id) {
+  const rec = recipesData.find(function(r){ return r.id === id; });
+  if (!rec) return;
+  recipesMachine = recipesSel(rec.fields['Machine']);
+  recipesViewMode = 'browse';
+  recipesFullMatchOnly = false;
+  recipesShowExcluded = true;
+  _recipesOpen = {};
+  _recipesOpen[id] = true;
+  renderRecipesMachineBar();
+  renderRecipesPanel();
+  renderRecipesToolbar();
+  renderRecipes();
+  setTimeout(function(){
+    const card = document.getElementById('rx-comment-' + id);
+    if (card && card.scrollIntoView) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, 60);
 }
 
 function toggleFullMatchOnly() {
@@ -4346,8 +4448,12 @@ function toggleShowExcluded() {
   renderRecipes();
 }
 function toggleRecipe(id) { _recipesOpen[id] = !_recipesOpen[id]; renderRecipes(); }
-function setRecipeReaction(id, rx) { _recipesPendingRx[id] = rx; renderRecipes(); }
-function markRecipeMade(id) { _recipesPendingMade[id] = true; renderRecipes(); }
+function captureRecipeComment(id) {
+  const el = document.getElementById('rx-comment-' + id);
+  if (el) _recipesPendingComment[id] = el.value;
+}
+function setRecipeReaction(id, rx) { captureRecipeComment(id); _recipesPendingRx[id] = rx; renderRecipes(); }
+function markRecipeMade(id) { captureRecipeComment(id); _recipesPendingMade[id] = true; renderRecipes(); }
 
 async function saveRecipeFeedback(id) {
   const btn = document.getElementById('rx-save-' + id);
@@ -4358,9 +4464,14 @@ async function saveRecipeFeedback(id) {
   if (_recipesPendingRx[id]) fields['Reaction'] = _recipesPendingRx[id];
   const commentEl = document.getElementById('rx-comment-' + id);
   if (commentEl) fields['Comments'] = commentEl.value;
+  const rxNow = fields['Reaction'] || recipesSel(rec.fields['Reaction']);
+  const alreadyLogged = (rec.fields['Times Made'] || 0) > 0;
   if (_recipesPendingMade[id]) {
     fields['Times Made'] = (rec.fields['Times Made'] || 0) + 1;
     fields['Last Made'] = new Date().toISOString().slice(0,10);
+  } else if (!alreadyLogged && rxNow && rxNow !== 'Untried') {
+    fields['Times Made'] = 1;
+    fields['Last Made'] = rec.fields['Last Made'] || new Date().toISOString().slice(0,10);
   }
   try {
     const res = await fetch('https://api.airtable.com/v0/' + BASE + '/Recipes/' + id, {
@@ -4371,6 +4482,7 @@ async function saveRecipeFeedback(id) {
     if (res.ok) {
       delete _recipesPendingRx[id];
       delete _recipesPendingMade[id];
+      delete _recipesPendingComment[id];
       await loadRecipes();
     } else if (btn) { btn.textContent = 'Save failed - retry'; }
   } catch(e) { if (btn) btn.textContent = 'Save failed - retry'; }
@@ -4379,6 +4491,8 @@ async function saveRecipeFeedback(id) {
 function renderRecipes() {
   const el = document.getElementById('recipes-content');
   if (!el) return;
+
+  if (recipesViewMode === 'log') { renderRecipesLog(); return; }
 
   if (!recipesMachine) {
     el.innerHTML = '<p style="color:var(--muted);padding:16px">Pick a machine above to see matching recipes.</p>';
@@ -4464,7 +4578,7 @@ function renderRecipes() {
             return '<div onclick="setRecipeReaction(\'' + r.id + '\',\'' + rx + '\')" style="flex:1;padding:8px;border-radius:7px;border:1px solid var(--border);background:' + bg + ';color:' + fg + ';font-weight:' + (active?'600':'400') + ';text-align:center;cursor:pointer;font-size:13px">' + label + '</div>';
           }).join('') +
         '</div>' +
-        '<textarea id="rx-comment-' + r.id + '" placeholder="Notes / tweaks for next time..." style="width:100%;margin-top:10px;padding:8px;border-radius:7px;border:1px solid var(--border);font-family:inherit;font-size:13px;resize:vertical;min-height:50px">' + recipesEsc(r['Comments']) + '</textarea>' +
+        '<textarea id="rx-comment-' + r.id + '" placeholder="Notes / tweaks for next time..." style="width:100%;margin-top:10px;padding:8px;border-radius:7px;border:1px solid var(--border);font-family:inherit;font-size:13px;resize:vertical;min-height:50px">' + recipesEsc(_recipesPendingComment[r.id] != null ? _recipesPendingComment[r.id] : r['Comments']) + '</textarea>' +
         '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;gap:10px">' +
           '<span style="font-size:11px;color:var(--muted)">' + (lastMade ? 'Last made: ' + recipesEsc(lastMade) : 'Not made yet') + (_recipesPendingMade[r.id] ? ' &middot; marked for today' : '') + '</span>' +
           '<button class="btn-secondary" onclick="markRecipeMade(\'' + r.id + '\')">I made this today</button>' +
