@@ -4300,49 +4300,77 @@ function setRecipesPanelTab(tab) {
 function renderRecipesPanel() {
   const bar = document.getElementById('recipes-ingredient-bar');
   if (!bar) return;
-  if (recipesViewMode === 'log' || !recipesMachine || !recipesShowPanel) { bar.style.display = 'none'; bar.innerHTML = ''; return; }
+  if (recipesViewMode === 'log' || !recipesShowPanel) { bar.style.display = 'none'; bar.innerHTML = ''; return; }
   bar.style.display = 'block';
 
-  const tags = recipesTagsForMachine(recipesMachine);
+  const tags = recipesMachine ? recipesTagsForMachine(recipesMachine) : [];
+  const allNames = ingredientsData
+    .map(function(r){ return r.fields['Ingredient']; })
+    .filter(function(n){ return !!n; });
+  tags.forEach(function(t){ if (allNames.indexOf(t) === -1) allNames.push(t); });
+  const others = allNames.filter(function(n){ return tags.indexOf(n) === -1; }).sort();
+
   const tabBtn = function(id, label){
     const on = recipesPanelTab === id;
-    return '<button onclick="setRecipesPanelTab(\'' + id + '\')" style="padding:6px 14px;border-radius:6px;border:1px solid ' + (on?'var(--accent)':'var(--border)') + ';background:' + (on?'var(--accent)':'var(--surface)') + ';color:' + (on?'#fff':'var(--text)') + ';font-size:13px;cursor:pointer;font-family:inherit">' + label + '</button>';
+    return '<button onclick="setRecipesPanelTab(\'' + id + '\')" style="padding:9px 16px;border-radius:8px;border:1px solid ' + (on?'var(--accent)':'var(--border)') + ';background:' + (on?'var(--accent)':'var(--surface)') + ';color:' + (on?'#fff':'var(--text)') + ';font-size:14px;cursor:pointer;font-family:inherit;font-weight:500">' + label + '</button>';
   };
 
-  let rows;
-  if (recipesPanelTab === 'stock') {
-    rows = tags.map(function(t){
+  const rowFor = function(t){
+    if (recipesPanelTab === 'stock') {
       const st = ingStock(t);
       const btn = function(val, label, color){
         const on = st === val;
-        return '<span onclick="setIngStock(\'' + recipesAttr(t) + '\',\'' + val + '\')" style="padding:4px 10px;border-radius:6px;border:1px solid ' + (on?color:'var(--border)') + ';background:' + (on?color:'var(--surface)') + ';color:' + (on?'#fff':'var(--muted)') + ';font-size:11px;cursor:pointer;white-space:nowrap">' + label + '</span>';
+        return '<span onclick="setIngStock(\'' + recipesAttr(t) + '\',\'' + val + '\')" style="padding:7px 13px;border-radius:7px;border:1px solid ' + (on?color:'var(--border)') + ';background:' + (on?color:'var(--surface)') + ';color:' + (on?'#fff':'var(--muted)') + ';font-size:13px;cursor:pointer;white-space:nowrap;min-height:34px;display:inline-flex;align-items:center">' + label + '</span>';
       };
-      return '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border)">' +
-        '<span style="font-size:13px">' + recipesEsc(t) + '</span>' +
-        '<span style="display:flex;gap:5px">' + btn('On Hand','On hand','#166534') + btn('Need to Buy','Need to buy','#92400e') + '</span>' +
+      return '<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--border)">' +
+        '<span style="font-size:14px;' + (st === 'On Hand' ? 'font-weight:600' : '') + '">' + (st === 'On Hand' ? '\u2705 ' : '') + recipesEsc(t) + '</span>' +
+        '<span style="display:flex;gap:6px;flex-shrink:0">' + btn('On Hand','On hand','#166534') + btn('Need to Buy','Need to buy','#92400e') + '</span>' +
       '</div>';
-    }).join('');
-  } else {
-    rows = tags.map(function(t){
-      const pf = ingPref(t);
-      const btn = function(val, label, color){
-        const on = pf === val;
-        return '<span onclick="setIngPref(\'' + recipesAttr(t) + '\',\'' + val + '\')" style="padding:4px 10px;border-radius:6px;border:1px solid ' + (on?color:'var(--border)') + ';background:' + (on?color:'var(--surface)') + ';color:' + (on?'#fff':'var(--muted)') + ';font-size:11px;cursor:pointer;white-space:nowrap">' + label + '</span>';
-      };
-      return '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border)">' +
-        '<span style="font-size:13px">' + recipesEsc(t) + '</span>' +
-        '<span style="display:flex;gap:5px">' + btn('Like','Like','#166534') + btn('OK','OK','#4b5563') + btn('No','No','#92400e') + btn('Hate','Hate','#991b1b') + '</span>' +
-      '</div>';
-    }).join('');
-  }
+    }
+    const pf = ingPref(t);
+    const btn = function(val, label, color){
+      const on = pf === val;
+      return '<span onclick="setIngPref(\'' + recipesAttr(t) + '\',\'' + val + '\')" style="padding:7px 12px;border-radius:7px;border:1px solid ' + (on?color:'var(--border)') + ';background:' + (on?color:'var(--surface)') + ';color:' + (on?'#fff':'var(--muted)') + ';font-size:13px;cursor:pointer;white-space:nowrap;min-height:34px;display:inline-flex;align-items:center">' + label + '</span>';
+    };
+    return '<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--border)">' +
+      '<span style="font-size:14px">' + recipesEsc(t) + '</span>' +
+      '<span style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">' + btn('Like','Like','#166534') + btn('OK','OK','#4b5563') + btn('No','No','#92400e') + btn('Hate','Hate','#991b1b') + '</span>' +
+    '</div>';
+  };
+
+  const section = function(title, list){
+    if (!list.length) return '';
+    return '<div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-weight:600;margin:16px 0 6px">' +
+      recipesEsc(title) + ' &mdash; ' + list.length + '</div>' + list.map(rowFor).join('');
+  };
+
+  const onHandCount = allNames.filter(function(n){ return ingStock(n) === 'On Hand'; }).length;
 
   bar.innerHTML =
-    '<div style="display:flex;gap:8px;margin-bottom:12px">' + tabBtn('stock','What I have') + tabBtn('pref','Likes &amp; dislikes') + '</div>' +
-    '<div style="font-size:11px;color:var(--muted);margin-bottom:8px">' +
+    '<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">' + tabBtn('stock','What I have') + tabBtn('pref','Likes &amp; dislikes') + '</div>' +
+    '<div style="font-size:13px;color:var(--muted);margin-bottom:6px">' +
       (recipesPanelTab === 'stock'
-        ? 'Mark what you have on hand. Anything unmarked is treated as not on hand.'
+        ? 'Mark everything you have. Anything unmarked counts as not on hand. <strong>' + onHandCount + '</strong> of ' + allNames.length + ' marked on hand.'
         : 'Ingredients marked No or Hate will exclude any recipe that uses them.') +
-    '</div>' + rows;
+    '</div>' +
+    '<div style="display:flex;gap:8px;margin:12px 0 4px">' +
+      '<input id="ing-add-input" placeholder="Add an ingredient you have..." ' +
+        'onkeydown="if(event.key===\'Enter\'){event.preventDefault();addIngredientFromInput()}" ' +
+        'style="flex:1;padding:10px 12px;border-radius:8px;border:1px solid var(--border);font-family:inherit;font-size:14px;background:var(--surface);color:var(--text)">' +
+      '<button class="btn-secondary" onclick="addIngredientFromInput()">Add</button>' +
+    '</div>' +
+    section(recipesMachine ? 'Used by ' + recipesMachineLabel(recipesMachine) : 'Ingredients', tags) +
+    section(recipesMachine ? 'Everything else' : 'All ingredients', others);
+}
+
+async function addIngredientFromInput() {
+  const el = document.getElementById('ing-add-input');
+  if (!el) return;
+  const name = (el.value || '').trim();
+  if (!name) return;
+  el.value = '';
+  if (ingRec(name)) { setIngStock(name, 'On Hand'); return; }
+  await setIngStock(name, 'On Hand');
 }
 
 async function setIngStock(name, val) {
@@ -4417,7 +4445,12 @@ function renderRecipesToolbar() {
     bar.innerHTML = modeBtn + '<span id="recipes-count"></span>';
     return;
   }
-  if (!recipesMachine) { bar.innerHTML = modeBtn + '<span id="recipes-count"></span>'; return; }
+  if (!recipesMachine) {
+    bar.innerHTML = modeBtn +
+      '<button class="btn-secondary" onclick="toggleRecipesPanel()">' + (recipesShowPanel ? 'Hide' : 'Set up') + ' ingredients</button>' +
+      '<span id="recipes-count"></span>';
+    return;
+  }
   bar.innerHTML = modeBtn +
     '<button class="btn-secondary" onclick="toggleRecipesPanel()">' + (recipesShowPanel ? 'Hide' : 'Set up') + ' ingredients</button>' +
     '<button class="btn-secondary" onclick="toggleFullMatchOnly()">Only what I can make now: ' + (recipesFullMatchOnly ? 'ON' : 'OFF') + '</button>' +
