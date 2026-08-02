@@ -4140,6 +4140,38 @@ let _recipesPendingMade = {};
 
 const RECIPES_MACHINES = ['Ninja Creami', 'Nama Juicer', 'Ninja Slushi'];
 
+// Display metadata for the machine picker. KEYS MUST MATCH the Airtable
+// Machine single-select values exactly ('Ninja Creami' / 'Nama Juicer' /
+// 'Ninja Slushi') - only the label/sub/img shown to the user changes here.
+const RECIPES_MACHINE_META = {
+  'Ninja Creami': {
+    label: 'Ninja CREAMi Deluxe',
+    sub: 'NC501 \u00b7 11-in-1',
+    emoji: '\uD83C\uDF66',
+    img: 'https://assets.sharkninja.com/image/upload/f_auto/q_auto/SharkNinja-NA/NC501_01.jpg'
+  },
+  'Nama Juicer': {
+    label: 'Nama J2',
+    sub: 'Cold Press Juicer',
+    emoji: '\uD83E\uDD5B',
+    img: 'https://namawell.com/cdn/shop/files/J2_carousel_9.jpg?format=webp&v=1755816191&width=412'
+  },
+  'Ninja Slushi': {
+    label: 'Ninja SLUSHi Twist',
+    sub: 'FS701 \u00b7 Dual vessel',
+    emoji: '\uD83E\uDDCA',
+    img: 'https://assets.sharkninja.com/image/upload/f_auto/q_auto/SharkNinja-NA/FS701BL_01.jpg'
+  }
+};
+
+function recipesMachineLabel(m) {
+  const meta = RECIPES_MACHINE_META[m];
+  return meta ? meta.label : m;
+}
+function recipesCountFor(m) {
+  return recipesData.filter(function(r){ return recipesSel(r.fields['Machine']) === m; }).length;
+}
+
 function recipesEsc(s) {
   return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
@@ -4201,9 +4233,33 @@ function renderRecipesMachineBar() {
   const bar = document.getElementById('recipes-filter-bar');
   if (!bar) return;
   if (recipesViewMode === 'log') { bar.style.display = 'none'; bar.innerHTML = ''; return; }
-  bar.style.display = 'flex';
+  bar.style.display = 'grid';
+  bar.style.gridTemplateColumns = 'repeat(auto-fit,minmax(150px,1fr))';
+  bar.style.gap = '10px';
   bar.innerHTML = RECIPES_MACHINES.map(function(m){
-    return '<button class="filter-btn' + (recipesMachine === m ? ' active' : '') + '" onclick="pickRecipesMachine(\'' + m + '\')">' + m + '</button>';
+    const meta = RECIPES_MACHINE_META[m] || { label: m, sub: '', emoji: '', img: '' };
+    const on = (recipesMachine === m);
+    const n = recipesCountFor(m);
+    return '' +
+      '<div role="button" tabindex="0" onclick="pickRecipesMachine(\'' + m + '\')" ' +
+        'onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();pickRecipesMachine(\'' + m + '\')}" ' +
+        'style="position:relative;border:1px solid ' + (on ? 'var(--accent)' : 'var(--border)') + ';' +
+        'border-radius:14px;padding:12px 10px 11px;cursor:pointer;text-align:center;' +
+        'background:' + (on ? 'var(--surface2)' : 'var(--surface)') + ';' +
+        'box-shadow:' + (on ? '0 0 0 2px var(--accent) inset' : 'none') + ';' +
+        'transition:border-color .15s,box-shadow .15s,background .15s">' +
+        '<div style="height:92px;border-radius:10px;background:#fff;display:flex;align-items:center;' +
+          'justify-content:center;overflow:hidden;margin-bottom:10px">' +
+          '<img src="' + recipesAttr(meta.img) + '" alt="' + recipesAttr(meta.label) + '" loading="lazy" ' +
+            'style="max-height:88px;max-width:100%;object-fit:contain" ' +
+            'onerror="this.style.display=\'none\';this.parentNode.style.background=\'var(--surface2)\';' +
+            'this.parentNode.insertAdjacentHTML(\'beforeend\',\'<span style=&quot;font-size:38px&quot;>' + meta.emoji + '</span>\')">' +
+        '</div>' +
+        '<div style="font-size:13px;font-weight:600;color:var(--text);line-height:1.25">' + recipesEsc(meta.label) + '</div>' +
+        (meta.sub ? '<div style="font-size:11px;color:var(--muted);margin-top:2px">' + recipesEsc(meta.sub) + '</div>' : '') +
+        '<div style="font-size:11px;color:' + (on ? 'var(--accent)' : 'var(--muted)') + ';margin-top:6px;font-weight:600">' +
+          n + ' recipe' + (n === 1 ? '' : 's') + '</div>' +
+      '</div>';
   }).join('');
 }
 
@@ -4393,7 +4449,7 @@ function renderRecipesLog() {
     if (!list || !list.length) return;
     const tried = list.filter(function(r){ return r._made; }).length;
     out += '<div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin:18px 0 8px">' +
-      recipesEsc(m) + ' &mdash; ' + tried + '/' + list.length + '</div>';
+      recipesEsc(recipesMachineLabel(m)) + ' &mdash; ' + tried + '/' + list.length + '</div>';
     out += '<div style="border:1px solid var(--border);border-radius:10px;overflow:hidden">';
     list.forEach(function(r, i){
       const notes = (_recipesPendingComment[r.id] != null ? _recipesPendingComment[r.id] : r['Comments']) || '';
