@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>ExOrder Backfill 5/22-7/09</title>
+<style>
+body{font-family:-apple-system,Segoe UI,sans-serif;background:#0d1117;color:#e6edf3;margin:0;padding:24px;max-width:900px}
+h1{font-size:20px;margin:0 0 4px}
+.sub{color:#8b949e;font-size:13px;margin-bottom:16px}
+#log{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px;font-family:ui-monospace,Menlo,monospace;font-size:12.5px;white-space:pre-wrap;line-height:1.55;max-height:70vh;overflow:auto}
+.ok{color:#3fb950}.warn{color:#d29922}.err{color:#f85149}.info{color:#58a6ff}
+#summary{margin-top:14px;background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px;font-size:14px;display:none}
+#summary b{font-size:18px}
+</style>
+</head>
+<body>
+<h1>ExOrder Backfill &mdash; Sets 2026-05-22 &rarr; 2026-07-09</h1>
+<div class="sub">Auto-runs on load. Maps (Day, Exercise) &rarr; ExOrder from pre-reorder template. Skips already-correct, logs unmappables.</div>
+<div id="log"></div>
+<div id="summary"></div>
+<script>
+const PAT='pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
+const BASE='appmHDG4TGT1xy6R6';
+const TABLE='tblKDqjy5RzqaJvjr';
+const F_DATE='fld75zYXknF0RtCWH';
+const F_EX='fldZ93A1t7fGjjsSS';
+const F_DAY='fldypzlwqw9AzWrEE';
+const F_EXORDER='flduLvz39Hpjadbzc';
+
+const TEMPLATES={
+ 'Push':{'Wrist Twist':1,'Bench Press':2,'Incline Press':3,'Incline Fly':4,'High Cable Fly (2:1)':5,'Tricep Pushdowns 1/2':6,'Overhead Tricep Ext':7,'Lateral Raises':8,'Seated Shoulder Press':9},
+ 'Pull':{'Wrist Twist':1,'Lat Pulldown':2,'Cable Rows':3,'Hammer Curls':4,'Face Pulls 1/2':5,'Rear Delt Raises':6,'Cable Curls 1/2 ea':7,'Barbell Shrugs':8},
+ 'Legs/Core':{'Forward Back Stretch':1,'Leg Press':2,'Leg Extensions':3,'Leg Curls':4,'Hip Thrust':5,'Back Extension':6,'DB Calf Raises':7,'Smith Mach Calf Raises':8},
+ 'Arms/Chest':{'Wrist Twist':1,'Cable Press 1/2 ea':2,'High Cable Fly (2:1)':3,'Low Cable Fly 1/2 ea':4,'Cable Cross Overs 1/2 ea':5,'Tricep Ext Down 1/2':6,'Incline Curls':7,'Tricep Ext Up':8,'Bicep Curls - Preacher':9,'Forearm Raise - Cable 1/2':10}
+};
+
+const logEl=document.getElementById('log');
+function log(msg,cls){const s=document.createElement('span');if(cls)s.className=cls;s.textContent=msg+'\n';logEl.appendChild(s);logEl.scrollTop=logEl.scrollHeight;}
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+
+async function api(path,opts={}){
+ for(let attempt=0;attempt<5;attempt++){
+  const res=await fetch('https://api.airtable.com/v0/'+BASE+'/'+path,{
+   ...opts,
+   headers:{'Authorization':'Bearer '+PAT,'Content-Type':'application/json',...(opts.headers||{})}
+  });
+  if(res.status===429){log('  429 rate limited, waiting 1.2s...','warn');await sleep(1200);continue;}
+  if(!res.ok){const t=await res.text();throw new Error('API '+res.status+': '+t.slice(0,300));}
+  return res.json();
+ }
+ throw new Error('Rate limited 5x, aborting');
+}
+
+async function fetchAll(){
+ let records=[],offset=null;
+ const formula=encodeURIComponent("AND(IS_AFTER({Date},'2026-05-21'),IS_BEFORE({Date},'2026-07-10'))");
+ do{
+  let url=TABLE+'?pageSize=100&filterByFormula='+formula
+   +'&fields%5B%5D='+F_DATE+'&fields%5B%5D='+F_EX+'&fields%5B%5D='+F_DAY+'&fields%5B%5D='+F_EXORDER
+   +'&returnFieldsByFieldId=true';
+  if(offset)url+='&offset='+offset;
+  const data=await api(url);
+  records=records.concat(data.records);
+  offset=data.offset||null;
+  log('  fetched '+records.length+' records...','info');
+  await sleep(220);
+ }while(offset);
+ return records;
+}
+
+async function run(){
+ try{
+  log('Fetching Sets records 2026-05-22 through 2026-07-09...','info');
+  const records=await fetchAll();
+  log('Total fetched: '+records.length+' (expected 528)',records.length===528?'ok':'warn');
+
+  const updates=[],skipped=[],unmappable=[];
+  for(const r of records){
+   const f=r.fields;
+   const day=f[F_DAY]&&f[F_DAY].name?f[F_DAY].name:f[F_DAY];
+   const ex=f[F_EX];
+   const cur=f[F_EXORDER];
+   const tmpl=TEMPLATES[day];
+   if(!tmpl||!(ex in tmpl)){
+    unmappable.push({id:r.id,date:f[F_DATE],day:day,ex:ex});
+    continue;
+   }
+   const target=tmpl[ex];
+   if(cur===target){skipped.push(r.id);continue;}
+   updates.push({id:r.id,fields:{[F_EXORDER]:target}});
+  }
+
+  log('');
+  log('To update: '+updates.length+'  |  Already correct: '+skipped.length+'  |  Unmappable: '+unmappable.length,'info');
+  if(unmappable.length){
+   log('');
+   log('UNMAPPABLE (not touched):','err');
+   unmappable.forEach(u=>log('  '+u.date+'  ['+u.day+']  '+u.ex+'  ('+u.id+')','err'));
+  }
+
+  let updated=0,failed=0;
+  for(let i=0;i<updates.length;i+=10){
+   const batch=updates.slice(i,i+10);
+   try{
+    await api(TABLE,{method:'PATCH',body:JSON.stringify({records:batch,typecast:true})});
+    updated+=batch.length;
+    log('Updated '+updated+'/'+updates.length,'ok');
+   }catch(e){
+    failed+=batch.length;
+    log('BATCH FAILED at '+i+': '+e.message,'err');
+   }
+   await sleep(250);
+  }
+
+  log('');
+  log('Verifying: re-fetching to check for remaining blanks/mismatches...','info');
+  const verify=await fetchAll();
+  let blanks=0,mismatch=0;
+  for(const r of verify){
+   const f=r.fields;
+   const day=f[F_DAY]&&f[F_DAY].name?f[F_DAY].name:f[F_DAY];
+   const ex=f[F_EX];
+   const tmpl=TEMPLATES[day];
+   if(!tmpl||!(ex in tmpl))continue;
+   if(f[F_EXORDER]===undefined||f[F_EXORDER]===null){blanks++;log('  STILL BLANK: '+f[F_DATE]+' '+ex+' ('+r.id+')','err');}
+   else if(f[F_EXORDER]!==tmpl[ex]){mismatch++;log('  MISMATCH: '+f[F_DATE]+' '+ex+' = '+f[F_EXORDER]+' expected '+tmpl[ex],'err');}
+  }
+  const vmsg=(blanks===0&&mismatch===0)?'VERIFIED: all mappable records correct.':'VERIFY ISSUES: '+blanks+' blank, '+mismatch+' mismatched';
+  log(vmsg,(blanks===0&&mismatch===0)?'ok':'err');
+
+  const sum=document.getElementById('summary');
+  sum.style.display='block';
+  sum.innerHTML='<b>'+((blanks===0&&mismatch===0&&failed===0)?'&#9989; COMPLETE':'&#9888;&#65039; ISSUES')+'</b><br>'
+   +'Records updated: <b>'+updated+'</b><br>'
+   +'Failed: <b>'+failed+'</b><br>'
+   +'Skipped (already correct): <b>'+skipped.length+'</b><br>'
+   +'Unmappable (logged, untouched): <b>'+unmappable.length+'</b><br>'
+   +'Post-verify: '+vmsg;
+ }catch(e){
+  log('FATAL: '+e.message,'err');
+  const sum=document.getElementById('summary');
+  sum.style.display='block';
+  sum.innerHTML='<b class="err">FATAL ERROR</b><br>'+e.message;
+ }
+}
+run();
+</script>
+</body>
+</html>
