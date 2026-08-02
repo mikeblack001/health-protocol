@@ -4522,6 +4522,7 @@ function captureRecipeComment(id) {
   const el = document.getElementById('rx-comment-' + id);
   if (el) _recipesPendingComment[id] = el.value;
 }
+function quickRecipeReaction(id, rx) { captureRecipeComment(id); _recipesPendingRx[id] = rx; renderRecipes(); saveRecipeFeedback(id); }
 function setRecipeReaction(id, rx) { captureRecipeComment(id); _recipesPendingRx[id] = rx; renderRecipes(); }
 function markRecipeMade(id) { captureRecipeComment(id); _recipesPendingMade[id] = true; renderRecipes(); }
 
@@ -4602,58 +4603,76 @@ function renderRecipes() {
     return;
   }
 
-  el.innerHTML = rows.map(function(item){
+  const legend = '<div style="display:flex;flex-wrap:wrap;gap:14px;align-items:center;font-size:12px;color:var(--muted);padding:10px 2px 14px">' +
+      '<span><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#166534;margin-right:6px"></span>can make now &mdash; you have every ingredient</span>' +
+      '<span><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#92400e;margin-right:6px"></span>N to buy &mdash; ingredients not marked On Hand</span>' +
+      '<span><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#991b1b;margin-right:6px"></span>excluded &mdash; contains a No/Hate ingredient</span>' +
+    '</div>';
+
+  el.innerHTML = legend + rows.map(function(item){
     const r = item.r;
     const reaction = recipesSel(r['Reaction']) || 'Untried';
     const timesMade = r['Times Made'] || 0;
     const lastMade = r['Last Made'] || '';
     const open = !!_recipesOpen[r.id];
     const pendingRx = _recipesPendingRx[r.id] || reaction;
+    const savedNote = (_recipesPendingComment[r.id] != null ? _recipesPendingComment[r.id] : r['Comments']) || '';
+    const notePreview = savedNote.replace(/\s+/g, ' ').trim();
 
     let badge;
     if (item.excluded) {
-      badge = '<span style="font-size:10px;padding:3px 8px;border-radius:20px;background:#fee2e2;color:#991b1b;white-space:nowrap">excluded</span>';
+      badge = '<span title="This recipe uses an ingredient you marked No or Hate" style="font-size:11px;font-weight:600;padding:5px 11px;border-radius:20px;background:#fee2e2;color:#991b1b;white-space:nowrap">excluded</span>';
     } else if (item.canMakeNow) {
-      badge = '<span style="font-size:10px;padding:3px 8px;border-radius:20px;background:#dcfce7;color:#166534;white-space:nowrap">can make now</span>';
+      badge = '<span title="Every ingredient is marked On Hand" style="font-size:11px;font-weight:600;padding:5px 11px;border-radius:20px;background:#dcfce7;color:#166534;white-space:nowrap">can make now</span>';
     } else {
-      badge = '<span style="font-size:10px;padding:3px 8px;border-radius:20px;background:#fef3c7;color:#92400e;white-space:nowrap">need ' + item.toBuy.length + '</span>';
+      badge = '<span title="' + item.toBuy.length + ' ingredient(s) are not marked On Hand: ' + recipesAttr(item.toBuy.join(', ')) + '" style="font-size:11px;font-weight:600;padding:5px 11px;border-radius:20px;background:#fef3c7;color:#92400e;white-space:nowrap">' + item.toBuy.length + ' to buy</span>';
     }
 
-    const rxColor = { Like:'#166534', Hate:'#991b1b', Neutral:'#92400e', Untried:'var(--muted)' }[reaction] || 'var(--muted)';
+    const rxPill = function(rx, label, big) {
+      const active = pendingRx === rx;
+      const bg = active ? (rx==='Like'?'#dcfce7':rx==='Hate'?'#fee2e2':'#fef3c7') : 'var(--surface)';
+      const fg = active ? (rx==='Like'?'#166534':rx==='Hate'?'#991b1b':'#92400e') : 'var(--muted)';
+      const bd = active ? (rx==='Like'?'#166534':rx==='Hate'?'#991b1b':'#92400e') : 'var(--border)';
+      return '<div role="button" title="' + rx + '" onclick="event.stopPropagation();quickRecipeReaction(\'' + r.id + '\',\'' + rx + '\')" ' +
+        'style="' + (big ? 'flex:1;padding:11px;font-size:14px;' : 'padding:7px 13px;font-size:14px;') +
+        'border-radius:8px;border:1px solid ' + bd + ';background:' + bg + ';color:' + fg +
+        ';font-weight:' + (active?'600':'400') + ';text-align:center;cursor:pointer;min-height:38px;display:flex;align-items:center;justify-content:center;gap:6px">' + label + '</div>';
+    };
 
-    return '<div style="border:1px solid var(--border);border-radius:10px;margin-bottom:10px;background:var(--surface2)' + (item.excluded ? ';opacity:0.55' : '') + '">' +
-      '<div style="padding:12px 16px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:10px" onclick="toggleRecipe(\'' + r.id + '\')">' +
-        '<div style="min-width:0">' +
-          '<div style="font-weight:600;font-size:14px">' + recipesEsc(r['Recipe']) + '</div>' +
-          '<div style="font-size:11px;color:var(--muted);margin-top:2px">' + recipesEsc(recipesSel(r['Category'])) +
+    return '<div style="border:1px solid var(--border);border-radius:12px;margin-bottom:12px;background:var(--surface)' + (item.excluded ? ';opacity:0.55' : '') + '">' +
+      '<div style="padding:16px 18px 14px;cursor:pointer;display:flex;justify-content:space-between;align-items:flex-start;gap:12px" onclick="toggleRecipe(\'' + r.id + '\')">' +
+        '<div style="min-width:0;flex:1">' +
+          '<div style="font-weight:600;font-size:16px;line-height:1.3">' + recipesEsc(r['Recipe']) + '</div>' +
+          '<div style="font-size:13px;color:var(--muted);margin-top:5px">' + recipesEsc(recipesSel(r['Category'])) +
             (r['Protein (g)'] != null ? ' &middot; ' + r['Protein (g)'] + 'g protein' : '') +
-            ' &middot; <span style="color:' + rxColor + '">' + recipesEsc(reaction) + '</span>' +
-            (timesMade ? ' &middot; made ' + timesMade + 'x' : '') + '</div>' +
+            (timesMade ? ' &middot; made ' + timesMade + '\u00d7' : '') + '</div>' +
         '</div>' +
-        badge +
-        '<div style="color:var(--muted);font-size:12px">' + (open ? '&#9650;' : '&#9660;') + '</div>' +
+        '<div style="display:flex;align-items:center;gap:10px;flex-shrink:0">' + badge +
+          '<span style="color:var(--muted);font-size:13px">' + (open ? '&#9650;' : '&#9660;') + '</span>' +
+        '</div>' +
       '</div>' +
-      (open ? '<div style="padding:0 16px 16px;font-size:13px;line-height:1.55">' +
-        (item.blocked.length ? '<div style="font-size:10px;text-transform:uppercase;letter-spacing:0.8px;color:#991b1b;margin:8px 0 4px">Contains ingredients you avoid</div><div style="color:#991b1b">' + recipesEsc(item.blocked.join(', ')) + '</div>' : '') +
-        (item.toBuy.length ? '<div style="font-size:10px;text-transform:uppercase;letter-spacing:0.8px;color:#92400e;margin:10px 0 4px">Shopping list</div><div>' + recipesEsc(item.toBuy.join(', ')) + '</div>' : '') +
-        (r['Ingredients'] ? '<div style="font-size:10px;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);margin:10px 0 4px">Ingredients</div><div style="white-space:pre-wrap">' + recipesEsc(r['Ingredients']) + '</div>' : '') +
-        (r['Instructions'] ? '<div style="font-size:10px;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);margin:10px 0 4px">Instructions</div><div style="white-space:pre-wrap">' + recipesEsc(r['Instructions']) + '</div>' : '') +
-        '<div style="font-size:10px;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);margin:12px 0 6px">Your reaction</div>' +
+      '<div style="padding:0 18px 14px;display:flex;flex-wrap:wrap;align-items:center;gap:8px">' +
+        rxPill('Like', '\uD83D\uDC4D', false) + rxPill('Neutral', '\uD83D\uDE10', false) + rxPill('Hate', '\uD83D\uDC4E', false) +
+        (notePreview
+          ? '<div onclick="toggleRecipe(\'' + r.id + '\')" style="flex:1;min-width:140px;font-size:13px;color:var(--muted);cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">\uD83D\uDCDD ' + recipesEsc(notePreview) + '</div>'
+          : '<div onclick="toggleRecipe(\'' + r.id + '\')" style="flex:1;min-width:140px;font-size:13px;color:var(--border);cursor:pointer;white-space:nowrap">\uD83D\uDCDD add a note</div>') +
+      '</div>' +
+      (open ? '<div style="padding:0 18px 18px;font-size:14px;line-height:1.6;border-top:1px solid var(--border);margin-top:2px;padding-top:14px">' +
+        (item.blocked.length ? '<div style="font-size:11px;text-transform:uppercase;letter-spacing:0.8px;color:#991b1b;margin:4px 0 5px;font-weight:600">Contains ingredients you avoid</div><div style="color:#991b1b">' + recipesEsc(item.blocked.join(', ')) + '</div>' : '') +
+        (item.toBuy.length ? '<div style="font-size:11px;text-transform:uppercase;letter-spacing:0.8px;color:#92400e;margin:12px 0 5px;font-weight:600">Shopping list &mdash; not marked On Hand</div><div>' + recipesEsc(item.toBuy.join(', ')) + '</div>' : '') +
+        (r['Ingredients'] ? '<div style="font-size:11px;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);margin:12px 0 5px;font-weight:600">Ingredients</div><div style="white-space:pre-wrap">' + recipesEsc(r['Ingredients']) + '</div>' : '') +
+        (r['Instructions'] ? '<div style="font-size:11px;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);margin:12px 0 5px;font-weight:600">Instructions</div><div style="white-space:pre-wrap">' + recipesEsc(r['Instructions']) + '</div>' : '') +
+        '<div style="font-size:11px;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);margin:16px 0 7px;font-weight:600">Your reaction</div>' +
         '<div style="display:flex;gap:8px">' +
-          ['Like','Neutral','Hate'].map(function(rx){
-            const active = pendingRx === rx;
-            const bg = active ? (rx==='Like'?'#dcfce7':rx==='Hate'?'#fee2e2':'#fef3c7') : 'var(--surface)';
-            const fg = active ? (rx==='Like'?'#166534':rx==='Hate'?'#991b1b':'#92400e') : 'var(--text)';
-            const label = rx==='Like'?'\uD83D\uDC4D Like':rx==='Hate'?'\uD83D\uDC4E Hate':'\uD83D\uDE10 Neutral';
-            return '<div onclick="setRecipeReaction(\'' + r.id + '\',\'' + rx + '\')" style="flex:1;padding:8px;border-radius:7px;border:1px solid var(--border);background:' + bg + ';color:' + fg + ';font-weight:' + (active?'600':'400') + ';text-align:center;cursor:pointer;font-size:13px">' + label + '</div>';
-          }).join('') +
+          rxPill('Like', '\uD83D\uDC4D Like', true) + rxPill('Neutral', '\uD83D\uDE10 Neutral', true) + rxPill('Hate', '\uD83D\uDC4E Hate', true) +
         '</div>' +
-        '<textarea id="rx-comment-' + r.id + '" placeholder="Notes / tweaks for next time..." style="width:100%;margin-top:10px;padding:8px;border-radius:7px;border:1px solid var(--border);font-family:inherit;font-size:13px;resize:vertical;min-height:50px">' + recipesEsc(_recipesPendingComment[r.id] != null ? _recipesPendingComment[r.id] : r['Comments']) + '</textarea>' +
-        '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;gap:10px">' +
-          '<span style="font-size:11px;color:var(--muted)">' + (lastMade ? 'Last made: ' + recipesEsc(lastMade) : 'Not made yet') + (_recipesPendingMade[r.id] ? ' &middot; marked for today' : '') + '</span>' +
+        '<div style="font-size:11px;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);margin:16px 0 7px;font-weight:600">Notes</div>' +
+        '<textarea id="rx-comment-' + r.id + '" placeholder="Notes / tweaks for next time..." style="width:100%;padding:11px;border-radius:8px;border:1px solid var(--border);font-family:inherit;font-size:14px;line-height:1.5;resize:vertical;min-height:70px;background:var(--surface);color:var(--text);box-sizing:border-box">' + recipesEsc(savedNote) + '</textarea>' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;gap:12px;flex-wrap:wrap">' +
+          '<span style="font-size:12px;color:var(--muted)">' + (lastMade ? 'Last made: ' + recipesEsc(lastMade) : 'Not made yet') + (_recipesPendingMade[r.id] ? ' &middot; marked for today' : '') + '</span>' +
           '<button class="btn-secondary" onclick="markRecipeMade(\'' + r.id + '\')">I made this today</button>' +
         '</div>' +
-        '<button id="rx-save-' + r.id + '" class="btn-secondary" style="margin-top:10px;background:var(--accent);color:#fff;border-color:var(--accent)" onclick="saveRecipeFeedback(\'' + r.id + '\')">Save</button>' +
+        '<button id="rx-save-' + r.id + '" class="btn-secondary" style="margin-top:12px;width:100%;background:var(--accent);color:#fff;border-color:var(--accent)" onclick="saveRecipeFeedback(\'' + r.id + '\')">Save</button>' +
       '</div>' : '') +
     '</div>';
   }).join('');
