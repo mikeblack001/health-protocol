@@ -3899,7 +3899,7 @@ async function loadWorkoutDay(day) {
       <th colspan="2" style="text-align:center">Set 1</th>
       <th colspan="2" style="text-align:center">Set 2</th>
       <th colspan="2" style="text-align:center">Set 3</th>
-      <th>Notes</th>
+      <th style="text-align:center">*</th>
     </tr>
     <tr>
       <th></th><th></th>
@@ -3927,7 +3927,7 @@ async function loadWorkoutDay(day) {
       <td><span class="exercise-name">${ex.name}</span>${ex.note ? `<span class="variation-label"> (${ex.note})</span>` : ''}</td>
       <td>${varHtml}</td>
       ${setCols}
-      <td><input type="text" class="set-input" id="note-${i}" style="width:90px;text-align:left"></td>
+      <td style="text-align:center"><input type="checkbox" id="star-${i}" style="width:16px;height:16px;accent-color:var(--accent)"></td>
     </tr>`;
   });
 
@@ -3974,7 +3974,7 @@ async function saveWorkout() {
     const setRecords = [];
     exercises.forEach((ex, i) => {
       const variation = document.getElementById('var-' + i)?.value || ex.variations[0] || '';
-      const exNote = document.getElementById('note-' + i)?.value?.trim() || '';
+      const exNote = document.getElementById('star-' + i)?.checked ? '*' : '';
       const fullName = woFullExName(ex);
       let firstSetForEx = true;
       for (let s = 1; s <= 3; s++) {
