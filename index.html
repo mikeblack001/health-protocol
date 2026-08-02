@@ -4388,6 +4388,7 @@ function setRecipesViewMode(m) {
   renderRecipesPanel();
   renderRecipesToolbar();
   renderRecipes();
+  try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch(e) { window.scrollTo(0, 0); }
 }
 
 function renderRecipesToolbar() {
@@ -4395,6 +4396,11 @@ function renderRecipesToolbar() {
   if (!bar) return;
   bar.style.display = 'flex';
   bar.style.flexWrap = 'wrap';
+  bar.style.position = 'sticky';
+  bar.style.top = '0';
+  bar.style.zIndex = '20';
+  bar.style.background = 'var(--bg)';
+  bar.style.padding = '8px 0';
   const modeBtn = '<button class="btn-secondary" style="' +
     (recipesViewMode === 'log' ? 'background:var(--accent);color:#fff;border-color:var(--accent)' : '') +
     '" onclick="setRecipesViewMode(\'' + (recipesViewMode === 'log' ? 'browse' : 'log') + '\')">' +
