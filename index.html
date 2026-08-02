@@ -4219,6 +4219,41 @@ function ingStock(name) {
   return r ? recipesSel(r.fields['Stock']) : '';
 }
 
+function ingImg(name) {
+  const r = ingRec(name);
+  return r ? (r.fields['Image URL'] || '') : '';
+}
+function ingMacros(name) {
+  const r = ingRec(name);
+  if (!r) return null;
+  const f = r.fields;
+  const g = parseFloat(f['Serving (g)']);
+  const cal = parseFloat(f['Calories (per 100g)']);
+  if (!isFinite(g) || !isFinite(cal)) return null;
+  const k = g / 100;
+  const n1 = function(v){ v = parseFloat(v); return isFinite(v) ? Math.round(v * k * 10) / 10 : 0; };
+  return {
+    cal: Math.round(cal * k),
+    p: n1(f['Protein (g/100g)']),
+    c: n1(f['Carbs (g/100g)']),
+    fat: n1(f['Fat (g/100g)']),
+    size: f['Serving Size'] || (g + 'g')
+  };
+}
+function ingNameCell(t, boldOnHand) {
+  const img = ingImg(t);
+  const m = ingMacros(t);
+  const bold = boldOnHand && ingStock(t) === 'On Hand';
+  const thumb = img
+    ? '<span style="width:36px;height:36px;border-radius:8px;background:#fff;border:1px solid var(--border);flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;overflow:hidden"><img src="' + recipesAttr(img) + '" alt="" loading="lazy" style="width:100%;height:100%;object-fit:cover" onerror="this.parentNode.style.display=\'none\'"></span>'
+    : '';
+  const macro = m
+    ? '<div style="font-size:11px;color:var(--muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + m.cal + ' cal &middot; ' + m.p + 'P &middot; ' + m.c + 'C &middot; ' + m.fat + 'F <span style="opacity:.75">/ ' + recipesEsc(m.size) + '</span></div>'
+    : '';
+  return '<span style="display:flex;align-items:center;gap:9px;min-width:0">' + thumb +
+    '<span style="min-width:0"><div style="font-size:14px;' + (bold ? 'font-weight:600' : '') + '">' + (bold ? '\u2705 ' : '') + recipesEsc(t) + '</div>' + macro + '</span></span>';
+}
+
 async function loadRecipes() {
   const el = document.getElementById('recipes-content');
   if (!el) return;
@@ -4344,7 +4379,7 @@ function renderRecipesPanel() {
         return '<span onclick="setIngStock(\'' + recipesAttr(t) + '\',\'' + val + '\')" style="padding:7px 13px;border-radius:7px;border:1px solid ' + (on?color:'var(--border)') + ';background:' + (on?color:'var(--surface)') + ';color:' + (on?'#fff':'var(--muted)') + ';font-size:13px;cursor:pointer;white-space:nowrap;min-height:34px;display:inline-flex;align-items:center">' + label + '</span>';
       };
       return '<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--border)">' +
-        '<span style="font-size:14px;' + (st === 'On Hand' ? 'font-weight:600' : '') + '">' + (st === 'On Hand' ? '\u2705 ' : '') + recipesEsc(t) + '</span>' +
+        ingNameCell(t, true) +
         '<span style="display:flex;gap:6px;flex-shrink:0">' + btn('On Hand','On hand','#166534') + btn('Need to Buy','Need to buy','#92400e') + '</span>' +
       '</div>';
     }
@@ -4354,7 +4389,7 @@ function renderRecipesPanel() {
       return '<span onclick="setIngPref(\'' + recipesAttr(t) + '\',\'' + val + '\')" style="padding:7px 12px;border-radius:7px;border:1px solid ' + (on?color:'var(--border)') + ';background:' + (on?color:'var(--surface)') + ';color:' + (on?'#fff':'var(--muted)') + ';font-size:13px;cursor:pointer;white-space:nowrap;min-height:34px;display:inline-flex;align-items:center">' + label + '</span>';
     };
     return '<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--border)">' +
-      '<span style="font-size:14px">' + recipesEsc(t) + '</span>' +
+      ingNameCell(t, false) +
       '<span style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">' + btn('Like','Like','#166534') + btn('OK','OK','#4b5563') + btn('No','No','#92400e') + btn('Hate','Hate','#991b1b') + '</span>' +
     '</div>';
   };
