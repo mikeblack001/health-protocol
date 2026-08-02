@@ -164,11 +164,11 @@
   /* WORKOUTS */
   .workout-table { width:100%; border-collapse:collapse; font-size:13px; }
   .workout-table th { background:var(--surface2); padding:8px 10px; text-align:left; font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; border-bottom:1px solid var(--border); }
-  .workout-table td { padding:6px 8px; border-bottom:1px solid var(--border); vertical-align:middle; }
+  .workout-table td { padding:4px 5px; border-bottom:1px solid var(--border); vertical-align:middle; }
   .workout-table tr:last-child td { border-bottom:none; }
   .workout-table .exercise-name { font-weight:500; color:var(--text); font-size:13px; }
   .workout-table .variation-label { font-size:11px; color:var(--muted); }
-  .set-input { width:60px; padding:4px 6px; border:1px solid var(--border); border-radius:4px; font-size:12px; font-family:'DM Mono',monospace; text-align:center; background:var(--surface); color:var(--text); }
+  .set-input { width:46px; padding:3px 4px; border:1px solid var(--border); border-radius:4px; font-size:12px; font-family:'DM Mono',monospace; text-align:center; background:var(--surface); color:var(--text); }
   .set-input:focus { outline:none; border-color:var(--accent); }
   .prev-weight { font-size:10px; color:var(--muted); font-family:'DM Mono',monospace; display:block; margin-top:2px; }
 
@@ -3527,8 +3527,8 @@ let WORKOUT_DAYS = {
     { name: 'Wrist Twist', variations: ['DBs'] },
     { name: 'Bench Press', variations: ['35lbs Smith Machine', '45lb Olympic', 'DBs', 'Cables'] },
     { name: 'Incline Press', variations: ['35lbs Smith Machine', '45lb Olympic', 'DBs', 'Cables'] },
-    { name: 'Incline Fly', variations: ['DBs', 'Cables (2:1)'] },
     { name: 'High Cable Fly', variations: [], note: '(2:1)' },
+    { name: 'Incline Fly', variations: ['DBs', 'Cables (2:1)'] },
     { name: 'Tricep Pushdowns', variations: ['V-Bar', 'Straight Bar', 'Rope'], note: '1/2' },
     { name: 'Overhead Tricep Ext', variations: ['EZ-Bar', 'DBs', 'Rope'] },
     { name: 'Lateral Raises', variations: ['DBs', 'Cables', 'EZ Bar'] },
@@ -3541,16 +3541,16 @@ let WORKOUT_DAYS = {
     { name: 'Hammer Curls', variations: ['Rope 1/2', 'DBs'] },
     { name: 'Face Pulls', variations: ['Rope'], note: '1/2' },
     { name: 'Rear Delt Raises', variations: ['DBs'] },
-    { name: 'Cable Curls', variations: [], note: '1/2 ea' },
     { name: 'Barbell Shrugs', variations: ['45lb Olympic'] },
+    { name: 'Cable Curls', variations: [], note: '1/2 ea' },
   ],
   'Wednesday - Legs / Core': [
     { name: 'Forward Back Stretch', variations: [] },
+    { name: 'Back Extension', variations: ['Bodyweight', 'Sit Up'] },
     { name: 'Leg Press', variations: ['35lbs'] },
     { name: 'Leg Extensions', variations: ['45lbs', 'Cable 1/2'] },
     { name: 'Leg Curls', variations: ['45lbs', 'Cable 1/2'] },
     { name: 'Hip Thrust', variations: ['DBs', 'Smith 35lb'] },
-    { name: 'Back Extension', variations: ['Bodyweight', 'Sit Up'] },
     { name: 'DB Calf Raises', variations: [] },
     { name: 'Smith Mach Calf Raises', variations: ['35lbs'] },
   ],
@@ -3842,17 +3842,28 @@ function showWorkoutPanel(panel, btn) {
   }
 }
 
+const WO_DAY_MAP = {
+  'Monday - Push': { short: 'Push', code: 'PSH' },
+  'Tuesday - Pull': { short: 'Pull', code: 'PLL' },
+  'Wednesday - Legs / Core': { short: 'Legs/Core', code: 'LEG' },
+  'Thursday - Arms / Chest': { short: 'Arms/Chest', code: 'ARM' },
+  'Friday - Shoulders': { short: 'Shoulders', code: 'SHD' },
+  'Saturday - Cardio': { short: 'Cardio', code: 'CRD' },
+};
+function woFullExName(ex) { return ex.name + (ex.note ? ' ' + ex.note : ''); }
+
 async function loadPrevWeights(day) {
   try {
-    const filter = encodeURIComponent(`{Day}="${day}"`);
+    const short = WO_DAY_MAP[day]?.short || day;
+    const filter = encodeURIComponent(`{Day}="${short}"`);
     const url = `https://api.airtable.com/v0/${BASE}/${TABLES.sets}?filterByFormula=${filter}&sort[0][field]=Date&sort[0][direction]=desc`;
     const res = await fetch(url, { headers: { Authorization: 'Bearer ' + TOKEN } });
     const json = await res.json();
     const prev = {};
     (json.records || []).forEach(r => {
       const f = r.fields;
-      const key = f['Exercise'] + '|' + (f['Set#'] || 1);
-      if (!prev[key]) prev[key] = { reps: f['Reps'], weight: f['Weight'], date: f['Date'] };
+      const key = f['Exercise'] + '|' + (f['Set #'] || 1);
+      if (!prev[key]) prev[key] = { reps: f['Reps'], weight: f['Weight (lbs)'], date: f['Date'] };
     });
     return prev;
   } catch(e) { console.warn('loadPrevWeights:', e); return {}; }
@@ -3883,28 +3894,30 @@ async function loadWorkoutDay(day) {
 
   let html = `<div class="table-wrap"><table class="workout-table">
     <thead><tr>
-      <th style="min-width:180px">Exercise</th>
+      <th style="min-width:110px">Exercise</th>
       <th>Variation</th>
       <th colspan="2" style="text-align:center">Set 1</th>
       <th colspan="2" style="text-align:center">Set 2</th>
       <th colspan="2" style="text-align:center">Set 3</th>
+      <th>Notes</th>
     </tr>
     <tr>
       <th></th><th></th>
       <th style="text-align:center">Reps</th><th style="text-align:center">Weight</th>
       <th style="text-align:center">Reps</th><th style="text-align:center">Weight</th>
       <th style="text-align:center">Reps</th><th style="text-align:center">Weight</th>
+      <th></th>
     </tr></thead><tbody>`;
 
   exercises.forEach((ex, i) => {
     const varHtml = ex.variations.length > 1
-      ? `<select class="set-input" style="width:120px" id="var-${i}"><option value=""></option>${ex.variations.map(v=>`<option>${v}</option>`).join('')}</select>`
+      ? `<select class="set-input" style="width:85px" id="var-${i}"><option value=""></option>${ex.variations.map(v=>`<option>${v}</option>`).join('')}</select>`
       : `<span class="variation-label">${ex.variations[0] || (ex.note || '')}</span>`;
-    
+    const fullName = woFullExName(ex);
+
     let setCols = '';
     for (let s = 1; s <= 3; s++) {
-      const key = ex.name + '|' + s;
-      const prev = workoutPrevData[key];
+      const prev = workoutPrevData[fullName + '|' + s] || workoutPrevData[ex.name + '|' + s];
       const prevHint = prev ? `<span class="prev-weight">prev: ${prev.weight || ''}lbs</span>` : '';
       setCols += `<td style="text-align:center"><input type="number" class="set-input" id="reps-${i}-${s}" placeholder="${prev?.reps || ''}" min="0"></td>
                   <td style="text-align:center"><input type="number" class="set-input" id="wt-${i}-${s}" placeholder="${prev?.weight || ''}" min="0" step="2.5">${prevHint}</td>`;
@@ -3914,6 +3927,7 @@ async function loadWorkoutDay(day) {
       <td><span class="exercise-name">${ex.name}</span>${ex.note ? `<span class="variation-label"> (${ex.note})</span>` : ''}</td>
       <td>${varHtml}</td>
       ${setCols}
+      <td><input type="text" class="set-input" id="note-${i}" style="width:90px;text-align:left"></td>
     </tr>`;
   });
 
@@ -3932,7 +3946,8 @@ async function saveWorkout() {
   const status = document.getElementById('workout-save-status');
   btn.disabled = true; btn.textContent = 'Saving...';
 
-  const sessionId = day.replace(/[^a-zA-Z]/g, '') + '-' + date;
+  const dm = WO_DAY_MAP[day] || { short: day, code: day.replace(/[^A-Z]/g,'').substring(0,3) };
+  const sessionId = `${date} ${dm.short}`;
   const sleep = parseFloat(document.getElementById('workout-sleep').value) || null;
   const deep = parseInt(document.getElementById('workout-deep').value) || null;
   const duration = parseInt(document.getElementById('workout-duration').value) || null;
@@ -3941,7 +3956,7 @@ async function saveWorkout() {
   try {
     // Save session to Airtable
     const sessionFields = {
-      'Session': sessionId, 'Date': date, 'Day': day,
+      'Session': sessionId, 'Date': date, 'Day': dm.short,
       ...(sleep && {'Sleep (hrs)': sleep}),
       ...(deep && {'Deep Sleep (min)': deep}),
       ...(duration && {'Duration (min)': duration}),
@@ -3959,16 +3974,22 @@ async function saveWorkout() {
     const setRecords = [];
     exercises.forEach((ex, i) => {
       const variation = document.getElementById('var-' + i)?.value || ex.variations[0] || '';
+      const exNote = document.getElementById('note-' + i)?.value?.trim() || '';
+      const fullName = woFullExName(ex);
+      let firstSetForEx = true;
       for (let s = 1; s <= 3; s++) {
         const reps = parseInt(document.getElementById(`reps-${i}-${s}`)?.value);
         const weight = parseFloat(document.getElementById(`wt-${i}-${s}`)?.value);
         if (reps || weight) {
           setRecords.push({ fields: {
-            'SetID': `${date}-${ex.name.replace(/[^a-zA-Z0-9]/g,'').substring(0,8)}-S${s}`,
-            'Session': sessionId, 'Exercise': ex.name, 'Variation': variation,
-            'Set#': s, 'Date': date, 'Day': day,
-            ...(reps && {'Reps': reps}), ...(weight && {'Weight': weight})
+            'Set ID': `${date}-${dm.code}-0${s}`,
+            'Session': sessionId, 'Exercise': fullName, 'Variation': variation,
+            'Set #': s, 'Date': date, 'Day': dm.short,
+            'ExOrder': i + 1,
+            ...(reps && {'Reps': reps}), ...(weight && {'Weight (lbs)': weight}),
+            ...(firstSetForEx && exNote && {'Notes': exNote})
           }});
+          firstSetForEx = false;
         }
       }
     });
@@ -4300,77 +4321,49 @@ function setRecipesPanelTab(tab) {
 function renderRecipesPanel() {
   const bar = document.getElementById('recipes-ingredient-bar');
   if (!bar) return;
-  if (recipesViewMode === 'log' || !recipesShowPanel) { bar.style.display = 'none'; bar.innerHTML = ''; return; }
+  if (recipesViewMode === 'log' || !recipesMachine || !recipesShowPanel) { bar.style.display = 'none'; bar.innerHTML = ''; return; }
   bar.style.display = 'block';
 
-  const tags = recipesMachine ? recipesTagsForMachine(recipesMachine) : [];
-  const allNames = ingredientsData
-    .map(function(r){ return r.fields['Ingredient']; })
-    .filter(function(n){ return !!n; });
-  tags.forEach(function(t){ if (allNames.indexOf(t) === -1) allNames.push(t); });
-  const others = allNames.filter(function(n){ return tags.indexOf(n) === -1; }).sort();
-
+  const tags = recipesTagsForMachine(recipesMachine);
   const tabBtn = function(id, label){
     const on = recipesPanelTab === id;
-    return '<button onclick="setRecipesPanelTab(\'' + id + '\')" style="padding:9px 16px;border-radius:8px;border:1px solid ' + (on?'var(--accent)':'var(--border)') + ';background:' + (on?'var(--accent)':'var(--surface)') + ';color:' + (on?'#fff':'var(--text)') + ';font-size:14px;cursor:pointer;font-family:inherit;font-weight:500">' + label + '</button>';
+    return '<button onclick="setRecipesPanelTab(\'' + id + '\')" style="padding:6px 14px;border-radius:6px;border:1px solid ' + (on?'var(--accent)':'var(--border)') + ';background:' + (on?'var(--accent)':'var(--surface)') + ';color:' + (on?'#fff':'var(--text)') + ';font-size:13px;cursor:pointer;font-family:inherit">' + label + '</button>';
   };
 
-  const rowFor = function(t){
-    if (recipesPanelTab === 'stock') {
+  let rows;
+  if (recipesPanelTab === 'stock') {
+    rows = tags.map(function(t){
       const st = ingStock(t);
       const btn = function(val, label, color){
         const on = st === val;
-        return '<span onclick="setIngStock(\'' + recipesAttr(t) + '\',\'' + val + '\')" style="padding:7px 13px;border-radius:7px;border:1px solid ' + (on?color:'var(--border)') + ';background:' + (on?color:'var(--surface)') + ';color:' + (on?'#fff':'var(--muted)') + ';font-size:13px;cursor:pointer;white-space:nowrap;min-height:34px;display:inline-flex;align-items:center">' + label + '</span>';
+        return '<span onclick="setIngStock(\'' + recipesAttr(t) + '\',\'' + val + '\')" style="padding:4px 10px;border-radius:6px;border:1px solid ' + (on?color:'var(--border)') + ';background:' + (on?color:'var(--surface)') + ';color:' + (on?'#fff':'var(--muted)') + ';font-size:11px;cursor:pointer;white-space:nowrap">' + label + '</span>';
       };
-      return '<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--border)">' +
-        '<span style="font-size:14px;' + (st === 'On Hand' ? 'font-weight:600' : '') + '">' + (st === 'On Hand' ? '\u2705 ' : '') + recipesEsc(t) + '</span>' +
-        '<span style="display:flex;gap:6px;flex-shrink:0">' + btn('On Hand','On hand','#166534') + btn('Need to Buy','Need to buy','#92400e') + '</span>' +
+      return '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border)">' +
+        '<span style="font-size:13px">' + recipesEsc(t) + '</span>' +
+        '<span style="display:flex;gap:5px">' + btn('On Hand','On hand','#166534') + btn('Need to Buy','Need to buy','#92400e') + '</span>' +
       '</div>';
-    }
-    const pf = ingPref(t);
-    const btn = function(val, label, color){
-      const on = pf === val;
-      return '<span onclick="setIngPref(\'' + recipesAttr(t) + '\',\'' + val + '\')" style="padding:7px 12px;border-radius:7px;border:1px solid ' + (on?color:'var(--border)') + ';background:' + (on?color:'var(--surface)') + ';color:' + (on?'#fff':'var(--muted)') + ';font-size:13px;cursor:pointer;white-space:nowrap;min-height:34px;display:inline-flex;align-items:center">' + label + '</span>';
-    };
-    return '<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--border)">' +
-      '<span style="font-size:14px">' + recipesEsc(t) + '</span>' +
-      '<span style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">' + btn('Like','Like','#166534') + btn('OK','OK','#4b5563') + btn('No','No','#92400e') + btn('Hate','Hate','#991b1b') + '</span>' +
-    '</div>';
-  };
-
-  const section = function(title, list){
-    if (!list.length) return '';
-    return '<div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-weight:600;margin:16px 0 6px">' +
-      recipesEsc(title) + ' &mdash; ' + list.length + '</div>' + list.map(rowFor).join('');
-  };
-
-  const onHandCount = allNames.filter(function(n){ return ingStock(n) === 'On Hand'; }).length;
+    }).join('');
+  } else {
+    rows = tags.map(function(t){
+      const pf = ingPref(t);
+      const btn = function(val, label, color){
+        const on = pf === val;
+        return '<span onclick="setIngPref(\'' + recipesAttr(t) + '\',\'' + val + '\')" style="padding:4px 10px;border-radius:6px;border:1px solid ' + (on?color:'var(--border)') + ';background:' + (on?color:'var(--surface)') + ';color:' + (on?'#fff':'var(--muted)') + ';font-size:11px;cursor:pointer;white-space:nowrap">' + label + '</span>';
+      };
+      return '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border)">' +
+        '<span style="font-size:13px">' + recipesEsc(t) + '</span>' +
+        '<span style="display:flex;gap:5px">' + btn('Like','Like','#166534') + btn('OK','OK','#4b5563') + btn('No','No','#92400e') + btn('Hate','Hate','#991b1b') + '</span>' +
+      '</div>';
+    }).join('');
+  }
 
   bar.innerHTML =
-    '<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">' + tabBtn('stock','What I have') + tabBtn('pref','Likes &amp; dislikes') + '</div>' +
-    '<div style="font-size:13px;color:var(--muted);margin-bottom:6px">' +
+    '<div style="display:flex;gap:8px;margin-bottom:12px">' + tabBtn('stock','What I have') + tabBtn('pref','Likes &amp; dislikes') + '</div>' +
+    '<div style="font-size:11px;color:var(--muted);margin-bottom:8px">' +
       (recipesPanelTab === 'stock'
-        ? 'Mark everything you have. Anything unmarked counts as not on hand. <strong>' + onHandCount + '</strong> of ' + allNames.length + ' marked on hand.'
+        ? 'Mark what you have on hand. Anything unmarked is treated as not on hand.'
         : 'Ingredients marked No or Hate will exclude any recipe that uses them.') +
-    '</div>' +
-    '<div style="display:flex;gap:8px;margin:12px 0 4px">' +
-      '<input id="ing-add-input" placeholder="Add an ingredient you have..." ' +
-        'onkeydown="if(event.key===\'Enter\'){event.preventDefault();addIngredientFromInput()}" ' +
-        'style="flex:1;padding:10px 12px;border-radius:8px;border:1px solid var(--border);font-family:inherit;font-size:14px;background:var(--surface);color:var(--text)">' +
-      '<button class="btn-secondary" onclick="addIngredientFromInput()">Add</button>' +
-    '</div>' +
-    section(recipesMachine ? 'Used by ' + recipesMachineLabel(recipesMachine) : 'Ingredients', tags) +
-    section(recipesMachine ? 'Everything else' : 'All ingredients', others);
-}
-
-async function addIngredientFromInput() {
-  const el = document.getElementById('ing-add-input');
-  if (!el) return;
-  const name = (el.value || '').trim();
-  if (!name) return;
-  el.value = '';
-  if (ingRec(name)) { setIngStock(name, 'On Hand'); return; }
-  await setIngStock(name, 'On Hand');
+    '</div>' + rows;
 }
 
 async function setIngStock(name, val) {
@@ -4445,12 +4438,7 @@ function renderRecipesToolbar() {
     bar.innerHTML = modeBtn + '<span id="recipes-count"></span>';
     return;
   }
-  if (!recipesMachine) {
-    bar.innerHTML = modeBtn +
-      '<button class="btn-secondary" onclick="toggleRecipesPanel()">' + (recipesShowPanel ? 'Hide' : 'Set up') + ' ingredients</button>' +
-      '<span id="recipes-count"></span>';
-    return;
-  }
+  if (!recipesMachine) { bar.innerHTML = modeBtn + '<span id="recipes-count"></span>'; return; }
   bar.innerHTML = modeBtn +
     '<button class="btn-secondary" onclick="toggleRecipesPanel()">' + (recipesShowPanel ? 'Hide' : 'Set up') + ' ingredients</button>' +
     '<button class="btn-secondary" onclick="toggleFullMatchOnly()">Only what I can make now: ' + (recipesFullMatchOnly ? 'ON' : 'OFF') + '</button>' +
@@ -4488,33 +4476,31 @@ function renderRecipesLog() {
     (byMachine[m] = byMachine[m] || []).push(r);
   });
 
-  let out = '<div style="font-size:13px;color:var(--muted);padding:10px 2px 14px">' +
-    madeCount + ' tried &middot; ' + (rows.length - madeCount) + ' still to try. Tap any card to open notes.</div>';
+  let out = '<div style="font-size:12px;color:var(--muted);margin-bottom:14px">' +
+    madeCount + ' tried &middot; ' + (rows.length - madeCount) + ' still to try. Tap any row to open notes.</div>';
 
   RECIPES_MACHINES.forEach(function(m){
     const list = byMachine[m];
     if (!list || !list.length) return;
     const tried = list.filter(function(r){ return r._made; }).length;
-    out += '<div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin:22px 0 10px;font-weight:600">' +
+    out += '<div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin:18px 0 8px">' +
       recipesEsc(recipesMachineLabel(m)) + ' &mdash; ' + tried + '/' + list.length + '</div>';
-    out += '<div>';
+    out += '<div style="border:1px solid var(--border);border-radius:10px;overflow:hidden">';
     list.forEach(function(r, i){
       const notes = (_recipesPendingComment[r.id] != null ? _recipesPendingComment[r.id] : r['Comments']) || '';
-      const rxTint = { Like:'#dcfce7', Hate:'#fee2e2', Neutral:'#fef3c7' }[r._rx] || 'var(--surface)';
-      const rxFg   = { Like:'#166534', Hate:'#991b1b', Neutral:'#92400e' }[r._rx] || 'var(--muted)';
-      out += '<div onclick="openRecipeFromLog(\'' + r.id + '\')" style="border:1px solid var(--border);border-radius:12px;margin-bottom:12px;background:var(--surface);' +
-        'display:flex;align-items:flex-start;gap:12px;padding:16px 18px;cursor:pointer' + (r._made ? '' : ';opacity:0.6') + '">' +
-        '<div style="width:26px;height:26px;flex:0 0 26px;border-radius:50%;display:flex;align-items:center;justify-content:center;' +
-          'background:' + (r._made ? '#dcfce7' : 'var(--surface2)') + ';border:1px solid ' + (r._made ? '#166534' : 'var(--border)') + ';' +
-          'color:' + (r._made ? '#166534' : 'var(--muted)') + ';font-size:14px;font-weight:700">' + (r._made ? '\u2713' : '') + '</div>' +
+      out += '<div onclick="openRecipeFromLog(\'' + r.id + '\')" style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;cursor:pointer;background:' +
+        (i % 2 ? 'var(--surface2)' : 'var(--surface)') + (r._made ? '' : ';opacity:0.55') + '">' +
+        '<div style="width:20px;flex:0 0 20px;text-align:center;font-weight:700;color:' + (r._made ? '#166534' : 'var(--border)') + ';font-size:14px">' +
+          (r._made ? 'X' : '&middot;') + '</div>' +
         '<div style="flex:1;min-width:0">' +
-          '<div style="font-size:16px;font-weight:600;line-height:1.3">' + recipesEsc(r['Recipe']) + '</div>' +
-          '<div style="font-size:13px;color:var(--muted);margin-top:5px">' +
-            (r['Last Made'] ? 'Last made ' + recipesEsc(r['Last Made']) : 'Not made yet') +
-            ((r['Times Made'] || 0) > 1 ? ' &middot; ' + r['Times Made'] + '\u00d7' : '') + '</div>' +
-          (notes ? '<div style="font-size:13px;color:var(--muted);margin-top:8px;white-space:pre-wrap;line-height:1.5">\uD83D\uDCDD ' + recipesEsc(notes) + '</div>' : '') +
+          '<div style="font-size:13px;font-weight:' + (r._made ? '600' : '400') + '">' + recipesEsc(r['Recipe']) + '</div>' +
+          (notes ? '<div style="font-size:12px;color:var(--muted);margin-top:3px;white-space:pre-wrap">' + recipesEsc(notes) + '</div>' : '') +
         '</div>' +
-        (rxIcon[r._rx] ? '<div style="flex:0 0 auto;font-size:15px;padding:5px 11px;border-radius:20px;background:' + rxTint + ';color:' + rxFg + '">' + rxIcon[r._rx] + '</div>' : '') +
+        '<div style="flex:0 0 auto;text-align:right;font-size:11px;color:var(--muted)">' +
+          '<div style="font-size:14px">' + (rxIcon[r._rx] || '') + '</div>' +
+          (r['Last Made'] ? '<div>' + recipesEsc(r['Last Made']) + '</div>' : '') +
+          ((r['Times Made'] || 0) > 1 ? '<div>' + r['Times Made'] + 'x</div>' : '') +
+        '</div>' +
       '</div>';
     });
     out += '</div>';
