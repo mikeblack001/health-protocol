@@ -949,6 +949,7 @@
       <div class="stat-card" id="dash-hrv"><div class="stat-label">Avg HRV</div><div class="stat-val"></div><div class="stat-sub">ms · 30d</div></div>
       <div class="stat-card" id="dash-rhr"><div class="stat-label">Avg Resting HR</div><div class="stat-val"></div><div class="stat-sub">bpm · 30d</div></div>
       <div class="stat-card" id="dash-water"><div class="stat-label">Avg Water</div><div class="stat-val"></div><div class="stat-sub">oz · 30d</div></div>
+      <div class="stat-card" id="dash-scoops"><div class="stat-label">Avg Re-Lyte</div><div class="stat-val"></div><div class="stat-sub">scoops · 30d</div></div>
       <div class="stat-card" id="dash-steps"><div class="stat-label">Avg Steps</div><div class="stat-val"></div><div class="stat-sub">· 30d</div></div>
     </div>
 
@@ -973,6 +974,8 @@
         <div class="form-field"><label>Resting HR</label><input type="number" id="log-rhr" placeholder="0"></div>
         <div class="form-field"><label>Steps</label><input type="number" id="log-steps" placeholder="0"></div>
         <div class="form-field"><label>Water (oz)</label><input type="number" id="log-water" placeholder="0" step="0.1"></div>
+        <div class="form-field"><label>Re-Lyte Scoops</label><input type="number" id="log-scoops" placeholder="0" step="0.5" min="0" max="6"></div>
+        <div class="form-field"><label>Body Fat %</label><input type="number" id="log-bodyfat" placeholder="0.0" step="0.1"></div>
         <div class="form-field"><label>Active Cal</label><input type="number" id="log-active-cal" placeholder="0"></div>
         <div class="form-field"><label>Wakeups</label><input type="number" id="log-wakeups" placeholder="0"></div>
         <div class="form-field"><label>Energy (110)</label><input type="number" id="log-energy" placeholder="0" min="1" max="10"></div>
@@ -5501,19 +5504,21 @@ async function saveLog() {
   const dateVal = document.getElementById('log-entry-date').value || new Date().toISOString().split('T')[0];
 
   const fields = { 'fldSk3hNQJTDKOyfT': dateVal };
-  const weight  = document.getElementById('log-weight').value;
-  const sleep   = document.getElementById('log-sleep').value;
-  const deep    = document.getElementById('log-deep').value;
-  const hrv     = document.getElementById('log-hrv').value;
-  const rhr     = document.getElementById('log-rhr').value;
-  const steps   = document.getElementById('log-steps').value;
-  const water    = document.getElementById('log-water').value;
-  const activecal= document.getElementById('log-active-cal').value;
-  const bodyfat  = document.getElementById('log-bodyfat').value;
-  const wakeups = document.getElementById('log-wakeups').value;
-  const energy  = document.getElementById('log-energy').value;
-  const cortisol= document.getElementById('log-cortisol').value;
-  const mood    = document.getElementById('log-mood').value;
+  const _v = id => { const el = document.getElementById(id); return el ? el.value : ''; };
+  const weight  = _v('log-weight');
+  const sleep   = _v('log-sleep');
+  const deep    = _v('log-deep');
+  const hrv     = _v('log-hrv');
+  const rhr     = _v('log-rhr');
+  const steps   = _v('log-steps');
+  const water    = _v('log-water');
+  const scoops   = _v('log-scoops');
+  const activecal= _v('log-active-cal');
+  const bodyfat  = _v('log-bodyfat');
+  const wakeups = _v('log-wakeups');
+  const energy  = _v('log-energy');
+  const cortisol= _v('log-cortisol');
+  const mood    = _v('log-mood');
 
   if (weight)   fields['fldKTZ5ML0fnZV3oz'] = parseFloat(weight);
   if (sleep)    fields['fldy1hM7kymJKN52E']  = parseFloat(sleep);
@@ -5522,6 +5527,7 @@ async function saveLog() {
   if (rhr)      fields['fldXDw3aTnOLHk6lh']  = parseFloat(rhr);
   if (steps)    fields['fldUyaoAJXry9xqzb']  = parseInt(steps);
   if (water)     fields['fldDvpkWlQK2Kw5wB']  = parseFloat(water);
+  if (scoops)    fields['fldpYwPH8EsxC0yCq']  = parseFloat(scoops);
   if (activecal) fields['fld012Y04LIB08dkB']  = parseInt(activecal);
   if (bodyfat)   fields['fld8cAib9mOsXEwpp']  = parseFloat(bodyfat);
   if (wakeups)  fields['fldjFJ8FystoDkLVX']  = parseInt(wakeups);
@@ -5561,7 +5567,8 @@ async function loadLog() {
     let records = [], offset = null;
     const flds = ['fldSk3hNQJTDKOyfT','fldKTZ5ML0fnZV3oz','fldy1hM7kymJKN52E','fld5PGt9ZdFgBzMAM',
                   'fldIt4TweBKT7LiAV','fldXDw3aTnOLHk6lh','fldUyaoAJXry9xqzb','fldNYLNazQBOxYQJL',
-                  'fldjFJ8FystoDkLVX','fldKMKVcqr1ggcB9g','fldbHBrMOFLmn6Adj','fldIt4TweBKT7LiAV'];
+                  'fldjFJ8FystoDkLVX','fldKMKVcqr1ggcB9g','fldbHBrMOFLmn6Adj',
+                  'fldDvpkWlQK2Kw5wB','fld012Y04LIB08dkB','fld8cAib9mOsXEwpp','fldpYwPH8EsxC0yCq'];
     const fStr = flds.map(f => 'fields%5B%5D='+f).join('&');
     do {
       const url = `https://api.airtable.com/v0/${BASE}/${TABLES.dailyLog}?returnFieldsByFieldId=true&${fStr}&sort%5B0%5D%5Bfield%5D=fldSk3hNQJTDKOyfT&sort%5B0%5D%5Bdirection%5D=desc&pageSize=100${offset?'&offset='+offset:''}`;
@@ -5607,7 +5614,18 @@ function renderLogDash(records) {
   set('dash-rhr',    avg('fldXDw3aTnOLHk6lh',0), 'bpm · 30d');
   const stepVals = r30.map(r=>r.fields['fldUyaoAJXry9xqzb']).filter(v=>v!=null&&!isNaN(v));
   const avgSteps = stepVals.length ? Math.round(stepVals.reduce((a,b)=>a+b,0)/stepVals.length).toLocaleString() : '';
-  set('dash-water', avg('fldDvpkWlQK2Kw5wB',1), 'oz · 30d');
+  const waterAvg = avg('fldDvpkWlQK2Kw5wB',1);
+  const WATER_TARGET = 106; // 2x 32oz Re-Lyte + 2x 21oz plain
+  const wPct = waterAvg ? Math.round((parseFloat(waterAvg)/WATER_TARGET)*100) : null;
+  set('dash-water', waterAvg, wPct != null ? ('oz · 30d · ' + wPct + '% of ' + WATER_TARGET) : 'oz · 30d');
+  const scoopVals = r30.map(r=>r.fields['fldpYwPH8EsxC0yCq']).filter(v=>v!=null&&!isNaN(v));
+  if (scoopVals.length) {
+    const avgScoop = scoopVals.reduce((a,b)=>a+b,0)/scoopVals.length;
+    set('dash-scoops', avgScoop.toFixed(1),
+        'scoops · ' + Math.round(avgScoop*400) + 'mg K / ' + Math.round(avgScoop*810) + 'mg Na');
+  } else {
+    set('dash-scoops', '', 'scoops · 30d');
+  }
   set('dash-steps', avgSteps, '· 30d');
 }
 
@@ -5631,6 +5649,7 @@ function renderLogHistory(records, days) {
       <th style="padding:6px 8px;text-align:right">RHR</th>
       <th style="padding:6px 8px;text-align:right">Steps</th>
       <th style="padding:6px 8px;text-align:right">Water</th>
+      <th style="padding:6px 8px;text-align:right">Scoops</th>
       <th style="padding:6px 8px;text-align:right">Active Cal</th>
       <th style="padding:6px 8px;text-align:right">Energy</th>
       <th style="padding:6px 8px;text-align:right">Cortisol</th>
@@ -5648,6 +5667,7 @@ function renderLogHistory(records, days) {
       <td style="padding:5px 8px;text-align:right">${f(r,'fldXDw3aTnOLHk6lh',0)}</td>
       <td style="padding:5px 8px;text-align:right">${steps!=null?parseInt(steps).toLocaleString():''}</td>
       <td style="padding:5px 8px;text-align:right">${f(r,'fldDvpkWlQK2Kw5wB',1)}</td>
+      <td style="padding:5px 8px;text-align:right">${f(r,'fldpYwPH8EsxC0yCq',1)}</td>
       <td style="padding:5px 8px;text-align:right">${f(r,'fld012Y04LIB08dkB',0)}</td>
       <td style="padding:5px 8px;text-align:right">${f(r,'fldKMKVcqr1ggcB9g',0)}</td>
       <td style="padding:5px 8px;text-align:right">${f(r,'fldbHBrMOFLmn6Adj',0)}</td>
@@ -5670,6 +5690,7 @@ function editLogRow(recId, tr) {
   document.getElementById('log-rhr').value     = f['fldXDw3aTnOLHk6lh'] || '';
   document.getElementById('log-steps').value   = f['fldUyaoAJXry9xqzb'] || '';
   document.getElementById('log-water').value    = f['fldDvpkWlQK2Kw5wB'] || '';
+  document.getElementById('log-scoops').value   = f['fldpYwPH8EsxC0yCq'] || '';
   document.getElementById('log-active-cal').value = f['fld012Y04LIB08dkB'] || '';
   document.getElementById('log-bodyfat').value    = f['fld8cAib9mOsXEwpp'] || '';
   document.getElementById('log-wakeups').value = f['fldjFJ8FystoDkLVX'] || '';
