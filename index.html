@@ -574,6 +574,7 @@
         <button class="drop-item" onclick="navDrop('workouts','nav-ex')">Workouts</button>
         <button class="drop-item" onclick="navDrop('workout-suggestions','nav-ex')">Workout Suggestions</button>
         <button class="drop-item" onclick="navDrop('woschedule','nav-ex')">Workout Schedule</button>
+        <button class="drop-item" onclick="navDrop('drinks','nav-ex')">Workout Drinks</button>
         <button class="drop-item" onclick="openWeeklyPrint()">Weekly Workout Print</button>
         <div style="border-top:1px solid var(--border);margin:4px 8px;"></div>
         <div class="drop-submenu-wrap">
@@ -658,6 +659,7 @@
     <button class="mobile-item" onclick="mobileNav('workouts')">Workouts</button>
     <button class="mobile-item" onclick="mobileNav('workout-suggestions')">Workout Suggestions</button>
     <button class="mobile-item" onclick="mobileNav('woschedule')">Workout Schedule</button>
+    <button class="mobile-item" onclick="mobileNav('drinks')">Workout Drinks</button>
     <button class="mobile-item" onclick="mobileNav('wktracker')">Workout Tracker</button>
     <button class="mobile-item" onclick="window.open('https://mikeblack001.github.io/health-protocol/workout_audit.html','_blank')">Workout PDF Verify</button>
     <button class="mobile-item" onclick="mobileNav('wkaudit')">Workout Audit</button>
@@ -1021,6 +1023,22 @@
   </div>
 
   <!-- PRINT LIST -->
+  <div id="view-drinks" class="view">
+    <div class="section-header">
+      <h2>Workout Drinks</h2>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn-secondary" onclick="loadDrinks(true)">Refresh</button>
+        <button class="print-btn" onclick="showAddDrinkModal()">+ Add Item</button>
+      </div>
+    </div>
+    <div class="warning-bar">
+      <span>&bull; No stimulants &mdash; AFib on Metoprolol + Eliquis</span>
+      <span>&bull; Collagen is PRE only (tendon loading window)</span>
+    </div>
+    <div id="drinks-filter-bar" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px"></div>
+    <div id="drinks-content"><div class="loading">Loading...</div></div>
+  </div>
+
   <div id="view-printlist" class="view">
     <div class="section-header">
       <h2>Active Protocol Print List</h2>
@@ -4114,6 +4132,7 @@ function mobileNav(viewId) {
   if (viewId === 'bodycomp') loadBodyComp();
   if (viewId === 'recipes') loadRecipes();
   if (viewId === 'goals') loadGoals();
+  if (viewId === 'drinks') loadDrinks();
   if (viewId === 'profile') loadProfileView();
   if (viewId === 'aicontext') loadAIContext();
   if (viewId === 'suppchanges') loadSuppChanges();
@@ -7101,6 +7120,7 @@ function buildWeeklyPrintHTML(monday) {
   if (viewId === 'woschedule') loadWoSchedule();
     if (viewId === 'workouts') document.getElementById('workout-date').value = new Date().toISOString().split('T')[0];
     if (viewId === 'goals') loadGoals();
+    if (viewId === 'drinks') loadDrinks();
     if (viewId === 'recipes') loadRecipes();
     if (viewId === 'profile') loadProfileView();
     if (viewId === 'aicontext') loadAIContext();
@@ -9147,6 +9167,190 @@ function prefillLogDate(dateStr) {
   rows.forEach(row => { if (row.getAttribute('onclick')?.includes(rec.id)) row.style.outline = '2px solid #2563eb'; });
 }
 
+
+// 
+// WORKOUT DRINKS  (Pre / Intra / Post)
+// 
+let drinksLoaded = false;
+let _drinkRecs = [];
+let _drinksShowAll = false;
+
+const DRINK_FIELDS = {
+  name:   'fldbdmZ3deAhtMhQV', status:  'fld1c0IdKsrBWCBkc',
+  timing: 'fldZHrKEWxpN9eNi2', dose:    'fldITqzZfaK0eHv8X',
+  form:   'fldRY05IrQej5yzAS', purpose: 'fldEtFsIjizvB0TMM',
+  notes:  'fldMEMgxa8OZBZ1R9', brand:   'fldUV7BbEPgXp5aiN'
+};
+
+const DRINK_SLOTS = [
+  {key:'Pre-Workout',   label:'Pre-Workout',   sub:'2030 min before',  color:'var(--accent)'},
+  {key:'Intra-Workout', label:'Intra-Workout', sub:'sipped during',      color:'var(--green)'},
+  {key:'Post-Workout',  label:'Post-Workout',  sub:'blended shake + RTD',color:'var(--amber)'}
+];
+
+async function loadDrinks(force) {
+  if (drinksLoaded && !force) return;
+  const el = document.getElementById('drinks-content');
+  el.innerHTML = '<div class="loading-msg">Loading...</div>';
+  try {
+    let all = [], offset = null;
+    do {
+      const url = 'https://api.airtable.com/v0/' + BASE + '/' + TABLES.supplements
+                + '?returnFieldsByFieldId=true&pageSize=100' + (offset ? '&offset=' + offset : '');
+      const r = await fetch(url, {headers:{Authorization:'Bearer ' + TOKEN}});
+      if (!r.ok) throw new Error(await r.text());
+      const d = await r.json();
+      all = all.concat(d.records || []);
+      offset = d.offset;
+    } while (offset);
+    const slots = DRINK_SLOTS.map(s => s.key);
+    _drinkRecs = all.filter(r => slots.indexOf(r.fields[DRINK_FIELDS.timing]) !== -1);
+    drinksLoaded = true;
+    _renderDrinks();
+  } catch (e) {
+    el.innerHTML = '<div style="color:var(--red);padding:16px">Error: ' + e.message + '</div>';
+  }
+}
+
+function _setDrinksFilter(showAll) { _drinksShowAll = showAll; _renderDrinks(); }
+
+function _renderDrinks() {
+  const el = document.getElementById('drinks-content');
+  const fb = document.getElementById('drinks-filter-bar');
+  const activeCount = _drinkRecs.filter(r => r.fields[DRINK_FIELDS.status] === 'Active').length;
+
+  fb.innerHTML =
+    '<button class="filter-chip' + (_drinksShowAll ? '' : ' active') + '" onclick="_setDrinksFilter(false)">Active ' + activeCount + '</button>' +
+    '<button class="filter-chip' + (_drinksShowAll ? ' active' : '') + '" onclick="_setDrinksFilter(true)">All ' + _drinkRecs.length + '</button>';
+
+  const recs = _drinksShowAll ? _drinkRecs : _drinkRecs.filter(r => r.fields[DRINK_FIELDS.status] === 'Active');
+
+  let html = '';
+  DRINK_SLOTS.forEach(function (slot) {
+    const items = recs.filter(r => r.fields[DRINK_FIELDS.timing] === slot.key);
+    html += '<div style="margin-bottom:22px">'
+         +  '<div style="display:flex;align-items:baseline;gap:8px;margin:0 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border)">'
+         +    '<span style="font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:' + slot.color + '">' + slot.label + '</span>'
+         +    '<span style="font-size:11px;color:var(--muted)">' + slot.sub + '</span>'
+         +    '<span style="margin-left:auto;font-size:11px;color:var(--muted);font-family:\'DM Mono\',monospace">' + items.length + '</span>'
+         +  '</div>';
+
+    if (!items.length) {
+      html += '<div style="color:var(--muted);font-size:12px;padding:8px 0">Nothing logged here.</div>';
+    } else {
+      html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px">';
+      items.forEach(function (rec) {
+        const f = rec.fields;
+        const st = f[DRINK_FIELDS.status] || '';
+        const stColor = st === 'Active' ? 'var(--green)' : (st === 'Thrown Away' ? 'var(--red)' : 'var(--muted)');
+        html += '<div class="card" style="border-left:3px solid ' + slot.color + ';cursor:pointer;transition:box-shadow .15s"'
+             +  ' onmouseover="this.style.boxShadow=\'0 2px 12px rgba(0,0,0,0.1)\'"'
+             +  ' onmouseout="this.style.boxShadow=\'\'"'
+             +  ' onclick="editDrink(\'' + rec.id + '\')">'
+             +  '<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px">'
+             +    '<div style="flex:1;font-weight:500;font-size:13px;line-height:1.4">' + (f[DRINK_FIELDS.name] || '') + '</div>'
+             +    (st !== 'Active' ? '<span style="font-size:10px;font-weight:600;color:' + stColor + ';border:1px solid ' + stColor + ';padding:1px 7px;border-radius:10px;white-space:nowrap;flex-shrink:0">' + st + '</span>' : '')
+             +  '</div>'
+             +  (f[DRINK_FIELDS.dose]    ? '<div style="font-size:12px;color:var(--accent);font-family:\'DM Mono\',monospace;margin-bottom:4px">' + f[DRINK_FIELDS.dose] + '</div>' : '')
+             +  (f[DRINK_FIELDS.brand]   ? '<div style="font-size:11px;color:var(--muted);margin-bottom:3px">' + f[DRINK_FIELDS.brand] + '</div>' : '')
+             +  (f[DRINK_FIELDS.purpose] ? '<div style="font-size:11px;color:var(--muted);line-height:1.5">' + f[DRINK_FIELDS.purpose] + '</div>' : '')
+             +  '</div>';
+      });
+      html += '</div>';
+    }
+    html += '</div>';
+  });
+  el.innerHTML = html;
+}
+
+function showAddDrinkModal(slot) {
+  document.getElementById('drink-modal-title').textContent = 'Add Item';
+  document.getElementById('dm-id').value      = '';
+  document.getElementById('dm-name').value    = '';
+  document.getElementById('dm-timing').value  = slot || 'Pre-Workout';
+  document.getElementById('dm-status').value  = 'Active';
+  document.getElementById('dm-dose').value    = '';
+  document.getElementById('dm-form').value    = '';
+  document.getElementById('dm-brand').value   = '';
+  document.getElementById('dm-purpose').value = '';
+  document.getElementById('dm-notes').value   = '';
+  document.getElementById('dm-delete-btn').style.display = 'none';
+  document.getElementById('drink-modal').style.display = 'flex';
+}
+
+function editDrink(id) {
+  const rec = _drinkRecs.find(r => r.id === id);
+  if (!rec) return;
+  const f = rec.fields;
+  document.getElementById('drink-modal-title').textContent = 'Edit Item';
+  document.getElementById('dm-id').value      = id;
+  document.getElementById('dm-name').value    = f[DRINK_FIELDS.name]    || '';
+  document.getElementById('dm-timing').value  = f[DRINK_FIELDS.timing]  || 'Pre-Workout';
+  document.getElementById('dm-status').value  = f[DRINK_FIELDS.status]  || 'Active';
+  document.getElementById('dm-dose').value    = f[DRINK_FIELDS.dose]    || '';
+  document.getElementById('dm-form').value    = f[DRINK_FIELDS.form]    || '';
+  document.getElementById('dm-brand').value   = f[DRINK_FIELDS.brand]   || '';
+  document.getElementById('dm-purpose').value = f[DRINK_FIELDS.purpose] || '';
+  document.getElementById('dm-notes').value   = f[DRINK_FIELDS.notes]   || '';
+  document.getElementById('dm-delete-btn').style.display = 'inline-block';
+  document.getElementById('drink-modal').style.display = 'flex';
+}
+
+function hideDrinkModal() { document.getElementById('drink-modal').style.display = 'none'; }
+
+async function saveDrink() {
+  const id = document.getElementById('dm-id').value;
+  const fields = {};
+  fields[DRINK_FIELDS.name]    = document.getElementById('dm-name').value.trim();
+  fields[DRINK_FIELDS.timing]  = document.getElementById('dm-timing').value;
+  fields[DRINK_FIELDS.status]  = document.getElementById('dm-status').value;
+  fields[DRINK_FIELDS.dose]    = document.getElementById('dm-dose').value.trim();
+  fields[DRINK_FIELDS.brand]   = document.getElementById('dm-brand').value.trim();
+  fields[DRINK_FIELDS.purpose] = document.getElementById('dm-purpose').value.trim();
+  fields[DRINK_FIELDS.notes]   = document.getElementById('dm-notes').value.trim();
+  const form = document.getElementById('dm-form').value;
+  if (form) fields[DRINK_FIELDS.form] = form;
+
+  if (!fields[DRINK_FIELDS.name]) { alert('Name is required.'); return; }
+
+  const btn = document.getElementById('dm-save-btn');
+  btn.textContent = 'Saving'; btn.disabled = true;
+  try {
+    const method = id ? 'PATCH' : 'POST';
+    const url = id
+      ? 'https://api.airtable.com/v0/' + BASE + '/' + TABLES.supplements + '/' + id
+      : 'https://api.airtable.com/v0/' + BASE + '/' + TABLES.supplements;
+    const body = id ? {fields: fields, typecast: true} : {records:[{fields: fields}], typecast: true};
+    const res = await fetch(url, {
+      method: method,
+      headers: {Authorization:'Bearer ' + TOKEN, 'Content-Type':'application/json'},
+      body: JSON.stringify(body)
+    });
+    if (!res.ok) throw new Error(await res.text());
+    hideDrinkModal();
+    drinksLoaded = false;
+    loadDrinks(true);
+  } catch (e) { alert('Error: ' + e.message); }
+  finally { btn.textContent = 'Save'; btn.disabled = false; }
+}
+
+async function deleteDrink() {
+  const id = document.getElementById('dm-id').value;
+  if (!id) return;
+  const rec = _drinkRecs.find(r => r.id === id);
+  const nm = rec ? (rec.fields[DRINK_FIELDS.name] || 'this item') : 'this item';
+  if (!confirm('Delete "' + nm + '" from the Supplements table? This cannot be undone.\n\nTo keep the record but remove it from the drinks view, set Status to Thrown Away or change its Timing instead.')) return;
+  try {
+    const res = await fetch('https://api.airtable.com/v0/' + BASE + '/' + TABLES.supplements + '/' + id, {
+      method:'DELETE', headers:{Authorization:'Bearer ' + TOKEN}
+    });
+    if (!res.ok) throw new Error(await res.text());
+    hideDrinkModal();
+    drinksLoaded = false;
+    loadDrinks(true);
+  } catch (e) { alert('Error: ' + e.message); }
+}
+
 </script>
 
 <!-- ADD PURCHASE MODAL -->
@@ -9297,6 +9501,48 @@ function prefillLogDate(dateStr) {
       <div style="display:flex;gap:8px;margin-left:auto">
         <button class="modal-btn" onclick="hideGoalModal()">Cancel</button>
         <button class="modal-btn primary" id="gm-save-btn" onclick="saveGoal()">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="drink-modal" onclick="if(event.target===this)hideDrinkModal()" style="display:none">
+  <div class="modal-box" style="width:480px">
+    <div class="modal-header"><h3 id="drink-modal-title">Add Item</h3><button class="modal-close" onclick="hideDrinkModal()"></button></div>
+    <div class="modal-body">
+      <input type="hidden" id="dm-id">
+      <div class="form-row"><label>Name</label><input type="text" id="dm-name" placeholder="e.g. L-Citrulline Powder"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="form-row"><label>Timing</label>
+          <select id="dm-timing" style="padding:7px 10px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);font-size:13px;width:100%">
+            <option>Pre-Workout</option><option>Intra-Workout</option><option>Post-Workout</option>
+          </select>
+        </div>
+        <div class="form-row"><label>Status</label>
+          <select id="dm-status" style="padding:7px 10px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);font-size:13px;width:100%">
+            <option>Active</option><option>Paused</option><option>Inactive</option><option>TBD</option><option>Thrown Away</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="form-row"><label>Dose</label><input type="text" id="dm-dose" placeholder="e.g. 6g (2 level tsp)"></div>
+        <div class="form-row"><label>Form</label>
+          <select id="dm-form" style="padding:7px 10px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);font-size:13px;width:100%">
+            <option value="">Select</option>
+            <option>Powder</option><option>Pill / Cap</option><option>RTD / Shake</option>
+            <option>Liquid</option><option>Food / Snack</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row"><label>Brand</label><input type="text" id="dm-brand" placeholder="e.g. BulkSupplements"></div>
+      <div class="form-row"><label>Purpose</label><input type="text" id="dm-purpose" placeholder="What it's for"></div>
+      <div class="form-row"><label>Notes</label><textarea id="dm-notes" rows="3" placeholder="Timing rules, cautions, context..."></textarea></div>
+    </div>
+    <div class="modal-footer" style="display:flex;justify-content:space-between;align-items:center">
+      <button class="modal-btn" id="dm-delete-btn" onclick="deleteDrink()" style="color:var(--red);border-color:var(--red);display:none">Delete</button>
+      <div style="display:flex;gap:8px;margin-left:auto">
+        <button class="modal-btn" onclick="hideDrinkModal()">Cancel</button>
+        <button class="modal-btn primary" id="dm-save-btn" onclick="saveDrink()">Save</button>
       </div>
     </div>
   </div>
