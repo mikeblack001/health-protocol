@@ -1455,27 +1455,85 @@ function renderPrintList() {
   document.getElementById('printlist-content').innerHTML = html || '<p style="color:var(--muted)">No data loaded yet.</p>';
 }
 
+// ---- boot cache: paint last-known data instantly, then refresh from Airtable ----
+const HP_CACHE_KEY = 'hp_core_cache_v1';
+let _hpBooted = false;
+
+function _hpCacheRead() {
+  try {
+    const raw = localStorage.getItem(HP_CACHE_KEY);
+    if (!raw) return null;
+    const c = JSON.parse(raw);
+    if (!c || !Array.isArray(c.peptides) || !Array.isArray(c.supplements)) return null;
+    if (!c.peptides.length && !c.supplements.length) return null;
+    return c;
+  } catch (e) { return null; }
+}
+
+function _hpCacheWrite() {
+  try {
+    localStorage.setItem(HP_CACHE_KEY, JSON.stringify({
+      t: Date.now(), peptides: data.peptides, supplements: data.supplements
+    }));
+  } catch (e) { /* quota or private mode - cache is optional */ }
+}
+
+function _hpRenderCore() {
+  try { renderDashboard(); } catch (e) { console.error('[core] renderDashboard:', e); }
+  try { renderPeptides('Active'); } catch (e) { console.error('[core] renderPeptides:', e); }
+  try { renderSupplements('Active'); } catch (e) { console.error('[core] renderSupplements:', e); }
+}
+
+function _hpRenderDeferred() {
+  setTimeout(() => { try { loadVendors(); } catch (e) { console.error('[deferred] loadVendors:', e); } }, 0);
+  setTimeout(() => {
+    try {
+      renderTracker();
+      populateWeekDropdown();
+      const _tm = getTrackerMonday();
+      loadTrackerWeekData(_tm.toISOString().split('T')[0]);
+      updateVialCells();
+    } catch (e) { console.error('[deferred] renderTracker:', e); }
+  }, 60);
+  setTimeout(() => { try { renderPrintList(); } catch (e) { console.error('[deferred] renderPrintList:', e); } }, 120);
+}
+
 async function loadAll() {
-  document.getElementById('statusDot').className = 'status-dot';
+  const dot = document.getElementById('statusDot');
+  if (dot) dot.className = 'status-dot';
+
+  // First paint only: render cached data immediately so the app is usable at once.
+  // Network refresh still runs below and re-renders with live data.
+  if (!_hpBooted) {
+    _hpBooted = true;
+    const c = _hpCacheRead();
+    if (c) {
+      try {
+        data.peptides = c.peptides;
+        data.supplements = c.supplements;
+        _hpRenderCore();
+      } catch (e) { console.error('[loadAll] cache render failed:', e); }
+    }
+  }
 
   try {
-      const [p, s] = await Promise.all([fetchTable(TABLES.peptides), fetchTable(TABLES.supplements)]);
-
+    const [p, s] = await Promise.all([fetchTable(TABLES.peptides), fetchTable(TABLES.supplements)]);
     data.peptides = p;
     data.supplements = s;
-    document.getElementById('statusDot').className = 'status-dot online';
-      try { renderDashboard(); } catch(e2) { console.error('[loadAll] renderDashboard failed:', e2); }
-      try { renderPeptides('Active'); } catch(e2) { console.error('[loadAll] renderPeptides failed:', e2); }
-    loadVendors();
-      try { renderSupplements('Active'); } catch(e2) { console.error('[loadAll] renderSupplements failed:', e2); }
-      try { renderTracker(); populateWeekDropdown(); const _tm = getTrackerMonday(); loadTrackerWeekData(_tm.toISOString().split('T')[0]); updateVialCells(); } catch(e2) { console.error('[loadAll] renderTracker failed:', e2); }
-    renderPrintList();
-    } catch(e) {
-    document.getElementById('statusDot').className = 'status-dot';
+    _hpCacheWrite();
+    if (dot) dot.className = 'status-dot online';
+    _hpRenderCore();
+    _hpRenderDeferred();
+  } catch (e) {
+    if (dot) dot.className = 'status-dot';
     console.error('[loadAll] FAILED:', e);
-    const errMsg = `<div style="padding:24px;color:var(--red,#e53e3e);font-size:13px">• Failed to load data ${e.message || e}.<br><br><button onclick="loadAll()" style="margin-top:8px;padding:6px 14px;border-radius:6px;border:none;background:var(--accent);color:#fff;cursor:pointer;font-size:13px">Retry</button></div>`;
-    const pc = document.getElementById('peptides-content');
-    if (pc) pc.innerHTML = errMsg;
+    // If cached data is already on screen, keep it and don't blank the view.
+    const hasData = (data.peptides && data.peptides.length) || (data.supplements && data.supplements.length);
+    if (!hasData) {
+      const errMsg = `<div style="padding:24px;color:var(--red,#e53e3e);font-size:13px">Failed to load data ${e.message || e}.<br><br><button onclick="loadAll()" style="margin-top:8px;padding:6px 14px;border-radius:6px;border:none;background:var(--accent);color:#fff;cursor:pointer;font-size:13px">Retry</button></div>`;
+      const pc = document.getElementById('peptides-content');
+      if (pc) pc.innerHTML = errMsg;
+    }
   }
 }
 
