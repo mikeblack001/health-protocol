@@ -5,17 +5,18 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#0F1520">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="pragma" content="no-cache">
 <title>Health Protocol</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<script src="app.js?v=1786126923" defer></script>
+<script src="app.js?v=1786187598" defer></script>
 
-<link rel="stylesheet" href="app.css?v=1786126923">
+<link rel="stylesheet" href="app.css?v=1786187598">
 <!-- old-cb:224814 -->
 </head>
 <body>
@@ -188,10 +189,10 @@
       </div>
       <button class="print-btn" onclick="window.print()">Print</button>
     </div>
-    <div id="backup-reminder" style="display:none;background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:12px;color:#92400e;font-family:'DM Sans',sans-serif;display:flex;align-items:center;justify-content:space-between">
+    <div id="backup-reminder" style="display:none;background:var(--amber-bg);border:1px solid rgba(251,191,36,0.45);border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:12px;color:var(--amber);font-family:'DM Sans',sans-serif;display:flex;align-items:center;justify-content:space-between">
       <span>! <strong>Monthly backup due</strong> Export your Airtable data to keep a local copy.</span>
-      <a href="https://airtable.com" target="_blank" style="color:#92400e;font-weight:600;text-decoration:underline;margin-left:12px">Open Airtable </a>
-      <button onclick="snoozeBackup()" style="margin-left:12px;padding:3px 10px;border:1px solid #d97706;border-radius:5px;background:transparent;color:#92400e;cursor:pointer;font-size:11px">Dismiss (1 month)</button>
+      <a href="https://airtable.com" target="_blank" style="color:var(--amber);font-weight:600;text-decoration:underline;margin-left:12px">Open Airtable </a>
+      <button onclick="snoozeBackup()" style="margin-left:12px;padding:3px 10px;border:1px solid var(--amber);border-radius:5px;background:transparent;color:var(--amber);cursor:pointer;font-size:11px">Dismiss (1 month)</button>
     </div>
     <div class="stats-grid">
       <div class="stat-card"><div class="stat-label">Active Peptides</div><div class="stat-value green" id="stat-active-peptides"></div></div>
@@ -199,7 +200,7 @@
       <div class="stat-card"><div class="stat-label">On Order</div><div class="stat-value blue" id="stat-onorder"></div></div>
       <div class="stat-card"><div class="stat-label">Paused</div><div class="stat-value amber" id="stat-paused"></div></div>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;align-items:start">
+    <div class="dash-columns">
       <div style="display:flex;flex-direction:column;gap:16px">
         <div class="dash-card">
           <h3>Morning Peptides</h3>
@@ -284,7 +285,7 @@
       <button class="filter-btn" onclick="filterVendors('Evaluating',this)">Evaluating</button>
       <button class="filter-btn" id="vendor-az-btn" onclick="setVendorNameSort(1)" style="margin-left:8px">AZ</button>
       <button class="filter-btn" id="vendor-za-btn" onclick="setVendorNameSort(-1)">ZA</button>
-      <button class="filter-btn" onclick="showAddVendorModal()" style="margin-left:auto;background:var(--accent);color:#fff;border-color:var(--accent)">+ Add Vendor</button>
+      <button class="filter-btn" onclick="showAddVendorModal()" style="margin-left:auto;background:var(--accent);color:var(--surface);border-color:var(--accent)">+ Add Vendor</button>
     </div>
     <div id="vendors-content"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
   </div>
@@ -301,10 +302,10 @@
       <select id="ai-vendor-select" onchange="filterPricingByVendor(this.value)" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface)">
         <option value="">Select vendor...</option>
       </select>
-      <button class="filter-btn" onclick="showBulkEdit()" style="background:#6366f1;color:#fff;border-color:#6366f1">ï¸ Bulk Edit</button>
-      <button class="filter-btn" onclick="showAddPricingModal()" style="margin-left:auto;background:var(--accent);color:#fff;border-color:var(--accent)">+ Add Row</button>
+      <button class="filter-btn" onclick="showBulkEdit()" style="background:var(--accent);color:var(--surface);border-color:var(--accent)">ï¸ Bulk Edit</button>
+      <button class="filter-btn" onclick="showAddPricingModal()" style="margin-left:auto;background:var(--accent);color:var(--surface);border-color:var(--accent)">+ Add Row</button>
     </div>
-    <div id="ai-update-status" style="display:none;margin-bottom:12px;padding:10px 14px;background:#f0f4ff;border:1px solid #c7d2fe;border-radius:8px;font-size:13px;color:#3730a3"></div>
+    <div id="ai-update-status" style="display:none;margin-bottom:12px;padding:10px 14px;background:var(--accent-light);border:1px solid var(--accent-border);border-radius:8px;font-size:13px;color:var(--accent)"></div>
     <div style="margin-bottom:12px;padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--muted)">
       Select a vendor and click <strong>ï¸ Bulk Edit</strong> to update all their prices at once. Missing pricing rows are created automatically from the vendor's Peptides Carried list.
     </div>
@@ -358,7 +359,7 @@
           <textarea id="workout-notes" rows="2" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface);resize:vertical"></textarea>
         </div>
         <div style="display:flex;gap:8px;margin-top:12px">
-          <button onclick="saveWorkout()" style="padding:9px 20px;background:var(--accent);color:#fff;border:none;border-radius:6px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500">Save Workout</button>
+          <button onclick="saveWorkout()" style="padding:9px 20px;background:var(--accent);color:var(--surface);border:none;border-radius:6px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500">Save Workout</button>
           <button onclick="printWorkout()" style="padding:9px 16px;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:'DM Sans',sans-serif;cursor:pointer">Print</button>
         </div>
         <div id="workout-save-status" style="margin-top:8px;font-size:12px;color:var(--green);display:none"></div>
@@ -398,11 +399,11 @@
   <div id="view-tracker" class="view">
     <div id="tracker-content" style="min-width:0"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
     <div id="tracker-legend" style="margin-top:8px;display:flex;gap:10px;font-size:11px;font-family:'DM Mono',monospace;flex-wrap:wrap">
-      <span style="background:#dbeafe;border:1px solid #2563eb;color:#1d4ed8;padding:2px 8px;border-radius:4px">L = Left</span>
-      <span style="background:#fef3c7;border:1px solid #d97706;color:#92400e;padding:2px 8px;border-radius:4px">R = Right</span>
-      <span style="background:#dcfce7;border:1px solid #16a34a;color:#15803d;padding:2px 8px;border-radius:4px">X = Taken</span>
-      <span style="background:#fee2e2;border:1px solid #dc2626;color:#dc2626;padding:2px 8px;border-radius:4px">S = Skipped</span>
-      <span style="background:#ede9fe;border:1px solid #7c3aed;color:#6d28d9;padding:2px 8px;border-radius:4px">P = Paused</span>
+      <span style="background:var(--blue-bg);border:1px solid var(--accent);color:var(--accent-hover);padding:2px 8px;border-radius:4px">L = Left</span>
+      <span style="background:var(--amber-bg);border:1px solid var(--amber);color:var(--amber);padding:2px 8px;border-radius:4px">R = Right</span>
+      <span style="background:var(--green-bg);border:1px solid var(--green);color:var(--green);padding:2px 8px;border-radius:4px">X = Taken</span>
+      <span style="background:var(--red-bg);border:1px solid var(--red);color:var(--red);padding:2px 8px;border-radius:4px">S = Skipped</span>
+      <span style="background:var(--accent-light);border:1px solid var(--accent);color:var(--accent-hover);padding:2px 8px;border-radius:4px">P = Paused</span>
       
     </div>
   </div>
@@ -430,7 +431,7 @@
     <div class="section-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
       <div><h2>Daily Log</h2><p class="section-sub">Health metrics history, averages, and manual entry</p></div>
       <div style="display:flex;gap:8px;align-items:center">
-        <button class="action-btn" onclick="syncHealthToLog()" id="sync-health-btn" style="background:#2563eb;color:#fff;border:none;padding:7px 14px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer">Sync from Apple Health</button>
+        <button class="action-btn" onclick="syncHealthToLog()" id="sync-health-btn" style="background:var(--accent);color:var(--surface);border:none;padding:7px 14px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer">Sync from Apple Health</button>
         <span id="sync-status" style="font-size:11px;color:var(--muted)"></span>
       </div>
     </div>
@@ -615,7 +616,7 @@
         </select>
         <input id="db-search" type="text" placeholder="Search any field" oninput="dbRender()" style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface);width:200px">
         <span id="db-count" style="font-size:12px;color:var(--muted);white-space:nowrap"></span>
-        <button onclick="dbExportCSV()" style="padding:6px 14px;background:var(--accent);color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">CSV</button>
+        <button onclick="dbExportCSV()" style="padding:6px 14px;background:var(--accent);color:var(--surface);border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">CSV</button>
       </div>
     </div>
     <div id="db-status" style="font-size:12px;color:var(--muted);padding:4px 0 8px;display:none"></div>
@@ -689,7 +690,7 @@
         <option>Note</option>
       </select>
       <input type="text" id="sc-supp-filter" oninput="renderSuppChanges()" placeholder="Search supplement..." style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface);width:160px">
-      <button class="filter-btn" onclick="showAddSuppChangeModal()" style="margin-left:auto;background:var(--accent);color:#fff;border-color:var(--accent)">+ Log Change</button>
+      <button class="filter-btn" onclick="showAddSuppChangeModal()" style="margin-left:auto;background:var(--accent);color:var(--surface);border-color:var(--accent)">+ Log Change</button>
     </div>
     <div id="suppchanges-content"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
   </div>
@@ -723,7 +724,7 @@
       </select>
       <button class="filter-btn" onclick="clearPurchaseFilters()">Clear</button>
       <button class="filter-btn" onclick="exportPurchasesCSV()" style="background:var(--surface2)">CSV</button>
-      <button class="filter-btn" onclick="showAddPurchaseModal()" style="margin-left:auto;background:var(--accent);color:#fff;border-color:var(--accent)">+ Log Purchase</button>
+      <button class="filter-btn" onclick="showAddPurchaseModal()" style="margin-left:auto;background:var(--accent);color:var(--surface);border-color:var(--accent)">+ Log Purchase</button>
     </div>
     <div id="purchases-content"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
   </div>
@@ -741,7 +742,7 @@
         <option value="Function Health">Function Health</option>
         <option value="LabCorp">LabCorp</option>
       </select>
-      <button class="filter-btn" onclick="showAddLabModal()" style="margin-left:auto;background:var(--accent);color:#fff;border-color:var(--accent)">+ Log Result</button>
+      <button class="filter-btn" onclick="showAddLabModal()" style="margin-left:auto;background:var(--accent);color:var(--surface);border-color:var(--accent)">+ Log Result</button>
     </div>
     <div class="filter-bar" id="labs-priority-bar" style="padding:6px 16px;border-bottom:1px solid var(--border);gap:6px">
       <span style="font-size:11px;color:var(--muted);font-weight:600;letter-spacing:0.5px;text-transform:uppercase">Priority</span>
@@ -750,7 +751,7 @@
       <button class="filter-btn active" id="labs-pri-pinned" onclick="setLabsPriority('Pinned',this)">Pinned</button>
       <input id="labs-search" type="text" placeholder="Search marker..." oninput="renderLabsTrend()" style="margin-left:8px;padding:4px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface);width:160px">
     </div>
-    <div id="labs-flag-bar" style="display:none;padding:8px 16px;background:var(--red-bg);border-bottom:1px solid #fecaca;font-size:12px;color:var(--red);font-weight:500"></div>
+    <div id="labs-flag-bar" style="display:none;padding:8px 16px;background:var(--red-bg);border-bottom:1px solid rgba(248,113,113,0.4);font-size:12px;color:var(--red);font-weight:500"></div>
     <div id="labs-content"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
   </div>
 
@@ -772,7 +773,7 @@
         <option>Stopped</option>
       </select>
       <input type="text" id="changes-compound-filter" oninput="renderChanges()" placeholder="Search compound..." style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface);width:150px">
-      <button class="filter-btn" onclick="showAddChangeModal()" style="margin-left:auto;background:var(--accent);color:#fff;border-color:var(--accent)">+ Log Change</button>
+      <button class="filter-btn" onclick="showAddChangeModal()" style="margin-left:auto;background:var(--accent);color:var(--surface);border-color:var(--accent)">+ Log Change</button>
     </div>
     <div id="changes-content"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
   </div>
@@ -983,7 +984,7 @@
     <div class="modal-body">
       <input type="hidden" id="gm-id">
       <div class="form-row"><label>Goal</label><input type="text" id="gm-goal" placeholder="Describe the goal"></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="pair-grid">
         <div class="form-row"><label>Category</label>
           <select id="gm-category" style="padding:7px 10px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);font-size:13px;width:100%">
             <option value="">Select </option>
@@ -1019,7 +1020,7 @@
     <div class="modal-body">
       <input type="hidden" id="dm-id">
       <div class="form-row"><label>Name</label><input type="text" id="dm-name" placeholder="e.g. L-Citrulline Powder"></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="pair-grid">
         <div class="form-row"><label>Timing</label>
           <select id="dm-timing" style="padding:7px 10px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);font-size:13px;width:100%">
             <option>Pre-Workout</option><option>Intra-Workout</option><option>Post-Workout</option>
@@ -1031,7 +1032,7 @@
           </select>
         </div>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="pair-grid">
         <div class="form-row"><label>Dose</label><input type="text" id="dm-dose" placeholder="e.g. 6g (2 level tsp)"></div>
         <div class="form-row"><label>Form</label>
           <select id="dm-form" style="padding:7px 10px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);font-size:13px;width:100%">
@@ -1085,10 +1086,10 @@
       </div>
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;padding:14px 16px 0">
-      <div class="stat-card" id="bc-wt-w"><div class="stat-label">Weight (Withings)</div><div class="stat-val" style="color:#60a5fa"></div><div class="stat-sub">lbs · avg</div></div>
-      <div class="stat-card" id="bc-wt-r"><div class="stat-label">Weight (RENPHO)</div><div class="stat-val" style="color:#34d399"></div><div class="stat-sub">lbs · avg</div></div>
-      <div class="stat-card" id="bc-bf-w"><div class="stat-label">BF% (Withings)</div><div class="stat-val" style="color:#60a5fa"></div><div class="stat-sub">% · avg</div></div>
-      <div class="stat-card" id="bc-bf-r"><div class="stat-label">BF% (RENPHO)</div><div class="stat-val" style="color:#34d399"></div><div class="stat-sub">% · avg</div></div>
+      <div class="stat-card" id="bc-wt-w"><div class="stat-label">Weight (Withings)</div><div class="stat-val" style="color:var(--blue)"></div><div class="stat-sub">lbs · avg</div></div>
+      <div class="stat-card" id="bc-wt-r"><div class="stat-label">Weight (RENPHO)</div><div class="stat-val" style="color:var(--green)"></div><div class="stat-sub">lbs · avg</div></div>
+      <div class="stat-card" id="bc-bf-w"><div class="stat-label">BF% (Withings)</div><div class="stat-val" style="color:var(--blue)"></div><div class="stat-sub">% · avg</div></div>
+      <div class="stat-card" id="bc-bf-r"><div class="stat-label">BF% (RENPHO)</div><div class="stat-val" style="color:var(--green)"></div><div class="stat-sub">% · avg</div></div>
       <div class="stat-card" id="bc-muscle"><div class="stat-label">Muscle Mass</div><div class="stat-val"></div><div class="stat-sub">lbs · avg</div></div>
       <div class="stat-card" id="bc-fat"><div class="stat-label">Fat Mass</div><div class="stat-val"></div><div class="stat-sub">lbs · avg</div></div>
       <div class="stat-card" id="bc-hrv"><div class="stat-label">HRV</div><div class="stat-val"></div><div class="stat-sub">ms · avg</div></div>
