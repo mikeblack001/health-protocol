@@ -166,7 +166,7 @@ async function loadAll() {
     // If cached data is already on screen, keep it and don't blank the view.
     const hasData = (data.peptides && data.peptides.length) || (data.supplements && data.supplements.length);
     if (!hasData) {
-      const errMsg = `<div style="padding:24px;color:var(--red,#e53e3e);font-size:13px">Failed to load data ${e.message || e}.<br><br><button onclick="loadAll()" style="margin-top:8px;padding:6px 14px;border-radius:6px;border:none;background:var(--accent);color:#fff;cursor:pointer;font-size:13px">Retry</button></div>`;
+      const errMsg = `<div style="padding:24px;color:var(--red,#e53e3e);font-size:13px">Failed to load data ${e.message || e}.<br><br><button onclick="loadAll()" style="margin-top:8px;padding:6px 14px;border-radius:6px;border:none;background:var(--accent);color:var(--surface);cursor:pointer;font-size:13px">Retry</button></div>`;
       const pc = document.getElementById('peptides-content');
       if (pc) pc.innerHTML = errMsg;
     }
@@ -258,7 +258,7 @@ function sortPep(col) {
   renderPeptides(currentPepFilter || 'all');
 }
 function pepSortIcon(col) {
-  if (pepSort.col !== col) return ' <span style="color:#d1d5db"></span>';
+  if (pepSort.col !== col) return ' <span style="color:var(--faint)"></span>';
   return pepSort.dir === 1 ? ' <span style="color:var(--accent)"></span>' : ' <span style="color:var(--accent)"></span>';
 }
 function renderPeptides(filter) {
@@ -321,7 +321,7 @@ function sortSupp(col) {
   renderSupplements(currentSuppFilter || 'all');
 }
 function suppSortIcon(col) {
-  if (suppSort.col !== col) return ' <span style="color:#d1d5db"></span>';
+  if (suppSort.col !== col) return ' <span style="color:var(--faint)"></span>';
   return suppSort.dir === 1 ? ' <span style="color:var(--accent)"></span>' : ' <span style="color:var(--accent)"></span>';
 }
 
@@ -487,8 +487,8 @@ function setSuppDashFilter(val, btn) {
 function renderSuppDashProtocol() {
   const active = (data.supplements || []).filter(r => getField(r,'SuppStatus') === 'Active');
   const timings = [
-    {key:'Morning', icon:'', bg:'#FFFBEB'},
-    {key:'Dinner', icon:'', bg:'#F0FDF4'},
+    {key:'Morning', icon:'', bg:'var(--amber-bg)'},
+    {key:'Dinner', icon:'', bg:'var(--green-bg)'},
     {key:'Night', icon:'', bg:'#EFF6FF'}
   ];
   let html = '<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start">';
@@ -818,14 +818,14 @@ function renderTracker(weekNum) {
         var s=this.dataset.s||'0';
         var next=s==='L'?'R':s==='R'?'S':s==='S'?'P':s==='P'?'0':'L';
         this.dataset.s=next; this.textContent=next==='0'?'':next;
-        var c=next==='L'?['#dbeafe','#2563eb','#1d4ed8']:next==='R'?['#fef3c7','#d97706','#92400e']:next==='S'?['#fee2e2','#dc2626','#dc2626']:next==='P'?['#ede9fe','#7c3aed','#6d28d9']:['','#888',''];
+        var c=next==='L'?['var(--blue-bg)','var(--accent)','var(--accent-hover)']:next==='R'?['var(--amber-bg)','var(--amber)','var(--amber)']:next==='S'?['var(--red-bg)','var(--red)','var(--red)']:next==='P'?['var(--accent-light)','var(--accent)','var(--accent-hover)']:['','#888',''];
         this.style.background=c[0];this.style.borderColor=c[1];this.style.color=c[2];saveCheckbox(this);
       " style="margin:0 auto;border:1.5px solid ${isActive?'#888':'#bbb'};opacity:${isActive?'1':'0.6'}"></div></td>`;
   }
 
   function vialBtns(name) {
-    return `<td style="border:1px solid #ccc;padding:2px 4px;white-space:nowrap;text-align:center;width:70px" data-vial-compound="${name}">
-      <span style="font-size:10px;color:#ccc">·</span>
+    return `<td style="border:1px solid var(--border);padding:2px 4px;white-space:nowrap;text-align:center;width:70px" data-vial-compound="${name}">
+      <span style="font-size:10px;color:var(--border)">·</span>
     </td>`;
   }
 
@@ -842,7 +842,7 @@ function renderTracker(weekNum) {
   <button onclick="shiftJumpWeek(1)" style="padding:4px 10px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:var(--surface);font-size:13px">Next </button>
     </div>
     <div style="display:flex;gap:8px">
-      <button onclick="saveTrackerWeek('${mondayISO}')" style="padding:5px 14px;background:var(--accent);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px">Save Week</button>
+      <button onclick="saveTrackerWeek('${mondayISO}')" style="padding:5px 14px;background:var(--accent);color:var(--surface);border:none;border-radius:6px;cursor:pointer;font-size:13px">Save Week</button>
 
     </div>
   </div>
@@ -855,13 +855,13 @@ function renderTracker(weekNum) {
   <div style="border:3px solid #000;border-radius:8px;overflow-x:auto"><table style="border-collapse:collapse;width:100%;font-size:12px">
   <thead><tr>
     <th style="text-align:left;padding:4px 6px;background:#D9D9D9;border:1px solid #999;width:160px">Medication</th>
-    ${days.map((d,i)=>{const dd=new Date(monday);dd.setDate(monday.getDate()+i);const mo=dd.getMonth()+1;const dy=dd.getDate();const dateStr=dd.toISOString().split('T')[0];return`<th style="text-align:center;padding:2px 1px;background:#D9D9D9;border:1px solid #999;width:44px"><div style="font-weight:700;font-size:11px">${d}</div><div style="font-size:9px;color:#666;font-weight:400">${mo}/${dy}</div><button onclick="skipDay('${dateStr}')" title="Skip all" style="font-size:8px;padding:1px 4px;border:1px solid #aaa;border-radius:3px;background:#fff;cursor:pointer;margin-top:2px;color:#666">Skip</button></th>`;}).join('')}
+    ${days.map((d,i)=>{const dd=new Date(monday);dd.setDate(monday.getDate()+i);const mo=dd.getMonth()+1;const dy=dd.getDate();const dateStr=dd.toISOString().split('T')[0];return`<th style="text-align:center;padding:2px 1px;background:#D9D9D9;border:1px solid #999;width:44px"><div style="font-weight:700;font-size:11px">${d}</div><div style="font-size:9px;color:var(--muted);font-weight:400">${mo}/${dy}</div><button onclick="skipDay('${dateStr}')" title="Skip all" style="font-size:8px;padding:1px 4px;border:1px solid #aaa;border-radius:3px;background:var(--surface);cursor:pointer;margin-top:2px;color:var(--muted)">Skip</button></th>`;}).join('')}
     <th style="background:#D9D9D9;border:1px solid #999;padding:4px 6px;font-size:11px">Vial</th>
     <th style="text-align:left;padding:6px 10px;background:#D9D9D9;border:1px solid #999;width:150px">Notes</th>
   </tr></thead><tbody>`;
 
   if (morning.length) {
-    html += `<tr><td colspan="11" style="background:#E8A838;color:#fff;font-weight:bold;padding:5px 10px;font-size:13px">Morning</td></tr>`;
+    html += `<tr><td colspan="11" style="background:#E8A838;color:var(--surface);font-weight:bold;padding:5px 10px;font-size:13px">Morning</td></tr>`;
     morning.forEach(r => {
       const name = getField(r,'Compound');
       html += `<tr>
@@ -881,8 +881,8 @@ function renderTracker(weekNum) {
   }
 
   if (night.length) {
-    html += `<tr><td colspan="11" style="height:36px;background:var(--surface2);border-top:1px solid #ccc"></td></tr>`;
-    html += `<tr><td colspan="11" style="background:#4A6FA5;color:#fff;font-weight:bold;padding:5px 10px;font-size:13px">Night</td></tr>`;
+    html += `<tr><td colspan="11" style="height:36px;background:var(--surface2);border-top:1px solid var(--border)"></td></tr>`;
+    html += `<tr><td colspan="11" style="background:#4A6FA5;color:var(--surface);font-weight:bold;padding:5px 10px;font-size:13px">Night</td></tr>`;
     night.forEach(r => {
       const name = getField(r,'Compound');
       html += `<tr>
@@ -925,14 +925,14 @@ async function shiftTrackerWeek(dir) {
 async function loadTrackerWeekData(mondayISO) {
   try {
     const COLORS = {
-      'L':  ['#dbeafe','#2563eb','#1d4ed8'],
-      'R':  ['#fef3c7','#d97706','#92400e'],
-      'S':  ['#fee2e2','#dc2626','#dc2626'],
-      'P':  ['#ede9fe','#7c3aed','#6d28d9'],
-      'N':  ['#e5e7eb','#6b7280','#6b7280'],
+      'L':  ['var(--blue-bg)','var(--accent)','var(--accent-hover)'],
+      'R':  ['var(--amber-bg)','var(--amber)','var(--amber)'],
+      'S':  ['var(--red-bg)','var(--red)','var(--red)'],
+      'P':  ['var(--accent-light)','var(--accent)','var(--accent-hover)'],
+      'N':  ['var(--border)','var(--muted)','var(--muted)'],
       'Abd':['#f3e8ff','#9333ea','#7e22ce'],
-      'X':  ['#dcfce7','#16a34a','#15803d'],
-      '':  ['#dcfce7','#16a34a','#15803d']
+      'X':  ['var(--green-bg)','var(--green)','var(--green)'],
+      '':  ['var(--green-bg)','var(--green)','var(--green)']
     };
     const CYCLE = ['L','R','S','P','N'];
     function applyState(box, site, recId) {
@@ -1322,7 +1322,7 @@ async function skipDay(dateStr) {
     if (box.dataset.s && box.dataset.s !== '0') return;
     if (box.dataset.recId) return; // already has AT record
     box.dataset.s='S'; box.textContent='S';
-    box.style.background='#fee2e2'; box.style.borderColor='#dc2626'; box.style.color='#dc2626';
+    box.style.background='var(--red-bg)'; box.style.borderColor='var(--red)'; box.style.color='var(--red)';
     skipBoxes.push(box);
   });
   if (!skipBoxes.length) return;
@@ -1519,19 +1519,19 @@ async function loadSchedule() {
     const sched = (f['Schedule']||'').split(',').map(s=>parseInt(s.trim())).filter(n=>!isNaN(n));
     const dayCells = DAYS.map((_,i) => {
       const on = sched.includes(i);
-      return `<td style="text-align:center;vertical-align:middle;padding:8px 4px;background:${on?bg:'#DEDEDE'};border:1px solid #9ca3af">
+      return `<td style="text-align:center;vertical-align:middle;padding:8px 4px;background:${on?bg:'#DEDEDE'};border:1px solid var(--faint)">
         <input type="checkbox" ${on?'checked':''} data-rec="${r.id}" data-day="${i}" data-name="${name}"
           onchange="schedDayToggle(this)" style="cursor:pointer;width:16px;height:16px;display:block;margin:0 auto">
       </td>`;
     }).join('');
     return `<tr draggable="true" data-rec="${r.id}" id="sched-row-${r.id}" style="border-bottom:1px solid var(--border)">
-      <td style="padding:6px 4px;color:#d1d5db;font-size:16px;cursor:grab;user-select:none;background:${bg};width:24px;border-bottom:1px solid #9ca3af"></td>
-      <td style="padding:8px 12px;background:${bg};min-width:200px;border-bottom:1px solid #9ca3af;border-right:1px solid #9ca3af">
+      <td style="padding:6px 4px;color:var(--faint);font-size:16px;cursor:grab;user-select:none;background:${bg};width:24px;border-bottom:1px solid var(--faint)"></td>
+      <td style="padding:8px 12px;background:${bg};min-width:200px;border-bottom:1px solid var(--faint);border-right:1px solid var(--faint)">
         <div style="font-weight:700;font-size:13px">${name}</div>
         <div style="font-size:10px;color:var(--muted);margin-top:2px">${dose}${freq?' · '+freq:''}</div>
       </td>
       ${dayCells}
-      <td style="padding:6px 8px;background:${bg};white-space:nowrap;border:1px solid #9ca3af">
+      <td style="padding:6px 8px;background:${bg};white-space:nowrap;border:1px solid var(--faint)">
         <select onchange="schedStatusChange(this,'${r.id}','${name}')" style="font-size:11px;padding:2px 4px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--text)">
           ${STATUS_OPTS.map(s=>`<option value="${s}"${s===status?' selected':''}>${s}</option>`).join('')}
         </select>
@@ -1587,13 +1587,13 @@ async function loadSchedule() {
     </div>
     <p style="font-size:11px;color:var(--muted);margin:0 0 16px">Changes save to Airtable instantly and are logged to Protocol Changes</p>
 
-    <div style="background:#FFF8E7;border:1px solid #fde68a;border-radius:8px 8px 0 0;padding:8px 14px;font-weight:700;font-size:12px;font-family:'DM Mono',monospace;color:#d97706;letter-spacing:1px;text-transform:uppercase">Morning Peptides</div>
+    <div style="background:#FFF8E7;border:1px solid #fde68a;border-radius:8px 8px 0 0;padding:8px 14px;font-weight:700;font-size:12px;font-family:'DM Mono',monospace;color:var(--amber);letter-spacing:1px;text-transform:uppercase">Morning Peptides</div>
     <div style="border:1px solid #fde68a;border-top:none;border-radius:0 0 8px 8px;overflow:hidden;margin-bottom:20px">
       ${makeSection(morn, MORN_BG, 'sched-tbody-morn')}
     </div>
 
-    <div style="background:#EEF4FB;border:1px solid #bfdbfe;border-radius:8px 8px 0 0;padding:8px 14px;font-weight:700;font-size:12px;font-family:'DM Mono',monospace;color:#2563eb;letter-spacing:1px;text-transform:uppercase">Night Peptides</div>
-    <div style="border:1px solid #bfdbfe;border-top:none;border-radius:0 0 8px 8px;overflow:hidden;margin-bottom:28px">
+    <div style="background:#EEF4FB;border:1px solid var(--accent-border);border-radius:8px 8px 0 0;padding:8px 14px;font-weight:700;font-size:12px;font-family:'DM Mono',monospace;color:var(--accent);letter-spacing:1px;text-transform:uppercase">Night Peptides</div>
+    <div style="border:1px solid var(--accent-border);border-top:none;border-radius:0 0 8px 8px;overflow:hidden;margin-bottom:28px">
       ${makeSection(night, NIGHT_BG, 'sched-tbody-night')}
     </div>`;
 
@@ -1687,9 +1687,9 @@ async function schedSave(recId, fields, name, changeDesc) {
       method:'POST',headers:{Authorization:`Bearer ${TOKEN}`,'Content-Type':'application/json'},
       body:JSON.stringify({records:[{fields:{'Change Date':today,'Compound':name,'Description of Change':changeDesc}}],typecast:true})
     });
-    if (statusEl) { statusEl.textContent=''; statusEl.style.color='#16a34a'; setTimeout(()=>{if(statusEl)statusEl.textContent='';},2000); }
+    if (statusEl) { statusEl.textContent=''; statusEl.style.color='var(--green)'; setTimeout(()=>{if(statusEl)statusEl.textContent='';},2000); }
   } catch(e) {
-    if (statusEl) { statusEl.textContent=''; statusEl.style.color='#dc2626'; }
+    if (statusEl) { statusEl.textContent=''; statusEl.style.color='var(--red)'; }
   }
 }
 
@@ -2229,7 +2229,7 @@ function sortVendors(col) {
 }
 
 function vendorSortIcon(col) {
-  if (vendorSortCol !== col) return '<span style="color:#ccc"> </span>';
+  if (vendorSortCol !== col) return '<span style="color:var(--border)"> </span>';
   return vendorSortDir === 1 ? ' ' : ' ';
 }
 
@@ -2371,7 +2371,7 @@ async function renderWoSchedule(skipFetch) {
   rows.forEach((r, i) => {
     const safeName = esc(r.name).replace(/'/g, '&#39;');
     list += '<div draggable="true" data-rec="' + r.id + '" style="display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;background:var(--surface)">'
-      + '<div style="cursor:grab;color:#d1d5db;font-size:15px;user-select:none;padding:0 2px" title="Drag to reorder">&#8942;&#8942;</div>'
+      + '<div style="cursor:grab;color:var(--faint);font-size:15px;user-select:none;padding:0 2px" title="Drag to reorder">&#8942;&#8942;</div>'
       + '<div style="width:22px;text-align:center;font-size:12px;color:var(--muted);font-weight:600">' + (i + 1) + '</div>'
       + '<input value="' + attr(r.name) + '" data-f="Exercise" onblur="woTplInline(this,\'' + r.id + '\')" placeholder="Exercise" style="' + inR + ';flex:1.4;min-width:130px;font-weight:600;font-size:13px">'
       + '<input value="' + attr(r.variations.join(', ')) + '" data-f="Variations" onblur="woTplInline(this,\'' + r.id + '\')" placeholder="Variations" style="' + inR + ';flex:1.6;min-width:130px">'
@@ -2497,13 +2497,13 @@ async function woTplInline(inp, id) {
     if (f === 'Exercise') rec.name = val;
     else if (f === 'Variations') rec.variations = val.split(',').map(s => s.trim()).filter(Boolean);
     else rec.note = val;
-    if (st) { st.textContent = '\u2713'; st.style.color = '#16a34a'; setTimeout(() => { if (st) st.textContent = ''; }, 1500); }
+    if (st) { st.textContent = '\u2713'; st.style.color = 'var(--green)'; setTimeout(() => { if (st) st.textContent = ''; }, 1500); }
     woTplLog(f === 'Exercise'
       ? 'Renamed "' + cur + '" \u2192 "' + val + '" (' + rec.day + ')'
       : rec.name + ' \u2014 ' + f + ': "' + cur + '" \u2192 "' + val + '" (' + rec.day + ')');
     loadWorkoutTemplate();
   } catch (e) {
-    if (st) { st.textContent = '\u2715'; st.style.color = '#dc2626'; }
+    if (st) { st.textContent = '\u2715'; st.style.color = 'var(--red)'; }
   }
 }
 
@@ -2958,7 +2958,7 @@ function ingNameCell(t, boldOnHand) {
   const m = ingMacros(t);
   const bold = boldOnHand && ingStock(t) === 'On Hand';
   const thumb = img
-    ? '<span style="width:36px;height:36px;border-radius:8px;background:#fff;border:1px solid var(--border);flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;overflow:hidden"><img src="' + recipesAttr(img) + '" alt="" loading="lazy" style="width:100%;height:100%;object-fit:cover" onerror="this.parentNode.style.display=\'none\'"></span>'
+    ? '<span style="width:36px;height:36px;border-radius:8px;background:var(--surface);border:1px solid var(--border);flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;overflow:hidden"><img src="' + recipesAttr(img) + '" alt="" loading="lazy" style="width:100%;height:100%;object-fit:cover" onerror="this.parentNode.style.display=\'none\'"></span>'
     : '';
   const macro = m
     ? '<div style="font-size:11px;color:var(--muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + m.cal + ' cal &middot; ' + m.p + 'P &middot; ' + m.c + 'C &middot; ' + m.fat + 'F <span style="opacity:.75">/ ' + recipesEsc(m.size) + '</span></div>'
@@ -3023,7 +3023,7 @@ function renderRecipesMachineBar() {
         'background:' + (on ? 'var(--surface2)' : 'var(--surface)') + ';' +
         'box-shadow:' + (on ? '0 0 0 2px var(--accent) inset' : 'none') + ';' +
         'transition:border-color .15s,box-shadow .15s,background .15s">' +
-        '<div style="height:92px;border-radius:10px;background:#fff;display:flex;align-items:center;' +
+        '<div style="height:92px;border-radius:10px;background:var(--surface);display:flex;align-items:center;' +
           'justify-content:center;overflow:hidden;margin-bottom:10px">' +
           '<img src="' + recipesAttr(meta.img) + '" alt="' + recipesAttr(meta.label) + '" loading="lazy" ' +
             'style="max-height:88px;max-width:100%;object-fit:contain" ' +
@@ -3081,7 +3081,7 @@ function renderRecipesPanel() {
 
   const tabBtn = function(id, label){
     const on = recipesPanelTab === id;
-    return '<button onclick="setRecipesPanelTab(\'' + id + '\')" style="padding:9px 16px;border-radius:8px;border:1px solid ' + (on?'var(--accent)':'var(--border)') + ';background:' + (on?'var(--accent)':'var(--surface)') + ';color:' + (on?'#fff':'var(--text)') + ';font-size:14px;cursor:pointer;font-family:inherit;font-weight:500">' + label + '</button>';
+    return '<button onclick="setRecipesPanelTab(\'' + id + '\')" style="padding:9px 16px;border-radius:8px;border:1px solid ' + (on?'var(--accent)':'var(--border)') + ';background:' + (on?'var(--accent)':'var(--surface)') + ';color:' + (on?'var(--surface)':'var(--text)') + ';font-size:14px;cursor:pointer;font-family:inherit;font-weight:500">' + label + '</button>';
   };
 
   const rowFor = function(t){
@@ -3089,21 +3089,21 @@ function renderRecipesPanel() {
       const st = ingStock(t);
       const btn = function(val, label, color){
         const on = st === val;
-        return '<span onclick="setIngStock(\'' + recipesAttr(t) + '\',\'' + val + '\')" style="padding:7px 13px;border-radius:7px;border:1px solid ' + (on?color:'var(--border)') + ';background:' + (on?color:'var(--surface)') + ';color:' + (on?'#fff':'var(--muted)') + ';font-size:13px;cursor:pointer;white-space:nowrap;min-height:34px;display:inline-flex;align-items:center">' + label + '</span>';
+        return '<span onclick="setIngStock(\'' + recipesAttr(t) + '\',\'' + val + '\')" style="padding:7px 13px;border-radius:7px;border:1px solid ' + (on?color:'var(--border)') + ';background:' + (on?color:'var(--surface)') + ';color:' + (on?'var(--surface)':'var(--muted)') + ';font-size:13px;cursor:pointer;white-space:nowrap;min-height:34px;display:inline-flex;align-items:center">' + label + '</span>';
       };
       return '<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--border)">' +
         ingNameCell(t, true) +
-        '<span style="display:flex;gap:6px;flex-shrink:0">' + btn('On Hand','On hand','#166534') + btn('Need to Buy','Need to buy','#92400e') + '</span>' +
+        '<span style="display:flex;gap:6px;flex-shrink:0">' + btn('On Hand','On hand','var(--green)') + btn('Need to Buy','Need to buy','var(--amber)') + '</span>' +
       '</div>';
     }
     const pf = ingPref(t);
     const btn = function(val, label, color){
       const on = pf === val;
-      return '<span onclick="setIngPref(\'' + recipesAttr(t) + '\',\'' + val + '\')" style="padding:7px 12px;border-radius:7px;border:1px solid ' + (on?color:'var(--border)') + ';background:' + (on?color:'var(--surface)') + ';color:' + (on?'#fff':'var(--muted)') + ';font-size:13px;cursor:pointer;white-space:nowrap;min-height:34px;display:inline-flex;align-items:center">' + label + '</span>';
+      return '<span onclick="setIngPref(\'' + recipesAttr(t) + '\',\'' + val + '\')" style="padding:7px 12px;border-radius:7px;border:1px solid ' + (on?color:'var(--border)') + ';background:' + (on?color:'var(--surface)') + ';color:' + (on?'var(--surface)':'var(--muted)') + ';font-size:13px;cursor:pointer;white-space:nowrap;min-height:34px;display:inline-flex;align-items:center">' + label + '</span>';
     };
     return '<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--border)">' +
       ingNameCell(t, false) +
-      '<span style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">' + btn('Like','Like','#166534') + btn('OK','OK','#4b5563') + btn('No','No','#92400e') + btn('Hate','Hate','#991b1b') + '</span>' +
+      '<span style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">' + btn('Like','Like','var(--green)') + btn('OK','OK','var(--gray)') + btn('No','No','var(--amber)') + btn('Hate','Hate','var(--red)') + '</span>' +
     '</div>';
   };
 
@@ -3207,7 +3207,7 @@ function renderRecipesToolbar() {
   bar.style.gap = '8px';
   bar.style.borderBottom = '1px solid var(--border)';
   const modeBtn = '<button class="btn-secondary" style="' +
-    (recipesViewMode === 'log' ? 'background:var(--accent);color:#fff;border-color:var(--accent)' : '') +
+    (recipesViewMode === 'log' ? 'background:var(--accent);color:var(--surface);border-color:var(--accent)' : '') +
     '" onclick="setRecipesViewMode(\'' + (recipesViewMode === 'log' ? 'browse' : 'log') + '\')">' +
     (recipesViewMode === 'log' ? 'Back to recipes' : 'My log') + '</button>';
   if (recipesViewMode === 'log') {
@@ -3269,13 +3269,13 @@ function renderRecipesLog() {
     out += '<div>';
     list.forEach(function(r, i){
       const notes = (_recipesPendingComment[r.id] != null ? _recipesPendingComment[r.id] : r['Comments']) || '';
-      const rxTint = { Like:'#dcfce7', Hate:'#fee2e2', Neutral:'#fef3c7' }[r._rx] || 'var(--surface)';
-      const rxFg   = { Like:'#166534', Hate:'#991b1b', Neutral:'#92400e' }[r._rx] || 'var(--muted)';
+      const rxTint = { Like:'var(--green-bg)', Hate:'var(--red-bg)', Neutral:'var(--amber-bg)' }[r._rx] || 'var(--surface)';
+      const rxFg   = { Like:'var(--green)', Hate:'var(--red)', Neutral:'var(--amber)' }[r._rx] || 'var(--muted)';
       out += '<div onclick="openRecipeFromLog(\'' + r.id + '\')" style="border:1px solid var(--border);border-radius:12px;margin-bottom:12px;background:var(--surface);' +
         'display:flex;align-items:flex-start;gap:12px;padding:16px 18px;cursor:pointer' + (r._made ? '' : ';opacity:0.6') + '">' +
         '<div style="width:26px;height:26px;flex:0 0 26px;border-radius:50%;display:flex;align-items:center;justify-content:center;' +
-          'background:' + (r._made ? '#dcfce7' : 'var(--surface2)') + ';border:1px solid ' + (r._made ? '#166534' : 'var(--border)') + ';' +
-          'color:' + (r._made ? '#166534' : 'var(--muted)') + ';font-size:14px;font-weight:700">' + (r._made ? '\u2713' : '') + '</div>' +
+          'background:' + (r._made ? 'var(--green-bg)' : 'var(--surface2)') + ';border:1px solid ' + (r._made ? 'var(--green)' : 'var(--border)') + ';' +
+          'color:' + (r._made ? 'var(--green)' : 'var(--muted)') + ';font-size:14px;font-weight:700">' + (r._made ? '\u2713' : '') + '</div>' +
         '<div style="flex:1;min-width:0">' +
           '<div style="font-size:16px;font-weight:600;line-height:1.3">' + recipesEsc(r['Recipe']) + '</div>' +
           '<div style="font-size:13px;color:var(--muted);margin-top:5px">' +
@@ -3408,9 +3408,9 @@ function renderRecipes() {
   }
 
   const legend = '<div style="display:flex;flex-wrap:wrap;gap:14px;align-items:center;font-size:12px;color:var(--muted);padding:10px 2px 14px">' +
-      '<span><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#166534;margin-right:6px"></span>can make now &mdash; you have every ingredient</span>' +
-      '<span><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#92400e;margin-right:6px"></span>N to buy &mdash; ingredients not marked On Hand</span>' +
-      '<span><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#991b1b;margin-right:6px"></span>excluded &mdash; contains a No/Hate ingredient</span>' +
+      '<span><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--green);margin-right:6px"></span>can make now &mdash; you have every ingredient</span>' +
+      '<span><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--amber);margin-right:6px"></span>N to buy &mdash; ingredients not marked On Hand</span>' +
+      '<span><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--red);margin-right:6px"></span>excluded &mdash; contains a No/Hate ingredient</span>' +
     '</div>';
 
   el.innerHTML = legend + rows.map(function(item){
@@ -3425,18 +3425,18 @@ function renderRecipes() {
 
     let badge;
     if (item.excluded) {
-      badge = '<span title="This recipe uses an ingredient you marked No or Hate" style="font-size:11px;font-weight:600;padding:5px 11px;border-radius:20px;background:#fee2e2;color:#991b1b;white-space:nowrap">excluded</span>';
+      badge = '<span title="This recipe uses an ingredient you marked No or Hate" style="font-size:11px;font-weight:600;padding:5px 11px;border-radius:20px;background:var(--red-bg);color:var(--red);white-space:nowrap">excluded</span>';
     } else if (item.canMakeNow) {
-      badge = '<span title="Every ingredient is marked On Hand" style="font-size:11px;font-weight:600;padding:5px 11px;border-radius:20px;background:#dcfce7;color:#166534;white-space:nowrap">can make now</span>';
+      badge = '<span title="Every ingredient is marked On Hand" style="font-size:11px;font-weight:600;padding:5px 11px;border-radius:20px;background:var(--green-bg);color:var(--green);white-space:nowrap">can make now</span>';
     } else {
-      badge = '<span title="' + item.toBuy.length + ' ingredient(s) are not marked On Hand: ' + recipesAttr(item.toBuy.join(', ')) + '" style="font-size:11px;font-weight:600;padding:5px 11px;border-radius:20px;background:#fef3c7;color:#92400e;white-space:nowrap">' + item.toBuy.length + ' to buy</span>';
+      badge = '<span title="' + item.toBuy.length + ' ingredient(s) are not marked On Hand: ' + recipesAttr(item.toBuy.join(', ')) + '" style="font-size:11px;font-weight:600;padding:5px 11px;border-radius:20px;background:var(--amber-bg);color:var(--amber);white-space:nowrap">' + item.toBuy.length + ' to buy</span>';
     }
 
     const rxPill = function(rx, label, big) {
       const active = pendingRx === rx;
-      const bg = active ? (rx==='Like'?'#dcfce7':rx==='Hate'?'#fee2e2':'#fef3c7') : 'var(--surface)';
-      const fg = active ? (rx==='Like'?'#166534':rx==='Hate'?'#991b1b':'#92400e') : 'var(--muted)';
-      const bd = active ? (rx==='Like'?'#166534':rx==='Hate'?'#991b1b':'#92400e') : 'var(--border)';
+      const bg = active ? (rx==='Like'?'var(--green-bg)':rx==='Hate'?'var(--red-bg)':'var(--amber-bg)') : 'var(--surface)';
+      const fg = active ? (rx==='Like'?'var(--green)':rx==='Hate'?'var(--red)':'var(--amber)') : 'var(--muted)';
+      const bd = active ? (rx==='Like'?'var(--green)':rx==='Hate'?'var(--red)':'var(--amber)') : 'var(--border)';
       return '<div role="button" title="' + rx + '" onclick="event.stopPropagation();quickRecipeReaction(\'' + r.id + '\',\'' + rx + '\')" ' +
         'style="' + (big ? 'flex:1;padding:11px;font-size:14px;' : 'padding:7px 13px;font-size:14px;') +
         'border-radius:8px;border:1px solid ' + bd + ';background:' + bg + ';color:' + fg +
@@ -3462,8 +3462,8 @@ function renderRecipes() {
           : '<div onclick="toggleRecipe(\'' + r.id + '\')" style="flex:1;min-width:140px;font-size:13px;color:var(--border);cursor:pointer;white-space:nowrap">\uD83D\uDCDD add a note</div>') +
       '</div>' +
       (open ? '<div style="padding:0 18px 18px;font-size:14px;line-height:1.6;border-top:1px solid var(--border);margin-top:2px;padding-top:14px">' +
-        (item.blocked.length ? '<div style="font-size:11px;text-transform:uppercase;letter-spacing:0.8px;color:#991b1b;margin:4px 0 5px;font-weight:600">Contains ingredients you avoid</div><div style="color:#991b1b">' + recipesEsc(item.blocked.join(', ')) + '</div>' : '') +
-        (item.toBuy.length ? '<div style="font-size:11px;text-transform:uppercase;letter-spacing:0.8px;color:#92400e;margin:12px 0 5px;font-weight:600">Shopping list &mdash; not marked On Hand</div><div>' + recipesEsc(item.toBuy.join(', ')) + '</div>' : '') +
+        (item.blocked.length ? '<div style="font-size:11px;text-transform:uppercase;letter-spacing:0.8px;color:var(--red);margin:4px 0 5px;font-weight:600">Contains ingredients you avoid</div><div style="color:var(--red)">' + recipesEsc(item.blocked.join(', ')) + '</div>' : '') +
+        (item.toBuy.length ? '<div style="font-size:11px;text-transform:uppercase;letter-spacing:0.8px;color:var(--amber);margin:12px 0 5px;font-weight:600">Shopping list &mdash; not marked On Hand</div><div>' + recipesEsc(item.toBuy.join(', ')) + '</div>' : '') +
         (r['Ingredients'] ? '<div style="font-size:11px;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);margin:12px 0 5px;font-weight:600">Ingredients</div><div style="white-space:pre-wrap">' + recipesEsc(r['Ingredients']) + '</div>' : '') +
         (r['Instructions'] ? '<div style="font-size:11px;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);margin:12px 0 5px;font-weight:600">Instructions</div><div style="white-space:pre-wrap">' + recipesEsc(r['Instructions']) + '</div>' : '') +
         '<div style="font-size:11px;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);margin:16px 0 7px;font-weight:600">Your reaction</div>' +
@@ -3476,7 +3476,7 @@ function renderRecipes() {
           '<span style="font-size:12px;color:var(--muted)">' + (lastMade ? 'Last made: ' + recipesEsc(lastMade) : 'Not made yet') + (_recipesPendingMade[r.id] ? ' &middot; marked for today' : '') + '</span>' +
           '<button class="btn-secondary" onclick="markRecipeMade(\'' + r.id + '\')">I made this today</button>' +
         '</div>' +
-        '<button id="rx-save-' + r.id + '" class="btn-secondary" style="margin-top:12px;width:100%;background:var(--accent);color:#fff;border-color:var(--accent)" onclick="saveRecipeFeedback(\'' + r.id + '\')">Save</button>' +
+        '<button id="rx-save-' + r.id + '" class="btn-secondary" style="margin-top:12px;width:100%;background:var(--accent);color:var(--surface);border-color:var(--accent)" onclick="saveRecipeFeedback(\'' + r.id + '\')">Save</button>' +
       '</div>' : '') +
     '</div>';
   }).join('');
@@ -3615,28 +3615,28 @@ function wktRenderDay(dateISO, recs, exCanonMap) {
 
   // CSS
   let html = '<style>'
-    + '#wkt-hdr{background:#1e2433;color:#fff;padding:0 10px;height:38px;display:flex;align-items:center;gap:8px;margin:-24px -24px 0 -24px}'
-    + '#wkt-hdr button{background:rgba(255,255,255,.15);border:none;color:#fff;padding:3px 10px;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer}'
+    + '#wkt-hdr{background:#1e2433;color:var(--surface);padding:0 10px;height:38px;display:flex;align-items:center;gap:8px;margin:-24px -24px 0 -24px}'
+    + '#wkt-hdr button{background:rgba(255,255,255,.15);border:none;color:var(--surface);padding:3px 10px;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer}'
     + '#wkt-hdr button:hover{background:rgba(255,255,255,.28)}'
-    + '#wkt-hdr select{background:#2d3748;border:1px solid rgba(255,255,255,.2);color:#fff;padding:2px 6px;border-radius:4px;font-size:11px;cursor:pointer}'
+    + '#wkt-hdr select{background:#2d3748;border:1px solid rgba(255,255,255,.2);color:var(--surface);padding:2px 6px;border-radius:4px;font-size:11px;cursor:pointer}'
     + '#wkt-hdr .wkt-label{font-size:13px;font-weight:700}'
     + '#wkt-hdr .wkt-sets{font-size:10px;color:rgba(255,255,255,.6);margin-left:auto;white-space:nowrap}'
     + '#wkt-day-label{font-size:14px;font-weight:800;color:#1e2433;padding:8px 0 4px}'
     + '#wkt-tbl{border-collapse:collapse;width:100%;font-size:13px}'
-    + '#wkt-tbl thead th{background:#1e2433;color:#fff;padding:5px 6px;font-size:12px;font-weight:700;text-align:center;white-space:nowrap}'
+    + '#wkt-tbl thead th{background:#1e2433;color:var(--surface);padding:5px 6px;font-size:12px;font-weight:700;text-align:center;white-space:nowrap}'
     + '#wkt-tbl thead th.th-ex{text-align:left;padding-left:8px;min-width:160px}'
-    + '#wkt-tbl thead th.th-can{text-align:left;color:#9ca3af;min-width:80px;max-width:80px}'
-    + '#wkt-tbl thead th.th-var{color:#d1d5db;min-width:100px}'
+    + '#wkt-tbl thead th.th-can{text-align:left;color:var(--faint);min-width:80px;max-width:80px}'
+    + '#wkt-tbl thead th.th-var{color:var(--faint);min-width:100px}'
     + '#wkt-tbl thead th.th-reps{color:#93c5fd;border-left:2px solid #374151;min-width:52px}'
-    + '#wkt-tbl thead th.th-wt{color:#fcd34d;min-width:52px}'
+    + '#wkt-tbl thead th.th-wt{color:rgba(251,191,36,0.45);min-width:52px}'
     + '#wkt-tbl td{border:1px solid #e2e5ea;padding:2px 3px;text-align:center}'
-    + '#wkt-tbl td.td-ex{text-align:left;padding:5px 8px;font-weight:700;font-size:14px;color:#1e2433;background:#f8fafc;white-space:nowrap}'
-    + '#wkt-tbl td.td-can input{width:100%;padding:3px 5px;border:1px solid #d1d5db;border-radius:3px;font-size:13px;color:#111827;background:#fff;box-sizing:border-box}'+ '#wkt-tbl td.td-can input:focus{border-color:#6366f1;outline:none;background:#f5f3ff}'+ '#wkt-tbl td.td-can input.saved{border-color:#22c55e;background:#f0fdf4}'+ '#wkt-tbl td.td-can{min-width:90px;max-width:120px;padding:2px 3px}'
-    + '#wkt-tbl td.td-var select{width:110px;padding:3px 4px;border:1px solid #d1d5db;border-radius:3px;font-size:12px;background:#fff}'
-    + '#wkt-tbl td.td-reps{border-left:2px solid #e5e7eb}'
-    + '#wkt-tbl td.td-reps input{width:52px;padding:3px 4px;border:1px solid #bfdbfe;border-radius:3px;font-size:14px;font-weight:700;background:#dbeafe;color:#1d4ed8;text-align:center}'
-    + '#wkt-tbl td.td-wt input{width:52px;padding:3px 4px;border:1px solid #fde68a;border-radius:3px;font-size:14px;font-weight:700;background:#fef3c7;color:#92400e;text-align:center}'
-    + '#wkt-tbl td.td-add button{background:#f3f4f6;border:1px solid #d1d5db;border-radius:3px;font-size:12px;cursor:pointer;padding:3px 8px}'
+    + '#wkt-tbl td.td-ex{text-align:left;padding:5px 8px;font-weight:700;font-size:14px;color:#1e2433;background:var(--surface2);white-space:nowrap}'
+    + '#wkt-tbl td.td-can input{width:100%;padding:3px 5px;border:1px solid var(--faint);border-radius:3px;font-size:13px;color:#111827;background:var(--surface);box-sizing:border-box}'+ '#wkt-tbl td.td-can input:focus{border-color:var(--accent);outline:none;background:#f5f3ff}'+ '#wkt-tbl td.td-can input.saved{border-color:#22c55e;background:var(--green-bg)}'+ '#wkt-tbl td.td-can{min-width:90px;max-width:120px;padding:2px 3px}'
+    + '#wkt-tbl td.td-var select{width:110px;padding:3px 4px;border:1px solid var(--faint);border-radius:3px;font-size:12px;background:var(--surface)}'
+    + '#wkt-tbl td.td-reps{border-left:2px solid var(--border)}'
+    + '#wkt-tbl td.td-reps input{width:52px;padding:3px 4px;border:1px solid var(--accent-border);border-radius:3px;font-size:14px;font-weight:700;background:var(--blue-bg);color:var(--accent-hover);text-align:center}'
+    + '#wkt-tbl td.td-wt input{width:52px;padding:3px 4px;border:1px solid #fde68a;border-radius:3px;font-size:14px;font-weight:700;background:var(--amber-bg);color:var(--amber);text-align:center}'
+    + '#wkt-tbl td.td-add button{background:var(--surface2);border:1px solid var(--faint);border-radius:3px;font-size:12px;cursor:pointer;padding:3px 8px}'
     + '</style>';
 
   // Header
@@ -3891,27 +3891,27 @@ function wkaRenderDay(dateISO, recs) {
   function e(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
 
   var html = '<style>'
-    + '#wka-hdr{background:#1e2433;color:#fff;padding:0 10px;height:38px;display:flex;align-items:center;gap:8px;margin:-16px -16px 0 -16px}'
-    + '#wka-hdr button{background:rgba(255,255,255,.15);border:none;color:#fff;padding:3px 10px;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer}'
+    + '#wka-hdr{background:#1e2433;color:var(--surface);padding:0 10px;height:38px;display:flex;align-items:center;gap:8px;margin:-16px -16px 0 -16px}'
+    + '#wka-hdr button{background:rgba(255,255,255,.15);border:none;color:var(--surface);padding:3px 10px;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer}'
     + '#wka-hdr button:hover{background:rgba(255,255,255,.28)}'
-    + '#wka-hdr select{background:#2d3748;border:1px solid rgba(255,255,255,.2);color:#fff;padding:2px 6px;border-radius:4px;font-size:11px;cursor:pointer}'
+    + '#wka-hdr select{background:#2d3748;border:1px solid rgba(255,255,255,.2);color:var(--surface);padding:2px 6px;border-radius:4px;font-size:11px;cursor:pointer}'
     + '#wka-hdr .wka-label{font-size:13px;font-weight:700}'
     + '#wka-hdr .wka-sets{font-size:10px;color:rgba(255,255,255,.6);margin-left:auto;white-space:nowrap}'
     + '#wka-day-label{font-size:14px;font-weight:800;color:#1e2433;padding:8px 0 4px}'
     + '#wka-tbl{border-collapse:collapse;width:100%;font-size:13px}'
-    + '#wka-tbl thead th{background:#1e2433;color:#fff;padding:5px 6px;font-size:12px;font-weight:700;text-align:center;white-space:nowrap}'
+    + '#wka-tbl thead th{background:#1e2433;color:var(--surface);padding:5px 6px;font-size:12px;font-weight:700;text-align:center;white-space:nowrap}'
     + '#wka-tbl thead th.th-ex{text-align:left;padding-left:8px;min-width:160px}'
-    + '#wka-tbl thead th.th-can{text-align:left;color:#9ca3af;min-width:80px}'
-    + '#wka-tbl thead th.th-var{color:#d1d5db;min-width:100px}'
+    + '#wka-tbl thead th.th-can{text-align:left;color:var(--faint);min-width:80px}'
+    + '#wka-tbl thead th.th-var{color:var(--faint);min-width:100px}'
     + '#wka-tbl thead th.th-reps{color:#93c5fd;border-left:2px solid #374151;min-width:52px}'
-    + '#wka-tbl thead th.th-wt{color:#fcd34d;min-width:52px}'
+    + '#wka-tbl thead th.th-wt{color:rgba(251,191,36,0.45);min-width:52px}'
     + '#wka-tbl td{border:1px solid #e2e5ea;padding:4px 6px;text-align:center}'
-    + '#wka-tbl td.td-ex{text-align:left;padding:5px 8px;font-weight:700;font-size:13px;color:#1e2433;background:#f8fafc;white-space:nowrap}'
-    + '#wka-tbl td.td-can{text-align:left;font-size:11px;color:#6b7280;padding:4px 6px}'
+    + '#wka-tbl td.td-ex{text-align:left;padding:5px 8px;font-weight:700;font-size:13px;color:#1e2433;background:var(--surface2);white-space:nowrap}'
+    + '#wka-tbl td.td-can{text-align:left;font-size:11px;color:var(--muted);padding:4px 6px}'
     + '#wka-tbl td.td-var{font-size:11px;color:#374151}'
-    + '#wka-tbl td.td-reps{border-left:2px solid #e5e7eb;font-size:14px;font-weight:700;color:#1d4ed8;background:#dbeafe}'
-    + '#wka-tbl td.td-wt{font-size:14px;font-weight:700;color:#92400e;background:#fef3c7}'
-    + '#wka-tbl td.td-empty{color:#d1d5db}'
+    + '#wka-tbl td.td-reps{border-left:2px solid var(--border);font-size:14px;font-weight:700;color:var(--accent-hover);background:var(--blue-bg)}'
+    + '#wka-tbl td.td-wt{font-size:14px;font-weight:700;color:var(--amber);background:var(--amber-bg)}'
+    + '#wka-tbl td.td-empty{color:var(--faint)}'
     + '</style>';
 
   html += '<div id="wka-hdr">'
@@ -4081,7 +4081,7 @@ async function loadInjAudit() {
       btn.style.cssText = 'padding:3px 8px;border:1px solid var(--border);border-radius:4px;cursor:pointer;font-size:10px;background:var(--surface);color:var(--text);margin:1px';
       btn.onclick = () => {
         navEl.querySelectorAll('button').forEach(b => { b.style.background='var(--surface)'; b.style.color='var(--text)'; });
-        btn.style.background = 'var(--accent)'; btn.style.color = '#fff';
+        btn.style.background = 'var(--accent)'; btn.style.color = 'var(--surface)';
         showAuditWeek(mon, weeks[mon], DAYS);
       };
       navEl.appendChild(btn);
@@ -4100,32 +4100,32 @@ function showAuditWeek(mon, weekData, DAYS) {
   const compounds = [...new Set(Object.keys(weekData).map(k => k.split('|')[0]))].sort();
   const NIGHT_LIST = ['CJC-1295 No DAC','Ipamorelin','DSIP','KPV','Epitalon','Selank'];
   const sectionOf = c => NIGHT_LIST.includes(c) ? 'Night' : 'Morning';
-  const CC = { 'L':'#dbeafe','R':'#fef3c7','S':'#fee2e2','P':'#ede9fe','N':'#e5e7eb' };
-  const TC = { 'L':'#1d4ed8','R':'#92400e','S':'#dc2626','P':'#6d28d9','N':'#6b7280' };
+  const CC = { 'L':'var(--blue-bg)','R':'var(--amber-bg)','S':'var(--red-bg)','P':'var(--accent-light)','N':'var(--border)' };
+  const TC = { 'L':'var(--accent-hover)','R':'var(--amber)','S':'var(--red)','P':'var(--accent-hover)','N':'var(--muted)' };
   function cell(entries) {
-    if (!entries || !entries.length) return '<td style="border:1px solid #ccc;min-width:52px"></td>';
+    if (!entries || !entries.length) return '<td style="border:1px solid var(--border);min-width:52px"></td>';
     const s = entries[0].site;
-    if (!s) return '<td style="border:1px solid #ccc;min-width:52px;text-align:center;padding:6px 2px;background:#f3f4f6;font-size:11px;color:#9ca3af"></td>';
-    return '<td style="border:1px solid #ccc;min-width:52px;text-align:center;padding:6px 2px;background:' + (CC[s]||'#dcfce7') + ';font-size:13px;font-weight:700;color:' + (TC[s]||'#15803d') + '">' + s + '</td>';
+    if (!s) return '<td style="border:1px solid var(--border);min-width:52px;text-align:center;padding:6px 2px;background:var(--surface2);font-size:11px;color:var(--faint)"></td>';
+    return '<td style="border:1px solid var(--border);min-width:52px;text-align:center;padding:6px 2px;background:' + (CC[s]||'var(--green-bg)') + ';font-size:13px;font-weight:700;color:' + (TC[s]||'var(--green)') + '">' + s + '</td>';
   }
   let html = '';
   const wn = (window._auditWeekNotes || {})[mon];
   if (wn) {
-    html += '<div style="margin-bottom:8px;padding:8px 12px;background:#fffbeb;border:1px solid #fcd34d;border-left:3px solid #f59e0b;border-radius:5px;font-size:12px;color:#78350f"><b>Week Note:</b> ' + wn.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])) + '</div>';
+    html += '<div style="margin-bottom:8px;padding:8px 12px;background:var(--amber-bg);border:1px solid rgba(251,191,36,0.45);border-left:3px solid #f59e0b;border-radius:5px;font-size:12px;color:#78350f"><b>Week Note:</b> ' + wn.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])) + '</div>';
   }
   html += '<table style="border-collapse:collapse;font-size:13px;width:100%"><thead><tr>';
-  html += '<th style="text-align:left;padding:6px 12px;border:1px solid #999;min-width:180px;background:#e5e7eb;font-size:12px">Compound</th>';
-  DAYS.forEach((d,i) => { const [y,m,dy2] = dates[i].split('-'); html += '<th style="padding:4px 6px;border:1px solid #999;text-align:center;background:#e5e7eb;font-size:10px;min-width:52px">' + d + '<br><span style="font-weight:400;font-size:9px">' + m+'/'+dy2+'/'+y.slice(2) + '</span></th>'; });
-  html += '<th style="border:1px solid #999;background:#e5e7eb;padding:4px 8px;font-size:10px">Notes</th></tr></thead><tbody>';
+  html += '<th style="text-align:left;padding:6px 12px;border:1px solid #999;min-width:180px;background:var(--border);font-size:12px">Compound</th>';
+  DAYS.forEach((d,i) => { const [y,m,dy2] = dates[i].split('-'); html += '<th style="padding:4px 6px;border:1px solid #999;text-align:center;background:var(--border);font-size:10px;min-width:52px">' + d + '<br><span style="font-weight:400;font-size:9px">' + m+'/'+dy2+'/'+y.slice(2) + '</span></th>'; });
+  html += '<th style="border:1px solid #999;background:var(--border);padding:4px 8px;font-size:10px">Notes</th></tr></thead><tbody>';
   ['Morning','Night'].forEach(section => {
-    html += '<tr><td colspan="' + (DAYS.length+2) + '" style="background:#374151;color:#fff;padding:5px 12px;font-size:12px;font-weight:600;border:1px solid #555">' + (section==='Morning'?'Morning':'Night') + '</td></tr>';
+    html += '<tr><td colspan="' + (DAYS.length+2) + '" style="background:#374151;color:var(--surface);padding:5px 12px;font-size:12px;font-weight:600;border:1px solid var(--muted)">' + (section==='Morning'?'Morning':'Night') + '</td></tr>';
     compounds.filter(c => sectionOf(c) === section).forEach(c => {
-      html += '<tr><td style="padding:5px 12px;border:1px solid #ccc;font-size:12px;font-weight:500;background:#f9fafb;white-space:nowrap">' + c + '</td>';
+      html += '<tr><td style="padding:5px 12px;border:1px solid var(--border);font-size:12px;font-weight:500;background:var(--surface2);white-space:nowrap">' + c + '</td>';
       dates.forEach(date => { html += cell(weekData[c+'|'+date]); });
       const notes = [...new Set(dates.flatMap(date => (weekData[c+'|'+date]||[]).map(e=>e.note).filter(Boolean)))];
       const nstyle = notes.length
-        ? 'padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#78350f;background:#fffbeb;font-weight:500'
-        : 'padding:5px 8px;border:1px solid #ccc;font-size:11px;color:#666';
+        ? 'padding:5px 8px;border:1px solid var(--border);font-size:11px;color:#78350f;background:var(--amber-bg);font-weight:500'
+        : 'padding:5px 8px;border:1px solid var(--border);font-size:11px;color:var(--muted)';
       html += '<td style="' + nstyle + '">' + notes.join('; ') + '</td></tr>';
     });
   });
@@ -4178,14 +4178,14 @@ async function saveLog() {
   }).then(r => r.json()).then(d => {
     if (d.records) {
       status.textContent = 'Saved';
-      status.style.color = '#16a34a';
+      status.style.color = 'var(--green)';
       document.querySelectorAll('#view-log .form-field input, #view-log .form-field select').forEach(i => i.value = '');
       loadLog();
     } else {
       status.textContent = '' + JSON.stringify(d.error);
-      status.style.color = '#dc2626';
+      status.style.color = 'var(--red)';
     }
-  }).catch(e => { status.textContent = 'Error'; status.style.color = '#dc2626'; });
+  }).catch(e => { status.textContent = 'Error'; status.style.color = 'var(--red)'; });
   setTimeout(() => { if(status) status.textContent = ''; }, 4000);
 }
 
@@ -4216,7 +4216,7 @@ async function loadLog() {
     document.getElementById('log-entry-date').value = today;
     prefillLogDate(today);
   } catch(e) {
-    hist.innerHTML = '<div style="color:#dc2626;padding:16px">Error loading log: '+e.message+'</div>';
+    hist.innerHTML = '<div style="color:var(--red);padding:16px">Error loading log: '+e.message+'</div>';
   }
 }
 
@@ -4334,7 +4334,7 @@ function editLogRow(recId, tr) {
   document.getElementById('log-entry-date').scrollIntoView({behavior:'smooth',block:'center'});
   // Highlight row
   document.querySelectorAll('#log-history tr').forEach(r=>r.style.outline='');
-  tr.style.outline='2px solid #2563eb';
+  tr.style.outline='2px solid var(--accent)';
 }
 
 async function syncHealthToLog() {
@@ -4370,7 +4370,7 @@ function sortPurchases(col) {
   renderPurchases();
 }
 function purchaseSortIcon(col) {
-  if (purchaseSort.col !== col) return ' <span style="color:#d1d5db">&#8597;</span>';
+  if (purchaseSort.col !== col) return ' <span style="color:var(--faint)">&#8597;</span>';
   return purchaseSort.dir === 1 ? ' <span style="color:var(--accent)">&#9650;</span>' : ' <span style="color:var(--accent)">&#9660;</span>';
 }
 
@@ -4378,7 +4378,7 @@ async function loadPurchases() {
   const el = document.getElementById('purchases-content');
   if (!el) return;
   if (TABLES.purchases === 'PURCHASES_TABLE_ID') {
-    el.innerHTML = '<div style="padding:20px;background:var(--amber-bg);border:1px solid #fcd34d;border-radius:8px;font-size:13px;color:var(--amber)">•ï¸ Purchases table not yet set up in Airtable. Create a table named <strong>Purchases</strong> with fields: Order ID, Vendor, Compound, Date, Qty, Price Paid, Total, Notes then tell Claude the table ID to add it here.</div>';
+    el.innerHTML = '<div style="padding:20px;background:var(--amber-bg);border:1px solid rgba(251,191,36,0.45);border-radius:8px;font-size:13px;color:var(--amber)">•ï¸ Purchases table not yet set up in Airtable. Create a table named <strong>Purchases</strong> with fields: Order ID, Vendor, Compound, Date, Qty, Price Paid, Total, Notes then tell Claude the table ID to add it here.</div>';
     return;
   }
   el.innerHTML = '<div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div>';
@@ -4824,7 +4824,7 @@ function renderLabsDraw() {
 
   const out = records.filter(r=>r.Status==='Out of Range');
 
-  let html = out.length ? `<div style="padding:8px 16px;background:var(--red-bg);border-bottom:1px solid #fecaca;font-size:12px;color:var(--red);font-weight:500">•ï¸ ${out.length} out of range: ${out.map(r=>r.Biomarker).join(', ')}</div>` : '';
+  let html = out.length ? `<div style="padding:8px 16px;background:var(--red-bg);border-bottom:1px solid rgba(248,113,113,0.4);font-size:12px;color:var(--red);font-weight:500">•ï¸ ${out.length} out of range: ${out.map(r=>r.Biomarker).join(', ')}</div>` : '';
 
   Object.keys(byType).sort().forEach(type => {
     html += `<div class="table-wrap" style="margin-bottom:16px">
@@ -4892,7 +4892,7 @@ const CHANGE_FIELDS = {
 
 const CHANGE_COLORS = {
   'Started': 'var(--green)', 'Resumed': 'var(--green)',
-  'Dose Change': 'var(--accent)', 'New Vial': '#6366f1',
+  'Dose Change': 'var(--accent)', 'New Vial': 'var(--accent)',
   'Paused': 'var(--amber)', 'Stopped': 'var(--red)'
 };
 
@@ -5040,8 +5040,8 @@ async function loadInjLog() {
   });
   const statusRank = s => s === 'Active' ? 0 : s === 'Paused' ? 1 : s === 'Stopped' ? 2 : 3;
   const stBadge = s => {
-    const map = { Active:['#dcfce7','#166534'], Paused:['#fef3c7','#92400e'], Stopped:['#f3f4f6','#4b5563'], Deferred:['#f3f4f6','#9ca3af'] };
-    const c = map[s] || ['#f3f4f6','#9ca3af'];
+    const map = { Active:['var(--green-bg)','var(--green)'], Paused:['var(--amber-bg)','var(--amber)'], Stopped:['var(--surface2)','var(--gray)'], Deferred:['var(--surface2)','var(--faint)'] };
+    const c = map[s] || ['var(--surface2)','var(--faint)'];
     return `<span style="display:inline-block;padding:1px 8px;border-radius:10px;font-size:11px;font-weight:600;background:${c[0]};color:${c[1]}">${s || '\u2014'}</span>`;
   };
   const summRows = [...seen.values()].sort((a,b) => {
@@ -5051,7 +5051,7 @@ async function loadInjLog() {
   });
 
   let summHtml = `<table style="width:100%;border-collapse:collapse;font-size:13px;font-family:'DM Sans',sans-serif">
-    <thead><tr style="background:var(--surface-alt,#f3f4f6);text-align:left">
+    <thead><tr style="background:var(--surface-alt,var(--surface2));text-align:left">
       <th style="padding:8px 10px;font-weight:600;border-bottom:1px solid var(--border)">Compound</th>
       <th style="padding:8px 10px;font-weight:600;border-bottom:1px solid var(--border)">Status</th>
       <th style="padding:8px 10px;font-weight:600;border-bottom:1px solid var(--border)">Dose</th>
@@ -5060,7 +5060,7 @@ async function loadInjLog() {
     </tr></thead><tbody>`;
   summRows.forEach((rec,i) => {
     const st = pepStatus[fv(rec,F.compound)] || '';
-    const rowStyle = st === 'Paused' ? 'background:#fef9c3' : st === 'Stopped' ? 'background:#f1f5f9' : (i % 2 === 0 ? '' : 'background:var(--surface-alt,#f9fafb)');
+    const rowStyle = st === 'Paused' ? 'background:#fef9c3' : st === 'Stopped' ? 'background:#f1f5f9' : (i % 2 === 0 ? '' : 'background:var(--surface-alt,var(--surface2))');
     summHtml += `<tr style="${rowStyle}">
       <td style="padding:7px 10px;border-bottom:1px solid var(--border);font-weight:500">${fv(rec,F.compound)}</td>
       <td style="padding:7px 10px;border-bottom:1px solid var(--border)">${stBadge(st)}</td>
@@ -5102,14 +5102,14 @@ async function loadInjLog() {
   wnWeeks.forEach(wk => {
     const rec = weekNoteRecs.find(r => fv(r,F.date) === wk);
     const val = rec ? String(rec.fields['Week Note'] || '') : '';
-    wnHtml += `<div style="padding:8px 10px;margin-bottom:6px;background:#fffbeb;border:1px solid #fcd34d;border-left:3px solid #f59e0b;border-radius:5px">
+    wnHtml += `<div style="padding:8px 10px;margin-bottom:6px;background:var(--amber-bg);border:1px solid rgba(251,191,36,0.45);border-left:3px solid #f59e0b;border-radius:5px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
         <b style="font-size:11px;color:#78350f;white-space:nowrap">Week of ${wk}</b>
         <span id="wn-st-${wk}" style="font-size:10px;color:#78350f;flex:1"></span>
-        <button onclick="saveInjWeekNote('${wk}')" style="padding:3px 12px;font-size:10px;font-weight:700;border:1px solid #f59e0b;background:#f59e0b;color:#fff;border-radius:4px;cursor:pointer">Save</button>
+        <button onclick="saveInjWeekNote('${wk}')" style="padding:3px 12px;font-size:10px;font-weight:700;border:1px solid #f59e0b;background:#f59e0b;color:var(--surface);border-radius:4px;cursor:pointer">Save</button>
       </div>
       <textarea id="wn-in-${wk}" placeholder="No note \u2014 click to add\u2026" rows="2"
-        style="width:100%;box-sizing:border-box;padding:6px 8px;border:1px solid #fcd34d;border-radius:4px;font-size:12px;line-height:1.45;color:#78350f;background:#fff;font-family:inherit;resize:vertical;min-height:40px">${_esc2(val)}</textarea>
+        style="width:100%;box-sizing:border-box;padding:6px 8px;border:1px solid rgba(251,191,36,0.45);border-radius:4px;font-size:12px;line-height:1.45;color:#78350f;background:var(--surface);font-family:inherit;resize:vertical;min-height:40px">${_esc2(val)}</textarea>
     </div>`;
   });
   wnHtml += '</div>';
@@ -5126,7 +5126,7 @@ async function loadInjLog() {
       <span id="injfull-count" style="font-size:11px;color:var(--muted)"></span>
     </div>
     <table style="width:100%;border-collapse:collapse;font-size:12px;font-family:'DM Mono',monospace">
-    <thead><tr style="background:var(--surface-alt,#f3f4f6);text-align:left">
+    <thead><tr style="background:var(--surface-alt,var(--surface2));text-align:left">
       <th style="padding:7px 10px;font-weight:600;border-bottom:1px solid var(--border)">Date</th>
       <th style="padding:7px 10px;font-weight:600;border-bottom:1px solid var(--border)">Compound</th>
       <th style="padding:7px 10px;font-weight:600;border-bottom:1px solid var(--border)">Dose</th>
@@ -5137,10 +5137,10 @@ async function loadInjLog() {
     const compound = fv(rec,F.compound);
     if ((compound||'').toLowerCase().trim() === 'week note') return;
     const skipped = (fv(rec,F.site)||'').toString().toUpperCase() === 'S';
-    const bg = i % 2 === 0 ? '' : 'background:var(--surface-alt,#f9fafb)';
+    const bg = i % 2 === 0 ? '' : 'background:var(--surface-alt,var(--surface2))';
     const notes = fv(rec,F.notes);
     const nstyle = notes
-      ? 'padding:6px 10px;border-bottom:1px solid var(--border);color:#78350f;background:#fffbeb;font-weight:500;max-width:220px;word-break:break-word'
+      ? 'padding:6px 10px;border-bottom:1px solid var(--border);color:#78350f;background:var(--amber-bg);font-weight:500;max-width:220px;word-break:break-word'
       : 'padding:6px 10px;border-bottom:1px solid var(--border);color:var(--muted);max-width:220px;word-break:break-word';
     const doseCell = skipped ? '<span style="color:#b91c1c;font-weight:600">skipped</span>' : (fv(rec,F.dose) || '');
     fullHtml += `<tr data-compound="${(compound||'').replace(/"/g,'&quot;')}" data-skip="${skipped?1:0}" style="${bg}${skipped?'opacity:.6;':''}">
@@ -5776,9 +5776,9 @@ function buildWeeklyPrintHTML(monday) {
         <tr><th colspan="11" class="pday-hdr">${day.label}</th></tr>
         <tr class="pmeta">
           <td colspan="2" class="pmeta-cell" style="white-space:nowrap">Date: <span class="pmeta-val">${dateStr}</span></td>
-          <td colspan="3" class="pmeta-cell" style="font-size:10px;white-space:nowrap">Sleep: <span style="font-family:monospace;color:#333">___________</span></td>
-          <td colspan="3" class="pmeta-cell" style="font-size:10px;white-space:nowrap">Deep: <span style="font-family:monospace;color:#333">___________</span></td>
-          <td colspan="3" class="pmeta-cell" style="text-align:right;font-size:10px;white-space:nowrap">Duration: <span style="font-family:monospace;color:#333">___________</span></td>
+          <td colspan="3" class="pmeta-cell" style="font-size:10px;white-space:nowrap">Sleep: <span style="font-family:monospace;color:var(--text)">___________</span></td>
+          <td colspan="3" class="pmeta-cell" style="font-size:10px;white-space:nowrap">Deep: <span style="font-family:monospace;color:var(--text)">___________</span></td>
+          <td colspan="3" class="pmeta-cell" style="text-align:right;font-size:10px;white-space:nowrap">Duration: <span style="font-family:monospace;color:var(--text)">___________</span></td>
         </tr>
         <tr class="pcol-hdr">
           <th class="pex-name">Exercise</th>
@@ -5791,7 +5791,7 @@ function buildWeeklyPrintHTML(monday) {
       <tbody>
         ${exRows}
         <tr class="pnotes">
-          <td colspan="11" style="font-weight:700;font-size:10px;color:#333;border:1.5px solid #777;padding:8px 10px;height:80px;vertical-align:top;background:#fafafa">Notes:</td>
+          <td colspan="11" style="font-weight:700;font-size:10px;color:var(--text);border:1.5px solid #777;padding:8px 10px;height:80px;vertical-align:top;background:var(--surface2)">Notes:</td>
         </tr>
       </tbody>
     </table>`;
@@ -6942,11 +6942,11 @@ function renderInjectionPanel(recs, startDate, endDate) {
   });
   var html = "<div class='sec'><div class='sech'><span class='sect sectbl'>Week of " + startDate + "</span><span class='secc'>" + inj.length + "</span></div>";
   // Editable week note — always shown so a missing note can be added
-  html += "<div style='display:flex;align-items:center;gap:6px;margin:6px 0;padding:6px 9px;background:#fffbeb;border:1px solid #fcd34d;border-left:3px solid #f59e0b;border-radius:4px'>"
+  html += "<div style='display:flex;align-items:center;gap:6px;margin:6px 0;padding:6px 9px;background:var(--amber-bg);border:1px solid rgba(251,191,36,0.45);border-left:3px solid #f59e0b;border-radius:4px'>"
        +  "<b style='font-size:10px;color:#78350f;white-space:nowrap'>Week Note</b>"
        +  "<input id='pv-wn' type='text' value=\"" + esc(weekNote) + "\" placeholder='No note - click to add...' "
        +  "onblur='savePvWeekNote(this)' "
-       +  "style='flex:1;padding:3px 6px;border:1px solid #fcd34d;border-radius:3px;font-size:11px;color:#78350f;background:#fff;font-family:inherit'>"
+       +  "style='flex:1;padding:3px 6px;border:1px solid rgba(251,191,36,0.45);border-radius:3px;font-size:11px;color:#78350f;background:var(--surface);font-family:inherit'>"
        +  "<span id='pv-wn-st' style='font-size:10px;color:#78350f;min-width:50px'></span></div>";
   html += "<div style='overflow-x:auto'>";
   html += "<table class='tbl'><thead><tr><th>Date</th><th>Compound</th><th>Dose</th><th>Side</th><th>TOD</th><th>Notes</th></tr></thead><tbody>";
@@ -6962,8 +6962,8 @@ function renderInjectionPanel(recs, startDate, endDate) {
     // Editable per-compound note
     html += "<td style='padding:2px'><input type='text' value=\"" + esc(note) + "\" placeholder='...' "
          +  "onblur=\"savePvNote('" + r.id + "', this)\" "
-         +  "style='width:100%;min-width:130px;padding:3px 5px;border:1px solid " + (note?'#fcd34d':'var(--bd,#ddd)') + ";border-radius:3px;font-size:10px;"
-         +  "color:" + (note?'#78350f':'inherit') + ";background:" + (note?'#fffbeb':'#fff') + ";font-family:inherit'></td>";
+         +  "style='width:100%;min-width:130px;padding:3px 5px;border:1px solid " + (note?'rgba(251,191,36,0.45)':'var(--bd,var(--border))') + ";border-radius:3px;font-size:10px;"
+         +  "color:" + (note?'#78350f':'inherit') + ";background:" + (note?'var(--amber-bg)':'var(--surface)') + ";font-family:inherit'></td>";
     html += "</tr>";
   });
   html += "</tbody></table></div></div>";
@@ -6981,11 +6981,11 @@ async function savePvNote(recId, el) {
       body: JSON.stringify({ fields: { "fldAbczu73mINwLmx": val } })
     });
     if (!r.ok) throw new Error("HTTP " + r.status);
-    el.style.borderColor = val ? "#fcd34d" : "#22c55e";
-    el.style.background = val ? "#fffbeb" : "#fff";
+    el.style.borderColor = val ? "rgba(251,191,36,0.45)" : "#22c55e";
+    el.style.background = val ? "var(--amber-bg)" : "var(--surface)";
     el.style.color = val ? "#78350f" : "inherit";
   } catch(e) {
-    el.style.borderColor = "#dc2626";
+    el.style.borderColor = "var(--red)";
   }
 }
 
@@ -7258,7 +7258,7 @@ function renderInjAuditNav(weeks, navEl, contentEl) {
     btn.style.cssText = "padding:4px 10px;border:1px solid var(--b);border-radius:4px;cursor:pointer;font-size:11px;font-family:var(--mono);background:var(--s);color:var(--t);flex-shrink:0";
     btn.onclick = function() {
       navEl.querySelectorAll("button").forEach(function(b){ b.style.background="var(--s)"; b.style.color="var(--t)"; });
-      btn.style.background="var(--bl)"; btn.style.color="#fff";
+      btn.style.background="var(--bl)"; btn.style.color="var(--surface)";
       showInjWeek(mon, weeks[mon], DAYS, contentEl);
     };
     navEl.appendChild(btn);
@@ -7279,27 +7279,27 @@ function showInjWeek(mon, weekData, DAYS, contentEl) {
   compounds.sort();
   var NIGHT = {"CJC-1295 No DAC":1,"Ipamorelin":1,"DSIP":1,"KPV":1,"Epitalon":1,"Selank":1,"BPC-157":1};
   var secOf = function(c){ return NIGHT[c] ? "Night" : "Morning"; };
-  var CC = {"L":"#dbeafe","R":"#fef3c7","S":"#fee2e2","P":"#ede9fe","X":"#f3f4f6","N":"#e5e7eb"};
-  var TC = {"L":"#1d4ed8","R":"#92400e","S":"#dc2626","P":"#6d28d9","X":"#6b7280","N":"#9ca3af"};
+  var CC = {"L":"var(--blue-bg)","R":"var(--amber-bg)","S":"var(--red-bg)","P":"var(--accent-light)","X":"var(--surface2)","N":"var(--border)"};
+  var TC = {"L":"var(--accent-hover)","R":"var(--amber)","S":"var(--red)","P":"var(--accent-hover)","X":"var(--muted)","N":"var(--faint)"};
   function cell(entries) {
-    if (!entries||!entries.length) return "<td style='border:1px solid #ccc;min-width:48px'></td>";
+    if (!entries||!entries.length) return "<td style='border:1px solid var(--border);min-width:48px'></td>";
     var s = entries[0].site;
-    if (!s) return "<td style='border:1px solid #ccc;min-width:48px;text-align:center;background:#f9fafb;font-size:11px;color:#ccc'>·</td>";
-    return "<td style='border:1px solid #ccc;min-width:48px;text-align:center;padding:5px 2px;background:"+(CC[s]||"#dcfce7")+";font-size:13px;font-weight:700;color:"+(TC[s]||"#15803d")+"'>"+s+"</td>";
+    if (!s) return "<td style='border:1px solid var(--border);min-width:48px;text-align:center;background:var(--surface2);font-size:11px;color:var(--border)'>·</td>";
+    return "<td style='border:1px solid var(--border);min-width:48px;text-align:center;padding:5px 2px;background:"+(CC[s]||"var(--green-bg)")+";font-size:13px;font-weight:700;color:"+(TC[s]||"var(--green)")+"'>"+s+"</td>";
   }
   var html = "<table style='border-collapse:collapse;font-size:12px;width:100%'><thead><tr>";
-  html += "<th style='text-align:left;padding:5px 10px;border:1px solid #999;min-width:160px;background:#e5e7eb;font-size:11px'>Compound</th>";
-  DAYS.forEach(function(d,i){ var p=dates[i].split("-"); html += "<th style='padding:3px 5px;border:1px solid #999;text-align:center;background:#e5e7eb;font-size:10px;min-width:48px'>"+d+"<br><span style='font-weight:400;font-size:9px'>"+p[1]+"/"+p[2]+"</span></th>"; });
-  html += "<th style='border:1px solid #999;background:#e5e7eb;padding:3px 6px;font-size:10px'>Notes</th></tr></thead><tbody>";
+  html += "<th style='text-align:left;padding:5px 10px;border:1px solid #999;min-width:160px;background:var(--border);font-size:11px'>Compound</th>";
+  DAYS.forEach(function(d,i){ var p=dates[i].split("-"); html += "<th style='padding:3px 5px;border:1px solid #999;text-align:center;background:var(--border);font-size:10px;min-width:48px'>"+d+"<br><span style='font-weight:400;font-size:9px'>"+p[1]+"/"+p[2]+"</span></th>"; });
+  html += "<th style='border:1px solid #999;background:var(--border);padding:3px 6px;font-size:10px'>Notes</th></tr></thead><tbody>";
   ["Morning","Night"].forEach(function(section) {
-    html += "<tr><td colspan='"+(DAYS.length+2)+"' style='background:#374151;color:#fff;padding:4px 10px;font-size:11px;font-weight:600;border:1px solid #555'>"+section+"</td></tr>";
+    html += "<tr><td colspan='"+(DAYS.length+2)+"' style='background:#374151;color:var(--surface);padding:4px 10px;font-size:11px;font-weight:600;border:1px solid var(--muted)'>"+section+"</td></tr>";
     compounds.filter(function(c){ return secOf(c)===section; }).forEach(function(c) {
-      html += "<tr><td style='padding:4px 10px;border:1px solid #ccc;font-size:11px;font-weight:500;background:#f9fafb;white-space:nowrap'>"+esc(c)+"</td>";
+      html += "<tr><td style='padding:4px 10px;border:1px solid var(--border);font-size:11px;font-weight:500;background:var(--surface2);white-space:nowrap'>"+esc(c)+"</td>";
       dates.forEach(function(date){ html += cell(weekData[c+"|"+date]); });
       var notes = [];
       var seen = {};
       dates.forEach(function(date){ (weekData[c+"|"+date]||[]).forEach(function(e){ if(e.note&&!seen[e.note]){seen[e.note]=1;notes.push(e.note);} }); });
-      html += "<td style='padding:4px 6px;border:1px solid #ccc;font-size:10px;color:#666'>"+esc(notes.join("; "))+"</td></tr>";
+      html += "<td style='padding:4px 6px;border:1px solid var(--border);font-size:10px;color:var(--muted)'>"+esc(notes.join("; "))+"</td></tr>";
     });
   });
   html += "</tbody></table>";
@@ -7758,7 +7758,7 @@ async function loadBodyComp() {
     renderBCDash(records, bcDays);
     renderBCHistory(records, bcDays);
   } catch(e) {
-    hist.innerHTML = '<div style="color:#dc2626;padding:16px">Error: '+e.message+'</div>';
+    hist.innerHTML = '<div style="color:var(--red);padding:16px">Error: '+e.message+'</div>';
   }
 }
 
@@ -7804,10 +7804,10 @@ function renderBCHistory(records, days) {
   let t = `<table style="width:100%;border-collapse:collapse;font-size:11px">
     <thead><tr style="background:var(--surface2);color:var(--muted);font-size:10px;font-weight:700;text-transform:uppercase">
       <th style="padding:6px 8px;text-align:left;white-space:nowrap">Date</th>
-      <th style="padding:6px 8px;text-align:right;color:#60a5fa">Wt-W</th>
-      <th style="padding:6px 8px;text-align:right;color:#34d399">Wt-R</th>
-      <th style="padding:6px 8px;text-align:right;color:#60a5fa">BF%-W</th>
-      <th style="padding:6px 8px;text-align:right;color:#34d399">BF%-R</th>
+      <th style="padding:6px 8px;text-align:right;color:var(--blue)">Wt-W</th>
+      <th style="padding:6px 8px;text-align:right;color:var(--green)">Wt-R</th>
+      <th style="padding:6px 8px;text-align:right;color:var(--blue)">BF%-W</th>
+      <th style="padding:6px 8px;text-align:right;color:var(--green)">BF%-R</th>
       <th style="padding:6px 8px;text-align:right">Muscle</th>
       <th style="padding:6px 8px;text-align:right">Fat</th>
       <th style="padding:6px 8px;text-align:right">Bone</th>
@@ -7819,10 +7819,10 @@ function renderBCHistory(records, days) {
     const bg = i%2===0 ? '' : 'background:var(--surface2)';
     t += `<tr style="${bg}">
       <td style="padding:5px 8px;font-weight:700;white-space:nowrap">${r.fields['fldSk3hNQJTDKOyfT']||''}</td>
-      <td style="padding:5px 8px;text-align:right;color:#60a5fa">${f(r,'fldRFVwEkmRLOJXXL',1)}</td>
-      <td style="padding:5px 8px;text-align:right;color:#34d399">${f(r,'fldt9TvK2gL1YWGn8',1)}</td>
-      <td style="padding:5px 8px;text-align:right;color:#60a5fa">${f(r,'fldeSz2uJmGBy1Yjh',1)}</td>
-      <td style="padding:5px 8px;text-align:right;color:#34d399">${f(r,'fld1PsarYirRK4K59',1)}</td>
+      <td style="padding:5px 8px;text-align:right;color:var(--blue)">${f(r,'fldRFVwEkmRLOJXXL',1)}</td>
+      <td style="padding:5px 8px;text-align:right;color:var(--green)">${f(r,'fldt9TvK2gL1YWGn8',1)}</td>
+      <td style="padding:5px 8px;text-align:right;color:var(--blue)">${f(r,'fldeSz2uJmGBy1Yjh',1)}</td>
+      <td style="padding:5px 8px;text-align:right;color:var(--green)">${f(r,'fld1PsarYirRK4K59',1)}</td>
       <td style="padding:5px 8px;text-align:right">${f(r,'fldzfmDvM4371WNgK',1)}</td>
       <td style="padding:5px 8px;text-align:right">${f(r,'fldjtAUj0lNslzmcT',1)}</td>
       <td style="padding:5px 8px;text-align:right">${f(r,'fldszPor9WOCnjR8R',1)}</td>
@@ -7876,7 +7876,7 @@ function prefillLogDate(dateStr) {
   // Highlight corresponding row in history
   document.querySelectorAll('#log-history tr').forEach(r => r.style.outline = '');
   const rows = document.querySelectorAll('#log-history tr[onclick]');
-  rows.forEach(row => { if (row.getAttribute('onclick')?.includes(rec.id)) row.style.outline = '2px solid #2563eb'; });
+  rows.forEach(row => { if (row.getAttribute('onclick')?.includes(rec.id)) row.style.outline = '2px solid var(--accent)'; });
 }
 
 
