@@ -489,7 +489,7 @@ function renderSuppDashProtocol() {
   const timings = [
     {key:'Morning', icon:'', bg:'var(--amber-bg)'},
     {key:'Dinner', icon:'', bg:'var(--green-bg)'},
-    {key:'Night', icon:'', bg:'#EFF6FF'}
+    {key:'Night', icon:'', bg:'var(--blue-bg)'}
   ];
   let html = '<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start">';
   timings.forEach(({key, icon, bg}) => {
@@ -692,9 +692,9 @@ const TRACKER_SCHEDULE = {
   'KPV':                    [0,1,2,3,4,5,6],// Daily
   'Epitalon':               [0,1,2,3,4,5,6],// Daily
 };
-const MORN_BG  = '#FFF8E7';
-const NIGHT_BG = '#EEF4FB';
-const INACTIVE = '#DEDEDE';
+const MORN_BG  = 'var(--amber-bg)';
+const NIGHT_BG = 'var(--blue-bg)';
+const INACTIVE = 'var(--border)';
 const DL = { date:'fldSk3hNQJTDKOyfT', pepLog:'fldAatoFJQPQwbVhQ', pepTaken:'fldyu4Tfg30czEsCc' };
 
 function getTrackerMonday() {
@@ -820,7 +820,7 @@ function renderTracker(weekNum) {
         this.dataset.s=next; this.textContent=next==='0'?'':next;
         var c=next==='L'?['var(--blue-bg)','var(--accent)','var(--accent-hover)']:next==='R'?['var(--amber-bg)','var(--amber)','var(--amber)']:next==='S'?['var(--red-bg)','var(--red)','var(--red)']:next==='P'?['var(--accent-light)','var(--accent)','var(--accent-hover)']:['','#888',''];
         this.style.background=c[0];this.style.borderColor=c[1];this.style.color=c[2];saveCheckbox(this);
-      " style="margin:0 auto;border:1.5px solid ${isActive?'#888':'#bbb'};opacity:${isActive?'1':'0.6'}"></div></td>`;
+      " style="margin:0 auto;border:1.5px solid ${isActive?'#888':'var(--muted)'};opacity:${isActive?'1':'0.6'}"></div></td>`;
   }
 
   function vialBtns(name) {
@@ -854,14 +854,14 @@ function renderTracker(weekNum) {
   </div>
   <div style="border:3px solid #000;border-radius:8px;overflow-x:auto"><table style="border-collapse:collapse;width:100%;font-size:12px">
   <thead><tr>
-    <th style="text-align:left;padding:4px 6px;background:#D9D9D9;border:1px solid #999;width:160px">Medication</th>
-    ${days.map((d,i)=>{const dd=new Date(monday);dd.setDate(monday.getDate()+i);const mo=dd.getMonth()+1;const dy=dd.getDate();const dateStr=dd.toISOString().split('T')[0];return`<th style="text-align:center;padding:2px 1px;background:#D9D9D9;border:1px solid #999;width:44px"><div style="font-weight:700;font-size:11px">${d}</div><div style="font-size:9px;color:var(--muted);font-weight:400">${mo}/${dy}</div><button onclick="skipDay('${dateStr}')" title="Skip all" style="font-size:8px;padding:1px 4px;border:1px solid #aaa;border-radius:3px;background:var(--surface);cursor:pointer;margin-top:2px;color:var(--muted)">Skip</button></th>`;}).join('')}
-    <th style="background:#D9D9D9;border:1px solid #999;padding:4px 6px;font-size:11px">Vial</th>
-    <th style="text-align:left;padding:6px 10px;background:#D9D9D9;border:1px solid #999;width:150px">Notes</th>
+    <th style="text-align:left;padding:4px 6px;background:var(--surface2);border:1px solid var(--muted);width:160px">Medication</th>
+    ${days.map((d,i)=>{const dd=new Date(monday);dd.setDate(monday.getDate()+i);const mo=dd.getMonth()+1;const dy=dd.getDate();const dateStr=dd.toISOString().split('T')[0];return`<th style="text-align:center;padding:2px 1px;background:var(--surface2);border:1px solid var(--muted);width:44px"><div style="font-weight:700;font-size:11px">${d}</div><div style="font-size:9px;color:var(--muted);font-weight:400">${mo}/${dy}</div><button onclick="skipDay('${dateStr}')" title="Skip all" style="font-size:8px;padding:1px 4px;border:1px solid var(--faint);border-radius:3px;background:var(--surface);cursor:pointer;margin-top:2px;color:var(--muted)">Skip</button></th>`;}).join('')}
+    <th style="background:var(--surface2);border:1px solid var(--muted);padding:4px 6px;font-size:11px">Vial</th>
+    <th style="text-align:left;padding:6px 10px;background:var(--surface2);border:1px solid var(--muted);width:150px">Notes</th>
   </tr></thead><tbody>`;
 
   if (morning.length) {
-    html += `<tr><td colspan="11" style="background:#E8A838;color:var(--surface);font-weight:bold;padding:5px 10px;font-size:13px">Morning</td></tr>`;
+    html += `<tr><td colspan="11" style="background:var(--amber);color:var(--surface);font-weight:bold;padding:5px 10px;font-size:13px">Morning</td></tr>`;
     morning.forEach(r => {
       const name = getField(r,'Compound');
       html += `<tr>
@@ -930,7 +930,7 @@ async function loadTrackerWeekData(mondayISO) {
       'S':  ['var(--red-bg)','var(--red)','var(--red)'],
       'P':  ['var(--accent-light)','var(--accent)','var(--accent-hover)'],
       'N':  ['var(--border)','var(--muted)','var(--muted)'],
-      'Abd':['#f3e8ff','#9333ea','#7e22ce'],
+      'Abd':['var(--accent-light)','#9333ea','#7e22ce'],
       'X':  ['var(--green-bg)','var(--green)','var(--green)'],
       '':  ['var(--green-bg)','var(--green)','var(--green)']
     };
@@ -980,13 +980,13 @@ async function loadTrackerWeekData(mondayISO) {
           // History exists for this compound use it
           const isActive = sched.has(dayIdx);
           if (!isActive) {
-            box.closest('td').style.background = '#DEDEDE';
+            box.closest('td').style.background = 'var(--border)';
             box.style.opacity = '0.6';
-            box.style.borderColor = '#bbb';
+            box.style.borderColor = 'var(--muted)';
           } else {
             // Restore white if previously greyed by initial render
             const tr = box.closest('tr');
-            const rowBg = tr?.classList.contains('tracker-night') ? '#EEF4FB' : '#FFF8E7';
+            const rowBg = tr?.classList.contains('tracker-night') ? 'var(--blue-bg)' : 'var(--amber-bg)';
             box.closest('td').style.background = rowBg;
             box.style.opacity = '1';
             box.style.borderColor = '#888';
@@ -1232,14 +1232,14 @@ async function updateVialCells() {
       const name = td.dataset.vialCompound;
       const rec = activeMap[name];
       if (rec) {
-        td.innerHTML = `<button onclick="markVialFinishedByName('${name}')" title="Mark vial empty" style="font-size:10px;padding:2px 7px;border:1px solid #f44336;border-radius:3px;background:#fce4ec;cursor:pointer;font-weight:600;color:#c62828">Empty</button>`;
+        td.innerHTML = `<button onclick="markVialFinishedByName('${name}')" title="Mark vial empty" style="font-size:10px;padding:2px 7px;border:1px solid #f44336;border-radius:3px;background:var(--red-bg);cursor:pointer;font-weight:600;color:#c62828">Empty</button>`;
         td.dataset.vialRecId = rec.id;
         td.dataset.vialDose = rec.fields['Dose']||'';
         td.dataset.vialFreq = rec.fields['Frequency']||'';
         td.dataset.vialTiming = rec.fields['Timing']||'';
         td.dataset.vialNotes = rec.fields['Notes']||'';
       } else {
-        td.innerHTML = `<span style="font-size:10px;color:#aaa"></span>`;
+        td.innerHTML = `<span style="font-size:10px;color:var(--faint)"></span>`;
       }
     });
   } catch(e) { console.error('updateVialCells:',e); }
@@ -1265,7 +1265,7 @@ async function markVialFinishedByName(compound) {
       if(td.dataset.vialTiming) nf['Timing']=td.dataset.vialTiming;
       await fetch(`https://api.airtable.com/v0/${BASE}/tblMs6YRdP4wkndUp`,{method:'POST',headers:{Authorization:`Bearer ${TOKEN}`,'Content-Type':'application/json'},body:JSON.stringify({fields:nf,typecast:true})});
     }
-    if(td) td.innerHTML=`<span style="font-size:10px;color:#aaa"></span>`;
+    if(td) td.innerHTML=`<span style="font-size:10px;color:var(--faint)"></span>`;
   } catch(e) { alert('Failed: '+e.message); }
 }
 
@@ -1508,7 +1508,7 @@ async function loadSchedule() {
   const morn = active.filter(r=>!(r.fields['Timing']||'').toLowerCase().includes('night'));
   const night = active.filter(r=>(r.fields['Timing']||'').toLowerCase().includes('night'));
 
-  const MORN_BG='#FFF8E7', NIGHT_BG='#EEF4FB';
+  const MORN_BG='var(--amber-bg)', NIGHT_BG='var(--blue-bg)';
 
   function makeActiveRow(r, bg) {
     const f = r.fields;
@@ -1519,7 +1519,7 @@ async function loadSchedule() {
     const sched = (f['Schedule']||'').split(',').map(s=>parseInt(s.trim())).filter(n=>!isNaN(n));
     const dayCells = DAYS.map((_,i) => {
       const on = sched.includes(i);
-      return `<td style="text-align:center;vertical-align:middle;padding:8px 4px;background:${on?bg:'#DEDEDE'};border:1px solid var(--faint)">
+      return `<td style="text-align:center;vertical-align:middle;padding:8px 4px;background:${on?bg:'var(--border)'};border:1px solid var(--faint)">
         <input type="checkbox" ${on?'checked':''} data-rec="${r.id}" data-day="${i}" data-name="${name}"
           onchange="schedDayToggle(this)" style="cursor:pointer;width:16px;height:16px;display:block;margin:0 auto">
       </td>`;
@@ -1587,12 +1587,12 @@ async function loadSchedule() {
     </div>
     <p style="font-size:11px;color:var(--muted);margin:0 0 16px">Changes save to Airtable instantly and are logged to Protocol Changes</p>
 
-    <div style="background:#FFF8E7;border:1px solid #fde68a;border-radius:8px 8px 0 0;padding:8px 14px;font-weight:700;font-size:12px;font-family:'DM Mono',monospace;color:var(--amber);letter-spacing:1px;text-transform:uppercase">Morning Peptides</div>
-    <div style="border:1px solid #fde68a;border-top:none;border-radius:0 0 8px 8px;overflow:hidden;margin-bottom:20px">
+    <div style="background:var(--amber-bg);border:1px solid rgba(251,191,36,0.45);border-radius:8px 8px 0 0;padding:8px 14px;font-weight:700;font-size:12px;font-family:'DM Mono',monospace;color:var(--amber);letter-spacing:1px;text-transform:uppercase">Morning Peptides</div>
+    <div style="border:1px solid rgba(251,191,36,0.45);border-top:none;border-radius:0 0 8px 8px;overflow:hidden;margin-bottom:20px">
       ${makeSection(morn, MORN_BG, 'sched-tbody-morn')}
     </div>
 
-    <div style="background:#EEF4FB;border:1px solid var(--accent-border);border-radius:8px 8px 0 0;padding:8px 14px;font-weight:700;font-size:12px;font-family:'DM Mono',monospace;color:var(--accent);letter-spacing:1px;text-transform:uppercase">Night Peptides</div>
+    <div style="background:var(--blue-bg);border:1px solid var(--accent-border);border-radius:8px 8px 0 0;padding:8px 14px;font-weight:700;font-size:12px;font-family:'DM Mono',monospace;color:var(--accent);letter-spacing:1px;text-transform:uppercase">Night Peptides</div>
     <div style="border:1px solid var(--accent-border);border-top:none;border-radius:0 0 8px 8px;overflow:hidden;margin-bottom:28px">
       ${makeSection(night, NIGHT_BG, 'sched-tbody-night')}
     </div>`;
@@ -1698,8 +1698,8 @@ function schedDayToggle(cb) {
   const row=document.getElementById(`sched-row-${recId}`);
   const days=[...row.querySelectorAll('input[type=checkbox]')].map((c,i)=>c.checked?i:null).filter(i=>i!==null);
   const td = cb.closest('td');
-  const rowBg = row.querySelector('td:nth-child(2)')?.style.background || '#FFF8E7';
-  if (td) td.style.background = cb.checked ? rowBg : '#DEDEDE';
+  const rowBg = row.querySelector('td:nth-child(2)')?.style.background || 'var(--amber-bg)';
+  if (td) td.style.background = cb.checked ? rowBg : 'var(--border)';
   schedSave(recId,{'fldU6gCdrblypWiPo':days.join(',')},name,`Schedule: ${days.map(d=>['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][d]).join('/')}`);
 }
 
@@ -2150,7 +2150,7 @@ function renderVendors() {
           const rowId = 'vendor-expand-' + (r.id || r['Vendor'] || Math.random());
           return `<tr style="cursor:pointer" onclick="toggleVendorExpand('${rowId}')">
             <td style="font-weight:500">${r['Vendor'] || ''}</td>
-            <td><span style="font-size:11px;padding:2px 7px;border-radius:10px;background:${r['Tier']==='Primary'?'var(--accent-light)':r['Tier']==='Evaluating'?'#fef9c3':'var(--surface2)'};color:${r['Tier']==='Primary'?'var(--accent)':r['Tier']==='Evaluating'?'#854d0e':'var(--muted)'}">${r['Tier']||''}</span></td>
+            <td><span style="font-size:11px;padding:2px 7px;border-radius:10px;background:${r['Tier']==='Primary'?'var(--accent-light)':r['Tier']==='Evaluating'?'var(--amber-bg)':'var(--surface2)'};color:${r['Tier']==='Primary'?'var(--accent)':r['Tier']==='Evaluating'?'#854d0e':'var(--muted)'}">${r['Tier']||''}</span></td>
             <td onclick="event.stopPropagation()">${r['Website'] ? `<a href="https://${r['Website']}" target="_blank" style="color:var(--accent);font-size:12px">${r['Website']}</a>` : ''}</td>
             <td><span style="font-size:11px;color:${r['Status']==='Active'?'var(--green)':'var(--muted)'}">${r['Status']||''}</span></td>
             <td style="font-size:12px;color:var(--muted)">${peptides.length ? `${peptides.slice(0,3).join(', ')}${peptides.length > 3 ? ` <span style="color:var(--accent);font-size:11px">+${peptides.length-3} more </span>` : ''}` : ''}</td>
@@ -3627,15 +3627,15 @@ function wktRenderDay(dateISO, recs, exCanonMap) {
     + '#wkt-tbl thead th.th-ex{text-align:left;padding-left:8px;min-width:160px}'
     + '#wkt-tbl thead th.th-can{text-align:left;color:var(--faint);min-width:80px;max-width:80px}'
     + '#wkt-tbl thead th.th-var{color:var(--faint);min-width:100px}'
-    + '#wkt-tbl thead th.th-reps{color:#93c5fd;border-left:2px solid #374151;min-width:52px}'
+    + '#wkt-tbl thead th.th-reps{color:var(--blue);border-left:2px solid #374151;min-width:52px}'
     + '#wkt-tbl thead th.th-wt{color:rgba(251,191,36,0.45);min-width:52px}'
-    + '#wkt-tbl td{border:1px solid #e2e5ea;padding:2px 3px;text-align:center}'
+    + '#wkt-tbl td{border:1px solid var(--border);padding:2px 3px;text-align:center}'
     + '#wkt-tbl td.td-ex{text-align:left;padding:5px 8px;font-weight:700;font-size:14px;color:#1e2433;background:var(--surface2);white-space:nowrap}'
-    + '#wkt-tbl td.td-can input{width:100%;padding:3px 5px;border:1px solid var(--faint);border-radius:3px;font-size:13px;color:#111827;background:var(--surface);box-sizing:border-box}'+ '#wkt-tbl td.td-can input:focus{border-color:var(--accent);outline:none;background:#f5f3ff}'+ '#wkt-tbl td.td-can input.saved{border-color:#22c55e;background:var(--green-bg)}'+ '#wkt-tbl td.td-can{min-width:90px;max-width:120px;padding:2px 3px}'
+    + '#wkt-tbl td.td-can input{width:100%;padding:3px 5px;border:1px solid var(--faint);border-radius:3px;font-size:13px;color:#111827;background:var(--surface);box-sizing:border-box}'+ '#wkt-tbl td.td-can input:focus{border-color:var(--accent);outline:none;background:var(--accent-light)}'+ '#wkt-tbl td.td-can input.saved{border-color:var(--green);background:var(--green-bg)}'+ '#wkt-tbl td.td-can{min-width:90px;max-width:120px;padding:2px 3px}'
     + '#wkt-tbl td.td-var select{width:110px;padding:3px 4px;border:1px solid var(--faint);border-radius:3px;font-size:12px;background:var(--surface)}'
     + '#wkt-tbl td.td-reps{border-left:2px solid var(--border)}'
     + '#wkt-tbl td.td-reps input{width:52px;padding:3px 4px;border:1px solid var(--accent-border);border-radius:3px;font-size:14px;font-weight:700;background:var(--blue-bg);color:var(--accent-hover);text-align:center}'
-    + '#wkt-tbl td.td-wt input{width:52px;padding:3px 4px;border:1px solid #fde68a;border-radius:3px;font-size:14px;font-weight:700;background:var(--amber-bg);color:var(--amber);text-align:center}'
+    + '#wkt-tbl td.td-wt input{width:52px;padding:3px 4px;border:1px solid rgba(251,191,36,0.45);border-radius:3px;font-size:14px;font-weight:700;background:var(--amber-bg);color:var(--amber);text-align:center}'
     + '#wkt-tbl td.td-add button{background:var(--surface2);border:1px solid var(--faint);border-radius:3px;font-size:12px;cursor:pointer;padding:3px 8px}'
     + '</style>';
 
@@ -3903,9 +3903,9 @@ function wkaRenderDay(dateISO, recs) {
     + '#wka-tbl thead th.th-ex{text-align:left;padding-left:8px;min-width:160px}'
     + '#wka-tbl thead th.th-can{text-align:left;color:var(--faint);min-width:80px}'
     + '#wka-tbl thead th.th-var{color:var(--faint);min-width:100px}'
-    + '#wka-tbl thead th.th-reps{color:#93c5fd;border-left:2px solid #374151;min-width:52px}'
+    + '#wka-tbl thead th.th-reps{color:var(--blue);border-left:2px solid #374151;min-width:52px}'
     + '#wka-tbl thead th.th-wt{color:rgba(251,191,36,0.45);min-width:52px}'
-    + '#wka-tbl td{border:1px solid #e2e5ea;padding:4px 6px;text-align:center}'
+    + '#wka-tbl td{border:1px solid var(--border);padding:4px 6px;text-align:center}'
     + '#wka-tbl td.td-ex{text-align:left;padding:5px 8px;font-weight:700;font-size:13px;color:#1e2433;background:var(--surface2);white-space:nowrap}'
     + '#wka-tbl td.td-can{text-align:left;font-size:11px;color:var(--muted);padding:4px 6px}'
     + '#wka-tbl td.td-var{font-size:11px;color:#374151}'
@@ -4111,12 +4111,12 @@ function showAuditWeek(mon, weekData, DAYS) {
   let html = '';
   const wn = (window._auditWeekNotes || {})[mon];
   if (wn) {
-    html += '<div style="margin-bottom:8px;padding:8px 12px;background:var(--amber-bg);border:1px solid rgba(251,191,36,0.45);border-left:3px solid #f59e0b;border-radius:5px;font-size:12px;color:#78350f"><b>Week Note:</b> ' + wn.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])) + '</div>';
+    html += '<div style="margin-bottom:8px;padding:8px 12px;background:var(--amber-bg);border:1px solid rgba(251,191,36,0.45);border-left:3px solid var(--amber);border-radius:5px;font-size:12px;color:#78350f"><b>Week Note:</b> ' + wn.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])) + '</div>';
   }
   html += '<table style="border-collapse:collapse;font-size:13px;width:100%"><thead><tr>';
-  html += '<th style="text-align:left;padding:6px 12px;border:1px solid #999;min-width:180px;background:var(--border);font-size:12px">Compound</th>';
-  DAYS.forEach((d,i) => { const [y,m,dy2] = dates[i].split('-'); html += '<th style="padding:4px 6px;border:1px solid #999;text-align:center;background:var(--border);font-size:10px;min-width:52px">' + d + '<br><span style="font-weight:400;font-size:9px">' + m+'/'+dy2+'/'+y.slice(2) + '</span></th>'; });
-  html += '<th style="border:1px solid #999;background:var(--border);padding:4px 8px;font-size:10px">Notes</th></tr></thead><tbody>';
+  html += '<th style="text-align:left;padding:6px 12px;border:1px solid var(--muted);min-width:180px;background:var(--border);font-size:12px">Compound</th>';
+  DAYS.forEach((d,i) => { const [y,m,dy2] = dates[i].split('-'); html += '<th style="padding:4px 6px;border:1px solid var(--muted);text-align:center;background:var(--border);font-size:10px;min-width:52px">' + d + '<br><span style="font-weight:400;font-size:9px">' + m+'/'+dy2+'/'+y.slice(2) + '</span></th>'; });
+  html += '<th style="border:1px solid var(--muted);background:var(--border);padding:4px 8px;font-size:10px">Notes</th></tr></thead><tbody>';
   ['Morning','Night'].forEach(section => {
     html += '<tr><td colspan="' + (DAYS.length+2) + '" style="background:#374151;color:var(--surface);padding:5px 12px;font-size:12px;font-weight:600;border:1px solid var(--muted)">' + (section==='Morning'?'Morning':'Night') + '</td></tr>';
     compounds.filter(c => sectionOf(c) === section).forEach(c => {
@@ -5060,7 +5060,7 @@ async function loadInjLog() {
     </tr></thead><tbody>`;
   summRows.forEach((rec,i) => {
     const st = pepStatus[fv(rec,F.compound)] || '';
-    const rowStyle = st === 'Paused' ? 'background:#fef9c3' : st === 'Stopped' ? 'background:#f1f5f9' : (i % 2 === 0 ? '' : 'background:var(--surface-alt,var(--surface2))');
+    const rowStyle = st === 'Paused' ? 'background:var(--amber-bg)' : st === 'Stopped' ? 'background:var(--surface2)' : (i % 2 === 0 ? '' : 'background:var(--surface-alt,var(--surface2))');
     summHtml += `<tr style="${rowStyle}">
       <td style="padding:7px 10px;border-bottom:1px solid var(--border);font-weight:500">${fv(rec,F.compound)}</td>
       <td style="padding:7px 10px;border-bottom:1px solid var(--border)">${stBadge(st)}</td>
@@ -5102,11 +5102,11 @@ async function loadInjLog() {
   wnWeeks.forEach(wk => {
     const rec = weekNoteRecs.find(r => fv(r,F.date) === wk);
     const val = rec ? String(rec.fields['Week Note'] || '') : '';
-    wnHtml += `<div style="padding:8px 10px;margin-bottom:6px;background:var(--amber-bg);border:1px solid rgba(251,191,36,0.45);border-left:3px solid #f59e0b;border-radius:5px">
+    wnHtml += `<div style="padding:8px 10px;margin-bottom:6px;background:var(--amber-bg);border:1px solid rgba(251,191,36,0.45);border-left:3px solid var(--amber);border-radius:5px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
         <b style="font-size:11px;color:#78350f;white-space:nowrap">Week of ${wk}</b>
         <span id="wn-st-${wk}" style="font-size:10px;color:#78350f;flex:1"></span>
-        <button onclick="saveInjWeekNote('${wk}')" style="padding:3px 12px;font-size:10px;font-weight:700;border:1px solid #f59e0b;background:#f59e0b;color:var(--surface);border-radius:4px;cursor:pointer">Save</button>
+        <button onclick="saveInjWeekNote('${wk}')" style="padding:3px 12px;font-size:10px;font-weight:700;border:1px solid var(--amber);background:var(--amber);color:var(--surface);border-radius:4px;cursor:pointer">Save</button>
       </div>
       <textarea id="wn-in-${wk}" placeholder="No note \u2014 click to add\u2026" rows="2"
         style="width:100%;box-sizing:border-box;padding:6px 8px;border:1px solid rgba(251,191,36,0.45);border-radius:4px;font-size:12px;line-height:1.45;color:#78350f;background:var(--surface);font-family:inherit;resize:vertical;min-height:40px">${_esc2(val)}</textarea>
@@ -5687,7 +5687,7 @@ function dbRender() {
           const str = String(v);
           const highlighted = search && str.toLowerCase().includes(search)
             ? str.replace(new RegExp('(' + search.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + ')', 'gi'),
-                '<mark style="background:#fef08a;border-radius:2px">$1</mark>')
+                '<mark style="background:var(--amber-bg);border-radius:2px">$1</mark>')
             : str;
           return '<td style="' + tdStyle + '" title="' + str.replace(/"/g,'&quot;') + '">' + highlighted + '</td>';
         }).join('')
@@ -6942,7 +6942,7 @@ function renderInjectionPanel(recs, startDate, endDate) {
   });
   var html = "<div class='sec'><div class='sech'><span class='sect sectbl'>Week of " + startDate + "</span><span class='secc'>" + inj.length + "</span></div>";
   // Editable week note — always shown so a missing note can be added
-  html += "<div style='display:flex;align-items:center;gap:6px;margin:6px 0;padding:6px 9px;background:var(--amber-bg);border:1px solid rgba(251,191,36,0.45);border-left:3px solid #f59e0b;border-radius:4px'>"
+  html += "<div style='display:flex;align-items:center;gap:6px;margin:6px 0;padding:6px 9px;background:var(--amber-bg);border:1px solid rgba(251,191,36,0.45);border-left:3px solid var(--amber);border-radius:4px'>"
        +  "<b style='font-size:10px;color:#78350f;white-space:nowrap'>Week Note</b>"
        +  "<input id='pv-wn' type='text' value=\"" + esc(weekNote) + "\" placeholder='No note - click to add...' "
        +  "onblur='savePvWeekNote(this)' "
@@ -6981,7 +6981,7 @@ async function savePvNote(recId, el) {
       body: JSON.stringify({ fields: { "fldAbczu73mINwLmx": val } })
     });
     if (!r.ok) throw new Error("HTTP " + r.status);
-    el.style.borderColor = val ? "rgba(251,191,36,0.45)" : "#22c55e";
+    el.style.borderColor = val ? "rgba(251,191,36,0.45)" : "var(--green)";
     el.style.background = val ? "var(--amber-bg)" : "var(--surface)";
     el.style.color = val ? "#78350f" : "inherit";
   } catch(e) {
@@ -7288,9 +7288,9 @@ function showInjWeek(mon, weekData, DAYS, contentEl) {
     return "<td style='border:1px solid var(--border);min-width:48px;text-align:center;padding:5px 2px;background:"+(CC[s]||"var(--green-bg)")+";font-size:13px;font-weight:700;color:"+(TC[s]||"var(--green)")+"'>"+s+"</td>";
   }
   var html = "<table style='border-collapse:collapse;font-size:12px;width:100%'><thead><tr>";
-  html += "<th style='text-align:left;padding:5px 10px;border:1px solid #999;min-width:160px;background:var(--border);font-size:11px'>Compound</th>";
-  DAYS.forEach(function(d,i){ var p=dates[i].split("-"); html += "<th style='padding:3px 5px;border:1px solid #999;text-align:center;background:var(--border);font-size:10px;min-width:48px'>"+d+"<br><span style='font-weight:400;font-size:9px'>"+p[1]+"/"+p[2]+"</span></th>"; });
-  html += "<th style='border:1px solid #999;background:var(--border);padding:3px 6px;font-size:10px'>Notes</th></tr></thead><tbody>";
+  html += "<th style='text-align:left;padding:5px 10px;border:1px solid var(--muted);min-width:160px;background:var(--border);font-size:11px'>Compound</th>";
+  DAYS.forEach(function(d,i){ var p=dates[i].split("-"); html += "<th style='padding:3px 5px;border:1px solid var(--muted);text-align:center;background:var(--border);font-size:10px;min-width:48px'>"+d+"<br><span style='font-weight:400;font-size:9px'>"+p[1]+"/"+p[2]+"</span></th>"; });
+  html += "<th style='border:1px solid var(--muted);background:var(--border);padding:3px 6px;font-size:10px'>Notes</th></tr></thead><tbody>";
   ["Morning","Night"].forEach(function(section) {
     html += "<tr><td colspan='"+(DAYS.length+2)+"' style='background:#374151;color:var(--surface);padding:4px 10px;font-size:11px;font-weight:600;border:1px solid var(--muted)'>"+section+"</td></tr>";
     compounds.filter(function(c){ return secOf(c)===section; }).forEach(function(c) {
@@ -8062,3 +8062,30 @@ async function deleteDrink() {
     loadDrinks(true);
   } catch (e) { alert('Error: ' + e.message); }
 }
+
+/* --- table overflow guard: wrap wide tables so they scroll
+       inside the view rather than the whole document. ------- */
+(function(){
+  function wrapWideTables(){
+    ['view-tracker','view-wktracker'].forEach(function(id){
+      var v=document.getElementById(id);
+      if(!v) return;
+      v.querySelectorAll('table').forEach(function(t){
+        if(t.parentElement && t.parentElement.classList.contains('table-scroll')) return;
+        var w=document.createElement('div');
+        w.className='table-scroll';
+        t.parentNode.insertBefore(w,t);
+        w.appendChild(t);
+      });
+    });
+  }
+  window.wrapWideTables=wrapWideTables;
+  document.addEventListener('DOMContentLoaded',function(){
+    wrapWideTables();
+    var mo=new MutationObserver(function(){ wrapWideTables(); });
+    ['view-tracker','view-wktracker'].forEach(function(id){
+      var v=document.getElementById(id);
+      if(v) mo.observe(v,{childList:true,subtree:true});
+    });
+  });
+})();
