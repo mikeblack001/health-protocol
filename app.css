@@ -498,6 +498,24 @@ input:focus, select:focus, textarea:focus {
   ::-webkit-scrollbar { display: none; }
 }
 
+
+/* --- wide data tables scroll inside their panel instead of
+       pushing the whole page sideways (fixes tracker +7px,
+       wktracker +24px overflow on mobile) ------------------- */
+#view-tracker, #view-wktracker { overflow-x: hidden; }
+#view-tracker  table,
+#view-wktracker table { min-width: max-content; }
+#view-tracker  .table-scroll,
+#view-wktracker .table-scroll,
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
+}
+/* any bare table in these two views gets a scroll parent via wrapper
+   added by JS; belt-and-braces cap so nothing escapes the viewport */
+#view-tracker > *, #view-wktracker > * { max-width: 100%; }
+
 .pdfqa-root {
   --bg:#f5f6f8; --s:#fff; --s2:#f0f1f4; --b:#e2e4e9; --b2:#cdd0d8;
   --t:#1a1a1a; --d:#5a6070; --dd:#9aa0ad;
