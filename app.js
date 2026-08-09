@@ -2920,6 +2920,21 @@ function recipesAttr(s) {
 }
 function recipesSel(v) { return v && v.name ? v.name : (v || ''); }
 
+// Dual-vessel (SLUSHi Twist) recipes use "VESSEL 1 - NAME" / "VESSEL 2 - NAME"
+// header lines inside the Ingredients text. Render those as styled headers so
+// the two sides read as distinct blocks instead of one run-on list.
+function recipesFmtIngredients(txt) {
+  return String(txt == null ? '' : txt).split('\n').map(function(line){
+    if (/^\s*VESSEL\s*\d/i.test(line)) {
+      return '<div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;'
+        + 'color:var(--accent,#7fd1ff);font-weight:700;margin:10px 0 4px;'
+        + 'padding-top:8px;border-top:1px solid rgba(255,255,255,0.10)">'
+        + recipesEsc(line.trim()) + '</div>';
+    }
+    return recipesEsc(line);
+  }).join('\n').replace(/\n(<div style="font-size:11px;text-transform:uppercase)/g, '$1');
+}
+
 function ingRec(name) {
   return ingredientsData.find(function(r){ return r.fields['Ingredient'] === name; });
 }
@@ -3464,7 +3479,7 @@ function renderRecipes() {
       (open ? '<div style="padding:0 18px 18px;font-size:14px;line-height:1.6;border-top:1px solid var(--border);margin-top:2px;padding-top:14px">' +
         (item.blocked.length ? '<div style="font-size:11px;text-transform:uppercase;letter-spacing:0.8px;color:var(--red);margin:4px 0 5px;font-weight:600">Contains ingredients you avoid</div><div style="color:var(--red)">' + recipesEsc(item.blocked.join(', ')) + '</div>' : '') +
         (item.toBuy.length ? '<div style="font-size:11px;text-transform:uppercase;letter-spacing:0.8px;color:var(--amber);margin:12px 0 5px;font-weight:600">Shopping list &mdash; not marked On Hand</div><div>' + recipesEsc(item.toBuy.join(', ')) + '</div>' : '') +
-        (r['Ingredients'] ? '<div style="font-size:11px;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);margin:12px 0 5px;font-weight:600">Ingredients</div><div style="white-space:pre-wrap">' + recipesEsc(r['Ingredients']) + '</div>' : '') +
+        (r['Ingredients'] ? '<div style="font-size:11px;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);margin:12px 0 5px;font-weight:600">Ingredients</div><div style="white-space:pre-wrap">' + recipesFmtIngredients(r['Ingredients']) + '</div>' : '') +
         (r['Instructions'] ? '<div style="font-size:11px;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);margin:12px 0 5px;font-weight:600">Instructions</div><div style="white-space:pre-wrap">' + recipesEsc(r['Instructions']) + '</div>' : '') +
         '<div style="font-size:11px;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);margin:16px 0 7px;font-weight:600">Your reaction</div>' +
         '<div style="display:flex;gap:8px">' +
