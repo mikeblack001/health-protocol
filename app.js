@@ -5417,6 +5417,22 @@ async function printPeptideWeekly() {
 }
 
 
+function dualTimingNames(rows) {
+  const m = {};
+  rows.forEach(r => {
+    const n = (getField(r,'Supplement')||'').trim();
+    const t = (getField(r,'SuppTiming')||'').trim();
+    if (!n) return;
+    if (!m[n]) m[n] = new Set();
+    if (t) m[n].add(t);
+  });
+  return new Set(Object.keys(m).filter(n => m[n].size > 1));
+}
+function starMark(r, dualNames) {
+  const n = (getField(r,'Supplement')||'').trim();
+  return dualNames.has(n) ? ' <span style="font-weight:700">*</span>' : '';
+}
+
 function printProtocolList() {
   const activePep = data.peptides.filter(r => getField(r,'Status') === 'Active');
   const amPep = activePep.filter(r => !getField(r,'Timing').toLowerCase().includes('night'))
@@ -5424,6 +5440,7 @@ function printProtocolList() {
   const pmPep = activePep.filter(r => getField(r,'Timing').toLowerCase().includes('night'))
     .sort((a,b) => ((a.fields['Row Order']??99999)-(b.fields['Row Order']??99999)));
   const activeSupp = data.supplements.filter(r => getField(r,'SuppStatus') === 'Active');
+  const dualNames = dualTimingNames(activeSupp);
 
   function pepTable(title, rows) {
     if (!rows.length) return '';
@@ -5455,7 +5472,7 @@ function printProtocolList() {
       <th style="border:1px solid #999;padding:4px 8px;text-align:left">Brand</th>
     </tr></thead><tbody>
     ${rows.map(r => `<tr>
-      <td style="border:1px solid #ddd;padding:4px 8px;font-weight:600">${getField(r,'Supplement')}</td>
+      <td style="border:1px solid #ddd;padding:4px 8px;font-weight:600">${getField(r,'Supplement')}${starMark(r, dualNames)}</td>
       <td style="border:1px solid #ddd;padding:4px 8px;font-family:monospace">${formatSuppDose(getField(r,'SuppDose'))}${foodTag(r)}</td>
       <td style="border:1px solid #ddd;padding:4px 8px">${getField(r,'SuppTiming')||''}</td>
       <td style="border:1px solid #ddd;padding:4px 8px;color:#666">${getField(r,'Brand')||''}</td>
@@ -5490,6 +5507,7 @@ function printProtocolList() {
     ${suppTable('Morning', mornSupp)}
     ${suppTable('Dinner', dinSupp)}
     ${suppTable('Night', nightSupp)}
+    ${dualNames.size ? '<div style="font-size:10px;color:#444;margin-top:6px">* Taken twice daily &mdash; appears in more than one window above.</div>' : ''}
   </div>
   </body></html>`;
 
@@ -5518,6 +5536,7 @@ function printSuppList() {
   const dinSupp   = pillSupp.filter(r => getField(r,'SuppTiming') === 'Dinner');
   const nightSupp = pillSupp.filter(r => getField(r,'SuppTiming') === 'Night');
   const otherSupp = pillSupp.filter(r => !['Morning','Dinner','Night'].includes(getField(r,'SuppTiming')));
+  const dualNames = dualTimingNames(pillSupp);
 
   const showStatusCol = filterLabel.toLowerCase() === 'all';
 
@@ -5533,7 +5552,7 @@ function printSuppList() {
       ${showStatusCol ? '<th style="border:1px solid #999;padding:4px 8px;text-align:left">Status</th>' : ''}
     </tr></thead><tbody>
     ${rows.map(r => `<tr>
-      <td style="border:1px solid #ddd;padding:4px 8px;font-weight:600">${getField(r,'Supplement')}</td>
+      <td style="border:1px solid #ddd;padding:4px 8px;font-weight:600">${getField(r,'Supplement')}${starMark(r, dualNames)}</td>
       <td style="border:1px solid #ddd;padding:4px 8px;font-family:monospace">${formatSuppDose(getField(r,'SuppDose'))}${foodTag(r)}</td>
       <td style="border:1px solid #ddd;padding:4px 8px">${getField(r,'SuppTiming')||''}</td>
       <td style="border:1px solid #ddd;padding:4px 8px;color:#666">${getField(r,'Brand')||''}</td>
@@ -5558,6 +5577,7 @@ function printSuppList() {
   ${suppTbl('Dinner', dinSupp)}
   ${suppTbl('Night', nightSupp)}
   ${suppTbl('Other', otherSupp)}
+  ${dualNames.size ? '<div style="font-size:10px;color:#444;margin-top:6px">* Taken twice daily &mdash; appears in more than one window above.</div>' : ''}
   </body></html>`;
 
   let iframe = document.getElementById('_print_iframe');
