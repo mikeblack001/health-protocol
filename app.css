@@ -349,7 +349,7 @@
 }
 
 @media print {
-  body.print-workout * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  body.print-workout * { -webkit-print-color-adjust: economy !important; print-color-adjust: economy !important; }
   body.print-workout, body.print-workout html { background: white !important; margin: 0; padding: 0; }
 
   body.print-workout > * { display: none !important; }
@@ -370,14 +370,30 @@
   body.print-workout .print-page { page-break-after: always; margin: 0; padding: 0; width: 100%; }
   body.print-workout .print-page:last-child { page-break-after: auto; }
 
+  /* ---- ink-light print: no solid fills, hairline rules ---- */
   body.print-workout .ptable { width: 100%; font-size: var(--fs-xs); margin-bottom: 10px; }
-  body.print-workout .pday-hdr { font-size: var(--fs-sm); background: var(--accent) !important; color: var(--surface) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .pmeta td, .pmeta-cell { background: var(--accent-light) !important; border: 1.5px solid var(--accent) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .pcol-hdr th { background: var(--blue-bg) !important; color: var(--blue) !important; border: 1.5px solid var(--accent) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .pex td { height: 32px !important; border: 1.5px solid #777 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .pset { background: #f5f5f5 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .pwrite { border-bottom: 2px solid var(--text) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .pnotes td { border: 1.5px solid #777 !important; height: 120px !important; background: var(--surface2) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body.print-workout .pday-hdr {
+    font-size: var(--fs-sm); background: #fff !important; color: #000 !important;
+    font-weight: 800 !important; letter-spacing: .04em; text-transform: uppercase;
+    border: 0 !important; border-bottom: 1.5px solid #000 !important;
+    padding: 2px 0 3px !important;
+  }
+  body.print-workout .pmeta td, body.print-workout .pmeta-cell {
+    background: #fff !important; color: #000 !important; border: 0.5px solid #9a9a9a !important;
+  }
+  body.print-workout .pcol-hdr th {
+    background: #fff !important; color: #000 !important; font-weight: 700 !important;
+    border: 0.5px solid #9a9a9a !important; border-bottom: 1px solid #000 !important;
+  }
+  body.print-workout .pex td {
+    height: 32px !important; background: #fff !important; border: 0.5px solid #b4b4b4 !important;
+  }
+  body.print-workout .pex-var { color: #555 !important; }
+  body.print-workout .pset { background: #fff !important; }
+  body.print-workout .pwrite { border-bottom: 0.75px solid #000 !important; }
+  body.print-workout .pnotes td {
+    background: #fff !important; border: 0.5px solid #9a9a9a !important; height: 120px !important;
+  }
 
   @page { size: letter portrait; margin: 0.4in 0.4in 0.4in 0.4in; }
 }
