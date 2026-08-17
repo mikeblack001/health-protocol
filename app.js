@@ -5812,9 +5812,9 @@ function buildWeeklyPrintHTML(monday) {
         <tr><th colspan="11" class="pday-hdr">${day.label}</th></tr>
         <tr class="pmeta">
           <td colspan="2" class="pmeta-cell" style="white-space:nowrap">Date: <span class="pmeta-val">${dateStr}</span></td>
-          <td colspan="3" class="pmeta-cell" style="font-size:10px;white-space:nowrap">Sleep: <span style="font-family:monospace;color:var(--text)">___________</span></td>
-          <td colspan="3" class="pmeta-cell" style="font-size:10px;white-space:nowrap">Deep: <span style="font-family:monospace;color:var(--text)">___________</span></td>
-          <td colspan="3" class="pmeta-cell" style="text-align:right;font-size:10px;white-space:nowrap">Duration: <span style="font-family:monospace;color:var(--text)">___________</span></td>
+          <td colspan="3" class="pmeta-cell" style="font-size:10px;white-space:nowrap">Sleep: <span style="font-family:monospace;color:#000">___________</span></td>
+          <td colspan="3" class="pmeta-cell" style="font-size:10px;white-space:nowrap">Deep: <span style="font-family:monospace;color:#000">___________</span></td>
+          <td colspan="3" class="pmeta-cell" style="text-align:right;font-size:10px;white-space:nowrap">Duration: <span style="font-family:monospace;color:#000">___________</span></td>
         </tr>
         <tr class="pcol-hdr">
           <th class="pex-name">Exercise</th>
@@ -5827,7 +5827,7 @@ function buildWeeklyPrintHTML(monday) {
       <tbody>
         ${exRows}
         <tr class="pnotes">
-          <td colspan="11" style="font-weight:700;font-size:10px;color:var(--text);border:1.5px solid #777;padding:8px 10px;height:80px;vertical-align:top;background:var(--surface2)">Notes:</td>
+          <td colspan="11" style="font-weight:500;font-size:10px;color:#555;border:1px solid #c4c4c4;padding:8px 10px;height:56px;vertical-align:top;background:#fff">Notes:</td>
         </tr>
       </tbody>
     </table>`;
