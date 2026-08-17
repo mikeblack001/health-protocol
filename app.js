@@ -2730,9 +2730,9 @@ async function saveWorkout() {
 function printWorkout() {
   // Auto-size: compute row height from actual exercise counts so 2 days always fit per page
   const PAGE_H = 979;        // letter portrait @0.4in margins = 10.2in at 96dpi
-  const TABLE_OVERHEAD = 84; // day-hdr(21) + meta-row(26) + col-hdr(21) + table-gap(8) + slack
+  const TABLE_OVERHEAD = 88; // day-hdr(25) + meta-row(26) + col-hdr(21) + table-gap(8) + slack
   const NOTES_H = 56;        // fixed notes row height
-  const AVAIL_FOR_ROWS = PAGE_H - 2 * (TABLE_OVERHEAD + NOTES_H); // 699px
+  const AVAIL_FOR_ROWS = PAGE_H - 2 * (TABLE_OVERHEAD + NOTES_H); // 691px
 
   const dayKeys = ['Monday - Push','Tuesday - Pull','Wednesday - Legs / Core','Thursday - Arms / Chest'];
   const counts = dayKeys.map(k => (WORKOUT_DAYS[k] || []).length);
