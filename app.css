@@ -370,29 +370,38 @@
   body.print-workout .print-page { page-break-after: always; margin: 0; padding: 0; width: 100%; }
   body.print-workout .print-page:last-child { page-break-after: auto; }
 
-  /* ---- ink-light print: no solid fills, hairline rules ---- */
-  body.print-workout .ptable { width: 100%; font-size: var(--fs-xs); margin-bottom: 10px; }
+  /* ---- ink-light print: no fills, no black rules, hairline grey grid ---- */
+  body.print-workout .ptable {
+    width: 100%; font-size: var(--fs-xs); margin-bottom: 8px;
+    page-break-inside: avoid; break-inside: avoid;
+  }
   body.print-workout .pday-hdr {
     font-size: var(--fs-sm); background: #fff !important; color: #000 !important;
-    font-weight: 800 !important; letter-spacing: .04em; text-transform: uppercase;
-    border: 0 !important; border-bottom: 1.5px solid #000 !important;
-    padding: 2px 0 3px !important;
+    font-weight: 700 !important; letter-spacing: .04em; text-transform: uppercase;
+    border: 0 !important; border-bottom: 0.5px solid #aaa !important;
+    padding: 1px 0 2px !important;
   }
   body.print-workout .pmeta td, body.print-workout .pmeta-cell {
-    background: #fff !important; color: #000 !important; border: 0.5px solid #9a9a9a !important;
+    background: #fff !important; color: #000 !important; border: 0.5px solid #c4c4c4 !important;
+    height: 26px !important; font-weight: 400 !important;
   }
+  body.print-workout .pmeta-val { font-weight: 500 !important; }
   body.print-workout .pcol-hdr th {
-    background: #fff !important; color: #000 !important; font-weight: 700 !important;
-    border: 0.5px solid #9a9a9a !important; border-bottom: 1px solid #000 !important;
+    background: #fff !important; color: #333 !important; font-weight: 500 !important;
+    border: 0.5px solid #c4c4c4 !important; border-bottom: 0.5px solid #aaa !important;
+    padding: 2px 4px !important;
   }
   body.print-workout .pex td {
-    height: 32px !important; background: #fff !important; border: 0.5px solid #b4b4b4 !important;
+    height: 30px !important; background: #fff !important; border: 0.5px solid #d0d0d0 !important;
+    padding: 3px 5px !important; line-height: 1.15 !important;
   }
-  body.print-workout .pex-var { color: #555 !important; }
-  body.print-workout .pset { background: #fff !important; }
-  body.print-workout .pwrite { border-bottom: 0.75px solid #000 !important; }
+  body.print-workout .pex-name { font-weight: 500 !important; color: #000 !important; }
+  body.print-workout .pex-var { color: #6a6a6a !important; font-size: 9px !important; }
+  body.print-workout .pset { background: #fff !important; color: #999 !important; }
+  body.print-workout .pwrite { border-bottom: 0.5px solid #999 !important; }
   body.print-workout .pnotes td {
-    background: #fff !important; border: 0.5px solid #9a9a9a !important; height: 120px !important;
+    background: #fff !important; border: 0.5px solid #c4c4c4 !important; height: 56px !important;
+    font-weight: 500 !important; color: #555 !important;
   }
 
   @page { size: letter portrait; margin: 0.4in 0.4in 0.4in 0.4in; }
