@@ -5360,12 +5360,12 @@ async function printPeptideWeekly() {
         ? `<b style="font-size:8pt">${name}</b> <span style="font-size:6.5pt;color:#555">${dose}</span>`
         : `<b style="font-size:8pt">${name}</b>`;
       const active = getScheduleDays(name);
-      let tr = `<tr><td style="background:${bg}!important;border:1px solid #000;padding:1px 3px;height:${rowH}px;vertical-align:middle;white-space:nowrap;overflow:hidden;font-family:'DM Sans',Calibri,Arial,sans-serif">${label}</td>`;
+      let tr = `<tr><td style="background:${bg}!important;border:1px solid #d0d0d0;padding:1px 3px;height:${rowH}px;vertical-align:middle;white-space:nowrap;overflow:hidden;font-family:'DM Sans',Calibri,Arial,sans-serif">${label}</td>`;
       for (let d=0; d<7; d++) {
         const bg2 = active.includes(d) ? bg : INACTIVE;
-        tr += `<td style="background:${bg2}!important;border:1px solid #000;height:${rowH}px"></td>`;
+        tr += `<td style="background:${bg2}!important;border:1px solid #d0d0d0;height:${rowH}px"></td>`;
       }
-      tr += `<td style="background:${bg}!important;border:1px solid #000;height:${rowH}px;padding:2px 3px;font-size:6.5pt;color:#555;vertical-align:top;font-family:'DM Sans',Calibri,Arial,sans-serif"></td></tr>`;
+      tr += `<td style="background:${bg}!important;border:1px solid #d0d0d0;height:${rowH}px;padding:2px 3px;font-size:6.5pt;color:#555;vertical-align:top;font-family:'DM Sans',Calibri,Arial,sans-serif"></td></tr>`;
       return tr;
     }).join('');
   }
@@ -5376,22 +5376,22 @@ async function printPeptideWeekly() {
     const mondayStr = wMon.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
     const _wkMon = new Date(monday); _wkMon.setDate(monday.getDate() + weekOffset * 7);
     const noteText = weekNotesByMon[_wkMon.toISOString().split('T')[0]] || '';
-    const noteRow = `<tr><td colspan="9" style="border:1px solid #000;padding:4px 6px;font-size:8pt;color:#333;background:#ffffff!important;font-family:'DM Sans',Calibri,Arial,sans-serif;height:36px;vertical-align:top"><b>Week Note:</b> ${noteText}</td></tr>`;
-    return `<table style="width:100%;border-collapse:collapse;margin-top:6px;border:2px solid #000;table-layout:fixed;font-size:8pt;font-family:'DM Sans',Calibri,Arial,sans-serif">
+    const noteRow = `<tr><td colspan="9" style="border:1px solid #d0d0d0;padding:4px 6px;font-size:8pt;color:#333;background:#ffffff!important;font-family:'DM Sans',Calibri,Arial,sans-serif;height:36px;vertical-align:top"><b>Week Note:</b> ${noteText}</td></tr>`;
+    return `<table style="width:100%;border-collapse:collapse;margin-top:6px;border:1px solid #c4c4c4;table-layout:fixed;font-size:8pt;font-family:'DM Sans',Calibri,Arial,sans-serif">
     <colgroup><col style="width:34%">${DAYS.map(()=>'<col style="width:6%">').join('')}<col style="width:24%"></colgroup>
     <tbody>
     <tr>
-      <td style="background:${WEEK_BLUE}!important;color:#fff!important;font-weight:700;font-size:8.5pt;padding:2px 6px;border:1px solid #000">Week ${weekOffset+1}</td>
-      <td colspan="8" style="background:#fff!important;border:1px solid #000;font-size:8.5pt;padding:2px 6px;color:#000">Monday: <b>${mondayStr}</b></td>
+      <td style="background:${WEEK_BLUE}!important;color:#fff!important;font-weight:700;font-size:8.5pt;padding:2px 6px;border:1px solid #d0d0d0">Week ${weekOffset+1}</td>
+      <td colspan="8" style="background:#fff!important;border:1px solid #d0d0d0;font-size:8.5pt;padding:2px 6px;color:#000">Monday: <b>${mondayStr}</b></td>
     </tr>
-    <tr style="background:#D9D9D9!important">
-      <th style="border:1px solid #000;padding:2px 4px;text-align:left;font-size:7.5pt">Medication</th>
-      ${DAYS.map(d=>`<th style="border:1px solid #000;padding:2px 1px;text-align:center;font-size:7.5pt">${d}</th>`).join('')}
-      <th style="border:1px solid #000;padding:2px 4px;text-align:left;font-size:7.5pt">Notes</th>
+    <tr style="background:#F0F0F0!important">
+      <th style="border:1px solid #d0d0d0;padding:2px 4px;text-align:left;font-size:7.5pt">Medication</th>
+      ${DAYS.map(d=>`<th style="border:1px solid #d0d0d0;padding:2px 1px;text-align:center;font-size:7.5pt">${d}</th>`).join('')}
+      <th style="border:1px solid #d0d0d0;padding:2px 4px;text-align:left;font-size:7.5pt">Notes</th>
     </tr>
     <tr><td colspan="9" style="background:${MORN_HDR}!important;color:#fff!important;font-weight:700;padding:2px 5px;font-size:7.5pt">Morning</td></tr>
     ${rows(morningOrder, '#ffffff')}
-    <tr><td colspan="9" style="height:4px;background:#ddd!important;border:1px solid #000"></td></tr>
+    <tr><td colspan="9" style="height:4px;background:#F0F0F0!important;border:1px solid #d0d0d0"></td></tr>
     <tr><td colspan="9" style="background:${WEEK_BLUE}!important;color:#fff!important;font-weight:700;padding:2px 5px;font-size:7.5pt">Night</td></tr>
     ${rows(nightOrder, '#ffffff')}
     ${noteRow}
@@ -5445,12 +5445,12 @@ function printProtocolList() {
 
   function pepTable(title, rows) {
     if (!rows.length) return '';
-    return `<h3 style="margin:12px 0 4px;font-size:13px;border-bottom:2px solid #333;padding-bottom:3px">${title}</h3>
+    return `<h3 style="margin:12px 0 4px;font-size:13px;border-bottom:1px solid #aaa;padding-bottom:3px">${title}</h3>
     <table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:10px">
-    <thead><tr style="background:#D9D9D9">
-      <th style="border:1px solid #999;padding:4px 8px;text-align:left">Compound</th>
-      <th style="border:1px solid #999;padding:4px 8px;text-align:left">Dose</th>
-      <th style="border:1px solid #999;padding:4px 8px;text-align:left">Frequency</th>
+    <thead><tr style="background:#F0F0F0">
+      <th style="border:1px solid #cfcfcf;padding:4px 8px;text-align:left">Compound</th>
+      <th style="border:1px solid #cfcfcf;padding:4px 8px;text-align:left">Dose</th>
+      <th style="border:1px solid #cfcfcf;padding:4px 8px;text-align:left">Frequency</th>
 
     </tr></thead><tbody>
     ${rows.map(r => `<tr>
@@ -5464,13 +5464,13 @@ function printProtocolList() {
 
   function suppTable(title, rows) {
     if (!rows.length) return '';
-    return `<h3 style="margin:12px 0 4px;font-size:13px;border-bottom:2px solid #333;padding-bottom:3px">${title}</h3>
+    return `<h3 style="margin:12px 0 4px;font-size:13px;border-bottom:1px solid #aaa;padding-bottom:3px">${title}</h3>
     <table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:10px">
-    <thead><tr style="background:#D9D9D9">
-      <th style="border:1px solid #999;padding:4px 8px;text-align:left">Supplement</th>
-      <th style="border:1px solid #999;padding:4px 8px;text-align:left">Dose</th>
-      <th style="border:1px solid #999;padding:4px 8px;text-align:left">Timing</th>
-      <th style="border:1px solid #999;padding:4px 8px;text-align:left">Brand</th>
+    <thead><tr style="background:#F0F0F0">
+      <th style="border:1px solid #cfcfcf;padding:4px 8px;text-align:left">Supplement</th>
+      <th style="border:1px solid #cfcfcf;padding:4px 8px;text-align:left">Dose</th>
+      <th style="border:1px solid #cfcfcf;padding:4px 8px;text-align:left">Timing</th>
+      <th style="border:1px solid #cfcfcf;padding:4px 8px;text-align:left">Brand</th>
     </tr></thead><tbody>
     ${rows.map(r => `<tr>
       <td style="border:1px solid #ddd;padding:4px 8px;font-weight:600">${getField(r,'Supplement')}${starMark(r, dualNames)}</td>
@@ -5543,14 +5543,14 @@ function printSuppList() {
 
   function suppTbl(title, rows) {
     if (!rows.length) return '';
-    return `<h3 style="margin:12px 0 4px;font-size:13px;border-bottom:2px solid #333;padding-bottom:3px">${title}</h3>
+    return `<h3 style="margin:12px 0 4px;font-size:13px;border-bottom:1px solid #aaa;padding-bottom:3px">${title}</h3>
     <table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:10px">
-    <thead><tr style="background:#D9D9D9">
-      <th style="border:1px solid #999;padding:4px 8px;text-align:left">Supplement</th>
-      <th style="border:1px solid #999;padding:4px 8px;text-align:left">Dose</th>
-      <th style="border:1px solid #999;padding:4px 8px;text-align:left">Timing</th>
-      <th style="border:1px solid #999;padding:4px 8px;text-align:left">Brand</th>
-      ${showStatusCol ? '<th style="border:1px solid #999;padding:4px 8px;text-align:left">Status</th>' : ''}
+    <thead><tr style="background:#F0F0F0">
+      <th style="border:1px solid #cfcfcf;padding:4px 8px;text-align:left">Supplement</th>
+      <th style="border:1px solid #cfcfcf;padding:4px 8px;text-align:left">Dose</th>
+      <th style="border:1px solid #cfcfcf;padding:4px 8px;text-align:left">Timing</th>
+      <th style="border:1px solid #cfcfcf;padding:4px 8px;text-align:left">Brand</th>
+      ${showStatusCol ? '<th style="border:1px solid #cfcfcf;padding:4px 8px;text-align:left">Status</th>' : ''}
     </tr></thead><tbody>
     ${rows.map(r => `<tr>
       <td style="border:1px solid #ddd;padding:4px 8px;font-weight:600">${getField(r,'Supplement')}${starMark(r, dualNames)}</td>
