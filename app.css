@@ -299,21 +299,22 @@
   table-layout: fixed;
 }
 .pday-hdr {
-  background: var(--accent);
-  color: var(--surface);
-  font-size: var(--fs-base);
-  font-weight: bold;
-  padding: 7px 8px;
+  background: #6C8CFF;
+  color: #0B1020;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  padding: 4px 8px;
   text-align: left;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 .pmeta td, .pmeta-cell {
-  background: var(--accent-light);
+  background: #f4f7ff;
   padding: 0 8px;
   font-size: var(--fs-xs);
-  border: 1.5px solid var(--accent);
+  border: 1px solid #c4c4c4;
   vertical-align: middle;
-  height: 36px;
+  height: 28px;
 }
 .pmeta-val { font-weight: 600; }
 .pwrite {
@@ -325,23 +326,23 @@
   vertical-align: middle;
 }
 .pcol-hdr th {
-  background: var(--blue-bg);
-  color: var(--blue);
-  padding: 4px 4px;
+  background: #E8EEFF;
+  color: #1e40af;
+  padding: 3px 4px;
   font-size: var(--fs-micro);
-  font-weight: 700;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.3px;
-  border: 1.5px solid var(--accent);
+  border: 1px solid #b9ceff;
   text-align: center;
 }
 .pcol-hdr th.pex-name, .pcol-hdr th.pex-var { text-align: left; }
-.pex td { border: 1.5px solid #888; padding: 6px 5px; vertical-align: middle; height: 32px; }
+.pex td { border: 1px solid #d0d0d0; padding: 4px 5px; vertical-align: middle; height: 30px; }
 .pex-name { font-weight: 600; font-size: var(--fs-sm); word-break: break-word; }
 .pex-var  { font-size: var(--fs-micro); color: var(--text-dim); word-break: break-word; }
-.pset     { text-align: center; color: #999; font-size: var(--fs-micro); background: var(--surface2); }
+.pset     { text-align: center; color: #999; font-size: var(--fs-micro); background: #fff; }
 .preps, .pwt { text-align: center; }
-.pnotes td { border: 1.5px solid #888; padding: 8px 10px; background: var(--surface2); height: 80px; vertical-align: top; font-weight: 700; font-size: var(--fs-xs); color: var(--text); }
+.pnotes td { border: 1px solid #c4c4c4; padding: 8px 10px; background: #fff; height: 56px; vertical-align: top; font-weight: 500; font-size: var(--fs-xs); color: #555; }
 
 @media screen {
   .print-page { border: 1px solid var(--border); padding: 16px; border-radius: var(--r-sm); background: white; }
@@ -350,7 +351,7 @@
 
 @media print {
   body.print-workout * { -webkit-print-color-adjust: economy !important; print-color-adjust: economy !important; }
-  body.print-workout, body.print-workout html { background: white !important; margin: 0; padding: 0; }
+  html:has(body.print-workout), body.print-workout, body.print-workout html { background: #fff !important; margin: 0; padding: 0; }
 
   body.print-workout > * { display: none !important; }
   body.print-workout #app-container, body.print-workout .nav-sidebar, body.print-workout header, body.print-workout .tab-bar { display: none !important; }
