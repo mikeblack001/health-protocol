@@ -2730,9 +2730,9 @@ async function saveWorkout() {
 function printWorkout() {
   // Auto-size: compute row height from actual exercise counts so 2 days always fit per page
   const PAGE_H = 979;        // letter portrait @0.4in margins = 10.2in at 96dpi
-  const TABLE_OVERHEAD = 96; // day-hdr(28) + meta-row(36) + col-hdr(22) + table-gap(10)
-  const NOTES_H = 60;        // fixed notes row height
-  const AVAIL_FOR_ROWS = PAGE_H - 2 * (TABLE_OVERHEAD + NOTES_H); // 571px
+  const TABLE_OVERHEAD = 84; // day-hdr(21) + meta-row(26) + col-hdr(21) + table-gap(8) + slack
+  const NOTES_H = 56;        // fixed notes row height
+  const AVAIL_FOR_ROWS = PAGE_H - 2 * (TABLE_OVERHEAD + NOTES_H); // 699px
 
   const dayKeys = ['Monday - Push','Tuesday - Pull','Wednesday - Legs / Core','Thursday - Arms / Chest'];
   const counts = dayKeys.map(k => (WORKOUT_DAYS[k] || []).length);
@@ -2741,7 +2741,8 @@ function printWorkout() {
 
   const style = document.createElement('style');
   style.id = 'print-dynamic-size';
-  style.textContent = `@media print { .pex td { height: ${rowH}px !important; } .pnotes td { height: ${NOTES_H}px !important; } }`;
+  // NOTE: must match specificity of the body.print-workout rules in app.css, else they win.
+  style.textContent = `@media print { body.print-workout .pex td { height: ${rowH}px !important; } body.print-workout .pnotes td { height: ${NOTES_H}px !important; } }`;
   document.head.appendChild(style);
 
   document.body.classList.add('print-workout');
