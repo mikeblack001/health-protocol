@@ -11,11 +11,14 @@
     { view: 'purchases', content: 'purchases-content', noun: 'purchases' },
     { view: 'changes', content: 'changes-content', noun: 'changes' },
     { view: 'suppchanges', content: 'suppchanges-content', noun: 'changes' },
-    { view: 'suppvendors', content: 'suppvendors-content', noun: 'supplements', search: 'Search vendors or supplements…' }
+    { view: 'suppvendors', content: 'suppvendors-content', noun: 'supplements', search: 'Search vendors or supplements…' },
+    { view: 'goals', content: 'goals-content', noun: 'goals', search: 'Search goals, targets, or notes…', kind: 'cards' },
+    { view: 'profile', content: 'profile-content', noun: 'fields', search: 'Search health context or values…', kind: 'cards' }
   ];
 
   function primaryRows(container, kind) {
     if (kind === 'groups') return [...container.querySelectorAll('.pricing-group')];
+    if (kind === 'cards') return [...container.querySelectorAll('.card')];
     if (kind === 'vendors') return [...container.querySelectorAll('tbody > tr')].filter(row => !row.id.startsWith('vendor-expand-'));
     return [...container.querySelectorAll('tbody > tr')];
   }
@@ -24,6 +27,17 @@
     container.querySelectorAll('.table-wrap').forEach(wrap => {
       const rows = [...wrap.querySelectorAll('tbody > tr')].filter(row => !row.id.startsWith('vendor-expand-'));
       wrap.classList.toggle('data-filter-empty', Boolean(rows.length) && rows.every(row => row.hidden));
+    });
+  }
+
+  function updateCardGroups(container) {
+    container.querySelectorAll('div[style*="grid-template-columns"]').forEach(grid => {
+      const cards = [...grid.querySelectorAll(':scope > .card')];
+      if (!cards.length) return;
+      const empty = cards.every(card => card.hidden);
+      grid.hidden = empty;
+      const heading = grid.previousElementSibling;
+      if (heading) heading.hidden = empty;
     });
   }
 
@@ -52,6 +66,7 @@
     });
 
     updateTableGroups(container);
+    if (config.kind === 'cards') updateCardGroups(container);
     const count = document.getElementById('data-count-' + config.view);
     if (count) count.textContent = `${visible} ${visible === 1 ? config.noun.replace(/s$/, '') : config.noun}`;
     const empty = document.getElementById('data-empty-' + config.view);
