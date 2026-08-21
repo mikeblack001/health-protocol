@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // AIRTABLE CONFIG 
 const TOKEN = 'pat45cU4qfPplkXEl.f6103ec8979937577762911c0549000ecc4ec5f358c2639d3db62638a28f4b4a';
 const BASE = 'appmHDG4TGT1xy6R6';
-const TABLES = { peptides: 'tblMs6YRdP4wkndUp', supplements: 'tblSnkc0Gu2BzGACP', amazonPurchases: 'tblGs2dflGhvPs94p', dailyLog: 'tblaYuZjl4Pu4nKxS', pricing: 'tblnW21TLSqgVerwQ', vendors: 'tblI0nfBBuHXjp3KT', suppVendors: 'tblxI3G63a7WvK0Ya', purchases: 'tblWmflohL6d6HC9p', bloodwork: 'tbl3200yJid6fXaOp', protocolChanges: 'tblolVx7YwO5cJhsE', goals: 'tblRuaROlyG93Bz4Y', profile: 'tblPBJkYqlnzrBK3B', suppChanges: 'tblcwqEVCMfSwNSMu', sessions: 'tblk9tTYIcIY4tWjF', sets: 'tblKDqjy5RzqaJvjr', wotemplate: 'tblO3uq3dLfcm4nfX' };
+const TABLES = { peptides: 'tblMs6YRdP4wkndUp', supplements: 'tblSnkc0Gu2BzGACP', amazonPurchases: 'tblGs2dflGhvPs94p', dailyLog: 'tblaYuZjl4Pu4nKxS', pricing: 'tblnW21TLSqgVerwQ', vendors: 'tblI0nfBBuHXjp3KT', suppVendors: 'tblxI3G63a7WvK0Ya', purchases: 'tblWmflohL6d6HC9p', bloodwork: 'tbl3200yJid6fXaOp', labMonitoringPlan: 'tblHDhu534OjCAEzc', protocolChanges: 'tblolVx7YwO5cJhsE', goals: 'tblRuaROlyG93Bz4Y', profile: 'tblPBJkYqlnzrBK3B', suppChanges: 'tblcwqEVCMfSwNSMu', sessions: 'tblk9tTYIcIY4tWjF', sets: 'tblKDqjy5RzqaJvjr', wotemplate: 'tblO3uq3dLfcm4nfX' };
 
 let data = { peptides: [], supplements: [] };
 let currentPepFilter = 'Active';
@@ -4560,6 +4560,8 @@ async function saveAddPurchase() {
 
 // ===== LABS =====
 let labsData = [];
+let labsPlanData = [];
+let labsPlanLoaded = false;
 let labsView = 'trend';
 let labsPriority = 'All';
 
@@ -4646,7 +4648,7 @@ function getLabsSource() {
 function onLabsSourceChange() {
   renderLabsFlagBar();
   if (labsView === 'trend') renderLabsTrend();
-  else renderLabsDraw();
+  else if (labsView === 'draw') renderLabsDraw();
 }
 
 function getFilteredLabsData() {
@@ -4658,10 +4660,103 @@ function setLabsView(view) {
   labsView = view;
   document.getElementById('labs-tab-trend').classList.toggle('active', view==='trend');
   document.getElementById('labs-tab-draw').classList.toggle('active', view==='draw');
+  document.getElementById('labs-tab-plan').classList.toggle('active', view==='plan');
   document.getElementById('labs-draw-select').style.display = view==='draw' ? 'block' : 'none';
+  document.getElementById('labs-source-filter').style.display = view==='plan' ? 'none' : 'block';
+  document.getElementById('labs-priority-bar').style.display = view==='plan' ? 'none' : 'flex';
+  document.getElementById('labs-flag-bar').style.display = 'none';
+  if (view === 'plan') {
+    loadLabMonitoringPlan();
+    return;
+  }
   if (!labsData.length) return;
-  if (view==='trend') renderLabsTrend();
+  renderLabsFlagBar();
+  if (view === 'trend') renderLabsTrend();
   else renderLabsDraw();
+}
+
+async function loadLabMonitoringPlan() {
+  const el = document.getElementById('labs-content');
+  if (labsPlanLoaded) {
+    renderLabMonitoringPlan();
+    return;
+  }
+  el.innerHTML = '<div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div>';
+  try {
+    let records = [], offset = null;
+    do {
+      const filter = encodeURIComponent('{Active}=1');
+      const url = `https://api.airtable.com/v0/${BASE}/${TABLES.labMonitoringPlan}?pageSize=100&filterByFormula=${filter}${offset ? '&offset=' + offset : ''}`;
+      const res = await fetch(url, { headers: { Authorization: `Bearer ${TOKEN}` } });
+      if (!res.ok) throw new Error(`Airtable returned ${res.status}`);
+      const d = await res.json();
+      records.push(...(d.records || []).map(r => r.fields));
+      offset = d.offset;
+    } while (offset);
+    labsPlanData = records;
+    labsPlanLoaded = true;
+    if (labsView === 'plan') renderLabMonitoringPlan();
+  } catch (e) {
+    el.innerHTML = `<p style="color:var(--red);padding:16px">Unable to load the monitoring plan: ${esc(e.message)}</p>`;
+  }
+}
+
+function renderLabMonitoringPlan() {
+  const el = document.getElementById('labs-content');
+  const groups = [
+    { name: 'Get Now', description: 'Current request / next draw' },
+    { name: 'Routine 3 Months', description: 'Closer monitoring' },
+    { name: 'Routine 6 Months', description: 'Routine surveillance' },
+    { name: 'Conditional', description: 'Only when clinically indicated' },
+  ];
+  const groupNames = new Set(groups.map(group => group.name));
+  const getGroups = record => {
+    const value = record['Plan Group'];
+    return Array.isArray(value) ? value : value ? [value] : [];
+  };
+  const renderCard = record => {
+    const category = record.Category || 'Other';
+    const frequency = record.Frequency || 'As directed';
+    const notes = record.Notes || 'Monitoring rationale not yet documented.';
+    return `<article class="lab-plan-card">
+      <div class="lab-plan-card-top">
+        <h3>${esc(record.Test || 'Unnamed test')}</h3>
+        <span class="lab-plan-category">${esc(category)}</span>
+      </div>
+      <div class="lab-plan-frequency">${esc(frequency)}</div>
+      <p>${esc(notes)}</p>
+    </article>`;
+  };
+
+  let sections = groups.map(group => {
+    const records = labsPlanData
+      .filter(record => getGroups(record).includes(group.name))
+      .sort((a, b) => (a.Category || '').localeCompare(b.Category || '') || (a.Test || '').localeCompare(b.Test || ''));
+    if (!records.length) return '';
+    return `<section class="lab-plan-section">
+      <div class="lab-plan-heading">
+        <div><h2>${esc(group.name)}</h2><span>${esc(group.description)}</span></div>
+        <strong>${records.length}</strong>
+      </div>
+      <div class="lab-plan-cards">${records.map(renderCard).join('')}</div>
+    </section>`;
+  }).join('');
+
+  const ungrouped = labsPlanData
+    .filter(record => !getGroups(record).some(group => groupNames.has(group)))
+    .sort((a, b) => (a.Test || '').localeCompare(b.Test || ''));
+  if (ungrouped.length) {
+    sections += `<section class="lab-plan-section">
+      <div class="lab-plan-heading"><div><h2>Other Active Tests</h2><span>Not yet assigned to a plan group</span></div><strong>${ungrouped.length}</strong></div>
+      <div class="lab-plan-cards">${ungrouped.map(renderCard).join('')}</div>
+    </section>`;
+  }
+
+  el.innerHTML = `<div class="lab-plan-intro">
+      <div><strong>Lab Monitoring Plan</strong><span>Live from Airtable · active tests only</span></div>
+      <span>${labsPlanData.length} active tests</span>
+    </div>
+    <div class="lab-plan-grid">${sections || '<p class="lab-plan-empty">No active monitoring-plan tests found.</p>'}</div>`;
 }
 
 function renderLabsFlagBar() {
