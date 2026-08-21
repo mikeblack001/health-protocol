@@ -136,6 +136,30 @@
 
   /* FILTER BAR */
   .filter-bar { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
+
+  /* LAB MONITORING PLAN */
+  .lab-plan-intro { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:16px; padding:14px 16px; background:var(--surface); border:1px solid var(--border); border-radius:var(--r-md); }
+  .lab-plan-intro strong { display:block; font-size:var(--fs-base); color:var(--text); }
+  .lab-plan-intro span { color:var(--muted); font-size:var(--fs-xs); font-family:var(--mono); }
+  .lab-plan-intro > span { white-space:nowrap; color:var(--accent); }
+  .lab-plan-grid { display:grid; gap:16px; }
+  .lab-plan-section { background:var(--surface); border:1px solid var(--border); border-radius:var(--r-md); overflow:hidden; }
+  .lab-plan-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 16px; background:var(--surface2); border-bottom:1px solid var(--border); }
+  .lab-plan-heading h2 { margin:0; color:var(--accent); font-family:var(--mono); font-size:var(--fs-sm); letter-spacing:.8px; text-transform:uppercase; }
+  .lab-plan-heading span { display:block; margin-top:3px; color:var(--muted); font-size:var(--fs-xs); }
+  .lab-plan-heading strong { min-width:28px; padding:3px 8px; border-radius:var(--r-pill); background:var(--accent-light); color:var(--accent); font-family:var(--mono); font-size:var(--fs-xs); text-align:center; }
+  .lab-plan-cards { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; padding:12px; }
+  .lab-plan-card { padding:13px 14px; background:var(--surface2); border:1px solid var(--border-soft); border-radius:var(--r-sm); }
+  .lab-plan-card-top { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
+  .lab-plan-card h3 { margin:0; color:var(--text); font-size:var(--fs-base); font-weight:600; }
+  .lab-plan-category { flex-shrink:0; padding:2px 7px; border-radius:var(--r-pill); background:var(--blue-bg); color:var(--blue); font-family:var(--mono); font-size:var(--fs-micro); }
+  .lab-plan-frequency { margin:7px 0 6px; color:var(--accent); font-family:var(--mono); font-size:var(--fs-xs); }
+  .lab-plan-card p { margin:0; color:var(--text-dim); font-size:var(--fs-sm); line-height:1.5; white-space:pre-line; }
+  .lab-plan-empty { padding:22px; color:var(--muted); }
+  @media (max-width: 700px) {
+    .lab-plan-cards { grid-template-columns:1fr; }
+    .lab-plan-intro { align-items:flex-start; flex-direction:column; gap:6px; }
+  }
   .filter-chip { background: var(--surface); border: 1px solid var(--border); color: var(--muted); font-size: var(--fs-sm); padding: 5px 12px; border-radius: var(--r-pill); cursor: pointer; transition: all 0.15s; font-family: var(--mono); }
   .filter-chip:hover, .filter-chip.active { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
 
