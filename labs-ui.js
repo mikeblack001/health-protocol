@@ -2,6 +2,13 @@
 
 const baseLoadLabs = loadLabs;
 const LABS_VIEW_KEY = 'hp_labs_view_v1';
+const baseRenderLabsFlagBar = renderLabsFlagBar;
+
+renderLabsFlagBar = function() {
+  baseRenderLabsFlagBar();
+  const bar = document.getElementById('labs-flag-bar');
+  if (bar) bar.innerHTML = bar.innerHTML.replace('•ï¸', '⚠');
+};
 
 loadLabs = async function() {
   const savedView = localStorage.getItem(LABS_VIEW_KEY);
