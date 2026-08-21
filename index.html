@@ -15,11 +15,12 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="app.js?v=1787336100" defer></script>
-<script src="labs-ui.js?v=1787346000" defer></script>
+<script src="labs-ui.js?v=1787349400" defer></script>
 <script src="app-shell-ui.js?v=1787346000" defer></script>
-<script src="data-views-ui.js?v=1787347600" defer></script>
+<script src="data-views-ui.js?v=1787349400" defer></script>
+<script src="remaining-ui.js?v=1787349400" defer></script>
 
-<link rel="stylesheet" href="app.css?v=1787347600">
+<link rel="stylesheet" href="app.css?v=1787349400">
 <!-- old-cb:224814 -->
 </head>
 <body>
@@ -310,12 +311,12 @@
       <select id="ai-vendor-select" onchange="filterPricingByVendor(this.value)" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface)">
         <option value="">Select vendor...</option>
       </select>
-      <button class="filter-btn" onclick="showBulkEdit()" style="background:var(--accent);color:var(--surface);border-color:var(--accent)">ï¸ Bulk Edit</button>
+      <button class="filter-btn" onclick="showBulkEdit()" style="background:var(--accent);color:var(--surface);border-color:var(--accent)">Bulk Edit</button>
       <button class="filter-btn" onclick="showAddPricingModal()" style="margin-left:auto;background:var(--accent);color:var(--surface);border-color:var(--accent)">+ Add Row</button>
     </div>
     <div id="ai-update-status" style="display:none;margin-bottom:12px;padding:10px 14px;background:var(--accent-light);border:1px solid var(--accent-border);border-radius:8px;font-size:13px;color:var(--accent)"></div>
     <div style="margin-bottom:12px;padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--muted)">
-      Select a vendor and click <strong>ï¸ Bulk Edit</strong> to update all their prices at once. Missing pricing rows are created automatically from the vendor's Peptides Carried list.
+      Select a vendor and click <strong>Bulk Edit</strong> to update all their prices at once. Missing pricing rows are created automatically from the vendor's Peptides Carried list.
     </div>
     <div id="pricing-content"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
   </div>
@@ -461,9 +462,9 @@
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
         <h3 style="font-size:13px;font-weight:700">Log Entry <span id="log-date"></span></h3>
         <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-          <button onclick="navLogDate(-1)" style="padding:5px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--surface);color:var(--text);cursor:pointer" title="Previous day"></button>
+          <button onclick="navLogDate(-1)" style="padding:5px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--surface);color:var(--text);cursor:pointer" title="Previous day" aria-label="Previous day">&lsaquo;</button>
           <input type="date" id="log-entry-date" onchange="prefillLogDate(this.value)" style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--surface)">
-          <button onclick="navLogDate(1)" style="padding:5px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--surface);color:var(--text);cursor:pointer" title="Next day"></button>
+          <button onclick="navLogDate(1)" style="padding:5px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--surface);color:var(--text);cursor:pointer" title="Next day" aria-label="Next day">&rsaquo;</button>
           <button onclick="goLogToday()" style="padding:5px 10px;border:1px solid var(--border);border-radius:6px;font-size:11px;font-weight:700;background:var(--surface);color:var(--accent);cursor:pointer">Today</button>
           <button class="save-btn" onclick="saveLog()" style="padding:6px 14px;font-size:12px">Save</button>
           <span class="save-status" id="log-save-status"></span>
@@ -481,8 +482,8 @@
         <div class="form-field"><label>Body Fat %</label><input type="number" id="log-bodyfat" placeholder="0.0" step="0.1"></div>
         <div class="form-field"><label>Active Cal</label><input type="number" id="log-active-cal" placeholder="0"></div>
         <div class="form-field"><label>Wakeups</label><input type="number" id="log-wakeups" placeholder="0"></div>
-        <div class="form-field"><label>Energy (110)</label><input type="number" id="log-energy" placeholder="0" min="1" max="10"></div>
-        <div class="form-field"><label>Cortisol Feel (110)</label><input type="number" id="log-cortisol" placeholder="0" min="1" max="10"></div>
+        <div class="form-field"><label>Energy (1&ndash;10)</label><input type="number" id="log-energy" placeholder="0" min="1" max="10"></div>
+        <div class="form-field"><label>Cortisol Feel (1&ndash;10)</label><input type="number" id="log-cortisol" placeholder="0" min="1" max="10"></div>
         <div class="form-field"><label>Mood</label>
           <select id="log-mood">
             <option value="">Select...</option>
@@ -1092,9 +1093,9 @@
 </div>
 
   <!-- Body & Vitals -->
-  <div class="view" id="view-bodycomp" class="view">
+  <div class="view" id="view-bodycomp">
     <div class="section-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
-      <div><h2>Body &amp; Vitals</h2><p class="section-sub">Withings + RENPHO data · 2018present</p></div>
+      <div><h2>Body &amp; Vitals</h2><p class="section-sub">Withings + RENPHO data · 2018&ndash;present</p></div>
       <div style="display:flex;gap:6px">
         <button class="filter-btn active" onclick="setBCRange(30,this)">30d</button>
         <button class="filter-btn" onclick="setBCRange(90,this)">90d</button>
