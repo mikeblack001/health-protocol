@@ -14,9 +14,9 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<script src="app.js?v=1787007627" defer></script>
+<script src="app.js?v=1787330400" defer></script>
 
-<link rel="stylesheet" href="app.css?v=1787007627">
+<link rel="stylesheet" href="app.css?v=1787330400">
 <!-- old-cb:224814 -->
 </head>
 <body>
@@ -735,6 +735,7 @@
       <span style="font-size:13px;font-weight:500;color:var(--text)">Labs & Bloodwork</span>
       <button class="filter-btn active" id="labs-tab-trend" onclick="setLabsView('trend')">Trend</button>
       <button class="filter-btn" id="labs-tab-draw" onclick="setLabsView('draw')">By Draw</button>
+      <button class="filter-btn" id="labs-tab-plan" onclick="setLabsView('plan')">Monitoring Plan</button>
       <select id="labs-draw-select" onchange="renderLabsDraw()" style="display:none;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface)"></select>
       <select id="labs-source-filter" onchange="onLabsSourceChange()" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface)">
         <option value="">All Sources</option>
@@ -1104,7 +1105,6 @@
 </body>
 </html>
 <!-- cache bust Mon May 26 2026 revert inj logger -->
-
 
 
 
