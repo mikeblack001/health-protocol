@@ -5,8 +5,8 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-<meta name="color-scheme" content="dark">
-<meta name="theme-color" content="#0F1520">
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#F0F4F8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="pragma" content="no-cache">
@@ -15,8 +15,9 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="app.js?v=1787336100" defer></script>
+<script src="labs-ui.js?v=1787340318" defer></script>
 
-<link rel="stylesheet" href="app.css?v=1787336100">
+<link rel="stylesheet" href="app.css?v=1787340318">
 <!-- old-cb:224814 -->
 </head>
 <body>
@@ -731,19 +732,27 @@
 
   <!-- LABS VIEW -->
   <div id="view-labs" class="view">
-    <div class="filter-bar">
-      <span style="font-size:13px;font-weight:500;color:var(--text)">Labs & Bloodwork</span>
-      <button class="filter-btn active" id="labs-tab-trend" onclick="setLabsView('trend')">Trend</button>
-      <button class="filter-btn" id="labs-tab-draw" onclick="setLabsView('draw')">By Draw</button>
-      <button class="filter-btn" id="labs-tab-plan" onclick="setLabsView('plan')">Monitoring Plan</button>
-      <select id="labs-draw-select" onchange="renderLabsDraw()" style="display:none;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface)"></select>
-      <select id="labs-source-filter" onchange="onLabsSourceChange()" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface)">
+    <div class="labs-toolbar">
+      <div class="labs-heading">
+        <strong>Labs</strong>
+        <span>Results, trends, and monitoring</span>
+      </div>
+      <label class="labs-view-picker">
+        <span>View</span>
+        <select id="labs-view-select" onchange="setLabsView(this.value)">
+          <option value="trend">Trends</option>
+          <option value="draw">By draw</option>
+          <option value="plan">Monitoring plan</option>
+        </select>
+      </label>
+      <select class="labs-toolbar-select" id="labs-draw-select" onchange="renderLabsDraw()" aria-label="Lab draw date" style="display:none"></select>
+      <select class="labs-toolbar-select" id="labs-source-filter" onchange="onLabsSourceChange()" aria-label="Lab source">
         <option value="">All Sources</option>
         <option value="REM Health">REM Health</option>
         <option value="Function Health">Function Health</option>
         <option value="LabCorp">LabCorp</option>
       </select>
-      <button class="filter-btn" onclick="showAddLabModal()" style="margin-left:auto;background:var(--accent);color:var(--surface);border-color:var(--accent)">+ Log Result</button>
+      <button class="filter-btn labs-log-result" onclick="showAddLabModal()">+ Log Result</button>
     </div>
     <div class="filter-bar" id="labs-priority-bar" style="padding:6px 16px;border-bottom:1px solid var(--border);gap:6px">
       <span style="font-size:11px;color:var(--muted);font-weight:600;letter-spacing:0.5px;text-transform:uppercase">Priority</span>
@@ -1105,7 +1114,3 @@
 </body>
 </html>
 <!-- cache bust Mon May 26 2026 revert inj logger -->
-
-
-
-
