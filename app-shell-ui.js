@@ -32,6 +32,7 @@
   const originalToggleDrop = window.toggleDrop;
   const originalLoadAll = window.loadAll;
   let routeChangeInProgress = false;
+  let quickNavLastFocus = null;
 
   function validView(view) {
     return Boolean(view && VIEW_GROUPS[view] && document.getElementById('view-' + view));
@@ -69,6 +70,104 @@
     } finally {
       routeChangeInProgress = false;
     }
+  }
+
+  function quickNavItems() {
+    return Object.keys(VIEW_TITLES).map(view => ({
+      view,
+      title: VIEW_TITLES[view],
+      group: VIEW_GROUPS[view] === 'nav-dashboard' ? 'Main' :
+        VIEW_GROUPS[view] === 'nav-pep' ? 'Peptides' :
+        VIEW_GROUPS[view] === 'nav-supp' ? 'Supplements' :
+        VIEW_GROUPS[view] === 'nav-ex' ? 'Exercise' :
+        VIEW_GROUPS[view] === 'nav-personal' ? 'Personal' : 'Tools'
+    }));
+  }
+
+  function renderQuickNav(query) {
+    const results = document.getElementById('quick-nav-results');
+    if (!results) return;
+    const needle = (query || '').trim().toLowerCase();
+    const matches = quickNavItems().filter(item => (item.title + ' ' + item.group).toLowerCase().includes(needle));
+    results.innerHTML = matches.length ? matches.map((item, index) => `
+      <button class="quick-nav-result${index === 0 ? ' selected' : ''}" data-view="${item.view}" role="option" aria-selected="${index === 0}">
+        <span>${item.title}</span><small>${item.group}</small>
+      </button>`).join('') : '<p class="quick-nav-empty">No matching section</p>';
+    results.querySelectorAll('.quick-nav-result').forEach(button => {
+      button.addEventListener('click', () => selectQuickNav(button.dataset.view));
+    });
+  }
+
+  function closeQuickNav() {
+    const modal = document.getElementById('quick-nav-modal');
+    if (!modal || modal.hidden) return;
+    modal.hidden = true;
+    document.body.classList.remove('quick-nav-open');
+    quickNavLastFocus?.focus();
+  }
+
+  function selectQuickNav(view) {
+    closeQuickNav();
+    if (view === 'dashboard') window.showView('dashboard', { target: document.getElementById('nav-dashboard') });
+    else window.navDrop(view, VIEW_GROUPS[view]);
+  }
+
+  window.openQuickNav = function () {
+    const modal = document.getElementById('quick-nav-modal');
+    if (!modal) return;
+    quickNavLastFocus = document.activeElement;
+    modal.hidden = false;
+    document.body.classList.add('quick-nav-open');
+    const input = document.getElementById('quick-nav-input');
+    input.value = '';
+    renderQuickNav('');
+    window.setTimeout(() => input.focus(), 0);
+  };
+
+  function installQuickNav() {
+    const statusDot = document.getElementById('statusDot');
+    if (statusDot && !document.querySelector('.quick-nav-trigger')) {
+      statusDot.insertAdjacentHTML('beforebegin', '<button class="quick-nav-trigger" type="button" onclick="openQuickNav()" aria-label="Find a section">Find <kbd>⌘K</kbd></button>');
+    }
+    const mobileMain = document.querySelector('.mobile-section');
+    if (mobileMain && !mobileMain.querySelector('.mobile-find')) {
+      mobileMain.insertAdjacentHTML('beforeend', '<button class="mobile-item mobile-find" type="button" onclick="toggleMobileMenu();openQuickNav()">Find a section</button>');
+    }
+    document.body.insertAdjacentHTML('beforeend', `
+      <div class="quick-nav-modal" id="quick-nav-modal" hidden>
+        <div class="quick-nav-panel" role="dialog" aria-modal="true" aria-labelledby="quick-nav-title">
+          <div class="quick-nav-search-row">
+            <span aria-hidden="true">⌕</span>
+            <label class="sr-only" for="quick-nav-input" id="quick-nav-title">Find a section</label>
+            <input id="quick-nav-input" type="search" placeholder="Find labs, workouts, injections…" autocomplete="off">
+            <button type="button" class="quick-nav-close" aria-label="Close section finder">Esc</button>
+          </div>
+          <div class="quick-nav-results" id="quick-nav-results" role="listbox"></div>
+          <div class="quick-nav-help"><span>↑↓ move</span><span>Enter open</span></div>
+        </div>
+      </div>`);
+    const modal = document.getElementById('quick-nav-modal');
+    const input = document.getElementById('quick-nav-input');
+    input.addEventListener('input', () => renderQuickNav(input.value));
+    input.addEventListener('keydown', event => {
+      const buttons = [...document.querySelectorAll('.quick-nav-result')];
+      if (!buttons.length) return;
+      let current = buttons.findIndex(button => button.classList.contains('selected'));
+      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+        event.preventDefault();
+        current = event.key === 'ArrowDown' ? (current + 1) % buttons.length : (current - 1 + buttons.length) % buttons.length;
+        buttons.forEach((button, index) => {
+          button.classList.toggle('selected', index === current);
+          button.setAttribute('aria-selected', String(index === current));
+        });
+        buttons[current].scrollIntoView({ block: 'nearest' });
+      } else if (event.key === 'Enter') {
+        event.preventDefault();
+        selectQuickNav(buttons[Math.max(current, 0)].dataset.view);
+      }
+    });
+    modal.addEventListener('click', event => { if (event.target === modal) closeQuickNav(); });
+    modal.querySelector('.quick-nav-close').addEventListener('click', closeQuickNav);
   }
 
   window.showView = function (view, event) {
@@ -132,7 +231,19 @@
   }
 
   document.addEventListener('keydown', event => {
+    const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName || '');
+    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+      event.preventDefault();
+      window.openQuickNav();
+      return;
+    }
+    if (event.key === '/' && !typing && document.getElementById('quick-nav-modal')?.hidden) {
+      event.preventDefault();
+      window.openQuickNav();
+      return;
+    }
     if (event.key !== 'Escape') return;
+    closeQuickNav();
     const mobileMenu = document.getElementById('mobileMenu');
     if (mobileMenu.classList.contains('open')) window.toggleMobileMenu();
     if (typeof window.closeAllDrops === 'function') window.closeAllDrops();
@@ -140,6 +251,7 @@
 
   window.addEventListener('hashchange', syncFromLocation);
   document.addEventListener('DOMContentLoaded', () => {
+    installQuickNav();
     document.querySelectorAll('.drop-trigger').forEach(trigger => trigger.setAttribute('aria-expanded', 'false'));
     const requested = location.hash.replace(/^#/, '');
     if (validView(requested) && requested !== 'dashboard') openRoute(requested);
