@@ -132,3 +132,108 @@ window.filterLabMonitoringPlan = function(query) {
 window.setLabPlanGroups = function(open) {
   document.querySelectorAll('.lab-plan-section:not([hidden])').forEach(section => { section.open = open; });
 };
+
+const BATCH_LAB_MARKERS = new Set(LAB_MARKERS.map(marker => marker.toLowerCase()));
+
+function parseBatchLabLine(line) {
+  const delimiter = line.includes('\t') ? '\t' : ',';
+  const cells = line.split(delimiter).map(cell => cell.trim().replace(/^"|"$/g, ''));
+  if (cells.length < 2) return { error: 'Needs at least a biomarker and value', raw: line };
+  const [biomarker, rawValue, units = '', rawStatus = ''] = cells;
+  if (/^biomarker$/i.test(biomarker) && /^value$/i.test(rawValue)) return { header: true };
+  if (!biomarker || rawValue === '') return { error: 'Biomarker and value are required', raw: line };
+  const numeric = Number(String(rawValue).replace(/,/g, ''));
+  const value = Number.isFinite(numeric) ? numeric : rawValue;
+  const flagged = /out|high|low|abnormal|\b[hl]\b/i.test(rawStatus);
+  return {
+    biomarker,
+    value,
+    units,
+    status: flagged ? 'Out of Range' : 'In Range',
+    known: BATCH_LAB_MARKERS.has(biomarker.toLowerCase())
+  };
+}
+
+function getBatchLabRows() {
+  const input = document.getElementById('batch-lab-input');
+  if (!input) return [];
+  return input.value.split(/\r?\n/).map(line => line.trim()).filter(Boolean).map(parseBatchLabLine).filter(row => !row.header);
+}
+
+window.showBatchLabModal = function() {
+  const modal = document.getElementById('batch-lab-modal');
+  const date = document.getElementById('batch-lab-date');
+  if (!modal || !date) return;
+  date.value = new Date().toISOString().split('T')[0];
+  document.getElementById('batch-lab-status').textContent = '';
+  modal.style.display = 'flex';
+  document.getElementById('batch-lab-input').focus();
+  previewBatchLabs();
+};
+
+window.hideBatchLabModal = function() {
+  const modal = document.getElementById('batch-lab-modal');
+  if (modal) modal.style.display = 'none';
+};
+
+window.previewBatchLabs = function() {
+  const preview = document.getElementById('batch-lab-preview');
+  const save = document.getElementById('batch-lab-save');
+  if (!preview || !save) return;
+  const rows = getBatchLabRows();
+  const valid = rows.filter(row => !row.error);
+  const errors = rows.filter(row => row.error);
+  save.disabled = !valid.length || Boolean(errors.length);
+  if (!rows.length) {
+    preview.innerHTML = '<p>Paste results to preview them here.</p>';
+    return;
+  }
+  preview.innerHTML = `<div class="batch-lab-preview-heading"><strong>${valid.length} result${valid.length === 1 ? '' : 's'} ready</strong>${errors.length ? `<span>${errors.length} row${errors.length === 1 ? '' : 's'} need attention</span>` : '<span>Ready to save</span>'}</div>
+    <div class="batch-lab-preview-table"><table><thead><tr><th>Biomarker</th><th>Value</th><th>Units</th><th>Status</th></tr></thead><tbody>
+    ${rows.slice(0, 10).map(row => row.error ? `<tr class="batch-lab-error"><td colspan="4">${esc(row.error)}: ${esc(row.raw)}</td></tr>` : `<tr><td>${esc(row.biomarker)}${row.known ? '' : '<small>New marker</small>'}</td><td>${esc(row.value)}</td><td>${esc(row.units)}</td><td><span class="batch-lab-range ${row.status === 'Out of Range' ? 'out' : ''}">${esc(row.status)}</span></td></tr>`).join('')}
+    </tbody></table></div>${rows.length > 10 ? `<p class="batch-lab-more">+${rows.length - 10} additional rows</p>` : ''}`;
+};
+
+window.saveBatchLabs = async function() {
+  const rows = getBatchLabRows();
+  const valid = rows.filter(row => !row.error);
+  const date = document.getElementById('batch-lab-date').value;
+  const source = document.getElementById('batch-lab-source').value;
+  const labType = document.getElementById('batch-lab-type').value;
+  const button = document.getElementById('batch-lab-save');
+  const status = document.getElementById('batch-lab-status');
+  if (!date || !valid.length || valid.length !== rows.length) return;
+  button.disabled = true;
+  let saved = 0;
+  try {
+    for (let index = 0; index < valid.length; index += 10) {
+      const batch = valid.slice(index, index + 10).map(row => ({ fields: {
+        Biomarker: row.biomarker,
+        Date: date,
+        Value: row.value,
+        Status: row.status,
+        Source: source,
+        ...(row.units ? { Units: row.units } : {}),
+        ...(labType ? { 'Lab Type': labType } : {})
+      }}));
+      status.textContent = `Saving ${Math.min(index + batch.length, valid.length)} of ${valid.length}…`;
+      const response = await fetch(`https://api.airtable.com/v0/${BASE}/${TABLES.bloodwork}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ records: batch })
+      });
+      if (!response.ok) throw new Error(`Airtable returned ${response.status}`);
+      saved += batch.length;
+    }
+    status.textContent = `${saved} results saved.`;
+    try { localStorage.removeItem('hp_dashboard_insights_v1'); } catch (_) {}
+    window.setTimeout(() => {
+      hideBatchLabModal();
+      document.getElementById('batch-lab-input').value = '';
+      loadLabs();
+    }, 650);
+  } catch (error) {
+    status.textContent = `Saved ${saved}; stopped because ${error.message}.`;
+    button.disabled = false;
+  }
+};
