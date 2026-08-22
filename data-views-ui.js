@@ -12,6 +12,9 @@
     { view: 'changes', content: 'changes-content', noun: 'changes', sortable: true, exportable: true },
     { view: 'suppchanges', content: 'suppchanges-content', noun: 'changes', sortable: true, exportable: true },
     { view: 'suppvendors', content: 'suppvendors-content', noun: 'supplements', search: 'Search vendors or supplements…', sortable: true, exportable: true },
+    { view: 'log', content: 'log-history', noun: 'days', search: 'Search dates, mood, or metrics…', sortable: true, exportable: true },
+    { view: 'bodycomp', content: 'bc-history', noun: 'records', search: 'Search dates or measurements…', sortable: true, exportable: true },
+    { view: 'drinks', content: 'drinks-content', noun: 'items', search: 'Search drinks, timing, or ingredients…', kind: 'cards' },
     { view: 'goals', content: 'goals-content', noun: 'goals', search: 'Search goals, targets, or notes…', kind: 'cards' },
     { view: 'profile', content: 'profile-content', noun: 'fields', search: 'Search health context or values…', kind: 'cards' }
   ];
@@ -193,9 +196,108 @@
     applyDataViewFilter(config);
   }
 
+  function injectionRows() {
+    return [...document.querySelectorAll('#injfull-body tr')];
+  }
+
+  function applyInjectionHistoryFilter() {
+    const rows = injectionRows();
+    if (!rows.length) return;
+    const search = (document.getElementById('injfull-search')?.value || '').trim().toLowerCase();
+    const range = Number(document.getElementById('injfull-range')?.value || 30);
+    const dates = rows.map(row => Date.parse(`${row.cells[0]?.textContent.trim()}T12:00:00`)).filter(Number.isFinite);
+    const latest = dates.length ? Math.max(...dates) : 0;
+    const cutoff = range && latest ? latest - ((range - 1) * 86400000) : 0;
+    let visible = 0;
+    rows.forEach(row => {
+      const date = Date.parse(`${row.cells[0]?.textContent.trim()}T12:00:00`);
+      const inRange = !range || (Number.isFinite(date) && date >= cutoff);
+      const matches = !search || row.textContent.toLowerCase().includes(search);
+      row.hidden = !(inRange && matches);
+      if (!row.hidden && row.style.display !== 'none') visible += 1;
+    });
+    const count = document.getElementById('injfull-count');
+    if (count) count.textContent = `${visible} shown`;
+  }
+
+  window.exportInjectionHistoryCsv = function () {
+    const table = document.querySelector('#injlog-full table');
+    if (!table) return;
+    const quote = value => `"${String(value ?? '').replace(/↕|↑|↓/g, '').trim().replace(/"/g, '""')}"`;
+    const headers = [...table.querySelectorAll('thead th')].map(header => quote(header.textContent));
+    const rows = injectionRows().filter(row => !row.hidden && row.style.display !== 'none');
+    if (!rows.length) return;
+    const output = [headers.join(','), ...rows.map(row => [...row.cells].map(cell => quote(cell.textContent)).join(','))];
+    const blob = new Blob([output.join('\n')], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `injection-history-${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  function enhanceInjectionLog() {
+    const summary = document.getElementById('injlog-summary');
+    const full = document.getElementById('injlog-full');
+    if (!summary || !full) return;
+    const enhanceTables = () => {
+      summary.classList.add('injlog-table-scroll');
+      const summaryTable = summary.querySelector('table');
+      if (summaryTable) {
+        summaryTable.classList.add('data-table');
+        installTableSorting(summary);
+      }
+      const table = full.querySelector('table');
+      const filterRow = document.getElementById('injfull-compound')?.parentElement;
+      if (!table || !filterRow) return;
+      full.classList.add('injlog-table-scroll');
+      table.classList.add('data-table');
+      installTableSorting(full);
+      if (!document.getElementById('injfull-search')) {
+        const tools = document.createElement('div');
+        tools.className = 'injlog-history-tools';
+        tools.innerHTML = `<label class="data-view-search"><span aria-hidden="true">⌕</span><span class="sr-only">Search injection history</span><input id="injfull-search" type="search" placeholder="Search history…" autocomplete="off"></label>
+          <label class="injlog-range-label"><span>Range</span><select id="injfull-range"><option value="30">Latest 30 days</option><option value="90">Latest 90 days</option><option value="0">All loaded</option></select></label>
+          <button class="data-export-button" type="button" onclick="exportInjectionHistoryCsv()">Export CSV</button>
+          <button class="data-density-toggle" type="button" onclick="toggleDataDensity()" aria-pressed="false">Compact rows</button>`;
+        filterRow.insertAdjacentElement('afterend', tools);
+        tools.querySelector('#injfull-search').addEventListener('input', applyInjectionHistoryFilter);
+        tools.querySelector('#injfull-range').addEventListener('change', applyInjectionHistoryFilter);
+        updateDensityButtons();
+      }
+      if (filterRow.dataset.historyEnhanced !== 'true') {
+        filterRow.dataset.historyEnhanced = 'true';
+        filterRow.querySelector('#injfull-compound')?.addEventListener('change', () => {
+          injectionRows().forEach(row => { row.hidden = false; });
+          applyInjectionHistoryFilter();
+        });
+        filterRow.querySelector('#injfull-hideskip')?.addEventListener('change', () => {
+          injectionRows().forEach(row => { row.hidden = false; });
+          applyInjectionHistoryFilter();
+        });
+      }
+      applyInjectionHistoryFilter();
+    };
+    let enhancing = false;
+    const observer = new MutationObserver(() => {
+      if (enhancing) return;
+      enhancing = true;
+      observer.disconnect();
+      enhanceTables();
+      observer.observe(summary, { childList: true, subtree: true });
+      observer.observe(full, { childList: true, subtree: true });
+      enhancing = false;
+    });
+    observer.observe(summary, { childList: true, subtree: true });
+    observer.observe(full, { childList: true, subtree: true });
+    enhanceTables();
+  }
+
   document.addEventListener('DOMContentLoaded', () => {
     document.documentElement.dataset.dataDensity = localStorage.getItem(DENSITY_KEY) === 'compact' ? 'compact' : 'comfortable';
     VIEWS.forEach(installView);
+    enhanceInjectionLog();
     updateDensityButtons();
   });
 })();
