@@ -6,12 +6,12 @@
   const VIEWS = [
     { view: 'peptides', content: 'peptides-content', noun: 'compounds', search: 'Search compounds, doses, or purposes…' },
     { view: 'supplements', content: 'supps-content', noun: 'supplements', search: 'Search supplements, brands, or purposes…' },
-    { view: 'vendors', content: 'vendors-content', noun: 'vendors', search: 'Search vendors or peptides carried…', kind: 'vendors' },
+    { view: 'vendors', content: 'vendors-content', noun: 'vendors', search: 'Search vendors or peptides carried…', kind: 'vendors', exportable: true },
     { view: 'pricing', content: 'pricing-content', noun: 'compounds', search: 'Search compounds or vendors…', kind: 'groups' },
     { view: 'purchases', content: 'purchases-content', noun: 'purchases', sortable: true },
-    { view: 'changes', content: 'changes-content', noun: 'changes', sortable: true },
-    { view: 'suppchanges', content: 'suppchanges-content', noun: 'changes', sortable: true },
-    { view: 'suppvendors', content: 'suppvendors-content', noun: 'supplements', search: 'Search vendors or supplements…', sortable: true },
+    { view: 'changes', content: 'changes-content', noun: 'changes', sortable: true, exportable: true },
+    { view: 'suppchanges', content: 'suppchanges-content', noun: 'changes', sortable: true, exportable: true },
+    { view: 'suppvendors', content: 'suppvendors-content', noun: 'supplements', search: 'Search vendors or supplements…', sortable: true, exportable: true },
     { view: 'goals', content: 'goals-content', noun: 'goals', search: 'Search goals, targets, or notes…', kind: 'cards' },
     { view: 'profile', content: 'profile-content', noun: 'fields', search: 'Search health context or values…', kind: 'cards' }
   ];
@@ -137,6 +137,32 @@
     updateDensityButtons();
   };
 
+  window.exportDataViewCsv = function (viewId) {
+    const config = VIEWS.find(item => item.view === viewId);
+    const container = config && document.getElementById(config.content);
+    if (!container) return;
+    const quote = value => `"${String(value ?? '').replace(/↕|↑|↓/g, '').trim().replace(/"/g, '""')}"`;
+    const output = [];
+    [...container.querySelectorAll('table')].forEach((table, tableIndex) => {
+      const headers = [...table.querySelectorAll('thead th')].map(header => header.textContent);
+      const rows = [...table.querySelectorAll('tbody > tr')].filter(row => !row.hidden && getComputedStyle(row).display !== 'none' && !row.id.startsWith('vendor-expand-'));
+      if (!headers.length || !rows.length) return;
+      if (output.length) output.push('');
+      const section = table.closest('.table-wrap')?.querySelector('.timing-header')?.textContent?.trim();
+      if (section) output.push(quote(section));
+      output.push(headers.map(quote).join(','));
+      rows.forEach(row => output.push([...row.cells].map(cell => quote(cell.textContent)).join(',')));
+    });
+    if (!output.length) return;
+    const blob = new Blob([output.join('\n')], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${viewId}-export-${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   function installView(config) {
     const view = document.getElementById('view-' + config.view);
     const content = document.getElementById(config.content);
@@ -151,6 +177,7 @@
     utility.innerHTML = `
       ${config.search ? `<label class="data-view-search"><span aria-hidden="true">⌕</span><span class="sr-only">${config.search}</span><input id="data-search-${config.view}" type="search" placeholder="${config.search}" autocomplete="off"></label>` : '<span class="data-view-utility-spacer"></span>'}
       <span class="data-view-count" id="data-count-${config.view}">—</span>
+      ${config.exportable ? `<button class="data-export-button" type="button" onclick="exportDataViewCsv('${config.view}')">Export CSV</button>` : ''}
       <button class="data-density-toggle" type="button" onclick="toggleDataDensity()" aria-pressed="false">Compact rows</button>`;
     content.insertAdjacentElement('beforebegin', utility);
 
