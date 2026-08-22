@@ -42,12 +42,45 @@
     update();
   }
 
+  function installWorkoutAuditStatus() {
+    const status = document.getElementById('wkaudit-status');
+    if (!status || typeof window.wkaRenderDay !== 'function' || window.wkaRenderDay.__statusWrapped) return;
+
+    const originalRender = window.wkaRenderDay;
+    const wrappedRender = function (dateISO, records) {
+      const result = originalRender.apply(this, arguments);
+      const count = Array.isArray(records) ? records.length : 0;
+      const date = new Date(dateISO + 'T12:00:00');
+      const label = Number.isNaN(date.getTime())
+        ? ''
+        : date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      status.textContent = `${count} sets${label ? ' · ' + label : ''}`;
+      return result;
+    };
+    wrappedRender.__statusWrapped = true;
+    window.wkaRenderDay = wrappedRender;
+
+    if (typeof window.loadWkAudit === 'function') {
+      const originalLoad = window.loadWkAudit;
+      window.loadWkAudit = async function () {
+        status.textContent = 'Loading…';
+        try {
+          return await originalLoad.apply(this, arguments);
+        } catch (error) {
+          status.textContent = 'Unable to load';
+          throw error;
+        }
+      };
+    }
+  }
+
   document.addEventListener('DOMContentLoaded', () => {
     STANDARD_VIEWS.forEach(id => document.getElementById('view-' + id)?.classList.add('standard-view'));
     addHeader('tracker', 'Peptide Tracker', 'Weekly dosing and injection completion');
     addHeader('wktracker', 'Workout Tracker', 'Log sets and review recent sessions');
     installInjectionHistoryToggle();
     installBackToTop();
+    installWorkoutAuditStatus();
     document.getElementById('db-collection')?.setAttribute('aria-label', 'Data collection');
     document.getElementById('db-search')?.setAttribute('aria-label', 'Search all fields');
   });
