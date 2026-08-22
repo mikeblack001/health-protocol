@@ -60,12 +60,23 @@
     if (!routeChangeInProgress) window.scrollTo({ top: 0, behavior: 'auto' });
   }
 
+  function loadAdditionalViewData(view) {
+    if (view !== 'bodycomp' || typeof window.loadBodyComp !== 'function') return;
+    Promise.resolve(window.loadBodyComp()).then(() => {
+      const recentBodyValues = [...document.querySelectorAll('#view-bodycomp .stat-val')].slice(0, 6);
+      if (recentBodyValues.some(item => item.textContent.trim())) return;
+      const oneYear = [...document.querySelectorAll('#view-bodycomp .filter-btn')].find(button => button.textContent.trim() === '1yr');
+      if (oneYear && typeof window.setBCRange === 'function') window.setBCRange(365, oneYear);
+    });
+  }
+
   function openRoute(view) {
     if (!validView(view)) return;
     routeChangeInProgress = true;
     try {
       if (view === 'dashboard') originalShowView('dashboard', { target: document.getElementById('nav-dashboard') });
       else originalNavDrop(view, VIEW_GROUPS[view]);
+      loadAdditionalViewData(view);
       finishNavigation(view, false);
     } finally {
       routeChangeInProgress = false;
@@ -177,6 +188,7 @@
 
   window.navDrop = function (view, triggerId) {
     originalNavDrop(view, triggerId);
+    loadAdditionalViewData(view);
     finishNavigation(view, true);
   };
 
