@@ -257,6 +257,8 @@
   .injlog-history-tools .data-view-search { max-width:340px; }
   .injlog-range-label { display:flex; align-items:center; gap:6px; color:var(--muted); font-size:var(--fs-xs); white-space:nowrap; }
   .injlog-range-label select { min-height:38px; padding:6px 28px 6px 9px; border:1px solid var(--border); border-radius:var(--r-sm); background:var(--surface); color:var(--text); font-size:var(--fs-sm); }
+  .daily-log-history-table td:not(:first-child) { text-align:right; font-family:var(--mono); font-size:var(--fs-xs); }
+  .daily-log-history-table th:not(:first-child) { text-align:right; }
 
   /* REMAINING VIEW POLISH */
   .injlog-full-heading { margin:0 !important; }
