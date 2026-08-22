@@ -2,9 +2,14 @@
 (function () {
   'use strict';
 
-  const CACHE_KEY = 'hp_dashboard_insights_v1';
+  const CACHE_KEY = 'hp_dashboard_insights_v2';
   const CACHE_TTL = 10 * 60 * 1000;
   const CURRENT_DRAW_DATE = '2026-08-21';
+  const INJECTION_TABLE = 'tblBvEaLkGGipnOFc';
+  const DAILY_FIELDS = {
+    date: 'fldSk3hNQJTDKOyfT', weight: 'fldKTZ5ML0fnZV3oz', sleep: 'fldy1hM7kymJKN52E',
+    deep: 'fld5PGt9ZdFgBzMAM', hrv: 'fldIt4TweBKT7LiAV', rhr: 'fldXDw3aTnOLHk6lh', steps: 'fldUyaoAJXry9xqzb'
+  };
   let loading = false;
 
   const escapeHtml = value => String(value ?? '')
@@ -24,6 +29,24 @@
 
   function recordFields(records) {
     return (records || []).map(record => record.fields || record);
+  }
+
+  async function fetchRecentTable(tableId, sortField, pageSize, fields, returnIds) {
+    const params = new URLSearchParams();
+    params.set('pageSize', String(pageSize));
+    params.set('sort[0][field]', sortField);
+    params.set('sort[0][direction]', 'desc');
+    if (returnIds) params.set('returnFieldsByFieldId', 'true');
+    (fields || []).forEach(field => params.append('fields[]', field));
+    const response = await fetch(`https://api.airtable.com/v0/${BASE}/${tableId}?${params}`, { headers: { Authorization: `Bearer ${TOKEN}` } });
+    if (!response.ok) throw new Error(`Airtable returned ${response.status}`);
+    return (await response.json()).records || [];
+  }
+
+  function fieldText(value) {
+    if (Array.isArray(value)) return value.map(fieldText).join(', ');
+    if (value && typeof value === 'object') return value.name || value.value || '';
+    return String(value ?? '');
   }
 
   function renderProtocolSnapshot() {
@@ -113,8 +136,97 @@
       <p class="dashboard-card-note">${routine.length} active routine-monitoring tests remain in the plan.</p>`;
   }
 
+  function averageForDays(records, field, days) {
+    const cutoff = new Date();
+    cutoff.setHours(0, 0, 0, 0);
+    cutoff.setDate(cutoff.getDate() - (days - 1));
+    const values = records.filter(record => {
+      const date = new Date(`${record.fields[DAILY_FIELDS.date]}T12:00:00`);
+      return !Number.isNaN(date.getTime()) && date >= cutoff;
+    }).map(record => Number(record.fields[field])).filter(Number.isFinite);
+    return values.length ? values.reduce((total, value) => total + value, 0) / values.length : null;
+  }
+
+  function formatMetric(value, decimals, thousands) {
+    if (value === null || value === undefined || !Number.isFinite(Number(value))) return '—';
+    const number = Number(value);
+    return thousands ? Math.round(number).toLocaleString() : number.toFixed(decimals);
+  }
+
+  function renderDailySnapshot(records) {
+    const target = document.getElementById('dash-daily-snapshot');
+    if (!target) return;
+    if (!records?.length) {
+      target.innerHTML = '<p class="dashboard-empty">No daily health entries are available.</p>';
+      return;
+    }
+    const metrics = [
+      { key: 'weight', label: 'Weight', unit: 'lb', decimals: 1 },
+      { key: 'sleep', label: 'Sleep', unit: 'hr', decimals: 1 },
+      { key: 'deep', label: 'Deep sleep', unit: 'min', decimals: 0 },
+      { key: 'hrv', label: 'HRV', unit: 'ms', decimals: 0 },
+      { key: 'rhr', label: 'Resting HR', unit: 'bpm', decimals: 0 },
+      { key: 'steps', label: 'Steps', unit: '', decimals: 0, thousands: true }
+    ];
+    const newest = records.find(record => metrics.some(metric => Number.isFinite(Number(record.fields[DAILY_FIELDS[metric.key]])))) || records[0];
+    const newestDate = newest.fields[DAILY_FIELDS.date];
+    const age = newestDate ? Math.max(0, Math.floor((Date.now() - new Date(`${newestDate}T12:00:00`).getTime()) / 86400000)) : null;
+    const freshness = age === 0 ? 'Today' : age === 1 ? 'Yesterday' : age !== null ? `${age} days ago` : 'Date unavailable';
+    target.innerHTML = `<div class="dashboard-daily-freshness"><span class="${age !== null && age > 3 ? 'stale' : ''}">${escapeHtml(freshness)}</span><small>Latest logged ${escapeHtml(formatDashboardDate(newestDate))}</small></div>
+      <div class="dashboard-daily-metrics">${metrics.map(metric => {
+        const field = DAILY_FIELDS[metric.key];
+        const latestRecord = records.find(record => Number.isFinite(Number(record.fields[field])));
+        const latest = latestRecord ? Number(latestRecord.fields[field]) : null;
+        const average7 = averageForDays(records, field, 7);
+        const average30 = averageForDays(records, field, 30);
+        return `<div><span>${escapeHtml(metric.label)}</span><strong>${formatMetric(latest, metric.decimals, metric.thousands)} <small>${escapeHtml(metric.unit)}</small></strong><em>7d ${formatMetric(average7, metric.decimals, metric.thousands)} · 30d ${formatMetric(average30, metric.decimals, metric.thousands)}</em></div>`;
+      }).join('')}</div>`;
+  }
+
+  function normalizeActivities(injections, changes, supplementChanges) {
+    const injectionActivity = [];
+    const protocolActivity = [];
+    const supplementActivity = [];
+    recordFields(injections).forEach(row => {
+      const compound = fieldText(row.Compound);
+      const site = fieldText(row.Site).toUpperCase();
+      if (!row.Date || !compound || /week note/i.test(compound) || site === 'S') return;
+      injectionActivity.push({ date: row.Date, type: 'Injection', title: `${compound} injection`, detail: [fieldText(row.Dose), fieldText(row.Timing)].filter(Boolean).join(' · '), view: 'injlog', nav: 'nav-pep' });
+    });
+    recordFields(changes).forEach(row => {
+      if (!row['Change Date']) return;
+      const compound = fieldText(row.Compound) || 'Protocol';
+      const changeType = fieldText(row['Change Type']) || 'Change';
+      protocolActivity.push({ date: row['Change Date'], type: 'Protocol', title: `${compound} — ${changeType}`, detail: fieldText(row.Description || row['Description of Change']), view: 'changes', nav: 'nav-pep' });
+    });
+    recordFields(supplementChanges).forEach(row => {
+      if (!row['Change Date']) return;
+      const supplement = fieldText(row.Supplement) || 'Supplement';
+      const changeType = fieldText(row['Change Type']) || 'Change';
+      supplementActivity.push({ date: row['Change Date'], type: 'Supplement', title: `${supplement} — ${changeType}`, detail: fieldText(row['Description of Change']), view: 'suppchanges', nav: 'nav-supp' });
+    });
+    const newestThree = items => items.sort((a, b) => String(b.date).localeCompare(String(a.date))).slice(0, 3);
+    return [...newestThree(injectionActivity), ...newestThree(protocolActivity), ...newestThree(supplementActivity)]
+      .sort((a, b) => String(b.date).localeCompare(String(a.date))).slice(0, 7);
+  }
+
+  function renderRecentActivity(injections, changes, supplementChanges) {
+    const target = document.getElementById('dash-recent-activity');
+    if (!target) return;
+    const activities = normalizeActivities(injections, changes, supplementChanges);
+    if (!activities.length) {
+      target.innerHTML = '<p class="dashboard-empty">No recent protocol activity is available.</p>';
+      return;
+    }
+    target.innerHTML = `<div class="dashboard-activity-list">${activities.map(item => `<button onclick="navDrop('${item.view}','${item.nav}')">
+      <span class="dashboard-activity-dot ${item.type.toLowerCase()}" aria-hidden="true"></span>
+      <span><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(item.detail || item.type)}</small></span>
+      <time datetime="${escapeHtml(item.date)}">${escapeHtml(formatDashboardDate(item.date).replace(/, \d{4}$/, ''))}</time>
+    </button>`).join('')}</div>`;
+  }
+
   function renderError() {
-    ['dash-lab-status', 'dash-health-focus', 'dash-monitoring-queue'].forEach(id => {
+    ['dash-lab-status', 'dash-health-focus', 'dash-monitoring-queue', 'dash-daily-snapshot', 'dash-recent-activity'].forEach(id => {
       const element = document.getElementById(id);
       if (element) element.innerHTML = '<p class="dashboard-empty">Could not refresh this section. Use ↻ to retry.</p>';
     });
@@ -128,19 +240,38 @@
       renderLabs(cached.labs);
       renderGoals(cached.goals);
       renderMonitoring(cached.plan);
+      renderDailySnapshot(cached.daily);
+      renderRecentActivity(cached.injections, cached.changes, cached.supplementChanges);
       return;
     }
     loading = true;
     try {
-      const [labs, goals, plan] = await Promise.all([
-        fetchTable(TABLES.bloodwork),
-        fetchTable(TABLES.goals),
-        fetchTable(TABLES.labMonitoringPlan, '{Active}=1')
-      ]);
-      writeCache({ labs, goals, plan });
-      renderLabs(labs);
-      renderGoals(goals);
-      renderMonitoring(plan);
+      const payload = { labs: [], goals: [], plan: [], daily: [], injections: [], changes: [], supplementChanges: [] };
+      const corePromise = Promise.all([
+        fetchTable(TABLES.bloodwork), fetchTable(TABLES.goals), fetchTable(TABLES.labMonitoringPlan, '{Active}=1')
+      ]).then(([labs, goals, plan]) => {
+        Object.assign(payload, { labs, goals, plan });
+        renderLabs(labs); renderGoals(goals); renderMonitoring(plan);
+      }).catch(error => {
+        console.error('[dashboard] core insights:', error);
+        ['dash-lab-status', 'dash-health-focus', 'dash-monitoring-queue'].forEach(id => {
+          const element = document.getElementById(id);
+          if (element) element.innerHTML = '<p class="dashboard-empty">Could not refresh this section. Use ↻ to retry.</p>';
+        });
+      });
+      const dailyPromise = fetchRecentTable(TABLES.dailyLog, DAILY_FIELDS.date, 60, Object.values(DAILY_FIELDS), true)
+        .then(daily => { payload.daily = daily; renderDailySnapshot(daily); })
+        .catch(error => { console.error('[dashboard] daily snapshot:', error); renderDailySnapshot([]); });
+      const activityPromise = Promise.all([
+        fetchRecentTable(INJECTION_TABLE, 'Date', 15),
+        fetchRecentTable(TABLES.protocolChanges, 'Change Date', 15),
+        fetchRecentTable(TABLES.suppChanges, 'Change Date', 15)
+      ]).then(([injections, changes, supplementChanges]) => {
+        Object.assign(payload, { injections, changes, supplementChanges });
+        renderRecentActivity(injections, changes, supplementChanges);
+      }).catch(error => { console.error('[dashboard] activity:', error); renderRecentActivity([], [], []); });
+      await Promise.allSettled([corePromise, dailyPromise, activityPromise]);
+      writeCache(payload);
     } catch (error) {
       console.error('[dashboard] insights:', error);
       renderError();
