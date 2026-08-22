@@ -15,12 +15,13 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="app.js?v=1787336100" defer></script>
-<script src="labs-ui.js?v=1787349400" defer></script>
+<script src="labs-ui.js?v=1787433600" defer></script>
 <script src="app-shell-ui.js?v=1787346000" defer></script>
-<script src="data-views-ui.js?v=1787349400" defer></script>
+<script src="data-views-ui.js?v=1787433600" defer></script>
 <script src="remaining-ui.js?v=1787349400" defer></script>
+<script src="dashboard-ui.js?v=1787433600" defer></script>
 
-<link rel="stylesheet" href="app.css?v=1787349400">
+<link rel="stylesheet" href="app.css?v=1787433600">
 <!-- old-cb:224814 -->
 </head>
 <body>
@@ -204,37 +205,58 @@
       <button onclick="snoozeBackup()" style="margin-left:12px;padding:3px 10px;border:1px solid var(--amber);border-radius:5px;background:transparent;color:var(--amber);cursor:pointer;font-size:11px">Dismiss (1 month)</button>
     </div>
     <div class="stats-grid">
-      <div class="stat-card"><div class="stat-label">Active Peptides</div><div class="stat-value green" id="stat-active-peptides"></div></div>
-      <div class="stat-card"><div class="stat-label">Active Supplements</div><div class="stat-value green" id="stat-active-supps"></div></div>
-      <div class="stat-card"><div class="stat-label">On Order</div><div class="stat-value blue" id="stat-onorder"></div></div>
-      <div class="stat-card"><div class="stat-label">Paused</div><div class="stat-value amber" id="stat-paused"></div></div>
+      <button class="stat-card stat-card-button" onclick="navDrop('peptides','nav-pep')"><div class="stat-label">Active Peptides</div><div class="stat-value green" id="stat-active-peptides"></div><span>Open protocol</span></button>
+      <button class="stat-card stat-card-button" onclick="navDrop('supplements','nav-supp')"><div class="stat-label">Active Supplements</div><div class="stat-value green" id="stat-active-supps"></div><span>Open protocol</span></button>
+      <button class="stat-card stat-card-button" onclick="navDrop('purchases','nav-pep')"><div class="stat-label">On Order</div><div class="stat-value blue" id="stat-onorder"></div><span>Review orders</span></button>
+      <button class="stat-card stat-card-button" onclick="navDrop('peptides','nav-pep')"><div class="stat-label">Paused</div><div class="stat-value amber" id="stat-paused"></div><span>Review compounds</span></button>
     </div>
-    <div class="dash-columns">
-      <div style="display:flex;flex-direction:column;gap:16px">
-        <div class="dash-card">
-          <h3>Morning Peptides</h3>
-          <div id="dash-pep-am"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
-        </div>
-        <div class="dash-card">
-          <h3>Night Peptides</h3>
-          <div id="dash-pep-pm"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
-        </div>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:16px">
-        <div class="dash-card">
-          <h3>Morning Supplements</h3>
-          <div id="dash-supps-am"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
-        </div>
-        <div class="dash-card">
-          <h3>Dinner Supplements</h3>
-          <div id="dash-supps-din"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
-        </div>
-      </div>
-      <div class="dash-card">
-        <h3>Night Supplements</h3>
-        <div id="dash-supps-pm"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
-      </div>
+    <div class="dashboard-overview-grid">
+      <section class="dash-card dashboard-overview-card dashboard-labs-card">
+        <div class="dashboard-card-heading"><div><span class="dashboard-eyebrow">Current</span><h2>Labs &amp; monitoring</h2></div><button onclick="refreshDashboardInsights()" aria-label="Refresh dashboard insights">↻</button></div>
+        <div id="dash-lab-status" class="dashboard-insight-loading">Loading latest lab status…</div>
+      </section>
+      <section class="dash-card dashboard-overview-card">
+        <div class="dashboard-card-heading"><div><span class="dashboard-eyebrow">Priorities</span><h2>Health focus</h2></div><button onclick="navDrop('goals','nav-personal')">All goals</button></div>
+        <div id="dash-health-focus" class="dashboard-insight-loading">Loading active goals…</div>
+      </section>
+      <section class="dash-card dashboard-overview-card">
+        <div class="dashboard-card-heading"><div><span class="dashboard-eyebrow">Today</span><h2>Protocol snapshot</h2></div><button onclick="navDrop('printlist','nav-supp')">Full list</button></div>
+        <div id="dash-protocol-snapshot" class="dashboard-insight-loading">Loading current protocol…</div>
+      </section>
+      <section class="dash-card dashboard-overview-card">
+        <div class="dashboard-card-heading"><div><span class="dashboard-eyebrow">Next</span><h2>Monitoring queue</h2></div><button onclick="openLabMonitoringPlan()">Open plan</button></div>
+        <div id="dash-monitoring-queue" class="dashboard-insight-loading">Loading monitoring plan…</div>
+      </section>
     </div>
+    <details class="dashboard-protocol-details">
+      <summary><span><strong>Full daily protocol</strong><small>Morning, dinner, and night details</small></span><span class="dashboard-details-action">Show details</span></summary>
+      <div class="dash-columns">
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div class="dash-card">
+            <h3>Morning Peptides</h3>
+            <div id="dash-pep-am"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
+          </div>
+          <div class="dash-card">
+            <h3>Night Peptides</h3>
+            <div id="dash-pep-pm"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div class="dash-card">
+            <h3>Morning Supplements</h3>
+            <div id="dash-supps-am"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
+          </div>
+          <div class="dash-card">
+            <h3>Dinner Supplements</h3>
+            <div id="dash-supps-din"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
+          </div>
+        </div>
+        <div class="dash-card">
+          <h3>Night Supplements</h3>
+          <div id="dash-supps-pm"><div class="loading"><span class="loading-dot">.</span><span class="loading-dot">.</span><span class="loading-dot">.</span></div></div>
+        </div>
+      </div>
+    </details>
   </div>
 
   <!-- PEPTIDES -->
@@ -761,6 +783,7 @@
         <option value="LabCorp">LabCorp</option>
       </select>
       <button class="filter-btn labs-log-result" onclick="showAddLabModal()">+ Log Result</button>
+      <button class="filter-btn labs-batch-result" onclick="showBatchLabModal()">+ Batch Results</button>
     </div>
     <div class="filter-bar" id="labs-priority-bar" style="padding:6px 16px;border-bottom:1px solid var(--border);gap:6px">
       <span style="font-size:11px;color:var(--muted);font-weight:600;letter-spacing:0.5px;text-transform:uppercase">Priority</span>
@@ -931,6 +954,26 @@
     <div class="modal-actions">
       <button class="modal-btn" onclick="hideAddLabModal()">Cancel</button>
       <button class="modal-btn primary" id="al-save-btn" onclick="saveAddLab()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- BATCH LAB RESULTS MODAL -->
+<div class="modal-overlay" id="batch-lab-modal" onclick="if(event.target===this)hideBatchLabModal()" style="display:none">
+  <div class="modal-box batch-lab-modal-box">
+    <div class="modal-title">Batch Lab Results</div>
+    <p class="batch-lab-help">Paste rows from a spreadsheet: Biomarker, Value, Units, Status. Tabs work best; commas are also accepted.</p>
+    <div class="batch-lab-meta">
+      <div class="modal-field"><label>Draw date</label><input type="date" id="batch-lab-date"></div>
+      <div class="modal-field"><label>Source</label><select id="batch-lab-source"><option>REM Health</option><option>LabCorp</option><option>Function Health</option><option>Other</option></select></div>
+      <div class="modal-field"><label>Default lab type</label><select id="batch-lab-type"><option value="">Unspecified</option><option>CBC</option><option>Hormones</option><option>Kidney</option><option>Liver</option><option>Lipids</option><option>Metabolic</option><option>Thyroid</option><option>Other</option></select></div>
+    </div>
+    <div class="modal-field"><label>Results</label><textarea id="batch-lab-input" rows="10" placeholder="Hematocrit&#9;51.2&#9;%&#9;In Range&#10;Creatinine&#9;1.31&#9;mg/dL&#9;Out of Range" oninput="previewBatchLabs()"></textarea></div>
+    <div id="batch-lab-preview" class="batch-lab-preview"><p>Paste results to preview them here.</p></div>
+    <div class="modal-actions batch-lab-actions">
+      <span id="batch-lab-status" aria-live="polite"></span>
+      <button class="modal-btn" onclick="hideBatchLabModal()">Cancel</button>
+      <button class="modal-btn primary" id="batch-lab-save" onclick="saveBatchLabs()" disabled>Save Results</button>
     </div>
   </div>
 </div>
