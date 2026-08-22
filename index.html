@@ -20,9 +20,9 @@
 <script src="app-shell-ui.js?v=1787346000" defer></script>
 <script src="data-views-ui.js?v=1787435200" defer></script>
 <script src="remaining-ui.js?v=1787349400" defer></script>
-<script src="dashboard-ui.js?v=1787433600" defer></script>
+<script src="dashboard-ui.js?v=1787438500" defer></script>
 
-<link rel="stylesheet" href="app.css?v=1787436000">
+<link rel="stylesheet" href="app.css?v=1787438500">
 <!-- old-cb:224814 -->
 </head>
 <body>
@@ -227,6 +227,16 @@
       <section class="dash-card dashboard-overview-card">
         <div class="dashboard-card-heading"><div><span class="dashboard-eyebrow">Next</span><h2>Monitoring queue</h2></div><button onclick="openLabMonitoringPlan()">Open plan</button></div>
         <div id="dash-monitoring-queue" class="dashboard-insight-loading">Loading monitoring plan…</div>
+      </section>
+    </div>
+    <div class="dashboard-secondary-grid">
+      <section class="dash-card dashboard-health-snapshot-card">
+        <div class="dashboard-card-heading"><div><span class="dashboard-eyebrow">Health log</span><h2>Daily snapshot</h2></div><button onclick="navDrop('log','nav-personal')">Open daily log</button></div>
+        <div id="dash-daily-snapshot" class="dashboard-insight-loading">Loading recent health metrics…</div>
+      </section>
+      <section class="dash-card dashboard-activity-card">
+        <div class="dashboard-card-heading"><div><span class="dashboard-eyebrow">Recent</span><h2>Activity</h2></div><button onclick="refreshDashboardInsights()" aria-label="Refresh recent activity">↻</button></div>
+        <div id="dash-recent-activity" class="dashboard-insight-loading">Loading recent activity…</div>
       </section>
     </div>
     <details class="dashboard-protocol-details">
